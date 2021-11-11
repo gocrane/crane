@@ -1,0 +1,22 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: crane-manager
+rules:
+  - apiGroups: [ '*' ]
+    resources: [ '*' ]
+    verbs: [ "*" ]
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: crane-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: crane-manager
+subjects:
+  - kind: ServiceAccount
+    name: crane-manager
+    namespace: crane-system
