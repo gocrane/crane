@@ -68,6 +68,11 @@ generate: manifests ## Generate WebhookConfiguration, ClusterRole and CustomReso
 fmt: ## Run go fmt against code.
 	go fmt ./...
 
+.PHONY: goimports
+goimports: ## Run goimports to ordering import packages group
+	goimports -w ./
+
+
 .PHONY: vet
 vet: ## Run go vet against code.
 	@find . -type f -name '*.go'| grep -v "/vendor/" | xargs gofmt -w -s
@@ -96,7 +101,7 @@ lint: golangci-lint  ## Run golang lint against code
       -E structcheck
 
 .PHONY: test
-test: manifests fmt vet ## Run tests.
+test: manifests fmt vet goimports ## Run tests.
 	go test -race -coverprofile coverage.out -covermode=atomic ./...
 
 ##@ Build
@@ -168,4 +173,20 @@ ifeq (, $(shell which golangci-lint))
 GOLANG_LINT=$(shell go env GOPATH)/bin/golangci-lint
 else
 GOLANG_LINT=$(shell which golangci-lint)
+endif
+
+goimports:
+ifeq (, $(shell which goimports))
+	@{ \
+	set -e ;\
+	export GO111MODULE=on; \
+	GO_IMPORTS_TMP_DIR=$$(mktemp -d) ;\
+	cd $$GO_IMPORTS_TMP_DIR ;\
+	go mod init tmp ;\
+	go get golang.org/x/tools/cmd/goimports@v0.1.7 ;\
+	rm -rf $$GO_IMPORTS_TMP_DIR ;\
+	}
+GO_IMPORTS=$(shell go env GOPATH)/bin/goimports
+else
+GO_IMPORTS=$(shell which goimports)
 endif
