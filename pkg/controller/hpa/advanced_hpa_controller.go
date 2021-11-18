@@ -23,9 +23,10 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	autoscalingapi "github.com/gocrane-io/api/autoscaling/v1alpha1"
-	"github.com/gocrane-io/crane/pkg/known"
-	"github.com/gocrane-io/crane/pkg/utils"
+	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
+
+	"github.com/gocrane/crane/pkg/known"
+	"github.com/gocrane/crane/pkg/utils"
 )
 
 // AdvancedHPAController is responsible for scaling workload's replica based on AdvancedHorizontalPodAutoscaler spec
@@ -84,6 +85,15 @@ func (p *AdvancedHPAController) Reconcile(ctx context.Context, req ctrl.Request)
 			}
 		}
 
+		ahpaCopy := ahpa.DeepCopy()
+		ahpaCopy.Finalizers = nil
+		err = p.Client.Update(ctx, ahpaCopy)
+		if err != nil {
+			p.Recorder.Event(ahpaCopy, v1.EventTypeNormal, "FailedRemoveFinalizer", err.Error())
+			p.Log.Error(err, "Failed to remove finalizer", "ahpa.UID", ahpaCopy.UID)
+			return ctrl.Result{}, err
+		}
+
 		return ctrl.Result{}, nil
 	}
 
@@ -103,7 +113,7 @@ func (p *AdvancedHPAController) Reconcile(ctx context.Context, req ctrl.Request)
 	// todo: check scaleTarget
 
 	// reconcile prediction if enabled
-	if ahpa.Spec.PredictionConfig != nil && ahpa.Spec.PredictionConfig.PredictionWindow != nil && ahpa.Spec.PredictionConfig.PredictionAlgorithm != nil {
+	if IsPredictionEnabled(ahpa) {
 		err = p.ReconcilePodPredication(ctx, ahpa)
 		if err != nil {
 			return ctrl.Result{}, err

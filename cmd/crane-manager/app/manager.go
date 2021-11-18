@@ -10,16 +10,16 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/component-base/logs"
 	"k8s.io/klog/v2"
+	"k8s.io/klog/v2/klogr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
-	autoscalingapi "github.com/gocrane-io/api/autoscaling/v1alpha1"
-	predictionapi "github.com/gocrane-io/api/prediction/v1alpha1"
-	"github.com/gocrane-io/crane/cmd/crane-manager/app/options"
-	"github.com/gocrane-io/crane/pkg/controller/hpa"
-	"github.com/gocrane-io/crane/pkg/known"
+	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
+	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
+	"github.com/gocrane/crane/cmd/crane-manager/app/options"
+	"github.com/gocrane/crane/pkg/controller/hpa"
+	"github.com/gocrane/crane/pkg/known"
 )
 
 var (
@@ -64,8 +64,8 @@ func NewManagerCommand(ctx context.Context) *cobra.Command {
 
 // Run runs the crane-manager with options. This should never exit.
 func Run(ctx context.Context, opts *options.Options) error {
-	logs.InitLogs()
-	defer logs.FlushLogs()
+	logger := klogr.New().WithName("crane-manager")
+	ctrl.SetLogger(logger)
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                  scheme,

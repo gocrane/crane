@@ -7,7 +7,7 @@ import (
 	apiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/component-base/logs"
 
-	"github.com/gocrane-io/crane/cmd/crane-manager/app"
+	"github.com/gocrane/crane/cmd/crane-manager/app"
 )
 
 // Crane-Manager main.

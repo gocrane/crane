@@ -10,10 +10,10 @@ ifeq ($(GIT_DIFF), 1)
 endif
 BUILDDATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 
-LDFLAGS = "-X github.com/gocrane-io/crane/pkg/version.gitVersion=$(GIT_VERSION) \
-                      -X github.com/gocrane-io/crane/pkg/version.gitCommit=$(GIT_COMMIT_HASH) \
-                      -X github.com/gocrane-io/crane/pkg/version.gitTreeState=$(GIT_TREESTATE) \
-                      -X github.com/gocrane-io/crane/pkg/version.buildDate=$(BUILDDATE)"
+LDFLAGS = "-X github.com/gocrane/crane/pkg/version.gitVersion=$(GIT_VERSION) \
+                      -X github.com/gocrane/crane/pkg/version.gitCommit=$(GIT_COMMIT_HASH) \
+                      -X github.com/gocrane/crane/pkg/version.gitTreeState=$(GIT_TREESTATE) \
+                      -X github.com/gocrane/crane/pkg/version.buildDate=$(BUILDDATE)"
 
 # Images management
 REGISTRY ?= ccr.ccs.tencentyun.com
@@ -23,6 +23,7 @@ REGISTRY_PASSWORD?=""
 
 # Image URL to use all building/pushing image targets
 MANAGER_IMG ?= "${REGISTRY}/${REGISTRY_NAMESPACE}/manager:${GIT_VERSION}"
+ADAPTER_IMG ?= "${REGISTRY}/${REGISTRY_NAMESPACE}/metric-adapter:${GIT_VERSION}"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -58,7 +59,7 @@ help: ## Display this help.
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" rbac:roleName=manager-role crd webhook paths="./vendor/github.com/gocrane-io/api/..." output:crd:artifacts:config=manifests
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" rbac:roleName=manager-role crd webhook paths="./vendor/github.com/gocrane/api/..." output:crd:artifacts:config=manifests
 
 .PHONY: generate
 generate: manifests ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
@@ -107,21 +108,29 @@ test: manifests fmt vet goimports ## Run tests.
 ##@ Build
 
 .PHONY: all
-all: crane-manager
+all: crane-manager metric-adapter
 
 .PHONY: crane-manager
-crane-manager: ## Build binary with the manager.
+crane-manager: ## Build binary with the crane manager.
 	CGO_ENABLED=0 GOOS=$(GOOS) go build -ldflags $(LDFLAGS) -o bin/crane-manager cmd/crane-manager/main.go
 
+.PHONY: metric-adapter
+metric-adapter: ## Build binary with the metric adapter.
+	CGO_ENABLED=0 GOOS=$(GOOS) go build -ldflags $(LDFLAGS) -o bin/metric-adapter cmd/metric-adapter/main.go
+
 .PHONY: images
-images: image-crane-manager
+images: image-crane-manager image-metric-adapter
 
 .PHONY: image-crane-manager
-image-crane-manager: test ## Build docker image with the manager.
+image-crane-manager: test ## Build docker image with the crane manager.
 	docker build --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=crane-manager -t ${MANAGER_IMG} .
 
+.PHONY: image-metric-adapter
+image-metric-adapter: test ## Build docker image with the metric adapter.
+	docker build --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=metric-adapter -t ${ADAPTER_IMG} .
+
 .PHONY: push-images
-push-images: push-image-crane-manager
+push-images: push-image-crane-manager push-image-metric-adapter
 
 .PHONY: push-image-crane-manager
 push-image-crane-manager: ## Push images.
@@ -129,6 +138,13 @@ ifneq ($(REGISTRY_USER_NAME), "")
 	docker login -u $(REGISTRY_USER_NAME) -p $(REGISTRY_PASSWORD) ${REGISTRY}
 endif
 	docker push ${MANAGER_IMG}
+
+.PHONY: push-image-metric-adapter
+push-image-metric-adapter: ## Push images.
+ifneq ($(REGISTRY_USER_NAME), "")
+	docker login -u $(REGISTRY_USER_NAME) -p $(REGISTRY_PASSWORD) ${REGISTRY}
+endif
+	docker push ${ADAPTER_IMG}
 
 # go-get-tool will 'go get' any package $2 and install it to $1.
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
@@ -167,7 +183,7 @@ ifeq (, $(shell which golangci-lint))
 	GOLANG_LINT_TMP_DIR=$$(mktemp -d) ;\
 	cd $$GOLANG_LINT_TMP_DIR ;\
 	go mod init tmp ;\
-	go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.39.0 ;\
+	go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.0 ;\
 	rm -rf $$GOLANG_LINT_TMP_DIR ;\
 	}
 GOLANG_LINT=$(shell go env GOPATH)/bin/golangci-lint

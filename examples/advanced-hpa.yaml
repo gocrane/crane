@@ -1,7 +1,7 @@
 apiVersion: autoscaling.crane.io/v1alpha1
 kind: AdvancedHorizontalPodAutoscaler
 metadata:
-  name: hpa-test
+  name: hpa-sample
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -10,15 +10,14 @@ spec:
   minReplicas: 1
   maxReplicas: 10
   metrics:
-    - type: External
-      external:
-        metric:
-          name: pod_cpu_usage
-        target:
-          type: AverageValue
-          averageValue: 30
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
   predictionConfig:
-    predictionWindow: 600
+    predictionWindow: 3600
     predictionAlgorithm:
       algorithmType: dsp
       dsp:
