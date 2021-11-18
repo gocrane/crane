@@ -4,18 +4,22 @@ import (
 	"fmt"
 	"os"
 
-	apiserver "k8s.io/apiserver/pkg/server"
+	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/component-base/logs"
+	"k8s.io/klog/v2/klogr"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/gocrane-io/crane/cmd/crane-manager/app"
 )
 
-// Crane-Manager main.
+// crane-Manager main.
 func main() {
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
-	ctx := apiserver.SetupSignalContext()
+	ctrl.SetLogger(klogr.New())
+
+	ctx := genericapiserver.SetupSignalContext()
 
 	if err := app.NewManagerCommand(ctx).Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)

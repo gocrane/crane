@@ -11,7 +11,6 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/component-base/logs"
-	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
@@ -44,14 +43,16 @@ func NewManagerCommand(ctx context.Context) *cobra.Command {
 		Long: `The crane manager is responsible for manage controllers in crane`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(); err != nil {
-				klog.Exit(err)
+				managerLogger.Error(err, "opts complete failed,exit")
+				os.Exit(255)
 			}
 			if err := opts.Validate(); err != nil {
-				klog.Exit(err)
+				managerLogger.Error(err, "opts validate failed,exit")
+				os.Exit(255)
 			}
 
 			if err := Run(ctx, opts); err != nil {
-				fmt.Fprintf(os.Stderr, "%v\n", err)
+				_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
 				os.Exit(1)
 			}
 		},
@@ -66,6 +67,8 @@ func NewManagerCommand(ctx context.Context) *cobra.Command {
 func Run(ctx context.Context, opts *options.Options) error {
 	logs.InitLogs()
 	defer logs.FlushLogs()
+
+	managerLogger.Info("Run")
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                  scheme,
@@ -82,7 +85,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 	}
 
 	if err := mgr.AddHealthzCheck("ping", healthz.Ping); err != nil {
-		klog.Errorf("failed to add health check endpoint: %v", err)
+		managerLogger.Error(err, "failed to add health check endpoint")
 		return err
 	}
 
@@ -90,7 +93,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 
 	managerLogger.Info("Starting crane manager")
 	if err := mgr.Start(ctx); err != nil {
-		klog.Errorf("problem running crane manager: %v", err)
+		managerLogger.Error(err, "problem running crane manager")
 		return err
 	}
 
@@ -111,5 +114,4 @@ func initializationControllers(mgr ctrl.Manager, opts *options.Options) {
 		managerLogger.Error(err, "unable to create controller", "controller", "AdvancedHPAController")
 		os.Exit(1)
 	}
-
 }

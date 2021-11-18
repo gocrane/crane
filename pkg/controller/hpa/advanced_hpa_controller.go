@@ -19,13 +19,13 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/scale"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	autoscalingapi "github.com/gocrane-io/api/autoscaling/v1alpha1"
 	"github.com/gocrane-io/crane/pkg/known"
 	"github.com/gocrane-io/crane/pkg/utils"
+	"github.com/gocrane-io/crane/pkg/utils/clogs"
 )
 
 // AdvancedHPAController is responsible for scaling workload's replica based on AdvancedHorizontalPodAutoscaler spec
@@ -92,7 +92,7 @@ func (p *AdvancedHPAController) Reconcile(ctx context.Context, req ctrl.Request)
 
 		err = p.Client.Update(ctx, ahpa)
 		if err == nil {
-			msg := fmt.Sprintf("AdvancedHorizontalPodAutoscaler %s is updated successfully", klog.KObj(ahpa))
+			msg := fmt.Sprintf("AdvancedHorizontalPodAutoscaler %s is updated successfully", clogs.GenerateKey(ahpa.Name, ahpa.Namespace))
 			p.Log.Info(msg)
 			p.Recorder.Event(ahpa, corev1.EventTypeNormal, "FinalizerUpdated", msg)
 		} else {
