@@ -3,19 +3,19 @@ module github.com/gocrane-io/crane
 go 1.17
 
 require (
+	github.com/go-logr/logr v0.4.0
 	github.com/gocrane-io/api v0.0.4
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/net v0.0.0-20210520170846-37e1c6afe023
 	google.golang.org/grpc v1.38.0
-	k8s.io/klog/v2 v2.9.0
-	github.com/go-logr/logr v0.4.0
 	k8s.io/api v0.22.3
 	k8s.io/apimachinery v0.22.3
 	k8s.io/apiserver v0.22.3
 	k8s.io/client-go v0.22.3
-	k8s.io/component-base v0.22.2
+	k8s.io/component-base v0.22.3
 	k8s.io/cri-api v0.22.3
+	k8s.io/klog/v2 v2.9.0
 	k8s.io/kubernetes v1.22.3
 	k8s.io/metrics v0.22.3
 	sigs.k8s.io/controller-runtime v0.10.2
@@ -23,6 +23,7 @@ require (
 )
 
 replace (
+	github.com/gocrane-io/api => github.com/yan234280533/api v0.0.0-20211118050026-f977bcb0cbbb
 	golang.org/x/net => github.com/golang/net v0.0.0-20210825183410-e898025ed96a
 	k8s.io/api => k8s.io/api v0.22.3
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.22.3

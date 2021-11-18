@@ -15,7 +15,7 @@ spec:
   nodeSelector:
     group: "s-000001"
   containers:
-    - image: gocrane/stress-ng:v0.12.09
+    - image: docker.io/gocrane/stress-ng:v0.12.09
       imagePullPolicy: IfNotPresent
       name: low
       command:
