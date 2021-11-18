@@ -19,11 +19,11 @@ import (
 	"github.com/gocrane-io/crane/cmd/crane-manager/app/options"
 	"github.com/gocrane-io/crane/pkg/controller/hpa"
 	"github.com/gocrane-io/crane/pkg/known"
+	"github.com/gocrane-io/crane/pkg/utils/clogs"
 )
 
 var (
-	scheme        = runtime.NewScheme()
-	managerLogger = ctrl.Log.WithName("crane-manager")
+	scheme = runtime.NewScheme()
 )
 
 func init() {
@@ -43,12 +43,13 @@ func NewManagerCommand(ctx context.Context) *cobra.Command {
 		Long: `The crane manager is responsible for manage controllers in crane`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(); err != nil {
-				managerLogger.Error(err, "opts complete failed,exit")
+				clogs.Log().Error(err, "opts complete failed,exit")
 				os.Exit(255)
 			}
 			if err := opts.Validate(); err != nil {
-				managerLogger.Error(err, "opts validate failed,exit")
+				clogs.Log().Error(err, "opts validate failed,exit")
 				os.Exit(255)
+
 			}
 
 			if err := Run(ctx, opts); err != nil {
@@ -68,7 +69,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
-	managerLogger.Info("Run")
+	clogs.Log().Info("Run")
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                  scheme,
@@ -80,20 +81,20 @@ func Run(ctx context.Context, opts *options.Options) error {
 		LeaderElectionNamespace: known.CraneSystemNamespace,
 	})
 	if err != nil {
-		managerLogger.Error(err, "unable to start crane manager")
+		clogs.Log().Error(err, "unable to start crane manager")
 		os.Exit(1)
 	}
 
 	if err := mgr.AddHealthzCheck("ping", healthz.Ping); err != nil {
-		managerLogger.Error(err, "failed to add health check endpoint")
+		clogs.Log().Error(err, "failed to add health check endpoint")
 		return err
 	}
 
 	initializationControllers(mgr, opts)
 
-	managerLogger.Info("Starting crane manager")
+	clogs.Log().Info("Starting crane manager")
 	if err := mgr.Start(ctx); err != nil {
-		managerLogger.Error(err, "problem running crane manager")
+		clogs.Log().Error(err, "problem running crane manager")
 		return err
 	}
 
@@ -102,16 +103,16 @@ func Run(ctx context.Context, opts *options.Options) error {
 
 // initializationControllers setup controllers with manager
 func initializationControllers(mgr ctrl.Manager, opts *options.Options) {
-	managerLogger.Info(fmt.Sprintf("opts %v", opts))
+	clogs.Log().Info(fmt.Sprintf("opts %v", opts))
 	hpaRecorder := mgr.GetEventRecorderFor("advanced-hpa-controller")
 	if err := (&hpa.AdvancedHPAController{
 		Client:     mgr.GetClient(),
-		Log:        mgr.GetLogger().WithName("advanced-hpa-controller"),
+		Log:        clogs.Log().WithName("advanced-hpa-controller"),
 		Scheme:     mgr.GetScheme(),
 		RestMapper: mgr.GetRESTMapper(),
 		Recorder:   hpaRecorder,
 	}).SetupWithManager(mgr); err != nil {
-		managerLogger.Error(err, "unable to create controller", "controller", "AdvancedHPAController")
+		clogs.Log().Error(err, "unable to create controller", "controller", "AdvancedHPAController")
 		os.Exit(1)
 	}
 }

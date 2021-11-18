@@ -92,7 +92,7 @@ func (p *AdvancedHPAController) Reconcile(ctx context.Context, req ctrl.Request)
 
 		err = p.Client.Update(ctx, ahpa)
 		if err == nil {
-			msg := fmt.Sprintf("AdvancedHorizontalPodAutoscaler %s is updated successfully", clogs.GenerateKey(ahpa.Name, ahpa.Namespace))
+			msg := fmt.Sprintf("AdvancedHorizontalPodAutoscaler %s is updated successfully", clogs.GenerateObj(ahpa))
 			p.Log.Info(msg)
 			p.Recorder.Event(ahpa, corev1.EventTypeNormal, "FinalizerUpdated", msg)
 		} else {
