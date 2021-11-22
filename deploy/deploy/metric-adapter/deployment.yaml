@@ -1,0 +1,47 @@
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: metric-adapter
+  namespace: crane-system
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: metric-adapter
+  name: metric-adapter
+  namespace: crane-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: metric-adapter
+  template:
+    metadata:
+      labels:
+        app: metric-adapter
+      name: metric-adapter
+    spec:
+      serviceAccountName: metric-adapter
+      containers:
+        - name: metric-adapter
+          image: ccr.ccs.tencentyun.com/kube-orm/metric-adapter:c781072
+          imagePullPolicy: IfNotPresent
+          args:
+            - /metric-adapter
+            - --secure-port=6443
+            - --alsologtostderr=true
+            - --v=10
+          ports:
+            - containerPort: 6443
+              name: https
+            - containerPort: 8080
+              name: http
+          volumeMounts:
+            - mountPath: /tmp
+              name: temp-vol
+      volumes:
+        - name: temp-vol
+          emptyDir: {}
