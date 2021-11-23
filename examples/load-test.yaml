@@ -1,21 +1,21 @@
 apiVersion: autoscaling.crane.io/v1alpha1
 kind: AdvancedHorizontalPodAutoscaler
 metadata:
-  name: hpa-sample
+  name: hpa-load
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
     name: ahpa-load
-  minReplicas: 1
-  maxReplicas: 10
+  minReplicas: 20
+  maxReplicas: 150
   metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 50
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
   predictionConfig:
     predictionWindow: 3600
     predictionAlgorithm:

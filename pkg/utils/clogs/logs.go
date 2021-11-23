@@ -2,8 +2,9 @@ package clogs
 
 import (
 	"fmt"
-	"k8s.io/klog/v2"
 	"sync"
+
+	"k8s.io/klog/v2"
 
 	"github.com/go-logr/logr"
 	"k8s.io/klog/v2/klogr"
@@ -25,7 +26,6 @@ func Log() logr.Logger {
 
 func InitLogs(name string) {
 	craneLogger.once.Do(func() {
-		fmt.Println("InitLogs")
 		ctrl.SetLogger(klogr.New())
 		craneLogger.logger = ctrl.Log.WithName(name)
 	})

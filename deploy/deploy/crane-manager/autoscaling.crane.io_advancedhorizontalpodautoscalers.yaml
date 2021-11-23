@@ -4,7 +4,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.7.0
+    controller-gen.kubebuilder.io/version: v0.6.0
   creationTimestamp: null
   name: advancedhorizontalpodautoscalers.autoscaling.crane.io
 spec:
@@ -647,36 +647,34 @@ spec:
                     description: PredictionAlgorithm contains all algorithm config
                       that provider by prediction api.
                     properties:
-                      algorithmType:
-                        description: AlgorithmType specifies algorithm to predict
-                          resource
-                        type: string
                       dsp:
                         properties:
                           estimators:
-                            description: Estimator
+                            description: Estimators
                             properties:
                               fft:
-                                items:
-                                  properties:
-                                    highFrequencyThreshold:
-                                      type: string
-                                    lowAmplitudeThreshold:
-                                      type: string
-                                    marginFraction:
-                                      type: string
-                                    maxNumOfSpectrumItems:
-                                      format: int32
-                                      type: integer
-                                    minNumOfSpectrumItems:
-                                      format: int32
-                                      type: integer
-                                  type: object
-                                type: array
+                                properties:
+                                  highFrequencyThreshold:
+                                    type: string
+                                  lowAmplitudeThreshold:
+                                    type: string
+                                  marginFraction:
+                                    type: string
+                                  maxNumOfSpectrumItems:
+                                    format: int32
+                                    type: integer
+                                  minNumOfSpectrumItems:
+                                    format: int32
+                                    type: integer
+                                required:
+                                - highFrequencyThreshold
+                                - lowAmplitudeThreshold
+                                - marginFraction
+                                - maxNumOfSpectrumItems
+                                - minNumOfSpectrumItems
+                                type: object
                               maxValue:
-                                items:
-                                  type: object
-                                type: array
+                                type: object
                             type: object
                           historyLength:
                             description: HistoryLength describes how long back should
@@ -687,6 +685,10 @@ spec:
                             description: SampleInterval is the sampling interval of
                               metrics.
                             type: string
+                        required:
+                        - estimators
+                        - historyLength
+                        - sampleInterval
                         type: object
                       percentile:
                         properties:
@@ -704,11 +706,22 @@ spec:
                                 type: string
                               maxValue:
                                 type: string
+                            required:
+                            - bucketSize
+                            - bucketSizeGrowthRatio
+                            - epsilon
+                            - firstBucketSize
+                            - halfLife
+                            - maxValue
                             type: object
                           minSampleWeight:
                             type: string
                           sampleInterval:
                             type: string
+                        required:
+                        - histogram
+                        - minSampleWeight
+                        - sampleInterval
                         type: object
                     type: object
                   predictionWindow:
@@ -811,13 +824,14 @@ spec:
                   - type
                   type: object
                 type: array
-              currentReplicas:
-                description: CurrentReplicas is the current replicas to the scale
-                  target.
+              currentReplicaCount:
+                description: CurrentReplicaCount is the current replica count to the
+                  scale target.
                 format: int32
                 type: integer
-              expectReplicas:
-                description: ExpectReplicas is the expected replicas to scale to.
+              expectReplicaCount:
+                description: ExpectReplicaCount is the expected replica count to scale
+                  to.
                 format: int32
                 type: integer
               lastScaleTime:

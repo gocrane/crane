@@ -7,7 +7,6 @@ import (
 	"github.com/go-logr/logr"
 	autoscalingapiv1 "k8s.io/api/autoscaling/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
-	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,10 +21,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	autoscalingapi "github.com/gocrane-io/api/autoscaling/v1alpha1"
-	"github.com/gocrane-io/crane/pkg/known"
-	"github.com/gocrane-io/crane/pkg/utils"
-	"github.com/gocrane-io/crane/pkg/utils/clogs"
+	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 )
 
 // AdvancedHPAController is responsible for scaling workload's replica based on AdvancedHorizontalPodAutoscaler spec
@@ -40,83 +36,30 @@ type AdvancedHPAController struct {
 }
 
 func (p *AdvancedHPAController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	p.Log.Info("got", "ahpa", req.NamespacedName)
+	p.Log.Info("got", "advanced-hpa", req.NamespacedName)
 
 	ahpa := &autoscalingapi.AdvancedHorizontalPodAutoscaler{}
 	err := p.Client.Get(ctx, req.NamespacedName, ahpa)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-
-	// advanced-hpa is terminating
-	if ahpa.DeletionTimestamp != nil {
-		// delete related hpa
-		hpa, err := p.GetHPA(ctx, ahpa)
-		if err != nil {
-			p.Recorder.Event(ahpa, v1.EventTypeNormal, "FailedGetHPA", err.Error())
-			p.Log.Error(err, "Failed to get HPA", "ahpa.UID", ahpa.UID)
-			return ctrl.Result{}, err
-		}
-
-		if hpa != nil && hpa.DeletionTimestamp == nil {
-			err := p.Client.Delete(ctx, hpa)
-			if err != nil {
-				p.Recorder.Event(ahpa, v1.EventTypeNormal, "FailedDeleteHPA", err.Error())
-				p.Log.Error(err, "Failed to delete HPA", "ahpa.UID", ahpa.UID)
-				return ctrl.Result{}, err
-			}
-		}
-
-		// delete related PodGroupPrediction
-		podGroupPrediction, err := p.GetPodPredication(ctx, ahpa)
-		if err != nil {
-			p.Recorder.Event(ahpa, v1.EventTypeNormal, "FailedGetPodGroupPrediction", err.Error())
-			p.Log.Error(err, "Failed to get PodGroupPrediction", "ahpa.UID", ahpa.UID)
-			return ctrl.Result{}, err
-		}
-
-		if podGroupPrediction != nil && podGroupPrediction.DeletionTimestamp == nil {
-			err := p.Client.Delete(ctx, podGroupPrediction)
-			if err != nil {
-				p.Recorder.Event(ahpa, v1.EventTypeNormal, "FailedDeletePodGroupPrediction", err.Error())
-				p.Log.Error(err, "Failed to delete PodGroupPrediction", "ahpa.UID", ahpa.UID)
-				return ctrl.Result{}, err
-			}
-		}
-
-		return ctrl.Result{}, nil
-	}
-
-	if !utils.ContainsString(ahpa.Finalizers, known.AutoscalingFinalizer) {
-		ahpa.Finalizers = append(ahpa.Finalizers, known.AutoscalingFinalizer)
-
-		err = p.Client.Update(ctx, ahpa)
-		if err == nil {
-			msg := fmt.Sprintf("AdvancedHorizontalPodAutoscaler %s is updated successfully", clogs.GenerateObj(ahpa))
-			p.Log.Info(msg)
-			p.Recorder.Event(ahpa, corev1.EventTypeNormal, "FinalizerUpdated", msg)
-		} else {
-			return ctrl.Result{}, err
-		}
-	}
-
 	// todo: check scaleTarget
 
 	// reconcile prediction if enabled
-	if ahpa.Spec.PredictionConfig != nil && ahpa.Spec.PredictionConfig.PredictionWindow != nil && ahpa.Spec.PredictionConfig.PredictionAlgorithm != nil {
+	if IsPredictionEnabled(ahpa) {
 		err = p.ReconcilePodPredication(ctx, ahpa)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 	}
 
-	// reconcile hpa
 	err = p.ReconcileHPA(ctx, ahpa)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	//autoscalingStatusOrigin := autoscaler.Status.DeepCopy()
+	// todo: update status
+	// autoscalingStatusOrigin := autoscaler.Status.DeepCopy()
 
 	return ctrl.Result{}, nil
 }
