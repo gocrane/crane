@@ -8,35 +8,35 @@ metadata:
 kind: ServiceAccount
 apiVersion: v1
 metadata:
-  name: crane-manager
+  name: craned
   namespace: crane-system
 
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: crane-manager
+  name: craned
   namespace: crane-system
   labels:
-    app: crane-manager
+    app: craned
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: crane-manager
+      app: craned
   template:
     metadata:
       labels:
-        app: crane-manager
+        app: craned
     spec:
-      serviceAccountName: crane-manager
+      serviceAccountName: craned
       tolerations:
         - key: node-role.kubernetes.io/master
           operator: Exists
       containers:
-        - name: crane-manager
-          image: ccr.ccs.tencentyun.com/kube-orm/manager:c781072
+        - name: craned
+          image: docker.io/gocrane/craned:latest
           imagePullPolicy: IfNotPresent
           command:
-            - /crane-manager
+            - /craned
             - -v=4
