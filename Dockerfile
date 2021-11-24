@@ -5,7 +5,6 @@ FROM golang:1.17.2-alpine as builder
 
 ARG LDFLAGS
 ARG PKGNAME
-ARG SUBPATH
 
 WORKDIR /go/src/github.com/gocrane/crane
 # Copy the Go Modules manifests
@@ -20,7 +19,7 @@ COPY pkg pkg/
 COPY cmd cmd/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="${LDFLAGS}" -a -o ${PKGNAME} /go/src/github.com/gocrane/crane/cmd/${SUBPATH}/main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="${LDFLAGS}" -a -o ${PKGNAME} /go/src/github.com/gocrane/crane/cmd/${PKGNAME}/main.go
 
 FROM alpine:3.13.5
 WORKDIR /

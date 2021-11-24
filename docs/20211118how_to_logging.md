@@ -30,7 +30,7 @@ func main() {
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
-	clogs.InitLogs("crane-manager")
+	clogs.InitLogs("craned")
 }
 ```
 

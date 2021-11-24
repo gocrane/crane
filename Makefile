@@ -22,7 +22,7 @@ REGISTRY_USER_NAME?=""
 REGISTRY_PASSWORD?=""
 
 # Image URL to use all building/pushing image targets
-MANAGER_IMG ?= "${REGISTRY}/${REGISTRY_NAMESPACE}/crand:${GIT_VERSION}"
+MANAGER_IMG ?= "${REGISTRY}/${REGISTRY_NAMESPACE}/craned:${GIT_VERSION}"
 ADAPTER_IMG ?= "${REGISTRY}/${REGISTRY_NAMESPACE}/metric-adapter:${GIT_VERSION}"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
@@ -108,32 +108,32 @@ test: manifests fmt vet goimports ## Run tests.
 ##@ Build
 
 .PHONY: all
-all: crane-manager metric-adapter
+all: craned metric-adapter
 
-.PHONY: crane-manager
-crane-manager: ## Build binary with the crane manager.
-	CGO_ENABLED=0 GOOS=$(GOOS) go build -ldflags $(LDFLAGS) -o bin/craned cmd/crane-manager/main.go
+.PHONY: craned
+craned: ## Build binary with the crane manager.
+	CGO_ENABLED=0 GOOS=$(GOOS) go build -ldflags $(LDFLAGS) -o bin/craned cmd/craned/main.go
 
 .PHONY: metric-adapter
 metric-adapter: ## Build binary with the metric adapter.
 	CGO_ENABLED=0 GOOS=$(GOOS) go build -ldflags $(LDFLAGS) -o bin/metric-adapter cmd/metric-adapter/main.go
 
 .PHONY: images
-images: image-crane-manager image-metric-adapter
+images: image-craned image-metric-adapter
 
-.PHONY: image-crane-manager
-image-crane-manager: test ## Build docker image with the crane manager.
-	docker build --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=crand --build-arg SUBPATH=crane-manager -t ${MANAGER_IMG} .
+.PHONY: image-craned
+image-craned: test ## Build docker image with the crane manager.
+	docker build --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=craned -t ${MANAGER_IMG} .
 
 .PHONY: image-metric-adapter
 image-metric-adapter: test ## Build docker image with the metric adapter.
-	docker build --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=metric-adapter --build-arg SUBPATH=metric-adapter -t ${ADAPTER_IMG} .
+	docker build --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=metric-adapter -t ${ADAPTER_IMG} .
 
 .PHONY: push-images
-push-images: push-image-crane-manager push-image-metric-adapter
+push-images: push-image-craned push-image-metric-adapter
 
-.PHONY: push-image-crane-manager
-push-image-crane-manager: ## Push images.
+.PHONY: push-image-craned
+push-image-craned: ## Push images.
 ifneq ($(REGISTRY_USER_NAME), "")
 	docker login -u $(REGISTRY_USER_NAME) -p $(REGISTRY_PASSWORD) ${REGISTRY}
 endif

@@ -15,7 +15,7 @@ import (
 
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
-	"github.com/gocrane/crane/cmd/crane-manager/app/options"
+	"github.com/gocrane/crane/cmd/craned/app/options"
 	"github.com/gocrane/crane/pkg/controller/hpa"
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/utils/clogs"
@@ -38,7 +38,7 @@ func NewManagerCommand(ctx context.Context) *cobra.Command {
 	opts := options.NewOptions()
 
 	cmd := &cobra.Command{
-		Use:  "crane-manager",
+		Use:  "craned",
 		Long: `The crane manager is responsible for manage controllers in crane`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(); err != nil {
@@ -63,7 +63,7 @@ func NewManagerCommand(ctx context.Context) *cobra.Command {
 	return cmd
 }
 
-// Run runs the crane-manager with options. This should never exit.
+// Run runs the craned with options. This should never exit.
 func Run(ctx context.Context, opts *options.Options) error {
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                  scheme,
@@ -71,7 +71,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 		Port:                    9443,
 		HealthProbeBindAddress:  opts.BindAddr,
 		LeaderElection:          opts.LeaderElection.LeaderElect,
-		LeaderElectionID:        "crane-manager",
+		LeaderElectionID:        "craned",
 		LeaderElectionNamespace: known.CraneSystemNamespace,
 	})
 	if err != nil {
