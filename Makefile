@@ -16,13 +16,13 @@ LDFLAGS = "-X github.com/gocrane/crane/pkg/version.gitVersion=$(GIT_VERSION) \
                       -X github.com/gocrane/crane/pkg/version.buildDate=$(BUILDDATE)"
 
 # Images management
-REGISTRY ?= ccr.ccs.tencentyun.com
-REGISTRY_NAMESPACE ?= kube-orm
+REGISTRY ?= docker.io
+REGISTRY_NAMESPACE ?= gocrane
 REGISTRY_USER_NAME?=""
 REGISTRY_PASSWORD?=""
 
 # Image URL to use all building/pushing image targets
-MANAGER_IMG ?= "${REGISTRY}/${REGISTRY_NAMESPACE}/manager:${GIT_VERSION}"
+MANAGER_IMG ?= "${REGISTRY}/${REGISTRY_NAMESPACE}/crand:${GIT_VERSION}"
 ADAPTER_IMG ?= "${REGISTRY}/${REGISTRY_NAMESPACE}/metric-adapter:${GIT_VERSION}"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
@@ -59,11 +59,11 @@ help: ## Display this help.
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" rbac:roleName=manager-role crd webhook paths="./vendor/github.com/gocrane/api/..." output:crd:artifacts:config=manifests
+	go mod vendor; \
+    $(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" rbac:roleName=manager-role crd webhook paths="./vendor/github.com/gocrane/api/..." output:crd:artifacts:config=deploy/manifests
 
 .PHONY: generate
 generate: manifests ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
@@ -112,7 +112,7 @@ all: crane-manager metric-adapter
 
 .PHONY: crane-manager
 crane-manager: ## Build binary with the crane manager.
-	CGO_ENABLED=0 GOOS=$(GOOS) go build -ldflags $(LDFLAGS) -o bin/crane-manager cmd/crane-manager/main.go
+	CGO_ENABLED=0 GOOS=$(GOOS) go build -ldflags $(LDFLAGS) -o bin/craned cmd/crane-manager/main.go
 
 .PHONY: metric-adapter
 metric-adapter: ## Build binary with the metric adapter.
@@ -123,11 +123,11 @@ images: image-crane-manager image-metric-adapter
 
 .PHONY: image-crane-manager
 image-crane-manager: test ## Build docker image with the crane manager.
-	docker build --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=crane-manager -t ${MANAGER_IMG} .
+	docker build --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=crand --build-arg SUBPATH=crane-manager -t ${MANAGER_IMG} .
 
 .PHONY: image-metric-adapter
 image-metric-adapter: test ## Build docker image with the metric adapter.
-	docker build --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=metric-adapter -t ${ADAPTER_IMG} .
+	docker build --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=metric-adapter --build-arg SUBPATH=metric-adapter -t ${ADAPTER_IMG} .
 
 .PHONY: push-images
 push-images: push-image-crane-manager push-image-metric-adapter

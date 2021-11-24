@@ -35,8 +35,8 @@ spec:
           operator: Exists
       containers:
         - name: crane-manager
-          image: ccr.ccs.tencentyun.com/kube-orm/manager:c781072
+          image: docker.io/gocrane/crand:latest
           imagePullPolicy: IfNotPresent
           command:
-            - /crane-manager
+            - /craned
             - -v=4
