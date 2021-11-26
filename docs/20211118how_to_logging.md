@@ -56,7 +56,7 @@ import (
 )
 
 func A() {
-   clogs.Log().WithName("extent-name").Info("run manager")
+   clogs.Log().WithName("extent-name").Info("run crand")
    clogs.Log().WithName("extent-name").Error(err, "opts validate failed")
 }
 
