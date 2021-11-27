@@ -11,7 +11,7 @@ import (
 type AvoidanceManager struct {
 	nodeName          string
 	client            clientset.Interface
-	noticeCh          <-chan executor.AvoidanceExecutorStruct
+	noticeCh          <-chan executor.AvoidanceExecutor
 	podInformer       cache.SharedIndexInformer
 	nodeInformer      cache.SharedIndexInformer
 	avoidanceInformer cache.SharedIndexInformer
@@ -19,7 +19,7 @@ type AvoidanceManager struct {
 
 // AvoidanceManager create avoidance manager
 func NewAvoidanceManager(client clientset.Interface, nodeName string, podInformer cache.SharedIndexInformer, nodeInformer cache.SharedIndexInformer,
-	avoidanceInformer cache.SharedIndexInformer, noticeCh <-chan executor.AvoidanceExecutorStruct) *AvoidanceManager {
+	avoidanceInformer cache.SharedIndexInformer, noticeCh <-chan executor.AvoidanceExecutor) *AvoidanceManager {
 	return &AvoidanceManager{
 		nodeName:          nodeName,
 		client:            client,
@@ -42,9 +42,10 @@ func (a *AvoidanceManager) Run(stop <-chan struct{}) {
 		for {
 			select {
 			case as := <-a.noticeCh:
-				clogs.Log().V(5).Info("Avoidance by analyzer noticed")
+				clogs.Log().V(4).Info("Avoidance by analyzer noticed")
 				if err := a.doAction(as, stop); err != nil {
 					// TODO: if it failed in action, how to retry
+					clogs.Log().Error(err, "doAction failed")
 				}
 			case <-stop:
 				{
@@ -58,7 +59,7 @@ func (a *AvoidanceManager) Run(stop <-chan struct{}) {
 	return
 }
 
-func (a *AvoidanceManager) doAction(ae executor.AvoidanceExecutorStruct, stop <-chan struct{}) error {
+func (a *AvoidanceManager) doAction(ae executor.AvoidanceExecutor, stop <-chan struct{}) error {
 
 	var ctx = &executor.ExecuteContext{
 		NodeName:     a.nodeName,
@@ -80,7 +81,7 @@ func (a *AvoidanceManager) doAction(ae executor.AvoidanceExecutorStruct, stop <-
 	return nil
 }
 
-func doAvoidance(ctx *executor.ExecuteContext, ae executor.AvoidanceExecutorStruct) error {
+func doAvoidance(ctx *executor.ExecuteContext, ae executor.AvoidanceExecutor) error {
 
 	//step1 do BlockScheduled action
 	if err := ae.BlockScheduledExecutor.Avoid(ctx); err != nil {
@@ -100,7 +101,7 @@ func doAvoidance(ctx *executor.ExecuteContext, ae executor.AvoidanceExecutorStru
 	return nil
 }
 
-func doRestoration(ctx *executor.ExecuteContext, ae executor.AvoidanceExecutorStruct) error {
+func doRestoration(ctx *executor.ExecuteContext, ae executor.AvoidanceExecutor) error {
 
 	//step1 do BlockScheduled action
 	if err := ae.BlockScheduledExecutor.Restore(ctx); err != nil {

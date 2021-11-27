@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/gocrane/crane/pkg/ensurance/cache"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -23,7 +24,6 @@ import (
 	"github.com/gocrane/crane/pkg/ensurance/executor"
 	einformer "github.com/gocrane/crane/pkg/ensurance/informer"
 	"github.com/gocrane/crane/pkg/ensurance/manager"
-	"github.com/gocrane/crane/pkg/ensurance/nep"
 	"github.com/gocrane/crane/pkg/ensurance/statestore"
 	"github.com/gocrane/crane/pkg/utils/clogs"
 )
@@ -78,13 +78,18 @@ func Run(ctx context.Context, opts *options.Options) error {
 		LeaderElection:         false,
 	})
 	if err != nil {
-		clogs.Log().Error(err, "unable to start crane agent")
+		clogs.Log().Error(err, "Unable to start crane agent")
 		os.Exit(1)
 	}
 
 	if err := mgr.AddHealthzCheck("ping", healthz.Ping); err != nil {
-		clogs.Log().Error(err, "failed to add health check endpoint")
+		clogs.Log().Error(err, "Failed to add health check endpoint")
 		return err
+	}
+
+	if opts.HostnameOverride == "" {
+		clogs.Log().Error(err, "HostnameOverride must be set as the k8s node name")
+		os.Exit(1)
 	}
 
 	clogs.Log().V(2).Info(fmt.Sprintf("opts %v", opts))
@@ -98,7 +103,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 
 	// start managers
 	for _, v := range components {
-		clogs.Log().V(2).Info("Starting manager %s", v.Name())
+		clogs.Log().V(2).Info(fmt.Sprintf("Starting manager %s", v.Name()))
 		v.Run(ec.GetStopChannel())
 	}
 
@@ -115,21 +120,23 @@ func initializationComponents(mgr ctrl.Manager, opts *options.Options, ec *einfo
 	clogs.Log().V(2).Info(fmt.Sprintf("initializationComponents"))
 
 	var managers []manager.Manager
-	podInformer := ec.GetPodFactory().Core().V1().Pods().Informer()
-	nodeInformer := ec.GetNodeFactory().Core().V1().Nodes().Informer()
-	nepInformer := ec.GetAvoidanceFactory().Ensurance().V1alpha1().NodeQOSEnsurancePolicies().Informer()
-	avoidanceInformer := ec.GetAvoidanceFactory().Ensurance().V1alpha1().AvoidanceActions().Informer()
+	podInformer := ec.GetPodInformer()
+	nodeInformer := ec.GetNodeInformer()
+	nepInformer := ec.GetNepInformer()
+	avoidanceInformer := ec.GetAvoidanceInformer()
+
+	var noticeCh = make(chan executor.AvoidanceExecutor)
 
 	// init state store manager
-	stateStoreManager := statestore.NewStateStoreManager()
+	stateStoreManager := statestore.NewStateStoreManager(nepInformer)
 	managers = append(managers, stateStoreManager)
 
 	// init analyzer manager
-	analyzerManager := analyzer.NewAnalyzerManager(podInformer, nodeInformer, avoidanceInformer, nepInformer, noticeCh)
+	analyzerRecorder := mgr.GetEventRecorderFor("analyzer")
+	analyzerManager := analyzer.NewAnalyzerManager(opts.HostnameOverride, podInformer, nodeInformer, nepInformer, avoidanceInformer, stateStoreManager, analyzerRecorder, noticeCh)
 	managers = append(managers, analyzerManager)
 
 	// init avoidance manager
-	var noticeCh = make(chan executor.AvoidanceExecutorStruct)
 	avoidanceManager := avoidance.NewAvoidanceManager(ec.GetKubeClient(), opts.HostnameOverride, podInformer, nodeInformer, avoidanceInformer, noticeCh)
 	managers = append(managers, avoidanceManager)
 
@@ -141,7 +148,7 @@ func initializationComponents(mgr ctrl.Manager, opts *options.Options, ec *einfo
 		Scheme:     mgr.GetScheme(),
 		RestMapper: mgr.GetRESTMapper(),
 		Recorder:   nepRecorder,
-		Cache:      &nep.NodeQOSEnsurancePolicyCache{},
+		Cache:      &cache.NodeQOSEnsurancePolicyCache{},
 		StateStore: stateStoreManager,
 	}).SetupWithManager(mgr); err != nil {
 		clogs.Log().Error(err, "unable to create controller", "controller", "NodeQOSEnsurancePolicyController")

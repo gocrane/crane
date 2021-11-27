@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/go-logr/logr"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
-	"github.com/go-logr/logr"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 

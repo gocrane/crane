@@ -1,4 +1,4 @@
-package collect
+package metricsserver
 
 import (
 	"fmt"

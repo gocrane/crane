@@ -9,6 +9,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
+	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
+
+	"github.com/gocrane/crane/pkg/utils/clogs"
 )
 
 const (
@@ -16,13 +19,18 @@ const (
 )
 
 //EvictPodWithGracePeriod evict pod with grace period
-func EvictPodWithGracePeriod(client clientset.Interface, pod *v1.Pod, gracePeriodSeconds int64) error {
+func EvictPodWithGracePeriod(client clientset.Interface, pod *v1.Pod, gracePeriodSeconds int32) error {
+
+	if kubelettypes.IsCriticalPod(pod) {
+		return fmt.Errorf("Eviction manager: cannot evict a critical pod(%s)", clogs.GenerateObj(pod))
+	}
+
 	e := &policyv1beta1.Eviction{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      pod.Name,
 			Namespace: pod.Namespace,
 		},
-		DeleteOptions: metav1.NewDeleteOptions(gracePeriodSeconds),
+		DeleteOptions: metav1.NewDeleteOptions(int64(gracePeriodSeconds)),
 	}
 
 	return client.CoreV1().Pods(pod.Namespace).EvictV1beta1(context.Background(), e)
@@ -59,12 +67,4 @@ func GetPodFromInformer(podInformer cache.SharedIndexInformer, key string) (*v1.
 
 func generateKey(namespace string, podName string) string {
 	return fmt.Sprintf("%s/%s", namespace, podName)
-}
-
-func GetGracePeriodSeconds(gracePeriodSeconds *uint64) uint64 {
-	if gracePeriodSeconds == nil {
-		return defaultGracePeriodSeconds
-	}
-
-	return *gracePeriodSeconds
 }

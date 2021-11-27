@@ -19,21 +19,22 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/gocrane/crane/pkg/ensurance/cache"
 	"strings"
 
-	"github.com/gocrane/crane/pkg/ensurance/statestore"
-	"github.com/gocrane/crane/pkg/utils/clogs"
+	"github.com/go-logr/logr"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/client-go/tools/record"
-
-	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
-	"github.com/gocrane/crane/pkg/ensurance/nep"
+	"github.com/gocrane/crane/pkg/ensurance/statestore"
+	"github.com/gocrane/crane/pkg/ensurance/statestore/types"
+	"github.com/gocrane/crane/pkg/utils/clogs"
 )
 
 // NodeQOSEnsurancePolicyController reconciles a NodeQOSEnsurancePolicy object
@@ -43,7 +44,7 @@ type NodeQOSEnsurancePolicyController struct {
 	Log        logr.Logger
 	RestMapper meta.RESTMapper
 	Recorder   record.EventRecorder
-	Cache      *nep.NodeQOSEnsurancePolicyCache
+	Cache      *cache.NodeQOSEnsurancePolicyCache
 	StateStore statestore.StateStore
 }
 
@@ -84,6 +85,8 @@ func (c *NodeQOSEnsurancePolicyController) Reconcile(ctx context.Context, req ct
 
 // SetupWithManager sets up the controller with the Manager.
 func (c *NodeQOSEnsurancePolicyController) SetupWithManager(mgr ctrl.Manager) error {
+	c.Cache.Init()
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&ensuranceapi.NodeQOSEnsurancePolicy{}).
 		Complete(c)
@@ -108,9 +111,9 @@ func (c *NodeQOSEnsurancePolicyController) reconcileNep(nep *ensuranceapi.NodeQO
 
 func (c *NodeQOSEnsurancePolicyController) create(nep *ensuranceapi.NodeQOSEnsurancePolicy) error {
 	// step1: add metrics
-	for _, v := range nep.Spec.ObjectiveEnsurance {
+	for _, v := range nep.Spec.ObjectiveEnsurances {
 		var key = GenerateEnsuranceQosNodePolicyKey(nep.Name, v.AvoidanceActionName)
-		c.StateStore.AddMetric(key, v.MetricRule.Metric.Name, v.MetricRule.Metric.Selector)
+		c.StateStore.AddMetric(key, types.NodeLocalCollectorType, v.MetricRule.Metric.Name, v.MetricRule.Metric.Selector)
 	}
 	return nil
 }
@@ -118,11 +121,12 @@ func (c *NodeQOSEnsurancePolicyController) create(nep *ensuranceapi.NodeQOSEnsur
 func (c *NodeQOSEnsurancePolicyController) update(nep *ensuranceapi.NodeQOSEnsurancePolicy) error {
 	if nepOld, ok := c.Cache.Get(nep.Name); ok {
 		// step1 compare all objectiveEnsurance
-		// step2 if eth1 objectiveEnsurance metric changed, update the policy status
+		// step2 if the objectiveEnsurance metric changed, update the policy status
 		// step3 delete the old metric and add the new metric
 		// step4 if failed, delete all metrics for this policy
 		// step5 if succeed, update the policy status
 		clogs.Log().V(6).Info("nepOld %v", nepOld)
+		return nil
 	}
 	return fmt.Errorf("update nep(%s),no found", nep.Name)
 }
@@ -130,16 +134,16 @@ func (c *NodeQOSEnsurancePolicyController) update(nep *ensuranceapi.NodeQOSEnsur
 func (c *NodeQOSEnsurancePolicyController) delete(nep *ensuranceapi.NodeQOSEnsurancePolicy) error {
 	// step1: delete metrics from cache nep
 	if nepOld, ok := c.Cache.Get(nep.Name); ok {
-		for _, v := range nepOld.Nep.Spec.ObjectiveEnsurance {
+		for _, v := range nepOld.Nep.Spec.ObjectiveEnsurances {
 			var key = GenerateEnsuranceQosNodePolicyKey(nep.Name, v.AvoidanceActionName)
-			c.StateStore.DeleteMetric(key)
+			c.StateStore.DeleteMetric(key, types.NodeLocalCollectorType)
 		}
 	}
 
 	// step2: delete metrics from  nep
-	for _, v := range nep.Spec.ObjectiveEnsurance {
+	for _, v := range nep.Spec.ObjectiveEnsurances {
 		var key = GenerateEnsuranceQosNodePolicyKey(nep.Name, v.AvoidanceActionName)
-		c.StateStore.DeleteMetric(key)
+		c.StateStore.DeleteMetric(key, types.NodeLocalCollectorType)
 	}
 
 	return nil

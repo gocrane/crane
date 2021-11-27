@@ -6,18 +6,28 @@ rules:
   - apiGroups:
       - ""
     resources:
+      - pods/eviction
       - pods/status
       - pods
     verbs:
+      - create
       - get
       - list
       - watch
       - update
       - patch
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - "*"
   - apiGroups:
       - ""
     resources:
       - nodes
+      - nodes/status
     verbs:
       - get
       - list
@@ -25,9 +35,9 @@ rules:
       - update
       - patch
   - apiGroups:
-      - ""
+      - "ensurance.crane.io"
     resources:
-      - nodeqosensurancepolicies.ensurance.crane.io
+      - nodeqosensurancepolicies
     verbs:
       - get
       - list
@@ -35,9 +45,19 @@ rules:
       - update
       - patch
   - apiGroups:
-      - ""
+      - "ensurance.crane.io"
     resources:
-      - podqosensurancepolicies.ensurance.crane.io
+      - podqosensurancepolicies
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - patch
+  - apiGroups:
+      - "ensurance.crane.io"
+    resources:
+      - avoidanceactions
     verbs:
       - get
       - list

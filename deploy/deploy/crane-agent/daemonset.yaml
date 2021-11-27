@@ -1,3 +1,10 @@
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: crane-system
+
+---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -22,8 +29,11 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: spec.nodeName
-          image: docker.io/gocrane/crane-agent:v0.0.1
+          image: docker.io/gocrane/crane-agent:0b506ba
           imagePullPolicy: Always
+          command:
+            - /crane-agent
+            - -v=4
           name: crane-agent
           resources:
             limits:

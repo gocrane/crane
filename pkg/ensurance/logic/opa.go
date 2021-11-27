@@ -1,10 +1,9 @@
 package logic
 
 type OpaLogic struct {
-
 }
 
-func NewOpaLogic() Logic{
+func NewOpaLogic() Logic {
 	return &OpaLogic{}
 }
 

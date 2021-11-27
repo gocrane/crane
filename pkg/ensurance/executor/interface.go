@@ -10,7 +10,7 @@ type Executor interface {
 	Restore(ctx *ExecuteContext) error
 }
 
-type AvoidanceExecutorStruct struct {
+type AvoidanceExecutor struct {
 	BlockScheduledExecutor BlockScheduledExecutor
 	ThrottleExecutor       ThrottleExecutor
 	EvictExecutor          EvictExecutor

@@ -3,21 +3,28 @@ package cache
 import (
 	"strings"
 	"sync"
+	"time"
 
 	"k8s.io/apimachinery/pkg/types"
+
+	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 )
 
 type DetectionCondition struct {
-	// the name of detection policy
-	PolicyName string
-	// the namespaces of pod policy
-	Namespace string
 	// the Objective Ensurance name
 	ObjectiveEnsuranceName string
+	// only dryRun
+	DryRun bool
 	// if the policy triggered action
 	Triggered bool
 	// if the policy triggered restored action
 	Restored bool
+	// action name
+	ActionName string
+	// node qos ensurance policy
+	Nep *ensuranceapi.NodeQOSEnsurancePolicy
+	// time for detection
+	Time time.Time
 	// the influenced pod list
 	// node detection the pod list is empty
 	BeInfluencedPods []types.NamespacedName
@@ -78,9 +85,14 @@ func (s *DetectionConditionCache) ListDetections() []DetectionCondition {
 }
 
 func GenerateDetectionKey(c DetectionCondition) string {
-	if c.Namespace == "" {
-		return strings.Join([]string{"node", c.PolicyName, c.ObjectiveEnsuranceName}, ".")
+	if c.Nep.Namespace == "" {
+		return strings.Join([]string{"node", c.Nep.Name, c.ObjectiveEnsuranceName}, ".")
 	} else {
-		return strings.Join([]string{"pod", c.PolicyName, c.Namespace, c.ObjectiveEnsuranceName}, ".")
+		return strings.Join([]string{"pod", c.Nep.Name, c.Nep.Namespace, c.ObjectiveEnsuranceName}, ".")
 	}
+}
+
+type DetectionStatus struct {
+	IsTriggered bool
+	LastTime    time.Time
 }

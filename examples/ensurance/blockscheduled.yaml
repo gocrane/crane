@@ -1,0 +1,9 @@
+apiVersion: ensurance.crane.io/v1alpha1
+kind: AvoidanceAction
+metadata:
+  name: blockscheduled
+  labels:
+    app: system
+spec:
+  schedulingCoolDown: 300
+  description: "only block scheduled"

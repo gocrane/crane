@@ -1,0 +1,23 @@
+apiVersion: ensurance.crane.io/v1alpha1
+kind: NodeQOSEnsurancePolicy
+metadata:
+  name: "waterline1"
+  labels:
+    app: "system"
+spec:
+  nodeQualityProbe: 
+    initialDelaySeconds: 10
+    timeoutSeconds: 10
+    nodeLocalGet:
+      localCacheTTLSeconds: 60
+  objectiveEnsurances:
+  - name: "cpu_usage"
+    reachedThreshold: 2
+    restoredThreshold: 2
+    actionName: "blockscheduled"
+    metricRule:
+      metric:
+        name: "cpu_total_usage"
+      target:
+        type: "Value"
+        value: 6000

@@ -39,5 +39,5 @@ func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&o.BindAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flags.StringVar(&o.WebhookHost, "webhook-host", "0.0.0.0", "The address webhook binds to.")
 	flags.Uint64Var(&o.WebhookPort, "webhook-port", 9443, "The port webhook binds to.")
-	flags.StringVar(&o.HostnameOverride, "hostname-override", o.HostnameOverride, "which is the name of k8s node be used to filtered.")
+	flags.StringVar(&o.HostnameOverride, "hostname-override", "", "Which is the name of k8s node be used to filtered.")
 }
