@@ -86,7 +86,7 @@ func (p *AdvancedHPAController) UpdatePodPredictionIfNeed(ctx context.Context, a
 	}
 
 	if !equality.Semantic.DeepEqual(&podPredictionExist.Spec, &podPrediction.Spec) {
-		p.Log.Info("PodGroupPrediction is unsynced according to AdvancedHorizontalPodAutoscaler, should be updated", "currentPodPrediction", podPredictionExist.Spec, "expectPodPrediction", podPrediction.Spec)
+		p.Log.V(4).Info("PodGroupPrediction is unsynced according to AdvancedHorizontalPodAutoscaler, should be updated", "currentPodPrediction", podPredictionExist.Spec, "expectPodPrediction", podPrediction.Spec)
 
 		podPredictionExist.Spec = podPrediction.Spec
 		err := p.Update(ctx, podPredictionExist)

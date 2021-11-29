@@ -128,7 +128,7 @@ func (p *AdvancedHPAController) UpdateHPAIfNeed(ctx context.Context, ahpa *autos
 	}
 
 	if !equality.Semantic.DeepEqual(&hpaExist.Spec, &hpa.Spec) {
-		p.Log.Info("HorizontalPodAutoscaler is unsynced according to AdvancedHorizontalPodAutoscaler, should be updated", "currentHPA", hpaExist.Spec, "expectHPA", hpa.Spec)
+		p.Log.V(4).Info("HorizontalPodAutoscaler is unsynced according to AdvancedHorizontalPodAutoscaler, should be updated", "currentHPA", hpaExist.Spec, "expectHPA", hpa.Spec)
 
 		hpaExist.Spec = hpa.Spec
 		err := p.Update(ctx, hpa)

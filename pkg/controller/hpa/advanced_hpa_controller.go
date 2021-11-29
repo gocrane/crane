@@ -82,6 +82,7 @@ func (p *AdvancedHPAController) Reconcile(ctx context.Context, req ctrl.Request)
 				return ctrl.Result{}, err
 			}
 
+			p.Log.Info("Manual scale target to specific replicas", "advanced-hpa", klog.KObj(ahpa), "replicas", ahpa.Spec.SpecificReplicas)
 			now := metav1.Now()
 			newStatus.LastScaleTime = &now
 			newStatus.CurrentReplicas = &updatedScale.Status.Replicas
@@ -118,7 +119,7 @@ func (p *AdvancedHPAController) Reconcile(ctx context.Context, req ctrl.Request)
 
 func (p *AdvancedHPAController) UpdateStatus(ctx context.Context, ahpa *autoscalingapi.AdvancedHorizontalPodAutoscaler, newStatus *autoscalingapi.AdvancedHorizontalPodAutoscalerStatus) error {
 	if !equality.Semantic.DeepEqual(&ahpa.Status, newStatus) {
-		p.Log.Info("AdvancedHorizontalPodAutoscaler status should be updated", "currentStatus", &ahpa.Status, "newStatus", newStatus)
+		p.Log.V(4).Info("AdvancedHorizontalPodAutoscaler status should be updated", "currentStatus", &ahpa.Status, "newStatus", newStatus)
 
 		ahpa.Status = *newStatus
 		err := p.Status().Update(ctx, ahpa)
