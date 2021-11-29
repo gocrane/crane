@@ -20,7 +20,7 @@ import (
 	"github.com/gocrane/crane/pkg/known"
 )
 
-func (p *AdvancedHPAController) ReconcilePodPredication(ctx context.Context, ahpa *autoscalingapi.AdvancedHorizontalPodAutoscaler) error {
+func (p *AdvancedHPAController) ReconcilePodPredication(ctx context.Context, ahpa *autoscalingapi.AdvancedHorizontalPodAutoscaler) (*predictionapi.PodGroupPrediction, error) {
 	predictionList := &predictionapi.PodGroupPredictionList{}
 	opts := []client.ListOption{
 		client.MatchingLabels(map[string]string{known.AdvancedHorizontalPodAutoscalerUidLabel: string(ahpa.UID)}),
@@ -31,8 +31,8 @@ func (p *AdvancedHPAController) ReconcilePodPredication(ctx context.Context, ahp
 			return p.CreatePodPrediction(ctx, ahpa)
 		} else {
 			p.Recorder.Event(ahpa, v1.EventTypeNormal, "FailedGetPrediction", err.Error())
-			p.Log.Error(err, "Failed to get PodGroupPrediction", "ahpa.UID", ahpa.UID)
-			return err
+			p.Log.Error(err, "Failed to get PodGroupPrediction", "advanced-hpa", klog.KObj(ahpa))
+			return nil, err
 		}
 	} else if len(predictionList.Items) == 0 {
 		return p.CreatePodPrediction(ctx, ahpa)
@@ -56,50 +56,50 @@ func (p *AdvancedHPAController) GetPodPredication(ctx context.Context, ahpa *aut
 	return &predictionList.Items[0], nil
 }
 
-func (p *AdvancedHPAController) CreatePodPrediction(ctx context.Context, ahpa *autoscalingapi.AdvancedHorizontalPodAutoscaler) error {
+func (p *AdvancedHPAController) CreatePodPrediction(ctx context.Context, ahpa *autoscalingapi.AdvancedHorizontalPodAutoscaler) (*predictionapi.PodGroupPrediction, error) {
 	podPrediction, err := p.NewPodPredictionObject(ahpa)
 	if err != nil {
 		p.Recorder.Event(ahpa, v1.EventTypeNormal, "FailedCreatePredictionObject", err.Error())
-		p.Log.Error(err, "Failed to create object", "PodGroupPrediction", klog.KObj(podPrediction))
-		return err
+		p.Log.Error(err, "Failed to create object", "PodGroupPrediction", podPrediction)
+		return nil, err
 	}
 
 	err = p.Client.Create(ctx, podPrediction)
 	if err != nil {
 		p.Recorder.Event(ahpa, v1.EventTypeNormal, "FailedCreatePrediction", err.Error())
 		p.Log.Error(err, "Failed to create", "PodGroupPrediction", podPrediction)
-		return err
+		return nil, err
 	}
 
-	p.Log.Info("Create PodGroupPrediction successfully", "ahpa.Namespace", ahpa.Namespace, "ahpa.Name", ahpa.Name)
+	p.Log.Info("Create successfully", "PodGroupPrediction", klog.KObj(podPrediction))
 	p.Recorder.Event(ahpa, v1.EventTypeNormal, "PodGroupPredictionCreated", "Create PodGroupPrediction successfully")
 
-	return nil
+	return podPrediction, nil
 }
 
-func (p *AdvancedHPAController) UpdatePodPredictionIfNeed(ctx context.Context, ahpa *autoscalingapi.AdvancedHorizontalPodAutoscaler, podPredictionExist *predictionapi.PodGroupPrediction) error {
+func (p *AdvancedHPAController) UpdatePodPredictionIfNeed(ctx context.Context, ahpa *autoscalingapi.AdvancedHorizontalPodAutoscaler, podPredictionExist *predictionapi.PodGroupPrediction) (*predictionapi.PodGroupPrediction, error) {
 	podPrediction, err := p.NewPodPredictionObject(ahpa)
 	if err != nil {
 		p.Recorder.Event(ahpa, v1.EventTypeNormal, "FailedCreatePredictionObject", err.Error())
-		p.Log.Error(err, "Failed to create object", "PodGroupPrediction", klog.KObj(podPrediction))
-		return err
+		p.Log.Error(err, "Failed to create object", "PodGroupPrediction", podPrediction)
+		return nil, err
 	}
 
-	if !equality.Semantic.DeepEqual(podPredictionExist.Spec, podPrediction.Spec) {
-		p.Log.Info("PodGroupPrediction is unsynced according to AdvancedHorizontalPodAutoscaler, should be updated", "currentPodPrediction", podPredictionExist.Spec, "expectPodPrediction", podPrediction.Spec)
+	if !equality.Semantic.DeepEqual(&podPredictionExist.Spec, &podPrediction.Spec) {
+		p.Log.V(4).Info("PodGroupPrediction is unsynced according to AdvancedHorizontalPodAutoscaler, should be updated", "currentPodPrediction", podPredictionExist.Spec, "expectPodPrediction", podPrediction.Spec)
 
 		podPredictionExist.Spec = podPrediction.Spec
 		err := p.Update(ctx, podPredictionExist)
 		if err != nil {
 			p.Recorder.Event(ahpa, v1.EventTypeNormal, "FailedUpdatePrediction", err.Error())
 			p.Log.Error(err, "Failed to update", "PodGroupPrediction", podPredictionExist)
-			return err
+			return nil, err
 		}
 
-		p.Log.Info("Update PodGroupPrediction successful", "ahpa.Namespace", ahpa.Namespace, "ahpa.Name", ahpa.Name)
+		p.Log.Info("Update PodGroupPrediction successful", "PodGroupPrediction", klog.KObj(podPrediction))
 	}
 
-	return nil
+	return podPredictionExist, nil
 }
 
 func (p *AdvancedHPAController) NewPodPredictionObject(ahpa *autoscalingapi.AdvancedHorizontalPodAutoscaler) (*predictionapi.PodGroupPrediction, error) {
@@ -116,7 +116,7 @@ func (p *AdvancedHPAController) NewPodPredictionObject(ahpa *autoscalingapi.Adva
 			},
 		},
 		Spec: predictionapi.PodGroupPredictionSpec{
-			PredictionWindow:        metav1.Duration{Duration: time.Duration(*ahpa.Spec.PredictionConfig.PredictionWindow) * time.Second},
+			PredictionWindow:        metav1.Duration{Duration: time.Duration(*ahpa.Spec.Prediction.PredictionWindowSeconds) * time.Second},
 			Mode:                    predictionapi.PredictionModeRange,
 			MetricPredictionConfigs: make([]predictionapi.MetricPredictionConfig, 0),
 			WorkloadRef:             &ahpa.Spec.ScaleTargetRef,
@@ -134,9 +134,9 @@ func (p *AdvancedHPAController) NewPodPredictionObject(ahpa *autoscalingapi.Adva
 
 			metricPredictionConfigs = append(metricPredictionConfigs, predictionapi.MetricPredictionConfig{
 				MetricName:    metricName,
-				AlgorithmType: ahpa.Spec.PredictionConfig.PredictionAlgorithm.AlgorithmType,
-				DSP:           ahpa.Spec.PredictionConfig.PredictionAlgorithm.DSP.DeepCopy(),
-				Percentile:    ahpa.Spec.PredictionConfig.PredictionAlgorithm.Percentile.DeepCopy(),
+				AlgorithmType: ahpa.Spec.Prediction.PredictionAlgorithm.AlgorithmType,
+				DSP:           ahpa.Spec.Prediction.PredictionAlgorithm.DSP.DeepCopy(),
+				Percentile:    ahpa.Spec.Prediction.PredictionAlgorithm.Percentile.DeepCopy(),
 			})
 		}
 	}
@@ -151,5 +151,13 @@ func (p *AdvancedHPAController) NewPodPredictionObject(ahpa *autoscalingapi.Adva
 }
 
 func IsPredictionEnabled(ahpa *autoscalingapi.AdvancedHorizontalPodAutoscaler) bool {
-	return ahpa.Spec.PredictionConfig != nil && ahpa.Spec.PredictionConfig.PredictionWindow != nil && ahpa.Spec.PredictionConfig.PredictionAlgorithm != nil
+	return ahpa.Spec.Prediction != nil && ahpa.Spec.Prediction.PredictionWindowSeconds != nil && ahpa.Spec.Prediction.PredictionAlgorithm != nil
+}
+
+func setPredictionCondition(status *autoscalingapi.AdvancedHorizontalPodAutoscalerStatus, conditions []predictionapi.PodGroupPredictionCondition) {
+	for _, cond := range conditions {
+		if cond.Type == predictionapi.PredictionConditionPredicting {
+			setCondition(status, autoscalingapi.PredictionReady, cond.Status, cond.Reason, cond.Message)
+		}
+	}
 }

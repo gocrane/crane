@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/go-logr/logr v0.4.0
-	github.com/gocrane/api v0.0.0-20211118074524-b7798da7de4d
+	github.com/gocrane/api v0.0.0-20211126075249-189ae54c18b6
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
 	k8s.io/api v0.22.3
