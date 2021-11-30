@@ -131,7 +131,7 @@ func (p *AdvancedHPAController) UpdateHPAIfNeed(ctx context.Context, ahpa *autos
 		p.Log.V(4).Info("HorizontalPodAutoscaler is unsynced according to AdvancedHorizontalPodAutoscaler, should be updated", "currentHPA", hpaExist.Spec, "expectHPA", hpa.Spec)
 
 		hpaExist.Spec = hpa.Spec
-		err := p.Update(ctx, hpa)
+		err := p.Update(ctx, hpaExist)
 		if err != nil {
 			p.Recorder.Event(ahpa, v1.EventTypeNormal, "FailedUpdateHPA", err.Error())
 			p.Log.Error(err, "Failed to update", "HorizontalPodAutoscaler", hpaExist)

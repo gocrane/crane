@@ -1,5 +1,5 @@
 apiVersion: autoscaling.crane.io/v1alpha1
-kind: AdvancedHorizontalPodAutoscaler
+kind: EffectiveHorizontalPodAutoscaler
 metadata:
   name: hpa-load
 spec:
