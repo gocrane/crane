@@ -26,7 +26,7 @@ import (
 	generatedopenapi "github.com/gocrane/api/pkg/generated/openapi"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
-	customprovider "github.com/gocrane/crane/pkg/provider"
+	"github.com/gocrane/crane/pkg/autoscaling"
 )
 
 var (
@@ -72,7 +72,7 @@ func (a *MetricAdapter) makeProvider() (provider.CustomMetricsProvider, error) {
 	})
 	recorder := broadcaster.NewRecorder(scheme, corev1.EventSource{Component: "advanced-horizontal-pod-autoscaler-adapter"})
 
-	return customprovider.NewMetricProvider(client, recorder), nil
+	return autoscaling.NewMetricProvider(client, recorder), nil
 }
 
 func main() {
