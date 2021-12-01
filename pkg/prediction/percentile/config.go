@@ -5,7 +5,6 @@ import (
 	"github.com/gocrane/crane/pkg/utils"
 	vpa "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/recommender/util"
 	"reflect"
-	"strconv"
 
 	"sync"
 	"time"
@@ -17,8 +16,6 @@ import (
 var queryToInternalConfigMap map[string]*internalConfig = map[string]*internalConfig{}
 
 var mu = sync.Mutex{}
-
-var withMetricEventBroadcaster config.Broadcaster = config.NewBroadcaster()
 
 var defaultMinSampleWeight float64 = 1e-5
 var defaultMarginFraction float64 = .15
@@ -59,22 +56,22 @@ func makeInternalConfig(p *v1alpha1.Percentile) (*internalConfig, error) {
 	if len(p.Histogram.BucketSizeGrowthRatio) > 0 && 
 		len(p.Histogram.FirstBucketSize) > 0 && 
 		len(p.Histogram.MaxValue) > 0 {
-		bucketSizeGrowthRatio, err := parseFloat(p.Histogram.BucketSizeGrowthRatio, 0)
+		bucketSizeGrowthRatio, err := utils.ParseFloat(p.Histogram.BucketSizeGrowthRatio, 0)
 		if err != nil {
 			return nil, err
 		}
 		
-		firstBucketSize, err := parseFloat(p.Histogram.FirstBucketSize, 0)
+		firstBucketSize, err := utils.ParseFloat(p.Histogram.FirstBucketSize, 0)
 		if err != nil {
 			return nil, err
 		}
 		
-		maxValue, err := parseFloat(p.Histogram.MaxValue, 0)
+		maxValue, err := utils.ParseFloat(p.Histogram.MaxValue, 0)
 		if err != nil {
 			return nil, err
 		}
 		
-		epsilon, err := parseFloat(p.Histogram.Epsilon, 1e-10)
+		epsilon, err := utils.ParseFloat(p.Histogram.Epsilon, 1e-10)
 		if err != nil {
 			return nil, err
 		}
@@ -84,17 +81,17 @@ func makeInternalConfig(p *v1alpha1.Percentile) (*internalConfig, error) {
 			return nil, err
 		}
 	} else if len(p.Histogram.BucketSize) > 0 && len(p.Histogram.MaxValue) > 0 {
-		bucketSize, err := parseFloat(p.Histogram.BucketSize, 0) 
+		bucketSize, err := utils.ParseFloat(p.Histogram.BucketSize, 0) 
 		if err != nil {
 			return nil, err
 		}
 		
-		maxValue, err := parseFloat(p.Histogram.MaxValue, 0)
+		maxValue, err := utils.ParseFloat(p.Histogram.MaxValue, 0)
 		if err != nil {
 			return nil, err
 		}
 
-		epsilon, err := parseFloat(p.Histogram.Epsilon, 1e-10)
+		epsilon, err := utils.ParseFloat(p.Histogram.Epsilon, 1e-10)
 		if err != nil {
 			return nil, err
 		}
@@ -104,17 +101,17 @@ func makeInternalConfig(p *v1alpha1.Percentile) (*internalConfig, error) {
 	}
 
 	
-	percentile, err := parseFloat(p.Percentile, defaultPercentile)
+	percentile, err := utils.ParseFloat(p.Percentile, defaultPercentile)
 	if err != nil {
 		return nil, err
 	}
 
-	marginFraction, err := parseFloat(p.MarginFraction, defaultMarginFraction)
+	marginFraction, err := utils.ParseFloat(p.MarginFraction, defaultMarginFraction)
 	if err != nil {
 		return nil, err
 	}
 
-	minSampleWeight, err := parseFloat(p.MinSampleWeight, defaultMinSampleWeight)
+	minSampleWeight, err := utils.ParseFloat(p.MinSampleWeight, defaultMinSampleWeight)
 	if err != nil {
 		return nil, err
 	}
@@ -127,13 +124,6 @@ func makeInternalConfig(p *v1alpha1.Percentile) (*internalConfig, error) {
 		marginFraction:         marginFraction,
 		percentile:             percentile,
 	}, nil
-}
-
-func parseFloat(str string, defaultValue float64) (float64, error) {
-	if len(str) == 0 {
-		return defaultValue, nil
-	}
-	return strconv.ParseFloat(str, 64)
 }
 
 func getInternalConfig(queryExpr string) *internalConfig {

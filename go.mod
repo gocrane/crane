@@ -18,8 +18,10 @@ require (
 )
 
 require (
-	github.com/gocrane/api v0.0.0-20211129131451-cf8d19e6a088 // indirect
+	github.com/go-echarts/go-echarts/v2 v2.2.4
+	github.com/gocrane/api v0.0.0-20211130152216-81576cc97758
 	github.com/google/go-cmp v0.5.6 // indirect
+	github.com/mjibson/go-dsp v0.0.0-20180508042940-11479a337f12
 	github.com/prometheus/client_golang v1.11.0
 	github.com/prometheus/common v0.26.0
 	github.com/stretchr/testify v1.7.0

@@ -80,7 +80,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 	}
 
 	if err := mgr.AddHealthzCheck("ping", healthz.Ping); err != nil {
-		log.Logerg().Error(err, "failed to add health check endpoint")
+		log.Logger().Error(err, "failed to add health check endpoint")
 		return err
 	}
 
