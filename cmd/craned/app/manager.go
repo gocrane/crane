@@ -18,7 +18,7 @@ import (
 	"github.com/gocrane/crane/cmd/craned/app/options"
 	"github.com/gocrane/crane/pkg/controller/hpa"
 	"github.com/gocrane/crane/pkg/known"
-	"github.com/gocrane/crane/pkg/utils/clogs"
+	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 var (
@@ -42,11 +42,11 @@ func NewManagerCommand(ctx context.Context) *cobra.Command {
 		Long: `The crane manager is responsible for manage controllers in crane`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(); err != nil {
-				clogs.Log().Error(err, "opts complete failed,exit")
+				log.Logger().Error(err, "opts complete failed,exit")
 				os.Exit(255)
 			}
 			if err := opts.Validate(); err != nil {
-				clogs.Log().Error(err, "opts validate failed,exit")
+				log.Logger().Error(err, "opts validate failed,exit")
 				os.Exit(255)
 
 			}
@@ -75,20 +75,20 @@ func Run(ctx context.Context, opts *options.Options) error {
 		LeaderElectionNamespace: known.CraneSystemNamespace,
 	})
 	if err != nil {
-		clogs.Log().Error(err, "unable to start crane manager")
+		log.Logger().Error(err, "unable to start crane manager")
 		os.Exit(1)
 	}
 
 	if err := mgr.AddHealthzCheck("ping", healthz.Ping); err != nil {
-		clogs.Log().Error(err, "failed to add health check endpoint")
+		log.Logger().Error(err, "failed to add health check endpoint")
 		return err
 	}
 
 	initializationControllers(mgr, opts)
 
-	clogs.Log().Info("Starting crane manager")
+	log.Logger().Info("Starting crane manager")
 	if err := mgr.Start(ctx); err != nil {
-		clogs.Log().Error(err, "problem running crane manager")
+		log.Logger().Error(err, "problem running crane manager")
 		return err
 	}
 
@@ -97,16 +97,16 @@ func Run(ctx context.Context, opts *options.Options) error {
 
 // initializationControllers setup controllers with manager
 func initializationControllers(mgr ctrl.Manager, opts *options.Options) {
-	clogs.Log().Info(fmt.Sprintf("opts %v", opts))
+	log.Logger().Info(fmt.Sprintf("opts %v", opts))
 	hpaRecorder := mgr.GetEventRecorderFor("advanced-hpa-controller")
 	if err := (&hpa.AdvancedHPAController{
 		Client:     mgr.GetClient(),
-		Log:        clogs.Log().WithName("advanced-hpa-controller"),
+		Log:        log.Logger().WithName("advanced-hpa-controller"),
 		Scheme:     mgr.GetScheme(),
 		RestMapper: mgr.GetRESTMapper(),
 		Recorder:   hpaRecorder,
 	}).SetupWithManager(mgr); err != nil {
-		clogs.Log().Error(err, "unable to create controller", "controller", "AdvancedHPAController")
+		log.Logger().Error(err, "unable to create controller", "controller", "AdvancedHPAController")
 		os.Exit(1)
 	}
 }

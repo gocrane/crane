@@ -1,4 +1,4 @@
-package clogs
+package log
 
 import (
 	"fmt"
@@ -12,22 +12,21 @@ import (
 )
 
 var (
-	craneLogger CLogs
-)
-
-type CLogs struct {
 	once   sync.Once
 	logger logr.Logger
+)
+
+func Logger() logr.Logger {
+	if logger == nil {
+		Init("default")
+	}
+	return logger
 }
 
-func Log() logr.Logger {
-	return craneLogger.logger
-}
-
-func InitLogs(name string) {
-	craneLogger.once.Do(func() {
+func Init(name string) {
+	once.Do(func() {
 		ctrl.SetLogger(klogr.New())
-		craneLogger.logger = ctrl.Log.WithName(name)
+		logger = ctrl.Log.WithName(name)
 	})
 }
 
