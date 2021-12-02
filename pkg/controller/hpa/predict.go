@@ -157,7 +157,9 @@ func IsPredictionEnabled(ahpa *autoscalingapi.AdvancedHorizontalPodAutoscaler) b
 func setPredictionCondition(status *autoscalingapi.AdvancedHorizontalPodAutoscalerStatus, conditions []predictionapi.PodGroupPredictionCondition) {
 	for _, cond := range conditions {
 		if cond.Type == predictionapi.PredictionConditionPredicting {
-			setCondition(status, autoscalingapi.PredictionReady, cond.Status, cond.Reason, cond.Message)
+			if len(cond.Reason) > 0 && len(cond.Message) > 0 {
+				setCondition(status, autoscalingapi.PredictionReady, cond.Status, cond.Reason, cond.Message)
+			}
 		}
 	}
 }
