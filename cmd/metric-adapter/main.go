@@ -70,7 +70,7 @@ func (a *MetricAdapter) makeProvider() (provider.CustomMetricsProvider, error) {
 	broadcaster.StartRecordingToSink(&v1core.EventSinkImpl{
 		Interface: kubeClient.CoreV1().Events(""),
 	})
-	recorder := broadcaster.NewRecorder(scheme, corev1.EventSource{Component: "advanced-horizontal-pod-autoscaler-adapter"})
+	recorder := broadcaster.NewRecorder(scheme, corev1.EventSource{Component: "crane-metric-adapter"})
 
 	return autoscaling.NewMetricProvider(client, recorder), nil
 }

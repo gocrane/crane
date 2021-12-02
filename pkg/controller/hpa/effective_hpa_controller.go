@@ -27,8 +27,8 @@ import (
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 )
 
-// AdvancedHPAController is responsible for scaling workload's replica based on AdvancedHorizontalPodAutoscaler spec
-type AdvancedHPAController struct {
+// EffectiveHPAController is responsible for scaling workload's replica based on EffectiveHorizontalPodAutoscaler spec
+type EffectiveHPAController struct {
 	client.Client
 	Log         logr.Logger
 	Scheme      *runtime.Scheme
@@ -38,71 +38,71 @@ type AdvancedHPAController struct {
 	K8SVersion  *version.Version
 }
 
-func (p *AdvancedHPAController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	p.Log.Info("got", "advanced-hpa", req.NamespacedName)
+func (p *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	p.Log.Info("got", "effective-hpa", req.NamespacedName)
 
-	ahpa := &autoscalingapi.AdvancedHorizontalPodAutoscaler{}
-	err := p.Client.Get(ctx, req.NamespacedName, ahpa)
+	ehpa := &autoscalingapi.EffectiveHorizontalPodAutoscaler{}
+	err := p.Client.Get(ctx, req.NamespacedName, ehpa)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	newStatus := ahpa.Status.DeepCopy()
+	newStatus := ehpa.Status.DeepCopy()
 
-	scale, mapping, err := p.GetScale(ctx, ahpa)
+	scale, mapping, err := p.GetScale(ctx, ehpa)
 	if err != nil {
-		p.Recorder.Event(ahpa, v1.EventTypeNormal, "FailedGetScale", err.Error())
-		p.Log.Error(err, "Failed to get scale", "advanced-hpa", klog.KObj(ahpa))
+		p.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedGetScale", err.Error())
+		p.Log.Error(err, "Failed to get scale", "effective-hpa", klog.KObj(ehpa))
 		setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedGetScale", "Failed to get scale")
-		p.UpdateStatus(ctx, ahpa, newStatus)
+		p.UpdateStatus(ctx, ehpa, newStatus)
 		return ctrl.Result{}, err
 	}
 
-	if ahpa.Spec.ScaleStrategy == autoscalingapi.ScaleStrategyManual {
-		err = p.DisableHPA(ctx, ahpa)
+	if ehpa.Spec.ScaleStrategy == autoscalingapi.ScaleStrategyManual {
+		err = p.DisableHPA(ctx, ehpa)
 		if err != nil {
 			setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedDisableHPA", "Failed to disable hpa")
-			p.UpdateStatus(ctx, ahpa, newStatus)
+			p.UpdateStatus(ctx, ehpa, newStatus)
 			return ctrl.Result{}, err
 		}
 
-		newStatus.ExpectReplicas = ahpa.Spec.SpecificReplicas
+		newStatus.ExpectReplicas = ehpa.Spec.SpecificReplicas
 		newStatus.CurrentReplicas = &scale.Status.Replicas
 
 		// todo: validation SpecificReplicas is between minReplicas and maxReplicas in webhook
 		// scale target to its specific replicas
-		if ahpa.Spec.SpecificReplicas != nil && *ahpa.Spec.SpecificReplicas != scale.Status.Replicas {
-			scale.Spec.Replicas = *ahpa.Spec.SpecificReplicas
+		if ehpa.Spec.SpecificReplicas != nil && *ehpa.Spec.SpecificReplicas != scale.Status.Replicas {
+			scale.Spec.Replicas = *ehpa.Spec.SpecificReplicas
 			updatedScale, err := p.scaleClient.Scales(scale.Namespace).Update(ctx, mapping.Resource.GroupResource(), scale, metav1.UpdateOptions{})
 			if err != nil {
-				p.Recorder.Event(ahpa, v1.EventTypeNormal, "FailedManualScale", err.Error())
-				p.Log.Error(err, "Failed to manual scale target to specific replicas", "advanced-hpa", klog.KObj(ahpa), "replicas", ahpa.Spec.SpecificReplicas)
+				p.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedManualScale", err.Error())
+				p.Log.Error(err, "Failed to manual scale target to specific replicas", "effective-hpa", klog.KObj(ehpa), "replicas", ehpa.Spec.SpecificReplicas)
 				setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedScale", "Failed to scale target manually")
-				p.UpdateStatus(ctx, ahpa, newStatus)
+				p.UpdateStatus(ctx, ehpa, newStatus)
 				return ctrl.Result{}, err
 			}
 
-			p.Log.Info("Manual scale target to specific replicas", "advanced-hpa", klog.KObj(ahpa), "replicas", ahpa.Spec.SpecificReplicas)
+			p.Log.Info("Manual scale target to specific replicas", "effective-hpa", klog.KObj(ehpa), "replicas", ehpa.Spec.SpecificReplicas)
 			now := metav1.Now()
 			newStatus.LastScaleTime = &now
 			newStatus.CurrentReplicas = &updatedScale.Status.Replicas
 		}
-	} else if ahpa.Spec.ScaleStrategy == autoscalingapi.ScaleStrategyAuto {
+	} else if ehpa.Spec.ScaleStrategy == autoscalingapi.ScaleStrategyAuto {
 		// reconcile prediction if enabled
-		if IsPredictionEnabled(ahpa) {
-			prediction, err := p.ReconcilePodPredication(ctx, ahpa)
+		if IsPredictionEnabled(ehpa) {
+			prediction, err := p.ReconcilePodPredication(ctx, ehpa)
 			if err != nil {
 				setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedReconcilePrediction", err.Error())
-				p.UpdateStatus(ctx, ahpa, newStatus)
+				p.UpdateStatus(ctx, ehpa, newStatus)
 				return ctrl.Result{}, err
 			}
 			setPredictionCondition(newStatus, prediction.Status.Conditions)
 		}
 
-		hpa, err := p.ReconcileHPA(ctx, ahpa)
+		hpa, err := p.ReconcileHPA(ctx, ehpa)
 		if err != nil {
 			setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedReconcileHPA", err.Error())
-			p.UpdateStatus(ctx, ahpa, newStatus)
+			p.UpdateStatus(ctx, ehpa, newStatus)
 			return ctrl.Result{}, err
 		}
 
@@ -111,39 +111,41 @@ func (p *AdvancedHPAController) Reconcile(ctx context.Context, req ctrl.Request)
 		newStatus.CurrentReplicas = &hpa.Status.CurrentReplicas
 
 		setHPACondition(newStatus, hpa.Status.Conditions)
+	} else if ehpa.Spec.ScaleStrategy == "Observe" {
+
 	}
 
-	setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionTrue, "AdvancedHorizontalPodAutoscalerReady", "Advanced HPA is ready")
-	return ctrl.Result{}, p.UpdateStatus(ctx, ahpa, newStatus)
+	setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionTrue, "EffectiveHorizontalPodAutoscalerReady", "Effective HPA is ready")
+	return ctrl.Result{}, p.UpdateStatus(ctx, ehpa, newStatus)
 }
 
-func (p *AdvancedHPAController) UpdateStatus(ctx context.Context, ahpa *autoscalingapi.AdvancedHorizontalPodAutoscaler, newStatus *autoscalingapi.AdvancedHorizontalPodAutoscalerStatus) error {
-	if !equality.Semantic.DeepEqual(&ahpa.Status, newStatus) {
-		p.Log.V(4).Info("AdvancedHorizontalPodAutoscaler status should be updated", "currentStatus", &ahpa.Status, "newStatus", newStatus)
+func (p *EffectiveHPAController) UpdateStatus(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, newStatus *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus) error {
+	if !equality.Semantic.DeepEqual(&ehpa.Status, newStatus) {
+		p.Log.V(4).Info("EffectiveHorizontalPodAutoscaler status should be updated", "currentStatus", &ehpa.Status, "newStatus", newStatus)
 
-		ahpa.Status = *newStatus
-		err := p.Status().Update(ctx, ahpa)
+		ehpa.Status = *newStatus
+		err := p.Status().Update(ctx, ehpa)
 		if err != nil {
-			p.Recorder.Event(ahpa, v1.EventTypeNormal, "FailedUpdateStatus", err.Error())
-			p.Log.Error(err, "Failed to update status", "advanced-hpa", klog.KObj(ahpa))
+			p.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedUpdateStatus", err.Error())
+			p.Log.Error(err, "Failed to update status", "effective-hpa", klog.KObj(ehpa))
 			return err
 		}
 
-		p.Log.Info("Update AdvancedHorizontalPodAutoscaler status successful", "advanced-hpa", klog.KObj(ahpa))
+		p.Log.Info("Update EffectiveHorizontalPodAutoscaler status successful", "effective-hpa", klog.KObj(ehpa))
 	}
 
 	return nil
 }
 
-func (p *AdvancedHPAController) GetScale(ctx context.Context, ahpa *autoscalingapi.AdvancedHorizontalPodAutoscaler) (*autoscalingapiv1.Scale, *meta.RESTMapping, error) {
-	targetGV, err := schema.ParseGroupVersion(ahpa.Spec.ScaleTargetRef.APIVersion)
+func (p *EffectiveHPAController) GetScale(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) (*autoscalingapiv1.Scale, *meta.RESTMapping, error) {
+	targetGV, err := schema.ParseGroupVersion(ehpa.Spec.ScaleTargetRef.APIVersion)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	targetGK := schema.GroupKind{
 		Group: targetGV.Group,
-		Kind:  ahpa.Spec.ScaleTargetRef.Kind,
+		Kind:  ehpa.Spec.ScaleTargetRef.Kind,
 	}
 
 	mappings, err := p.RestMapper.RESTMappings(targetGK)
@@ -152,7 +154,7 @@ func (p *AdvancedHPAController) GetScale(ctx context.Context, ahpa *autoscalinga
 	}
 
 	for _, mapping := range mappings {
-		scale, err := p.scaleClient.Scales(ahpa.Namespace).Get(ctx, mapping.Resource.GroupResource(), ahpa.Spec.ScaleTargetRef.Name, metav1.GetOptions{})
+		scale, err := p.scaleClient.Scales(ehpa.Namespace).Get(ctx, mapping.Resource.GroupResource(), ehpa.Spec.ScaleTargetRef.Name, metav1.GetOptions{})
 		if err == nil {
 			return scale, mapping, nil
 		}
@@ -161,7 +163,7 @@ func (p *AdvancedHPAController) GetScale(ctx context.Context, ahpa *autoscalinga
 	return nil, nil, fmt.Errorf("unrecognized resource")
 }
 
-func (p *AdvancedHPAController) GetPodsFromScale(scale *autoscalingapiv1.Scale) ([]v1.Pod, error) {
+func (p *EffectiveHPAController) GetPodsFromScale(scale *autoscalingapiv1.Scale) ([]v1.Pod, error) {
 	selector, err := labels.ConvertSelectorToLabelsMap(scale.Status.Selector)
 	if err != nil {
 		return nil, err
@@ -181,7 +183,7 @@ func (p *AdvancedHPAController) GetPodsFromScale(scale *autoscalingapiv1.Scale) 
 	return podList.Items, nil
 }
 
-func (p *AdvancedHPAController) SetupWithManager(mgr ctrl.Manager) error {
+func (p *EffectiveHPAController) SetupWithManager(mgr ctrl.Manager) error {
 	discoveryClientSet, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
 	if err != nil {
 		return err
@@ -203,13 +205,13 @@ func (p *AdvancedHPAController) SetupWithManager(mgr ctrl.Manager) error {
 	}
 	p.K8SVersion = K8SVersion
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&autoscalingapi.AdvancedHorizontalPodAutoscaler{}).
+		For(&autoscalingapi.EffectiveHorizontalPodAutoscaler{}).
 		Owns(&autoscalingv2.HorizontalPodAutoscaler{}).
 		Owns(&predictionapi.PodGroupPrediction{}).
 		Complete(p)
 }
 
-func setCondition(status *autoscalingapi.AdvancedHorizontalPodAutoscalerStatus, conditionType autoscalingapi.ConditionType, conditionStatus metav1.ConditionStatus, reason string, message string) {
+func setCondition(status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus, conditionType autoscalingapi.ConditionType, conditionStatus metav1.ConditionStatus, reason string, message string) {
 	for _, cond := range status.Conditions {
 		if cond.Type == string(conditionType) {
 			cond.Status = conditionStatus
