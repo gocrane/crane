@@ -26,14 +26,12 @@ type GenericPrediction struct {
 	realtimeProvider           providers.Interface
 	metricsMap                 map[string][]common.QueryCondition
 	querySet                   map[string]struct{}
-	withMetricEventBroadcaster config.Broadcaster
 	withQueryBroadcaster       config.Broadcaster
 	mu                         sync.Mutex
 }
 
-func NewGenericPrediction(withMetricEventBroadcaster, withQueryBroadcaster config.Broadcaster) GenericPrediction {
+func NewGenericPrediction(withQueryBroadcaster config.Broadcaster) GenericPrediction {
 	return GenericPrediction{
-		withMetricEventBroadcaster: withMetricEventBroadcaster,
 		withQueryBroadcaster:       withQueryBroadcaster,
 		mu:                         sync.Mutex{},
 		metricsMap:      map[string][]common.QueryCondition{},
