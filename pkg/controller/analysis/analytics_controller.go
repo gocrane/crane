@@ -5,13 +5,13 @@ import (
 	"fmt"
 	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -24,14 +24,14 @@ import (
 
 type AnalyticsController struct {
 	client.Client
-	Logger         logr.Logger
-	Scheme      *runtime.Scheme
-	RestMapper  meta.RESTMapper
-	Recorder    record.EventRecorder
-	kubeClient kubernetes.Interface
-	dynamicClient dynamic.Interface
+	Logger          logr.Logger
+	Scheme          *runtime.Scheme
+	RestMapper      meta.RESTMapper
+	Recorder        record.EventRecorder
+	kubeClient      kubernetes.Interface
+	dynamicClient   dynamic.Interface
 	discoveryClient discovery.DiscoveryInterface
-	K8SVersion  *version.Version
+	K8SVersion      *version.Version
 }
 
 func (ac *AnalyticsController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -114,7 +114,7 @@ func (ac *AnalyticsController) Reconcile(ctx context.Context, req ctrl.Request) 
 			}
 			opts := metav1.ListOptions{
 				LabelSelector: ls.String(),
-				Limit: 1,
+				Limit:         1,
 			}
 			podList, err := ac.kubeClient.CoreV1().Pods(req.Namespace).List(ctx, opts)
 			if err != nil {
@@ -131,8 +131,6 @@ func (ac *AnalyticsController) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 
 	}
-
-
 
 	return ctrl.Result{}, nil
 }

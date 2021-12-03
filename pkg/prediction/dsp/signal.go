@@ -2,12 +2,13 @@ package dsp
 
 import (
 	"fmt"
+	"math/cmplx"
+	"time"
+
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/go-echarts/go-echarts/v2/types"
 	"github.com/mjibson/go-dsp/fft"
-	"math/cmplx"
-	"time"
 )
 
 // Signal represents a discrete signal.

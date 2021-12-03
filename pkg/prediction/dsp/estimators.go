@@ -2,10 +2,11 @@ package dsp
 
 import (
 	"fmt"
-	"github.com/mjibson/go-dsp/fft"
 	"math/cmplx"
 	"sort"
 	"time"
+
+	"github.com/mjibson/go-dsp/fft"
 )
 
 const (
