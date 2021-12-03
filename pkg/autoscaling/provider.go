@@ -169,7 +169,7 @@ func (p *MetricProvider) GetPodPrediction(ctx context.Context, namespace string,
 		return nil, err
 	}
 
-	matchingLabels := client.MatchingLabels(map[string]string{"app.kubernetes.io/managed-by": known.AdvancedHorizontalPodAutoscalerManagedBy})
+	matchingLabels := client.MatchingLabels(map[string]string{"app.kubernetes.io/managed-by": known.EffectiveHorizontalPodAutoscalerManagedBy})
 	// merge metric selectors
 	for key, value := range labelSelector {
 		matchingLabels[key] = value

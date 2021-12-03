@@ -6,20 +6,48 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.7.0
   creationTimestamp: null
-  name: advancedhorizontalpodautoscalers.autoscaling.crane.io
+  name: effectivehorizontalpodautoscalers.autoscaling.crane.io
 spec:
   group: autoscaling.crane.io
   names:
-    kind: AdvancedHorizontalPodAutoscaler
-    listKind: AdvancedHorizontalPodAutoscalerList
-    plural: advancedhorizontalpodautoscalers
-    singular: advancedhorizontalpodautoscaler
+    kind: EffectiveHorizontalPodAutoscaler
+    listKind: EffectiveHorizontalPodAutoscalerList
+    plural: effectivehorizontalpodautoscalers
+    shortNames:
+    - ehpa
+    singular: effectivehorizontalpodautoscaler
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: The scale strategy of ahpa.
+      jsonPath: .spec.scaleStrategy
+      name: STRATEGY
+      type: string
+    - description: The min replicas of target workload.
+      jsonPath: .spec.minReplicas
+      name: MINPODS
+      type: integer
+    - description: The max replicas of target workload.
+      jsonPath: .spec.maxReplicas
+      name: MAXPODS
+      type: integer
+    - description: The specific replicas of target workload.
+      jsonPath: .spec.specificReplicas
+      name: SPECIFICPODS
+      type: integer
+    - description: The desired replicas of target workload.
+      jsonPath: .status.expectReplicas
+      name: REPLICAS
+      type: integer
+    - description: CreationTimestamp is a timestamp representing the server time when
+        this object was created.
+      jsonPath: .metadata.creationTimestamp
+      name: AGE
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: AdvancedHorizontalPodAutoscaler is the Schema for the advancedhorizontalpodautoscaler
+        description: EffectiveHorizontalPodAutoscaler is the Schema for the effectivehorizontalpodautoscaler
           API
         properties:
           apiVersion:
@@ -35,8 +63,8 @@ spec:
           metadata:
             type: object
           spec:
-            description: AdvancedHorizontalPodAutoscalerSpec defines the desired spec
-              of AdvancedHorizontalPodAutoscaler
+            description: EffectiveHorizontalPodAutoscalerSpec defines the desired
+              spec of EffectiveHorizontalPodAutoscaler
             properties:
               behavior:
                 description: behavior configures the scaling behavior of the target
@@ -639,8 +667,8 @@ spec:
                   is 1.
                 format: int32
                 type: integer
-              predictionConfig:
-                description: PredictionConfig defines config for predict resources.
+              prediction:
+                description: Prediction defines configurations for predict resources.
                   If unspecified, defaults don't enable prediction.
                 properties:
                   predictionAlgorithm:
@@ -675,6 +703,9 @@ spec:
                                 type: array
                               maxValue:
                                 items:
+                                  properties:
+                                    marginFraction:
+                                      type: string
                                   type: object
                                 type: array
                             type: object
@@ -705,19 +736,31 @@ spec:
                               maxValue:
                                 type: string
                             type: object
+                          marginFraction:
+                            type: string
                           minSampleWeight:
+                            type: string
+                          percentile:
                             type: string
                           sampleInterval:
                             type: string
                         type: object
                     type: object
-                  predictionWindow:
-                    default: 600
-                    description: PredictionWindow is the time window seconds to predict
-                      metrics in the future.
+                  predictionWindowSeconds:
+                    default: 3600
+                    description: PredictionWindowSeconds is the time window seconds
+                      to predict metrics in the future.
                     format: int32
                     type: integer
                 type: object
+              scaleStrategy:
+                default: Auto
+                description: ScaleStrategy indicate the strategy to scaling target,
+                  value can be "Auto" and "Manual" the default ScaleStrategy is Auto.
+                enum:
+                - Auto
+                - Manual
+                type: string
               scaleTargetRef:
                 description: ScaleTargetRef is the reference to the workload that
                   should be scaled.
@@ -735,6 +778,12 @@ spec:
                 - kind
                 - name
                 type: object
+              specificReplicas:
+                description: SpecificReplicas specify the target replicas if ScaleStrategy
+                  is Manual If not set, when ScaleStrategy is setting to Manual, it
+                  will just stop scaling
+                format: int32
+                type: integer
             required:
             - maxReplicas
             - scaleTargetRef
@@ -821,13 +870,15 @@ spec:
                 format: int32
                 type: integer
               lastScaleTime:
-                description: LastScaleTime indicate the last time to execute scaling.
+                description: LastScaleTime indicates the last time to execute scaling.
                 format: date-time
                 type: string
             type: object
         type: object
     served: true
     storage: true
+    subresources:
+      status: {}
 status:
   acceptedNames:
     kind: ""

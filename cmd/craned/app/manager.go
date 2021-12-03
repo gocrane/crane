@@ -156,15 +156,15 @@ func Run(ctx context.Context, opts *options.Options) error {
 // initializationControllers setup controllers with manager
 func initializationControllers(mgr ctrl.Manager, opts *options.Options) {
 	log.Logger().Info(fmt.Sprintf("opts %v", opts))
-	hpaRecorder := mgr.GetEventRecorderFor("advanced-hpa-controller")
-	if err := (&hpa.AdvancedHPAController{
+	hpaRecorder := mgr.GetEventRecorderFor("effective-hpa-controller")
+	if err := (&hpa.EffectiveHPAController{
 		Client:     mgr.GetClient(),
-		Log:        log.Logger().WithName("advanced-hpa-controller"),
+		Log:        log.Logger().WithName("effective-hpa-controller"),
 		Scheme:     mgr.GetScheme(),
 		RestMapper: mgr.GetRESTMapper(),
 		Recorder:   hpaRecorder,
 	}).SetupWithManager(mgr); err != nil {
-		log.Logger().Error(err, "unable to create controller", "controller", "AdvancedHPAController")
+		log.Logger().Error(err, "unable to create controller", "controller", "EffectiveHPAController")
 		os.Exit(1)
 	}
 }
