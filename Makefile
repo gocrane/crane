@@ -105,10 +105,12 @@ lint: golangci-lint  ## Run golang lint against code
 test: manifests fmt vet goimports ## Run tests.
 	go test -race -coverprofile coverage.out -covermode=atomic ./...
 
-##@ Build
+
+.PHONY: build
+build: craned metric-adapter
 
 .PHONY: all
-all: craned metric-adapter
+all: test lint vet craned metric-adapter
 
 .PHONY: craned
 craned: ## Build binary with the crane manager.

@@ -54,7 +54,9 @@ func (p *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 		p.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedGetScale", err.Error())
 		p.Log.Error(err, "Failed to get scale", "effective-hpa", klog.KObj(ehpa))
 		setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedGetScale", "Failed to get scale")
-		p.UpdateStatus(ctx, ehpa, newStatus)
+		if e := p.UpdateStatus(ctx, ehpa, newStatus); e != nil {
+			p.Log.Error(e, "UpdateStatus", "effective-hpa", klog.KObj(ehpa))
+		}
 		return ctrl.Result{}, err
 	}
 
@@ -62,7 +64,9 @@ func (p *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 		err = p.DisableHPA(ctx, ehpa)
 		if err != nil {
 			setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedDisableHPA", "Failed to disable hpa")
-			p.UpdateStatus(ctx, ehpa, newStatus)
+			if e := p.UpdateStatus(ctx, ehpa, newStatus); e != nil {
+				p.Log.Error(e, "UpdateStatus", "effective-hpa", klog.KObj(ehpa))
+			}
 			return ctrl.Result{}, err
 		}
 
@@ -78,7 +82,9 @@ func (p *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 				p.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedManualScale", err.Error())
 				p.Log.Error(err, "Failed to manual scale target to specific replicas", "effective-hpa", klog.KObj(ehpa), "replicas", ehpa.Spec.SpecificReplicas)
 				setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedScale", "Failed to scale target manually")
-				p.UpdateStatus(ctx, ehpa, newStatus)
+				if e := p.UpdateStatus(ctx, ehpa, newStatus); e != nil {
+					p.Log.Error(e, "UpdateStatus", "effective-hpa", klog.KObj(ehpa))
+				}
 				return ctrl.Result{}, err
 			}
 
@@ -93,7 +99,9 @@ func (p *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 			prediction, err := p.ReconcilePodPredication(ctx, ehpa)
 			if err != nil {
 				setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedReconcilePrediction", err.Error())
-				p.UpdateStatus(ctx, ehpa, newStatus)
+				if e := p.UpdateStatus(ctx, ehpa, newStatus); e != nil {
+					p.Log.Error(e, "UpdateStatus", "effective-hpa", klog.KObj(ehpa))
+				}
 				return ctrl.Result{}, err
 			}
 			setPredictionCondition(newStatus, prediction.Status.Conditions)
@@ -102,7 +110,9 @@ func (p *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 		hpa, err := p.ReconcileHPA(ctx, ehpa)
 		if err != nil {
 			setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedReconcileHPA", err.Error())
-			p.UpdateStatus(ctx, ehpa, newStatus)
+			if e := p.UpdateStatus(ctx, ehpa, newStatus); e != nil {
+				p.Log.Error(e, "UpdateStatus", "effective-hpa", klog.KObj(ehpa))
+			}
 			return ctrl.Result{}, err
 		}
 
