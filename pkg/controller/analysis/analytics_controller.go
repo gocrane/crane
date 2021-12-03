@@ -3,6 +3,7 @@ package analysis
 import (
 	"context"
 	"fmt"
+
 	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -48,7 +49,7 @@ func (ac *AnalyticsController) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	for _, rs := range a.Spec.ResourceSelectors {
 		if rs.Kind == "" {
-			return ctrl.Result{}, fmt.Errorf("emtpy kind")
+			return ctrl.Result{}, fmt.Errorf("empty kind")
 		}
 
 		resList, err := ac.discoveryClient.ServerResourcesForGroupVersion(rs.APIVersion)
