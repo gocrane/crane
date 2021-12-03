@@ -1,7 +1,8 @@
-# Crane
+# Crane: Cloud Resource Analytics and Economics
+
+<div><img src="./docs/images/crane.png" style="width:100px;" /></div>
 
 ----
-
 - [Architecture](#architecture)
 - [Components](#components)
     - [Predictor](#predictor)
@@ -13,6 +14,20 @@
 - [License](#license)
 
 # Architecture
+Crane (FinOps Crane) is an opensource project which manages cloud resource on Kubernetes stack, it is inspired by FinOps concepts. 
+Goal of Crane is to provide an one-stop shop project to help Kubernetes users to save cloud resource usage with a rich set of functionalities:
+- Resource Metrics Prediction based on monitoring data
+- Cost visibility including:
+  - Cost allocation, cost and usage virtualization
+  - Waste identification
+  - Idle resource collection and reallocation
+- Usage & Cost Optimization including:
+  - Enhanced scheduling which optimized for better resource utilization
+  - Intelligent Scaling based on prediction result
+  - Cost Optimization based on better billing rate
+- QoS Ensurance based on Pod PriorityClass
+
+<div align="center"><img src="./docs/images/crane-architecture.png" style="width:900px;" /></div>
 
 # Components
 
