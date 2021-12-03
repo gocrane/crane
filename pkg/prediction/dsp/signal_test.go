@@ -4,21 +4,22 @@ import (
 	"bytes"
 	"encoding/csv"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"math"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var (
-	epsilon = 1e-15
-	sampleRate = 1000.0                    // Hz
-	duration = 1.0                         // second
+	epsilon        = 1e-15
+	sampleRate     = 1000.0                // Hz
+	duration       = 1.0                   // second
 	sampleInterval = duration / sampleRate // second
-	frequency = 25.0
-	amplitude = 10.0
+	frequency      = 25.0
+	amplitude      = 10.0
 )
 
 var signal *Signal

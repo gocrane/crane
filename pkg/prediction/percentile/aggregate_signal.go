@@ -1,9 +1,10 @@
 package percentile
 
 import (
-	"github.com/gocrane/crane/pkg/utils/log"
 	"math"
 	"time"
+
+	"github.com/gocrane/crane/pkg/utils/log"
 
 	vpa "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/recommender/util"
 )

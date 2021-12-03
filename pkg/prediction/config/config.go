@@ -2,9 +2,10 @@ package config
 
 import (
 	"fmt"
-	"github.com/gocrane/crane/pkg/utils/log"
 	"sort"
 	"strings"
+
+	"github.com/gocrane/crane/pkg/utils/log"
 
 	"github.com/gocrane/api/prediction/v1alpha1"
 )
@@ -46,7 +47,7 @@ func metricSelectorToQueryExpr(m *v1alpha1.MetricSelector) string {
 			values = append(values, val)
 		}
 		sort.Strings(values)
-		conditions = append(conditions, fmt.Sprintf("%s%s[%s]", cond.Key, cond.Operator, strings.Join(values,",")))
+		conditions = append(conditions, fmt.Sprintf("%s%s[%s]", cond.Key, cond.Operator, strings.Join(values, ",")))
 	}
 	sort.Strings(conditions)
 	return fmt.Sprintf("%s{%s}", m.MetricName, strings.Join(conditions, ","))

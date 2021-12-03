@@ -3,13 +3,13 @@ package csv
 import (
 	"bytes"
 	"encoding/csv"
-	"github.com/gocrane/crane/pkg/common"
-	"github.com/gocrane/crane/pkg/providers"
 	"io"
 	"io/ioutil"
 	"strconv"
 	"time"
 
+	"github.com/gocrane/crane/pkg/common"
+	"github.com/gocrane/crane/pkg/providers"
 )
 
 var _ providers.Interface = &file{}

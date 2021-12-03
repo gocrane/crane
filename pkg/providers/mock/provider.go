@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/csv"
 	"fmt"
-	"github.com/gocrane/crane/pkg/common"
-	"github.com/gocrane/crane/pkg/providers"
-	"github.com/gocrane/crane/pkg/utils/log"
 	"io/ioutil"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/gocrane/crane/pkg/common"
+	"github.com/gocrane/crane/pkg/providers"
+	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 var logger = log.Logger()
@@ -29,7 +30,7 @@ func NewProvider(config *providers.MockConfig) (providers.Interface, error) {
 	}
 	r, err := os.Open(config.SeedFile)
 	if err != nil {
-		logger.Error(err,"Failed to open seed file", "seedFile", config.SeedFile)
+		logger.Error(err, "Failed to open seed file", "seedFile", config.SeedFile)
 		return nil, err
 	}
 	buf, err := ioutil.ReadAll(r)

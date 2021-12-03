@@ -2,12 +2,13 @@ package dsp
 
 import (
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/gocrane/api/prediction/v1alpha1"
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/utils"
 	"github.com/gocrane/crane/pkg/utils/log"
-	"sync"
-	"time"
 )
 
 var mu = sync.Mutex{}
@@ -37,9 +38,9 @@ var defaultEstimators = []Estimator{
 }
 
 type internalConfig struct {
-	historyResolution                    time.Duration
-	historyDuration                      time.Duration
-	estimators                           []Estimator
+	historyResolution time.Duration
+	historyDuration   time.Duration
+	estimators        []Estimator
 }
 
 func (i internalConfig) String() string {

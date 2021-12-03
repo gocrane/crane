@@ -1,10 +1,11 @@
 package percentile
 
 import (
+	"reflect"
+
 	"github.com/gocrane/api/prediction/v1alpha1"
 	"github.com/gocrane/crane/pkg/utils"
 	vpa "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/recommender/util"
-	"reflect"
 
 	"sync"
 	"time"
@@ -53,39 +54,39 @@ func makeInternalConfig(p *v1alpha1.Percentile) (*internalConfig, error) {
 
 	var options vpa.HistogramOptions
 
-	if len(p.Histogram.BucketSizeGrowthRatio) > 0 && 
-		len(p.Histogram.FirstBucketSize) > 0 && 
+	if len(p.Histogram.BucketSizeGrowthRatio) > 0 &&
+		len(p.Histogram.FirstBucketSize) > 0 &&
 		len(p.Histogram.MaxValue) > 0 {
 		bucketSizeGrowthRatio, err := utils.ParseFloat(p.Histogram.BucketSizeGrowthRatio, 0)
 		if err != nil {
 			return nil, err
 		}
-		
+
 		firstBucketSize, err := utils.ParseFloat(p.Histogram.FirstBucketSize, 0)
 		if err != nil {
 			return nil, err
 		}
-		
+
 		maxValue, err := utils.ParseFloat(p.Histogram.MaxValue, 0)
 		if err != nil {
 			return nil, err
 		}
-		
+
 		epsilon, err := utils.ParseFloat(p.Histogram.Epsilon, 1e-10)
 		if err != nil {
 			return nil, err
 		}
-		
+
 		options, err = vpa.NewExponentialHistogramOptions(maxValue, firstBucketSize, 1.0+bucketSizeGrowthRatio, epsilon)
 		if err != nil {
 			return nil, err
 		}
 	} else if len(p.Histogram.BucketSize) > 0 && len(p.Histogram.MaxValue) > 0 {
-		bucketSize, err := utils.ParseFloat(p.Histogram.BucketSize, 0) 
+		bucketSize, err := utils.ParseFloat(p.Histogram.BucketSize, 0)
 		if err != nil {
 			return nil, err
 		}
-		
+
 		maxValue, err := utils.ParseFloat(p.Histogram.MaxValue, 0)
 		if err != nil {
 			return nil, err
@@ -100,7 +101,6 @@ func makeInternalConfig(p *v1alpha1.Percentile) (*internalConfig, error) {
 		options = defaultHistogramOptions
 	}
 
-	
 	percentile, err := utils.ParseFloat(p.Percentile, defaultPercentile)
 	if err != nil {
 		return nil, err

@@ -3,18 +3,18 @@ package mock
 import (
 	"context"
 	"fmt"
-	"github.com/gocrane/crane/pkg/prediction"
-	"github.com/gocrane/crane/pkg/prediction/dsp"
-	"github.com/gocrane/crane/pkg/providers"
 	"net/http"
 	"testing"
 	"time"
+
+	"github.com/gocrane/crane/pkg/prediction"
+	"github.com/gocrane/crane/pkg/prediction/dsp"
+	"github.com/gocrane/crane/pkg/providers"
 
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/components"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/go-echarts/go-echarts/v2/types"
-
 )
 
 func TestMockProvider(t *testing.T) {

@@ -3,6 +3,7 @@ package hpa
 import (
 	"context"
 	"fmt"
+
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	"github.com/gocrane/crane/pkg/known"
 	autoscalingapiv1 "k8s.io/api/autoscaling/v1"
@@ -36,7 +37,6 @@ func (p *EffectiveHPAController) ReconcileSubstitute(ctx context.Context, ehpa *
 	return &subsList.Items[0], nil
 }
 
-
 func (p *EffectiveHPAController) CreateSubstitute(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, scale *autoscalingapiv1.Scale) (*autoscalingapi.Substitute, error) {
 	substitute, err := p.NewSubstituteObject(ctx, ehpa, scale)
 	if err != nil {
@@ -65,19 +65,19 @@ func (p *EffectiveHPAController) NewSubstituteObject(ctx context.Context, ehpa *
 			Namespace: ehpa.Namespace, // the same namespace to effective-hpa
 			Name:      name,
 			Labels: map[string]string{
-				"app.kubernetes.io/name":                      name,
-				"app.kubernetes.io/part-of":                   ehpa.Name,
-				"app.kubernetes.io/managed-by":                known.EffectiveHorizontalPodAutoscalerManagedBy,
+				"app.kubernetes.io/name":                       name,
+				"app.kubernetes.io/part-of":                    ehpa.Name,
+				"app.kubernetes.io/managed-by":                 known.EffectiveHorizontalPodAutoscalerManagedBy,
 				known.EffectiveHorizontalPodAutoscalerUidLabel: string(ehpa.UID),
 			},
 		},
 		Spec: autoscalingapi.SubstituteSpec{
 			SubstituteTargetRef: ehpa.Spec.ScaleTargetRef,
-			Replicas: &scale.Spec.Replicas,
+			Replicas:            &scale.Spec.Replicas,
 		},
 		Status: autoscalingapi.SubstituteStatus{
 			LabelSelector: scale.Status.Selector,
-			Replicas: scale.Status.Replicas,
+			Replicas:      scale.Status.Replicas,
 		},
 	}
 

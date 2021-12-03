@@ -1,11 +1,12 @@
 package dsp
 
 import (
-	"github.com/go-echarts/go-echarts/v2/charts"
-	"github.com/stretchr/testify/assert"
 	"math"
 	"math/rand"
 	"testing"
+
+	"github.com/go-echarts/go-echarts/v2/charts"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSignal_Period(t *testing.T) {

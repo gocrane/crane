@@ -2,13 +2,14 @@ package dsp
 
 import (
 	"fmt"
+	"math"
+	"sync"
+	"time"
+
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/prediction"
 	"github.com/gocrane/crane/pkg/prediction/accuracy"
 	"github.com/gocrane/crane/pkg/prediction/config"
-	"math"
-	"sync"
-	"time"
 )
 
 var (
@@ -139,26 +140,26 @@ func (p *periodicSignalPrediction) Run(stopCh <-chan struct{}) {
 		return
 	}
 
-		for {
-			// Waiting for a WithQuery request
-			queryExpr := p.qr.Read().(string)
-			logger.Info("Received a WithQuery reques", "queryExpr", queryExpr)
+	for {
+		// Waiting for a WithQuery request
+		queryExpr := p.qr.Read().(string)
+		logger.Info("Received a WithQuery reques", "queryExpr", queryExpr)
 
-			go func(queryExpr string) {
-				ticker := time.NewTicker(queryInterval)
-				defer ticker.Stop()
+		go func(queryExpr string) {
+			ticker := time.NewTicker(queryInterval)
+			defer ticker.Stop()
 
-				for {
-					p.updateAggregateSignalsWithQuery(queryExpr)
-					select {
-					case <-stopCh:
-						return
-					case <-ticker.C:
-						continue
-					}
+			for {
+				p.updateAggregateSignalsWithQuery(queryExpr)
+				select {
+				case <-stopCh:
+					return
+				case <-ticker.C:
+					continue
 				}
-			}(queryExpr)
-		}
+			}
+		}(queryExpr)
+	}
 }
 
 func (p *periodicSignalPrediction) updateAggregateSignalsWithQuery(queryExpr string) error {
@@ -273,7 +274,7 @@ func bestEstimator(estimators []Estimator, signal *Signal, totalCycles int, cycl
 		estimated := estimators[i].GetEstimation(history, cycleDuration)
 		if estimated != nil {
 			pe, err := accuracy.PredictionError(actual.Samples, estimated.Samples)
-			logger.Info("Testing estimators ...","estimator", estimators[i].String(), "error", pe)
+			logger.Info("Testing estimators ...", "estimator", estimators[i].String(), "error", pe)
 			if err == nil && pe < minPE {
 				minPE = pe
 				bestEstimator = estimators[i]

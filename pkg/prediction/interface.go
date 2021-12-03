@@ -1,9 +1,10 @@
 package prediction
 
 import (
+	"time"
+
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/providers"
-	"time"
 )
 
 type Interface interface {
@@ -36,4 +37,3 @@ type Interface interface {
 	// QueryPredictedTimeSeries returns predicted time series based on the specified query expression
 	QueryPredictedTimeSeries(queryExpr string, startTime time.Time, endTime time.Time) ([]*common.TimeSeries, error)
 }
-

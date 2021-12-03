@@ -2,13 +2,14 @@ package dsp
 
 import (
 	"fmt"
+	"net/http"
+	"testing"
+
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/components"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/go-echarts/go-echarts/v2/types"
 	"github.com/stretchr/testify/assert"
-	"net/http"
-	"testing"
 )
 
 // Run this test to see the actual time series (black) and two forecasting time series
@@ -21,12 +22,12 @@ func TestFftEstimator_GetEstimation(t *testing.T) {
 
 	s[0] = &Signal{
 		SampleRate: origSignal.SampleRate,
-		Samples: origSignal.Samples[1440*7:],
+		Samples:    origSignal.Samples[1440*7:],
 	}
 
 	origSignal = &Signal{
 		SampleRate: origSignal.SampleRate,
-		Samples: origSignal.Samples[:1440*7],
+		Samples:    origSignal.Samples[:1440*7],
 	}
 	assert.True(t, origSignal.IsPeriodic(Day))
 
@@ -67,5 +68,3 @@ func TestFftEstimator_GetEstimation(t *testing.T) {
 	fmt.Println("Open your browser and access 'http://localhost:7001'")
 	http.ListenAndServe(":7001", nil)
 }
-
-
