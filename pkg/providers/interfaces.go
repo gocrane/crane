@@ -1,8 +1,9 @@
 package providers
 
 import (
-	"github.com/gocrane/crane/pkg/common"
 	"time"
+
+	"github.com/gocrane/crane/pkg/common"
 )
 
 // Interface is a source of monitoring metric that provides metrics that can be used for
@@ -22,4 +23,3 @@ type Interface interface {
 	// QueryLatestTimeSeries returns the latest metric values that meet the given query.
 	QueryLatestTimeSeries(queryExpr string) ([]*common.TimeSeries, error)
 }
-

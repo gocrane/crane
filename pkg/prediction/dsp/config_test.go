@@ -1,18 +1,19 @@
 package dsp
 
 import (
+	"testing"
+	"time"
+
 	"github.com/gocrane/api/prediction/v1alpha1"
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 var expr = "irate(container_cpu_core_used[3m])"
 
-var cfg = &config.Config {
+var cfg = &config.Config{
 	Query: &v1alpha1.Query{Expression: expr},
-	DSP: &v1alpha1.DSP {
+	DSP: &v1alpha1.DSP{
 		SampleInterval: "15s",
 		HistoryLength:  "14d",
 		Estimators: v1alpha1.Estimators{
@@ -50,7 +51,6 @@ func TestConfig(t *testing.T) {
 
 	e1 := internalCfg.estimators[1].(*maxValueEstimator)
 	assert.Equal(t, 0.09, e1.marginFraction)
-
 
 	e2 := internalCfg.estimators[2].(*fftEstimator)
 	assert.Equal(t, 0.05, e2.marginFraction)

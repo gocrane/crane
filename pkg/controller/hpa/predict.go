@@ -109,9 +109,9 @@ func (p *EffectiveHPAController) NewPodPredictionObject(ehpa *autoscalingapi.Eff
 			Namespace: ehpa.Namespace, // the same namespace to effectivehpa
 			Name:      name,
 			Labels: map[string]string{
-				"app.kubernetes.io/name":                      name,
-				"app.kubernetes.io/part-of":                   ehpa.Name,
-				"app.kubernetes.io/managed-by":                known.EffectiveHorizontalPodAutoscalerManagedBy,
+				"app.kubernetes.io/name":                       name,
+				"app.kubernetes.io/part-of":                    ehpa.Name,
+				"app.kubernetes.io/managed-by":                 known.EffectiveHorizontalPodAutoscalerManagedBy,
 				known.EffectiveHorizontalPodAutoscalerUidLabel: string(ehpa.UID),
 			},
 		},

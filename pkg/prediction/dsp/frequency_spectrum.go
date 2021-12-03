@@ -1,11 +1,12 @@
 package dsp
 
 import (
-	"github.com/mjibson/go-dsp/fft"
 	"math"
 	"math/cmplx"
 	"sort"
 	"time"
+
+	"github.com/mjibson/go-dsp/fft"
 )
 
 var PeriodicityAmplitudeThreshold = 0.
