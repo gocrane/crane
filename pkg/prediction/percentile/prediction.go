@@ -39,7 +39,7 @@ func (p *percentilePrediction) QueryRealtimePredictedValues(queryExpr string) ([
 	estimator := NewPercentileEstimator(cfg.percentile)
 	estimator = WithMargin(cfg.marginFraction, estimator)
 
-	latestTimeSeries, err := p.GetRealtimeProvider().QueryLatestTimeSeries(queryExpr, cfg.sampleInterval)
+	latestTimeSeries, err := p.GetRealtimeProvider().QueryLatestTimeSeries(queryExpr)
 	if err != nil {
 		return nil, err
 	}
@@ -151,8 +151,7 @@ func (p *percentilePrediction) Run(stopCh <-chan struct{}) {
 func (p *percentilePrediction) addSamples(queryExpr string) {
 	labelsToTimeSeriesMap := map[string]*common.TimeSeries{}
 
-	cfg := getInternalConfig(queryExpr)
-	latestTimeSeries, err := p.GetRealtimeProvider().QueryLatestTimeSeries(queryExpr, cfg.sampleInterval)
+	latestTimeSeries, err := p.GetRealtimeProvider().QueryLatestTimeSeries(queryExpr)
 	if err != nil {
 		logger.Error(err, "Failed to get latest time series")
 		return

@@ -25,9 +25,9 @@ import (
 // Scan all TimeSeriesPredictions and update the status if it is needed,
 // update each time series prediction status window length is double of the spec.PredictionWindowSeconds.
 // check the actual state of world and decide if need to update the crd status, it is periodic check to meet updateStatusDelayQueue's flaw.
-func (tc *Controller) syncPredictionsStatus() error {
+func (tc *Controller) syncPredictionsStatus(ctx context.Context) error {
 	predictionList := &v1alpha1.TimeSeriesPredictionList{}
-	if err := tc.Client.List(context.TODO(), predictionList); err != nil {
+	if err := tc.Client.List(ctx, predictionList); err != nil {
 		return err
 	}
 
@@ -37,8 +37,7 @@ func (tc *Controller) syncPredictionsStatus() error {
 		newStatus := tsPrediction.Status.DeepCopy()
 		key := GetTimeSeriesPredictionKey(tsPrediction)
 		tc.Logger.Info("diff asw and dsw", "key", key)
-		logger.Info("diff asw and dsw", "key", key)
-		if err := tc.Client.Get(context.TODO(), client.ObjectKey{Name: tsPrediction.Name, Namespace: tsPrediction.Namespace}, tsPrediction); err != nil {
+		if err := tc.Client.Get(ctx, client.ObjectKey{Name: tsPrediction.Name, Namespace: tsPrediction.Namespace}, tsPrediction); err != nil {
 			// If the prediction does not exist any more, we delete the prediction data from the map.
 			if apierrors.IsNotFound(err) {
 				tc.tsPredictionMap.Delete(key)
@@ -75,7 +74,7 @@ func (tc *Controller) syncPredictionsStatus() error {
 					Reason:             known.ReasonTimeSeriesPredictPartial,
 				}
 				UpdateTimeSeriesPredictionCondition(newStatus, cond)
-				err = tc.UpdateStatus(context.TODO(), tsPrediction, newStatus)
+				err = tc.UpdateStatus(ctx, tsPrediction, newStatus)
 				if err != nil {
 					// todo: update status failed, then add it again for update?
 				}
@@ -96,7 +95,7 @@ func (tc *Controller) syncPredictionsStatus() error {
 					Reason:             known.ReasonTimeSeriesPredictPartial,
 				}
 				UpdateTimeSeriesPredictionCondition(newStatus, cond)
-				err = tc.UpdateStatus(context.TODO(), tsPrediction, newStatus)
+				err = tc.UpdateStatus(ctx, tsPrediction, newStatus)
 				if err != nil {
 					// todo
 				}
@@ -105,15 +104,17 @@ func (tc *Controller) syncPredictionsStatus() error {
 					Type:               string(v1alpha1.TimeSeriesPredictionConditionReady),
 					Status:             metav1.ConditionTrue,
 					LastTransitionTime: metav1.Now(),
+					// status.conditions.reason in body should be at least 1 chars long
+					Reason: known.ReasonTimeSeriesPredictSucceed,
 				}
 				UpdateTimeSeriesPredictionCondition(newStatus, cond)
 
-				err = tc.UpdateStatus(context.TODO(), tsPrediction, newStatus)
+				err = tc.UpdateStatus(ctx, tsPrediction, newStatus)
 				if err != nil {
 					tc.Logger.Error(err, "updateStatusDelayQueue")
 				}
 				newStatus.PredictionMetrics = predictedData
-				err = tc.UpdateStatus(context.TODO(), tsPrediction, newStatus)
+				err = tc.UpdateStatus(ctx, tsPrediction, newStatus)
 				if err != nil {
 					// todo: update status failed, then add it again for update?
 				}
@@ -237,7 +238,7 @@ func (tc *Controller) isPredictionDataOutDated(windowStart, windowEnd time.Time,
 		}
 		for i, ts := range metricTsList {
 			if !IsWindowInSamples(windowStart, windowEnd, ts.Samples) {
-				warnings = append(warnings, fmt.Sprintf("Metric %v, ts %v, predict data is outdated, ts: %+v", id, i, ts))
+				warnings = append(warnings, fmt.Sprintf("Metric %v, ts %v, predict data is outdated, labels: %+v", id, i, ts.Labels))
 				outdated = true
 			}
 		}
@@ -269,6 +270,7 @@ func (tc *Controller) doPredict(tsPrediction *v1alpha1.TimeSeriesPrediction, sta
 				return result, err
 			}
 			predictedData := CommonTimeSeries2ApiTimeSeries(data)
+			tc.Logger.V(5).Info("Predicted data details", "data", predictedData)
 			result[metric.ResourceIdentifier] = predictedData
 		} else if metric.MetricSelector != nil {
 			//todo
@@ -370,9 +372,10 @@ func IsWindowInSamples(start, end time.Time, samples []v1alpha1.Sample) bool {
 		}
 	})
 	// todo: this step param depends on data source or algorithms???
-	startTs := start.Truncate(1 * time.Minute).Unix()
+	//startTs := start.Truncate(1 * time.Minute).Unix()
 	endTs := end.Truncate(1 * time.Minute).Unix()
-	if startTs >= samples[0].Timestamp && endTs <= samples[n-1].Timestamp {
+	// only check the end, start not check, because start is always from now to predict
+	if endTs <= samples[n-1].Timestamp {
 		return true
 	}
 	return false

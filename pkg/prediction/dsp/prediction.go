@@ -150,7 +150,9 @@ func (p *periodicSignalPrediction) Run(stopCh <-chan struct{}) {
 			defer ticker.Stop()
 
 			for {
-				p.updateAggregateSignalsWithQuery(queryExpr)
+				if err := p.updateAggregateSignalsWithQuery(queryExpr); err != nil {
+					logger.V(6).Info(fmt.Sprintf("Warning: updateAggregateSignalsWithQuery failed, err: %s", err.Error()))
+				}
 				select {
 				case <-stopCh:
 					return
@@ -169,8 +171,6 @@ func (p *periodicSignalPrediction) updateAggregateSignalsWithQuery(queryExpr str
 		logger.Error(err, "Failed to get time series.", "queryExpr", queryExpr)
 		return err
 	}
-
-	logger.Info("dsp updateAggregateSignalsWithQuery", "tsList", tsList)
 
 	cfg := getInternalConfig(queryExpr)
 
@@ -195,7 +195,7 @@ func (p *periodicSignalPrediction) queryHistoryTimeSeries(queryExpr string) ([]*
 		return nil, err
 	}
 
-	logger.Info("dsp queryHistoryTimeSeries", "tsList", tsList, "config", *config)
+	logger.V(7).Info("dsp queryHistoryTimeSeries", "tsList", tsList, "config", *config)
 
 	return preProcessTimeSeriesList(tsList, config)
 }
@@ -250,7 +250,7 @@ func (p *periodicSignalPrediction) updateAggregateSignals(id string, tsList []*c
 
 	for i := range predictedTimeSeriesList {
 		key := prediction.AggregateSignalKey(id, predictedTimeSeriesList[i].Labels)
-		logger.Info("Store Aggregate signal key: %v", "key", key)
+		logger.Info("Store Aggregate signal key", "key", key)
 		if _, exists := p.a.Load(key); !exists {
 			logger.Info("AggregateSignalKey added.", "key", key)
 			p.a.Store(key, newAggregateSignal())
@@ -296,9 +296,7 @@ func (p *periodicSignalPrediction) QueryPredictedTimeSeries(rawQuery string, sta
 		return nil, fmt.Errorf("realtime data provider not set")
 	}
 
-	config := getInternalConfig(rawQuery)
-
-	tsList, err := p.GetRealtimeProvider().QueryLatestTimeSeries(rawQuery, config.historyResolution)
+	tsList, err := p.GetRealtimeProvider().QueryLatestTimeSeries(rawQuery)
 	if err != nil {
 		logger.Error(err, "Failed to query latest time series")
 		return nil, err
@@ -313,7 +311,7 @@ func (p *periodicSignalPrediction) QueryRealtimePredictedValues(queryExpr string
 	}
 	config := getInternalConfig(queryExpr)
 
-	tsList, err := p.GetRealtimeProvider().QueryLatestTimeSeries(queryExpr, config.historyResolution)
+	tsList, err := p.GetRealtimeProvider().QueryLatestTimeSeries(queryExpr)
 	if err != nil {
 		logger.Error(err, "Failed to query latest time series")
 		return nil, err

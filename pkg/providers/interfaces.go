@@ -21,5 +21,5 @@ type Interface interface {
 	QueryTimeSeries(queryExpr string, startTime time.Time, endTime time.Time, step time.Duration) ([]*common.TimeSeries, error)
 
 	// QueryLatestTimeSeries returns the latest metric values that meet the given query.
-	QueryLatestTimeSeries(queryExpr string, step time.Duration) ([]*common.TimeSeries, error)
+	QueryLatestTimeSeries(queryExpr string) ([]*common.TimeSeries, error)
 }

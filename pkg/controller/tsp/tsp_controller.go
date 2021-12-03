@@ -17,10 +17,7 @@ import (
 	predictionv1alph1 "github.com/gocrane/api/prediction/v1alpha1"
 	"github.com/gocrane/crane/pkg/prediction"
 	predconfig "github.com/gocrane/crane/pkg/prediction/config"
-	"github.com/gocrane/crane/pkg/utils/log"
 )
-
-var logger = log.Logger()
 
 type Controller struct {
 	client.Client
@@ -73,7 +70,10 @@ func (tc *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Res
 		}
 	}
 
-	tc.syncTimeSeriesPrediction(ctx, p)
+	err = tc.syncTimeSeriesPrediction(p)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -85,7 +85,7 @@ func (c *Controller) Start(ctx context.Context) error {
 	defer c.Logger.Info("Shutting TimeSeriesPrediction updator")
 
 	go wait.UntilWithContext(ctx, func(ctx context.Context) {
-		if err := c.syncPredictionsStatus(); err != nil {
+		if err := c.syncPredictionsStatus(ctx); err != nil {
 			c.Logger.Error(err, "Error syncPredictionsStatus")
 		}
 	}, c.UpdatePeriod)
@@ -105,7 +105,7 @@ func (tc *Controller) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 // sync the config to predictor
-func (tc *Controller) syncTimeSeriesPrediction(ctx context.Context, prediction *predictionv1alph1.TimeSeriesPrediction) error {
+func (tc *Controller) syncTimeSeriesPrediction(prediction *predictionv1alph1.TimeSeriesPrediction) error {
 	key := GetTimeSeriesPredictionKey(prediction)
 
 	last, ok := tc.tsPredictionMap.Load(key)

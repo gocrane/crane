@@ -82,12 +82,12 @@ func (p *prom) QueryTimeSeries(queryExpr string, startTime time.Time, endTime ti
 	return timeSeries, nil
 }
 
-func (p *prom) QueryLatestTimeSeries(queryExpr string, step time.Duration) ([]*common.TimeSeries, error) {
+func (p *prom) QueryLatestTimeSeries(queryExpr string) ([]*common.TimeSeries, error) {
 	// use range query for latest too. because the queryExpr is an range in crd spec
-	end := time.Now()
+	//end := time.Now()
 	// avoid no data latest. multiply 2
-	start := end.Add(-step * 2)
-	timeSeries, err := p.ctx.QueryRangeSync(gocontext.TODO(), queryExpr, start, end, step)
+	//start := end.Add(-step * 2)
+	timeSeries, err := p.ctx.QuerySync(gocontext.TODO(), queryExpr)
 	if err != nil {
 		logger.Error(err, "Failed to QueryLatestTimeSeries")
 		return nil, err
