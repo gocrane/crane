@@ -150,7 +150,9 @@ func (p *periodicSignalPrediction) Run(stopCh <-chan struct{}) {
 			defer ticker.Stop()
 
 			for {
-				p.updateAggregateSignalsWithQuery(queryExpr)
+				if err := p.updateAggregateSignalsWithQuery(queryExpr); err != nil {
+					logger.V(6).Info(fmt.Sprintf("Warning: updateAggregateSignalsWithQuery failed, err: %s", err.Error()))
+				}
 				select {
 				case <-stopCh:
 					return

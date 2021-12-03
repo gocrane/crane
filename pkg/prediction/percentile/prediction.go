@@ -74,7 +74,7 @@ func NewPrediction() prediction.Interface {
 	mb := config.NewBroadcaster()
 	qb := config.NewBroadcaster()
 	return &percentilePrediction{
-		GenericPrediction: prediction.NewGenericPrediction(mb, qb),
+		GenericPrediction: prediction.NewGenericPrediction(mb),
 		a:                 aggregateSignalMap{},
 		//mr:             mb.Listen(),
 		qr: qb.Listen(),

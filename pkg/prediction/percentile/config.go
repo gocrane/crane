@@ -96,7 +96,6 @@ func makeInternalConfig(p *v1alpha1.Percentile) (*internalConfig, error) {
 		if err != nil {
 			return nil, err
 		}
-
 		options, err = vpa.NewLinearHistogramOptions(maxValue, bucketSize, epsilon)
 		if err != nil {
 			return nil, err
