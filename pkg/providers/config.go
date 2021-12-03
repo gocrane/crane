@@ -17,7 +17,6 @@ type PromConfig struct {
 	BRateLimit       bool
 }
 
-
 // ClientAuth holds the HTTP client identity info.
 type ClientAuth struct {
 	Username    string

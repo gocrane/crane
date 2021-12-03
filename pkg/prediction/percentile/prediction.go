@@ -2,10 +2,11 @@ package percentile
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"k8s.io/klog/v2"
-	"time"
 
 	"github.com/gocrane/crane/pkg/prediction"
 )
@@ -14,7 +15,7 @@ var _ prediction.Interface = &percentilePrediction{}
 
 type percentilePrediction struct {
 	prediction.GenericPrediction
-	a  aggregateSignalMap
+	a aggregateSignalMap
 	//mr config.Receiver
 	qr config.Receiver
 }
@@ -76,7 +77,7 @@ func NewPrediction() prediction.Interface {
 		GenericPrediction: prediction.NewGenericPrediction(qb),
 		a:              aggregateSignalMap{},
 		//mr:             mb.Listen(),
-		qr:             qb.Listen(),
+		qr: qb.Listen(),
 	}
 }
 
@@ -152,7 +153,7 @@ func (p *percentilePrediction) addSamples(queryExpr string) {
 
 	latestTimeSeries, err := p.GetRealtimeProvider().QueryLatestTimeSeries(queryExpr)
 	if err != nil {
-		logger.Error(err,"Failed to get latest time series")
+		logger.Error(err, "Failed to get latest time series")
 		return
 	}
 

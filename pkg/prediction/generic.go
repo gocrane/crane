@@ -23,12 +23,12 @@ type WithMetricEvent struct {
 }
 
 type GenericPrediction struct {
-	historyProvider            providers.Interface
-	realtimeProvider           providers.Interface
-	metricsMap                 map[string][]common.QueryCondition
-	querySet                   map[string]struct{}
-	withQueryBroadcaster       config.Broadcaster
-	mu                         sync.Mutex
+	historyProvider      providers.Interface
+	realtimeProvider     providers.Interface
+	metricsMap           map[string][]common.QueryCondition
+	querySet             map[string]struct{}
+	withQueryBroadcaster config.Broadcaster
+	mu                   sync.Mutex
 }
 
 func NewGenericPrediction(withQueryBroadcaster config.Broadcaster) GenericPrediction {

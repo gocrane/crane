@@ -2,6 +2,7 @@ package analysis
 
 import (
 	"context"
+
 	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
@@ -18,7 +19,7 @@ import (
 
 type AnalyticsController struct {
 	client.Client
-	Logger         logr.Logger
+	Logger      logr.Logger
 	Scheme      *runtime.Scheme
 	RestMapper  meta.RESTMapper
 	Recorder    record.EventRecorder
@@ -35,8 +36,6 @@ func (ac *AnalyticsController) Reconcile(ctx context.Context, req ctrl.Request) 
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-
-
 
 	return ctrl.Result{}, nil
 }

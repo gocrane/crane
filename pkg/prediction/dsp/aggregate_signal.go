@@ -1,8 +1,9 @@
 package dsp
 
 import (
-	"github.com/gocrane/crane/pkg/common"
 	"time"
+
+	"github.com/gocrane/crane/pkg/common"
 )
 
 type aggregateSignal struct {

@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/gocrane/crane/pkg/utils/log"
+
 	"github.com/gocrane/api/prediction/v1alpha1"
 	"github.com/gocrane/crane/pkg/utils/log"
 )
