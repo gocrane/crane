@@ -33,10 +33,10 @@ type GenericPrediction struct {
 
 func NewGenericPrediction(withQueryBroadcaster config.Broadcaster) GenericPrediction {
 	return GenericPrediction{
-		withQueryBroadcaster:       withQueryBroadcaster,
-		mu:                         sync.Mutex{},
-		metricsMap:                 map[string][]common.QueryCondition{},
-		querySet:                   map[string]struct{}{},
+		withQueryBroadcaster: withQueryBroadcaster,
+		mu:                   sync.Mutex{},
+		metricsMap:           map[string][]common.QueryCondition{},
+		querySet:             map[string]struct{}{},
 	}
 }
 

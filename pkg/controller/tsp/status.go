@@ -36,6 +36,8 @@ func (tc *Controller) syncPredictionsStatus() error {
 		tsPrediction := &predictions[i]
 		newStatus := tsPrediction.Status.DeepCopy()
 		key := GetTimeSeriesPredictionKey(tsPrediction)
+		tc.Logger.Info("diff asw and dsw", "key", key)
+		logger.Info("diff asw and dsw", "key", key)
 		if err := tc.Client.Get(context.TODO(), client.ObjectKey{Name: tsPrediction.Name, Namespace: tsPrediction.Namespace}, tsPrediction); err != nil {
 			// If the prediction does not exist any more, we delete the prediction data from the map.
 			if apierrors.IsNotFound(err) {
@@ -58,8 +60,11 @@ func (tc *Controller) syncPredictionsStatus() error {
 
 			predictedData, err := tc.doPredict(tsPrediction, start, end)
 			if err != nil {
+				tc.Recorder.Event(tsPrediction, v1.EventTypeWarning, "FailedPredict", err.Error())
 				tc.Logger.Error(err, "failed to doPredict")
 			}
+
+			tc.Logger.Info("DoPredict", "range", fmt.Sprintf("[%v, %v]", start, end), "key", key)
 
 			if len(tsPrediction.Spec.PredictionMetrics) != len(predictedData) {
 				cond := &metav1.Condition{
@@ -77,12 +82,42 @@ func (tc *Controller) syncPredictionsStatus() error {
 				continue
 			}
 
-			newStatus.PredictionMetrics = predictedData
-			err = tc.UpdateStatus(context.TODO(), tsPrediction, newStatus)
-			if err != nil {
-				// todo: update status failed, then add it again for update?
+			windowStart := start
+			windowEnd := start.Add(time.Duration(tsPrediction.Spec.PredictionWindowSeconds) * time.Second)
+			_, warnings := tc.isPredictionDataOutDated(windowStart, windowEnd, predictedData)
+			if len(warnings) > 0 {
+				tc.Logger.Info("DoPredict predicated data is partial", "range", fmt.Sprintf("[%v, %v]", start, end), "key", key)
+
+				cond := &metav1.Condition{
+					Type:               string(v1alpha1.TimeSeriesPredictionConditionReady),
+					Status:             metav1.ConditionFalse,
+					LastTransitionTime: metav1.Now(),
+					Message:            strings.Join(warnings, ";"),
+					Reason:             known.ReasonTimeSeriesPredictPartial,
+				}
+				UpdateTimeSeriesPredictionCondition(newStatus, cond)
+				err = tc.UpdateStatus(context.TODO(), tsPrediction, newStatus)
+				if err != nil {
+					// todo
+				}
+			} else {
+				cond := &metav1.Condition{
+					Type:               string(v1alpha1.TimeSeriesPredictionConditionReady),
+					Status:             metav1.ConditionTrue,
+					LastTransitionTime: metav1.Now(),
+				}
+				UpdateTimeSeriesPredictionCondition(newStatus, cond)
+
+				err = tc.UpdateStatus(context.TODO(), tsPrediction, newStatus)
+				if err != nil {
+					tc.Logger.Error(err, "updateStatusDelayQueue")
+				}
+				newStatus.PredictionMetrics = predictedData
+				err = tc.UpdateStatus(context.TODO(), tsPrediction, newStatus)
+				if err != nil {
+					// todo: update status failed, then add it again for update?
+				}
 			}
-			continue
 		}
 	}
 	return nil
@@ -190,7 +225,16 @@ func (tc *Controller) updateStatusDelayQueue() {
 }
 
 func (tc *Controller) isPredictionDataOutDated(windowStart, windowEnd time.Time, predictionData map[string]v1alpha1.MetricTimeSeriesList) (outdated bool, warnings []string) {
+	if len(predictionData) == 0 {
+		outdated = true
+		warnings = append(warnings, "no predicated data")
+		return outdated, warnings
+	}
 	for id, metricTsList := range predictionData {
+		if len(metricTsList) == 0 {
+			outdated = true
+			warnings = append(warnings, fmt.Sprintf("Metric %v no predicated data", id))
+		}
 		for i, ts := range metricTsList {
 			if !IsWindowInSamples(windowStart, windowEnd, ts.Samples) {
 				warnings = append(warnings, fmt.Sprintf("Metric %v, ts %v, predict data is outdated, ts: %+v", id, i, ts))
@@ -235,7 +279,7 @@ func (tc *Controller) doPredict(tsPrediction *v1alpha1.TimeSeriesPrediction, sta
 
 func (tc *Controller) UpdateStatus(ctx context.Context, tsPrediction *v1alpha1.TimeSeriesPrediction, newStatus *v1alpha1.TimeSeriesPredictionStatus) error {
 	if !equality.Semantic.DeepEqual(&tsPrediction.Status, newStatus) {
-		tc.Logger.V(4).Info("status should be updated", "currentStatus", &tsPrediction.Status, "newStatus", newStatus)
+		tc.Logger.Info("status should be updated", "currentStatus", &tsPrediction.Status, "newStatus", newStatus)
 
 		tsPrediction.Status = *newStatus
 		err := tc.Status().Update(ctx, tsPrediction)

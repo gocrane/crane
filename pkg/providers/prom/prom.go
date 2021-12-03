@@ -92,7 +92,7 @@ func (c *context) convertPromResultsToTimeSeries(value prommodel.Value) ([]*comm
 					ts.AppendLabel(string(key), string(val))
 				}
 				for _, pair := range sampleStream.Values {
-					ts.AppendSample(int64(pair.Timestamp), float64(pair.Value))
+					ts.AppendSample(int64(pair.Timestamp/1000), float64(pair.Value))
 				}
 				results = append(results, ts)
 			}
@@ -112,7 +112,7 @@ func (c *context) convertPromResultsToTimeSeries(value prommodel.Value) ([]*comm
 					ts.AppendLabel(string(key), string(val))
 				}
 				// for vector, all the sample has the same timestamp. just one point for each metric
-				ts.AppendSample(int64(sample.Timestamp), float64(sample.Value))
+				ts.AppendSample(int64(sample.Timestamp/1000), float64(sample.Value))
 			}
 			return results, nil
 		} else {

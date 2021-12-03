@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
@@ -18,7 +17,10 @@ import (
 	predictionv1alph1 "github.com/gocrane/api/prediction/v1alpha1"
 	"github.com/gocrane/crane/pkg/prediction"
 	predconfig "github.com/gocrane/crane/pkg/prediction/config"
+	"github.com/gocrane/crane/pkg/utils/log"
 )
+
+var logger = log.Logger()
 
 type Controller struct {
 	client.Client
@@ -79,8 +81,8 @@ func (tc *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Res
 // Start starts an asynchronous loop that update the status of TimeSeriesPrediction.
 // Scan all of the predictions in actual state of worlds, check if the prediction need to update, then get the predicted data.
 func (c *Controller) Start(ctx context.Context) error {
-	c.Logger.V(3).Info("Starting TimeSeriesPrediction updator")
-	defer c.Logger.V(3).Info("Shutting TimeSeriesPrediction updator")
+	c.Logger.Info("Starting TimeSeriesPrediction updator")
+	defer c.Logger.Info("Shutting TimeSeriesPrediction updator")
 
 	go wait.UntilWithContext(ctx, func(ctx context.Context) {
 		if err := c.syncPredictionsStatus(); err != nil {
@@ -97,7 +99,6 @@ func (c *Controller) Start(ctx context.Context) error {
 
 // SetupWithManager creates a controller and register to controller manager.
 func (tc *Controller) SetupWithManager(mgr ctrl.Manager) error {
-
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&predictionv1alph1.TimeSeriesPrediction{}).
 		Complete(tc)
@@ -138,6 +139,7 @@ func (tc *Controller) syncTimeSeriesPrediction(ctx context.Context, prediction *
 		}
 	}
 
+	tc.tsPredictionMap.Store(key, prediction)
 	// add the prediction to time delay queue for update
 	tc.delayQueue.AddAfter(key, time.Duration(prediction.Spec.PredictionWindowSeconds)*time.Second)
 

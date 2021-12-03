@@ -158,7 +158,7 @@ func init() {
 
 	go func() {
 		for {
-			cfg := configDeleteEventReceiver.Read().(config.Config)
+			cfg := configDeleteEventReceiver.Read().(*config.Config)
 
 			mu.Lock()
 			if cfg.Query != nil {

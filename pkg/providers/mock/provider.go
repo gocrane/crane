@@ -122,6 +122,6 @@ func (im inMemory) QueryTimeSeries(_ string, start time.Time, end time.Time, ste
 }
 
 // QueryLatestTimeSeries QueryLatestTimeSeries
-func (im inMemory) QueryLatestTimeSeries(_ string) ([]*common.TimeSeries, error) {
+func (im inMemory) QueryLatestTimeSeries(_ string, _ time.Duration) ([]*common.TimeSeries, error) {
 	return im.GetLatestTimeSeries("", nil)
 }

@@ -5,8 +5,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/gocrane/crane/pkg/utils/log"
-
 	"github.com/gocrane/api/prediction/v1alpha1"
 	"github.com/gocrane/crane/pkg/utils/log"
 )
@@ -22,7 +20,8 @@ func WithApiConfig(conf *v1alpha1.PredictionMetric) {
 	} else if conf.Query != nil {
 		logger.V(2).Info("WithApiConfig", "queryExpr", conf.Query.Expression)
 	}
-	UpdateEventBroadcaster.Write(conf)
+
+	UpdateEventBroadcaster.Write(ConvertApiMetric2InternalConfig(conf))
 }
 
 func WithApiConfigs(configs []v1alpha1.PredictionMetric) {
@@ -37,7 +36,7 @@ func DeleteApiConfig(conf *v1alpha1.PredictionMetric) {
 	} else if conf.Query != nil {
 		logger.V(2).Info("DeleteApiConfig", "queryExpr", conf.Query.Expression)
 	}
-	DeleteEventBroadcaster.Write(conf)
+	DeleteEventBroadcaster.Write(ConvertApiMetric2InternalConfig(conf))
 }
 
 func DeleteApiConfigs(configs []v1alpha1.PredictionMetric) {

@@ -101,6 +101,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 	case "mock":
 		dataSource, err = mock.NewProvider(&opts.DataSourceMockConfig)
 	default:
+		// default is prom
 		dataSource, err = prom.NewProvider(&opts.DataSourcePromConfig)
 	}
 	if err != nil {
@@ -139,6 +140,10 @@ func Run(ctx context.Context, opts *options.Options) error {
 	)
 	if err := tspController.SetupWithManager(mgr); err != nil {
 		log.Logger().Error(err, "unable to create controller", "controller", "TspController")
+		os.Exit(1)
+	}
+	if err := mgr.Add(tspController); err != nil {
+		log.Logger().Error(err, "unable to add controller", "controller", "TspController")
 		os.Exit(1)
 	}
 

@@ -49,7 +49,7 @@ func (f *file) QueryTimeSeries(_ string, _ time.Time, _ time.Time, _ time.Durati
 }
 
 // QueryLatestTimeSeries QueryLatestTimeSeries
-func (f *file) QueryLatestTimeSeries(_ string) ([]*common.TimeSeries, error) {
+func (f *file) QueryLatestTimeSeries(_ string, _ time.Duration) ([]*common.TimeSeries, error) {
 	n := len(f.ts.Samples)
 	ts := &common.TimeSeries{
 		Labels:  f.ts.Labels,

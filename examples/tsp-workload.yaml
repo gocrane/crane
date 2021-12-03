@@ -1,0 +1,38 @@
+apiVersion: prediction.crane.io/v1alpha1
+kind: TimeSeriesPrediction
+metadata:
+  name: tsp-workload-dsp
+  namespace: default
+spec:
+  predictionWindowSeconds: 3600
+  predictionMetrics:
+    - resourceIdentifier: workload-cpu
+      query:
+        expression: 'sum (irate (container_cpu_usage_seconds_total{container!="",image!="",name=~"^k8s_.*",container!="POD",pod=~"^dep-1-100m-500mib-.*$"}[1m]))'
+      algorithm:
+        algorithmType: "dsp"
+        dsp:
+          sampleInterval: "60s"
+          historyLength: "3d"
+          estimators:
+            fft:
+              - marginFraction: "0.2"
+                lowAmplitudeThreshold: "1.0"
+                highFrequencyThreshold: "0.05"
+                minNumOfSpectrumItems: 10
+                maxNumOfSpectrumItems: 20
+    - resourceIdentifier: workload-mem
+      query:
+        expression: 'sum(container_memory_working_set_bytes{container!="",image!="", container!="POD",pod=~"^dep-1-100m-500mib-.*$"})'
+      algorithm:
+        algorithmType: "dsp"
+        dsp:
+          sampleInterval: "60s"
+          historyLength: "3d"
+          estimators:
+            fft:
+              - marginFraction: "0.2"
+                lowAmplitudeThreshold: "1.0"
+                highFrequencyThreshold: "0.05"
+                minNumOfSpectrumItems: 10
+                maxNumOfSpectrumItems: 20

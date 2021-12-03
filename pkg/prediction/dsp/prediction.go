@@ -170,6 +170,8 @@ func (p *periodicSignalPrediction) updateAggregateSignalsWithQuery(queryExpr str
 		return err
 	}
 
+	logger.Info("dsp updateAggregateSignalsWithQuery", "tsList", tsList)
+
 	cfg := getInternalConfig(queryExpr)
 
 	p.updateAggregateSignals(queryExpr, tsList, cfg)
@@ -192,6 +194,8 @@ func (p *periodicSignalPrediction) queryHistoryTimeSeries(queryExpr string) ([]*
 		logger.Error(err, "Failed to query history time series.")
 		return nil, err
 	}
+
+	logger.Info("dsp queryHistoryTimeSeries", "tsList", tsList, "config", *config)
 
 	return preProcessTimeSeriesList(tsList, config)
 }
@@ -246,6 +250,7 @@ func (p *periodicSignalPrediction) updateAggregateSignals(id string, tsList []*c
 
 	for i := range predictedTimeSeriesList {
 		key := prediction.AggregateSignalKey(id, predictedTimeSeriesList[i].Labels)
+		logger.Info("Store Aggregate signal key: %v", "key", key)
 		if _, exists := p.a.Load(key); !exists {
 			logger.Info("AggregateSignalKey added.", "key", key)
 			p.a.Store(key, newAggregateSignal())
@@ -291,7 +296,9 @@ func (p *periodicSignalPrediction) QueryPredictedTimeSeries(rawQuery string, sta
 		return nil, fmt.Errorf("realtime data provider not set")
 	}
 
-	tsList, err := p.GetRealtimeProvider().QueryLatestTimeSeries(rawQuery)
+	config := getInternalConfig(rawQuery)
+
+	tsList, err := p.GetRealtimeProvider().QueryLatestTimeSeries(rawQuery, config.historyResolution)
 	if err != nil {
 		logger.Error(err, "Failed to query latest time series")
 		return nil, err
@@ -304,14 +311,13 @@ func (p *periodicSignalPrediction) QueryRealtimePredictedValues(queryExpr string
 	if p.GetRealtimeProvider() == nil {
 		return nil, fmt.Errorf("realtime data provider not set")
 	}
+	config := getInternalConfig(queryExpr)
 
-	tsList, err := p.GetRealtimeProvider().QueryLatestTimeSeries(queryExpr)
+	tsList, err := p.GetRealtimeProvider().QueryLatestTimeSeries(queryExpr, config.historyResolution)
 	if err != nil {
 		logger.Error(err, "Failed to query latest time series")
 		return nil, err
 	}
-
-	config := getInternalConfig(queryExpr)
 
 	now := time.Now()
 	start := now.Truncate(config.historyResolution)
@@ -344,6 +350,7 @@ func (p *periodicSignalPrediction) getPredictedTimeSeriesList(id string, tsList 
 
 	for _, ts := range tsList {
 		key := prediction.AggregateSignalKey(id, ts.Labels)
+		logger.Info("Get Aggregate signal key", "key", key)
 		a, exists := p.a.Load(key)
 		if !exists {
 			logger.Info("Aggregate signal not found", "key", key)
