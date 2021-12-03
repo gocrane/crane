@@ -19,7 +19,7 @@ require (
 
 require (
 	github.com/go-echarts/go-echarts/v2 v2.2.4
-	github.com/gocrane/api v0.0.0-20211202040734-84c4d8bf59d6
+	github.com/gocrane/api v0.0.0-20211202082815-27fa9084bbd8
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/mjibson/go-dsp v0.0.0-20180508042940-11479a337f12
 	github.com/prometheus/client_golang v1.11.0

@@ -19,31 +19,31 @@ import (
 	"github.com/gocrane/crane/pkg/known"
 )
 
-func (p *AdvancedHPAController) ReconcileHPA(ctx context.Context, ahpa *autoscalingapi.AdvancedHorizontalPodAutoscaler) (*autoscalingv2.HorizontalPodAutoscaler, error) {
+func (p *EffectiveHPAController) ReconcileHPA(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) (*autoscalingv2.HorizontalPodAutoscaler, error) {
 	hpaList := &autoscalingv2.HorizontalPodAutoscalerList{}
 	opts := []client.ListOption{
-		client.MatchingLabels(map[string]string{known.AdvancedHorizontalPodAutoscalerUidLabel: string(ahpa.UID)}),
+		client.MatchingLabels(map[string]string{known.EffectiveHorizontalPodAutoscalerUidLabel: string(ehpa.UID)}),
 	}
 	err := p.Client.List(ctx, hpaList, opts...)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return p.CreateHPA(ctx, ahpa)
+			return p.CreateHPA(ctx, ehpa)
 		} else {
-			p.Recorder.Event(ahpa, v1.EventTypeNormal, "FailedGetHPA", err.Error())
-			p.Log.Error(err, "Failed to get HPA", "advanced-hpa", klog.KObj(ahpa))
+			p.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedGetHPA", err.Error())
+			p.Log.Error(err, "Failed to get HPA", "effective-hpa", klog.KObj(ehpa))
 			return nil, err
 		}
 	} else if len(hpaList.Items) == 0 {
-		return p.CreateHPA(ctx, ahpa)
+		return p.CreateHPA(ctx, ehpa)
 	}
 
-	return p.UpdateHPAIfNeed(ctx, ahpa, &hpaList.Items[0])
+	return p.UpdateHPAIfNeed(ctx, ehpa, &hpaList.Items[0])
 }
 
-func (p *AdvancedHPAController) GetHPA(ctx context.Context, ahpa *autoscalingapi.AdvancedHorizontalPodAutoscaler) (*autoscalingv2.HorizontalPodAutoscaler, error) {
+func (p *EffectiveHPAController) GetHPA(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) (*autoscalingv2.HorizontalPodAutoscaler, error) {
 	hpaList := &autoscalingv2.HorizontalPodAutoscalerList{}
 	opts := []client.ListOption{
-		client.MatchingLabels(map[string]string{known.AdvancedHorizontalPodAutoscalerUidLabel: string(ahpa.UID)}),
+		client.MatchingLabels(map[string]string{known.EffectiveHorizontalPodAutoscalerUidLabel: string(ehpa.UID)}),
 	}
 	err := p.Client.List(ctx, hpaList, opts...)
 	if err != nil {
@@ -55,104 +55,104 @@ func (p *AdvancedHPAController) GetHPA(ctx context.Context, ahpa *autoscalingapi
 	return &hpaList.Items[0], nil
 }
 
-func (p *AdvancedHPAController) CreateHPA(ctx context.Context, ahpa *autoscalingapi.AdvancedHorizontalPodAutoscaler) (*autoscalingv2.HorizontalPodAutoscaler, error) {
-	hpa, err := p.NewHPAObject(ctx, ahpa)
+func (p *EffectiveHPAController) CreateHPA(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) (*autoscalingv2.HorizontalPodAutoscaler, error) {
+	hpa, err := p.NewHPAObject(ctx, ehpa)
 	if err != nil {
-		p.Recorder.Event(ahpa, v1.EventTypeNormal, "FailedCreateHPAObject", err.Error())
+		p.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreateHPAObject", err.Error())
 		p.Log.Error(err, "Failed to create object", "HorizontalPodAutoscaler", hpa)
 		return nil, err
 	}
 
 	err = p.Client.Create(ctx, hpa)
 	if err != nil {
-		p.Recorder.Event(ahpa, v1.EventTypeNormal, "FailedCreateHPA", err.Error())
+		p.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreateHPA", err.Error())
 		p.Log.Error(err, "Failed to create", "HorizontalPodAutoscaler", hpa)
 		return nil, err
 	}
 
 	p.Log.Info("Create HorizontalPodAutoscaler successfully", "HorizontalPodAutoscaler", hpa)
-	p.Recorder.Event(ahpa, v1.EventTypeNormal, "HPACreated", "Create HorizontalPodAutoscaler successfully")
+	p.Recorder.Event(ehpa, v1.EventTypeNormal, "HPACreated", "Create HorizontalPodAutoscaler successfully")
 
 	return hpa, nil
 }
 
-func (p *AdvancedHPAController) NewHPAObject(ctx context.Context, ahpa *autoscalingapi.AdvancedHorizontalPodAutoscaler) (*autoscalingv2.HorizontalPodAutoscaler, error) {
-	metrics, err := p.GetHPAMetrics(ctx, ahpa)
+func (p *EffectiveHPAController) NewHPAObject(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) (*autoscalingv2.HorizontalPodAutoscaler, error) {
+	metrics, err := p.GetHPAMetrics(ctx, ehpa)
 	if err != nil {
 		return nil, err
 	}
 
-	name := fmt.Sprintf("advancedhpa-%s", ahpa.Name)
+	name := fmt.Sprintf("ehpa-%s", ehpa.Name)
 	hpa := &autoscalingv2.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ahpa.Namespace, // the same namespace to advancedhpa
+			Namespace: ehpa.Namespace, // the same namespace to effectivehpa
 			Name:      name,
 			Labels: map[string]string{
 				"app.kubernetes.io/name":                      name,
-				"app.kubernetes.io/part-of":                   ahpa.Name,
-				"app.kubernetes.io/managed-by":                known.AdvancedHorizontalPodAutoscalerManagedBy,
-				known.AdvancedHorizontalPodAutoscalerUidLabel: string(ahpa.UID),
+				"app.kubernetes.io/part-of":                   ehpa.Name,
+				"app.kubernetes.io/managed-by":                known.EffectiveHorizontalPodAutoscalerManagedBy,
+				known.EffectiveHorizontalPodAutoscalerUidLabel: string(ehpa.UID),
 			},
 		},
 		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
-			ScaleTargetRef: ahpa.Spec.ScaleTargetRef,
-			MinReplicas:    ahpa.Spec.MinReplicas,
-			MaxReplicas:    ahpa.Spec.MaxReplicas,
+			ScaleTargetRef: ehpa.Spec.ScaleTargetRef,
+			MinReplicas:    ehpa.Spec.MinReplicas,
+			MaxReplicas:    ehpa.Spec.MaxReplicas,
 			Metrics:        metrics,
 		},
 	}
 
 	var behavior *autoscalingv2.HorizontalPodAutoscalerBehavior
 	// Behavior works in k8s version > 1.18
-	if p.K8SVersion.Minor() >= 18 && ahpa.Spec.Behavior != nil {
+	if p.K8SVersion.Minor() >= 18 && ehpa.Spec.Behavior != nil {
 		behavior = hpa.Spec.Behavior
 	} else {
 		behavior = nil
 	}
 	hpa.Spec.Behavior = behavior
 
-	// AdvancedHPA control the underground hpa so set controller reference for hpa here
-	if err := controllerutil.SetControllerReference(ahpa, hpa, p.Scheme); err != nil {
+	// EffectiveHPA control the underground hpa so set controller reference for hpa here
+	if err := controllerutil.SetControllerReference(ehpa, hpa, p.Scheme); err != nil {
 		return nil, err
 	}
 
 	return hpa, nil
 }
 
-func (p *AdvancedHPAController) UpdateHPAIfNeed(ctx context.Context, ahpa *autoscalingapi.AdvancedHorizontalPodAutoscaler, hpaExist *autoscalingv2.HorizontalPodAutoscaler) (*autoscalingv2.HorizontalPodAutoscaler, error) {
-	hpa, err := p.NewHPAObject(ctx, ahpa)
+func (p *EffectiveHPAController) UpdateHPAIfNeed(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, hpaExist *autoscalingv2.HorizontalPodAutoscaler) (*autoscalingv2.HorizontalPodAutoscaler, error) {
+	hpa, err := p.NewHPAObject(ctx, ehpa)
 	if err != nil {
-		p.Recorder.Event(ahpa, v1.EventTypeNormal, "FailedCreateHPAObject", err.Error())
+		p.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreateHPAObject", err.Error())
 		p.Log.Error(err, "Failed to create object", "HorizontalPodAutoscaler", hpa)
 		return nil, err
 	}
 
 	if !equality.Semantic.DeepEqual(&hpaExist.Spec, &hpa.Spec) {
-		p.Log.V(4).Info("HorizontalPodAutoscaler is unsynced according to AdvancedHorizontalPodAutoscaler, should be updated", "currentHPA", hpaExist.Spec, "expectHPA", hpa.Spec)
+		p.Log.V(4).Info("HorizontalPodAutoscaler is unsynced according to EffectiveHorizontalPodAutoscaler, should be updated", "currentHPA", hpaExist.Spec, "expectHPA", hpa.Spec)
 
 		hpaExist.Spec = hpa.Spec
 		err := p.Update(ctx, hpaExist)
 		if err != nil {
-			p.Recorder.Event(ahpa, v1.EventTypeNormal, "FailedUpdateHPA", err.Error())
+			p.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedUpdateHPA", err.Error())
 			p.Log.Error(err, "Failed to update", "HorizontalPodAutoscaler", hpaExist)
 			return nil, err
 		}
 
-		p.Log.Info("Update HorizontalPodAutoscaler successful", "HorizontalPodAutoscaler", hpa)
+		p.Log.Info("Update HorizontalPodAutoscaler successful", "HorizontalPodAutoscaler", hpaExist)
 	}
 
 	return hpaExist, nil
 }
 
-// GetHPAMetrics loop metricSpec in AdvancedHorizontalPodAutoscaler and generate metricSpec for HPA
-func (p *AdvancedHPAController) GetHPAMetrics(ctx context.Context, ahpa *autoscalingapi.AdvancedHorizontalPodAutoscaler) ([]autoscalingv2.MetricSpec, error) {
+// GetHPAMetrics loop metricSpec in EffectiveHorizontalPodAutoscaler and generate metricSpec for HPA
+func (p *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) ([]autoscalingv2.MetricSpec, error) {
 	var metrics []autoscalingv2.MetricSpec
-	for _, metric := range ahpa.Spec.Metrics {
+	for _, metric := range ehpa.Spec.Metrics {
 		copyMetric := metric.DeepCopy()
 		metrics = append(metrics, *copyMetric)
 	}
 
-	if IsPredictionEnabled(ahpa) {
+	if IsPredictionEnabled(ehpa) {
 		var customMetricsForPrediction []autoscalingv2.MetricSpec
 
 		for _, metric := range metrics {
@@ -166,11 +166,11 @@ func (p *AdvancedHPAController) GetHPAMetrics(ctx context.Context, ahpa *autosca
 				customMetric := &autoscalingv2.PodsMetricSource{
 					Metric: autoscalingv2.MetricIdentifier{
 						Name: name,
-						// add known.AdvancedHorizontalPodAutoscalerUidLabel=uid in metric.selector
+						// add known.EffectiveHorizontalPodAutoscalerUidLabel=uid in metric.selector
 						// MetricAdapter use label selector to match the matching PodGroupPrediction to return metrics
 						Selector: &metav1.LabelSelector{
 							MatchLabels: map[string]string{
-								known.AdvancedHorizontalPodAutoscalerUidLabel: string(ahpa.UID),
+								known.EffectiveHorizontalPodAutoscalerUidLabel: string(ehpa.UID),
 							},
 						},
 					},
@@ -179,9 +179,9 @@ func (p *AdvancedHPAController) GetHPAMetrics(ctx context.Context, ahpa *autosca
 					},
 				}
 
-				// When use AverageUtilization in AdvancedHorizontalPodAutoscaler's metricSpec, convert to AverageValue
+				// When use AverageUtilization in EffectiveHorizontalPodAutoscaler's metricSpec, convert to AverageValue
 				if metric.Resource.Target.AverageUtilization != nil {
-					scale, _, err := p.GetScale(ctx, ahpa)
+					scale, _, err := p.GetScale(ctx, ehpa)
 					if err != nil {
 						return nil, err
 					}
@@ -213,10 +213,10 @@ func (p *AdvancedHPAController) GetHPAMetrics(ctx context.Context, ahpa *autosca
 	return metrics, nil
 }
 
-func (p *AdvancedHPAController) DisableHPA(ctx context.Context, ahpa *autoscalingapi.AdvancedHorizontalPodAutoscaler) error {
-	hpa, err := p.GetHPA(ctx, ahpa)
+func (p *EffectiveHPAController) DisableHPA(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) error {
+	hpa, err := p.GetHPA(ctx, ehpa)
 	if err != nil {
-		p.Recorder.Event(ahpa, v1.EventTypeNormal, "FailedGetHPA", err.Error())
+		p.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedGetHPA", err.Error())
 		p.Log.Error(err, "Failed to get", "HorizontalPodAutoscaler", hpa)
 		return err
 	}
@@ -239,7 +239,7 @@ func (p *AdvancedHPAController) DisableHPA(ctx context.Context, ahpa *autoscalin
 
 	err = p.Update(ctx, hpa)
 	if err != nil {
-		p.Recorder.Event(ahpa, v1.EventTypeNormal, "FailedDisableHPA", err.Error())
+		p.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedDisableHPA", err.Error())
 		p.Log.Error(err, "Failed to disable", "HorizontalPodAutoscaler", hpa)
 		return err
 	}
@@ -275,7 +275,7 @@ func calculatePodRequests(pods []v1.Pod, resource v1.ResourceName) (int64, error
 	return requests, nil
 }
 
-func setHPACondition(status *autoscalingapi.AdvancedHorizontalPodAutoscalerStatus, conditions []autoscalingv2.HorizontalPodAutoscalerCondition) {
+func setHPACondition(status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus, conditions []autoscalingv2.HorizontalPodAutoscalerCondition) {
 	for _, cond := range conditions {
 		setCondition(status, autoscalingapi.ConditionType(cond.Type), metav1.ConditionStatus(cond.Status), cond.Reason, cond.Message)
 	}

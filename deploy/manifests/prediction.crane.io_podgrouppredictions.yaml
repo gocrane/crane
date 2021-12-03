@@ -121,6 +121,9 @@ spec:
                               type: array
                             maxValue:
                               items:
+                                properties:
+                                  marginFraction:
+                                    type: string
                                 type: object
                               type: array
                           type: object
@@ -153,7 +156,11 @@ spec:
                             maxValue:
                               type: string
                           type: object
+                        marginFraction:
+                          type: string
                         minSampleWeight:
+                          type: string
+                        percentile:
                           type: string
                         sampleInterval:
                           type: string
