@@ -2,14 +2,15 @@ package accuracy
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"math"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var (
-	epsilon = 1e-10
-	sampleRate = 100.0               // Hz
+	epsilon        = 1e-10
+	sampleRate     = 100.0            // Hz
 	sampleInterval = 1.0 / sampleRate // seconds
 )
 

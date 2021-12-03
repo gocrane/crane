@@ -2,11 +2,12 @@ package prediction
 
 import (
 	"fmt"
-	"github.com/gocrane/crane/pkg/prediction/config"
-	"github.com/gocrane/crane/pkg/providers"
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/gocrane/crane/pkg/prediction/config"
+	"github.com/gocrane/crane/pkg/providers"
 
 	"github.com/gocrane/crane/pkg/common"
 )
@@ -34,7 +35,7 @@ func NewGenericPrediction(withQueryBroadcaster config.Broadcaster) GenericPredic
 	return GenericPrediction{
 		withQueryBroadcaster:       withQueryBroadcaster,
 		mu:                         sync.Mutex{},
-		metricsMap:      map[string][]common.QueryCondition{},
+		metricsMap:                 map[string][]common.QueryCondition{},
 		querySet:                   map[string]struct{}{},
 	}
 }

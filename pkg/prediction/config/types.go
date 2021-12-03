@@ -10,3 +10,22 @@ type Config struct {
 	DSP            *v1alpha1.DSP
 	Percentile     *v1alpha1.Percentile
 }
+
+// ConvertApiMetrics2InternalConfigs
+func ConvertApiMetrics2InternalConfigs(metrics []v1alpha1.PredictionMetric) []*Config {
+	var confs []*Config
+	for _, metric := range metrics {
+		confs = append(confs, ConvertApiMetric2InternalConfig(metric))
+	}
+	return confs
+}
+
+// ConvertApiMetric2InternalConfig
+func ConvertApiMetric2InternalConfig(metric v1alpha1.PredictionMetric) *Config {
+	return &Config{
+		MetricSelector: metric.MetricSelector,
+		Query:          metric.Query,
+		DSP:            metric.Algorithm.DSP,
+		Percentile:     metric.Algorithm.Percentile,
+	}
+}

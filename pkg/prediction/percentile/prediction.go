@@ -70,10 +70,10 @@ func (p *percentilePrediction) QueryRealtimePredictedValues(queryExpr string) ([
 }
 
 func NewPrediction() prediction.Interface {
-	mb := config.NewBroadcaster()
+	//mb := config.NewBroadcaster()
 	qb := config.NewBroadcaster()
 	return &percentilePrediction{
-		GenericPrediction: prediction.NewGenericPrediction(mb, qb),
+		GenericPrediction: prediction.NewGenericPrediction(qb),
 		a:              aggregateSignalMap{},
 		//mr:             mb.Listen(),
 		qr:             qb.Listen(),
