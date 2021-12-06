@@ -545,10 +545,11 @@ spec:
                 type: object
               scaleStrategy:
                 default: Auto
-                description: ScaleStrategy indicate the strategy to scaling target, value can be "Auto" and "Manual" the default ScaleStrategy is Auto.
+                description: ScaleStrategy indicate the strategy to scaling target,
+                  value can be "Auto" and "Preview" the default ScaleStrategy is Auto.
                 enum:
                 - Auto
-                - Manual
+                - Preview
                 type: string
               scaleTargetRef:
                 description: ScaleTargetRef is the reference to the workload that should be scaled.
@@ -567,7 +568,9 @@ spec:
                 - name
                 type: object
               specificReplicas:
-                description: SpecificReplicas specify the target replicas if ScaleStrategy is Manual If not set, when ScaleStrategy is setting to Manual, it will just stop scaling
+                description: SpecificReplicas specify the target replicas if ScaleStrategy
+                  is Preview If not set, when ScaleStrategy is setting to Preview,
+                  it will just stop scaling
                 format: int32
                 type: integer
             required:

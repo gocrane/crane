@@ -1,4 +1,4 @@
-package hpa
+package ehpa
 
 import (
 	"context"
@@ -20,33 +20,33 @@ import (
 	"github.com/gocrane/crane/pkg/known"
 )
 
-func (p *EffectiveHPAController) ReconcilePodPredication(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) (*predictionapi.PodGroupPrediction, error) {
+func (c *EffectiveHPAController) ReconcilePodPredication(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) (*predictionapi.PodGroupPrediction, error) {
 	predictionList := &predictionapi.PodGroupPredictionList{}
 	opts := []client.ListOption{
 		client.MatchingLabels(map[string]string{known.EffectiveHorizontalPodAutoscalerUidLabel: string(ehpa.UID)}),
 	}
-	err := p.Client.List(ctx, predictionList, opts...)
+	err := c.Client.List(ctx, predictionList, opts...)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return p.CreatePodPrediction(ctx, ehpa)
+			return c.CreatePodPrediction(ctx, ehpa)
 		} else {
-			p.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedGetPrediction", err.Error())
-			p.Log.Error(err, "Failed to get PodGroupPrediction", "effective-hpa", klog.KObj(ehpa))
+			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedGetPrediction", err.Error())
+			c.Log.Error(err, "Failed to get PodGroupPrediction", "ehpa", klog.KObj(ehpa))
 			return nil, err
 		}
 	} else if len(predictionList.Items) == 0 {
-		return p.CreatePodPrediction(ctx, ehpa)
+		return c.CreatePodPrediction(ctx, ehpa)
 	}
 
-	return p.UpdatePodPredictionIfNeed(ctx, ehpa, &predictionList.Items[0])
+	return c.UpdatePodPredictionIfNeed(ctx, ehpa, &predictionList.Items[0])
 }
 
-func (p *EffectiveHPAController) GetPodPredication(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) (*predictionapi.PodGroupPrediction, error) {
+func (c *EffectiveHPAController) GetPodPredication(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) (*predictionapi.PodGroupPrediction, error) {
 	predictionList := &predictionapi.PodGroupPredictionList{}
 	opts := []client.ListOption{
 		client.MatchingLabels(map[string]string{known.EffectiveHorizontalPodAutoscalerUidLabel: string(ehpa.UID)}),
 	}
-	err := p.Client.List(ctx, predictionList, opts...)
+	err := c.Client.List(ctx, predictionList, opts...)
 	if err != nil {
 		return nil, err
 	} else if len(predictionList.Items) == 0 {
@@ -56,53 +56,53 @@ func (p *EffectiveHPAController) GetPodPredication(ctx context.Context, ehpa *au
 	return &predictionList.Items[0], nil
 }
 
-func (p *EffectiveHPAController) CreatePodPrediction(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) (*predictionapi.PodGroupPrediction, error) {
-	podPrediction, err := p.NewPodPredictionObject(ehpa)
+func (c *EffectiveHPAController) CreatePodPrediction(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) (*predictionapi.PodGroupPrediction, error) {
+	podPrediction, err := c.NewPodPredictionObject(ehpa)
 	if err != nil {
-		p.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreatePredictionObject", err.Error())
-		p.Log.Error(err, "Failed to create object", "PodGroupPrediction", podPrediction)
+		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreatePredictionObject", err.Error())
+		c.Log.Error(err, "Failed to create object", "PodGroupPrediction", podPrediction)
 		return nil, err
 	}
 
-	err = p.Client.Create(ctx, podPrediction)
+	err = c.Client.Create(ctx, podPrediction)
 	if err != nil {
-		p.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreatePrediction", err.Error())
-		p.Log.Error(err, "Failed to create", "PodGroupPrediction", podPrediction)
+		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreatePrediction", err.Error())
+		c.Log.Error(err, "Failed to create", "PodGroupPrediction", podPrediction)
 		return nil, err
 	}
 
-	p.Log.Info("Create successfully", "PodGroupPrediction", klog.KObj(podPrediction))
-	p.Recorder.Event(ehpa, v1.EventTypeNormal, "PodGroupPredictionCreated", "Create PodGroupPrediction successfully")
+	c.Log.Info("Create successfully", "PodGroupPrediction", klog.KObj(podPrediction))
+	c.Recorder.Event(ehpa, v1.EventTypeNormal, "PodGroupPredictionCreated", "Create PodGroupPrediction successfully")
 
 	return podPrediction, nil
 }
 
-func (p *EffectiveHPAController) UpdatePodPredictionIfNeed(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, podPredictionExist *predictionapi.PodGroupPrediction) (*predictionapi.PodGroupPrediction, error) {
-	podPrediction, err := p.NewPodPredictionObject(ehpa)
+func (c *EffectiveHPAController) UpdatePodPredictionIfNeed(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, podPredictionExist *predictionapi.PodGroupPrediction) (*predictionapi.PodGroupPrediction, error) {
+	podPrediction, err := c.NewPodPredictionObject(ehpa)
 	if err != nil {
-		p.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreatePredictionObject", err.Error())
-		p.Log.Error(err, "Failed to create object", "PodGroupPrediction", podPrediction)
+		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreatePredictionObject", err.Error())
+		c.Log.Error(err, "Failed to create object", "PodGroupPrediction", podPrediction)
 		return nil, err
 	}
 
 	if !equality.Semantic.DeepEqual(&podPredictionExist.Spec, &podPrediction.Spec) {
-		p.Log.V(4).Info("PodGroupPrediction is unsynced according to EffectiveHorizontalPodAutoscaler, should be updated", "currentPodPrediction", podPredictionExist.Spec, "expectPodPrediction", podPrediction.Spec)
+		c.Log.V(4).Info("PodGroupPrediction is unsynced according to EffectiveHorizontalPodAutoscaler, should be updated", "currentPodPrediction", podPredictionExist.Spec, "expectPodPrediction", podPrediction.Spec)
 
 		podPredictionExist.Spec = podPrediction.Spec
-		err := p.Update(ctx, podPredictionExist)
+		err := c.Update(ctx, podPredictionExist)
 		if err != nil {
-			p.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedUpdatePrediction", err.Error())
-			p.Log.Error(err, "Failed to update", "PodGroupPrediction", podPredictionExist)
+			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedUpdatePrediction", err.Error())
+			c.Log.Error(err, "Failed to update", "PodGroupPrediction", podPredictionExist)
 			return nil, err
 		}
 
-		p.Log.Info("Update PodGroupPrediction successful", "PodGroupPrediction", klog.KObj(podPredictionExist))
+		c.Log.Info("Update PodGroupPrediction successful", "PodGroupPrediction", klog.KObj(podPredictionExist))
 	}
 
 	return podPredictionExist, nil
 }
 
-func (p *EffectiveHPAController) NewPodPredictionObject(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) (*predictionapi.PodGroupPrediction, error) {
+func (c *EffectiveHPAController) NewPodPredictionObject(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) (*predictionapi.PodGroupPrediction, error) {
 	name := fmt.Sprintf("ehpa-%s", ehpa.Name)
 	prediction := &predictionapi.PodGroupPrediction{
 		ObjectMeta: metav1.ObjectMeta{
@@ -143,7 +143,7 @@ func (p *EffectiveHPAController) NewPodPredictionObject(ehpa *autoscalingapi.Eff
 	prediction.Spec.MetricPredictionConfigs = metricPredictionConfigs
 
 	// EffectiveHPA control the underground prediction so set controller reference for it here
-	if err := controllerutil.SetControllerReference(ehpa, prediction, p.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(ehpa, prediction, c.Scheme); err != nil {
 		return nil, err
 	}
 
