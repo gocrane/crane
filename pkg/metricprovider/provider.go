@@ -1,4 +1,4 @@
-package autoscaling
+package metricprovider
 
 import (
 	"context"

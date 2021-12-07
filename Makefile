@@ -73,7 +73,6 @@ fmt: ## Run go fmt against code.
 goimports: ## Run goimports to ordering import packages group
 	goimports -w ./
 
-
 .PHONY: vet
 vet: ## Run go vet against code.
 	@find . -type f -name '*.go'| grep -v "/vendor/" | xargs gofmt -w -s

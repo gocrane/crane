@@ -159,10 +159,6 @@ spec:
                 items:
                   description: TimeSeriesPredictionCondition contains details for the current condition of this TimeSeriesPrediction.
                   properties:
-                    lastProbeTime:
-                      description: Last time we probed the condition.
-                      format: date-time
-                      type: string
                     lastTransitionTime:
                       description: Last time the condition transitioned from one status to another.
                       format: date-time
@@ -170,6 +166,15 @@ spec:
                     message:
                       description: Human-readable message indicating details about last transition.
                       type: string
+                    observedGeneration:
+                      description: observedGeneration represents the .metadata.generation
+                        that the condition was set based upon. For instance, if .metadata.generation
+                        is currently 12, but the .status.conditions[x].observedGeneration
+                        is 9, the condition is out of date with respect to the current
+                        state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
                     reason:
                       description: Unique, one-word, CamelCase reason for the condition's last transition.
                       type: string
@@ -177,8 +182,20 @@ spec:
                       description: Status is the status of the condition. Can be True, False, Unknown.
                       type: string
                     type:
-                      description: Type is the type of the condition.
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                        --- Many .condition.type values are consistent across resources
+                        like Available, but because arbitrary conditions can be useful
+                        (see .node.status.conditions), the ability to deconflict is
+                        important. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                       type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
                   type: object
                 type: array
               predictionMetrics:
