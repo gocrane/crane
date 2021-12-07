@@ -124,7 +124,7 @@ func getInternalConfig(queryExpr string) *internalConfig {
 
 	config, exists := queryToInternalConfigMap[queryExpr]
 	if !exists {
-		logger.Info("Internal config not found, using the default one.", "queryExpr", queryExpr)
+		logger.Info("Dsp internal config not found, using the default one.", "queryExpr", queryExpr)
 		queryToInternalConfigMap[queryExpr] = &defaultInternalConfig
 		return queryToInternalConfigMap[queryExpr]
 	}

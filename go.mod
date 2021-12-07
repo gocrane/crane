@@ -19,7 +19,6 @@ require (
 
 require (
 	github.com/go-echarts/go-echarts/v2 v2.2.4
-	github.com/gocrane/api v0.0.0-20211203060727-0f7acf528d72
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/mjibson/go-dsp v0.0.0-20180508042940-11479a337f12
 	github.com/prometheus/client_golang v1.11.0
@@ -29,3 +28,5 @@ require (
 	k8s.io/autoscaler/vertical-pod-autoscaler v0.9.2
 	k8s.io/kube-openapi v0.0.0-20210817084001-7fbd8d59e5b8 // indirect
 )
+
+require github.com/gocrane/api v0.0.0-20211207120055-f3b9cee38e7f

@@ -18,7 +18,7 @@ import (
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 	"github.com/gocrane/crane/cmd/craned/app/options"
-	"github.com/gocrane/crane/pkg/controller/hpa"
+	"github.com/gocrane/crane/pkg/controller/ehpa"
 	"github.com/gocrane/crane/pkg/controller/tsp"
 	"github.com/gocrane/crane/pkg/known"
 	predict "github.com/gocrane/crane/pkg/prediction"
@@ -93,8 +93,45 @@ func Run(ctx context.Context, opts *options.Options) error {
 		return err
 	}
 
-	var dataSource providers.Interface
+	initializationControllers(ctx, mgr, opts)
 
+	log.Logger().Info("Starting crane manager")
+	if err := mgr.Start(ctx); err != nil {
+		log.Logger().Error(err, "problem running crane manager")
+		return err
+	}
+
+	return nil
+}
+
+// initializationControllers setup controllers with manager
+func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *options.Options) {
+	log.Logger().Info(fmt.Sprintf("opts %v", opts))
+	if err := (&ehpa.EffectiveHPAController{
+		Client:     mgr.GetClient(),
+		Log:        log.Logger().WithName("effective-hpa-controller"),
+		Scheme:     mgr.GetScheme(),
+		RestMapper: mgr.GetRESTMapper(),
+		Recorder:   mgr.GetEventRecorderFor("effective-hpa-controller"),
+	}).SetupWithManager(mgr); err != nil {
+		log.Logger().Error(err, "unable to create controller", "controller", "EffectiveHPAController")
+		os.Exit(1)
+	}
+
+	if err := (&ehpa.SubstituteController{
+		Client:     mgr.GetClient(),
+		Log:        log.Logger().WithName("substitute-controller"),
+		Scheme:     mgr.GetScheme(),
+		RestMapper: mgr.GetRESTMapper(),
+		Recorder:   mgr.GetEventRecorderFor("substitute-controller"),
+	}).SetupWithManager(mgr); err != nil {
+		log.Logger().Error(err, "unable to create controller", "controller", "SubstituteController")
+		os.Exit(1)
+	}
+
+	// TspController
+	var dataSource providers.Interface
+	var err error
 	switch strings.ToLower(opts.DataSource) {
 	case "prometheus", "prom":
 		dataSource, err = prom.NewProvider(&opts.DataSourcePromConfig)
@@ -105,7 +142,8 @@ func Run(ctx context.Context, opts *options.Options) error {
 		dataSource, err = prom.NewProvider(&opts.DataSourcePromConfig)
 	}
 	if err != nil {
-		return err
+		log.Logger().Error(err, "unable to create controller", "controller", "TspController")
+		os.Exit(1)
 	}
 
 	// algorithm provider inject data source
@@ -118,7 +156,8 @@ func Run(ctx context.Context, opts *options.Options) error {
 
 	dspPredictor, err := dsp.NewPrediction()
 	if err != nil {
-		return err
+		log.Logger().Error(err, "unable to create controller", "controller", "TspController")
+		os.Exit(1)
 	}
 	dspPredictor.WithProviders(map[string]providers.Interface{
 		predict.RealtimeProvider: dataSource,
@@ -147,29 +186,4 @@ func Run(ctx context.Context, opts *options.Options) error {
 		os.Exit(1)
 	}
 
-	initializationControllers(mgr, opts)
-
-	log.Logger().Info("Starting crane manager")
-	if err := mgr.Start(ctx); err != nil {
-		log.Logger().Error(err, "problem running crane manager")
-		return err
-	}
-
-	return nil
-}
-
-// initializationControllers setup controllers with manager
-func initializationControllers(mgr ctrl.Manager, opts *options.Options) {
-	log.Logger().Info(fmt.Sprintf("opts %v", opts))
-	hpaRecorder := mgr.GetEventRecorderFor("effective-hpa-controller")
-	if err := (&hpa.EffectiveHPAController{
-		Client:     mgr.GetClient(),
-		Log:        log.Logger().WithName("effective-hpa-controller"),
-		Scheme:     mgr.GetScheme(),
-		RestMapper: mgr.GetRESTMapper(),
-		Recorder:   hpaRecorder,
-	}).SetupWithManager(mgr); err != nil {
-		log.Logger().Error(err, "unable to create controller", "controller", "EffectiveHPAController")
-		os.Exit(1)
-	}
 }

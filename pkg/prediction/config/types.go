@@ -22,10 +22,33 @@ func ConvertApiMetrics2InternalConfigs(metrics []v1alpha1.PredictionMetric) []*C
 
 // ConvertApiMetric2InternalConfig
 func ConvertApiMetric2InternalConfig(metric *v1alpha1.PredictionMetric) *Config {
-	return &Config{
-		MetricSelector: metric.MetricSelector,
-		Query:          metric.Query,
-		DSP:            metric.Algorithm.DSP,
-		Percentile:     metric.Algorithm.Percentile,
+	// transfer the workload to query
+	if metric.WorkloadResource != nil {
+		// todo: different data source has different querys.
+		query := &v1alpha1.Query{
+			Expression: WorkloadResourceToPromQueryExpr(metric.WorkloadResource),
+		}
+		return &Config{
+			Query:      query,
+			DSP:        metric.Algorithm.DSP,
+			Percentile: metric.Algorithm.Percentile,
+		}
+	} else if metric.NodeResource != nil {
+		// todo: different data source has different querys.
+		query := &v1alpha1.Query{
+			Expression: NodeResourceToPromQueryExpr(metric.NodeResource),
+		}
+		return &Config{
+			Query:      query,
+			DSP:        metric.Algorithm.DSP,
+			Percentile: metric.Algorithm.Percentile,
+		}
+	} else {
+		return &Config{
+			MetricSelector: metric.MetricSelector,
+			Query:          metric.Query,
+			DSP:            metric.Algorithm.DSP,
+			Percentile:     metric.Algorithm.Percentile,
+		}
 	}
 }

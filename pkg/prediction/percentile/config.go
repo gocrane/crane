@@ -135,7 +135,7 @@ func getInternalConfig(queryExpr string) *internalConfig {
 
 	config, exits := queryToInternalConfigMap[queryExpr]
 	if !exits {
-		logger.Info("Internal config not found, using the default one.", "queryExpr", queryExpr)
+		logger.Info("Percentile internal config not found, using the default one.", "queryExpr", queryExpr)
 		queryToInternalConfigMap[queryExpr] = &defaultInternalConfig
 		return queryToInternalConfigMap[queryExpr]
 	}

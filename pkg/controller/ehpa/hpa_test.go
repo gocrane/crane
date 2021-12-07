@@ -1,4 +1,4 @@
-package hpa
+package ehpa
 
 import (
 	"testing"

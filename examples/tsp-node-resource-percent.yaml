@@ -1,0 +1,40 @@
+apiVersion: prediction.crane.io/v1alpha1
+kind: TimeSeriesPrediction
+metadata:
+  name: node-resource-percentile
+  namespace: default
+spec:
+  predictionWindowSeconds: 600
+  predictionMetrics:
+    - resourceIdentifier: node-cpu
+      nodeResource:
+        name: 192.168.56.166
+        resource: cpu
+      algorithm:
+        algorithmType: "percentile"
+        percentile:
+          sampleInterval: "1m"
+          minSampleWeight: "1.0"
+          histogram:
+            maxValue: "10000.0"
+            epsilon: "1e-10"
+            halfLife: "12h"
+            bucketSize: "10"
+            firstBucketSize: "40"
+            bucketSizeGrowthRatio: "1.5"
+    - resourceIdentifier: node-mem
+      nodeResource:
+        name: 192.168.56.166
+        resource: memory
+      algorithm:
+        algorithmType: "percentile"
+        percentile:
+          sampleInterval: "1m"
+          minSampleWeight: "1.0"
+          histogram:
+            maxValue: "1000000.0"
+            epsilon: "1e-10"
+            halfLife: "12h"
+            bucketSize: "10"
+            firstBucketSize: "40"
+            bucketSizeGrowthRatio: "1.5"

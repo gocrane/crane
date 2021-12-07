@@ -70,10 +70,7 @@ func (tc *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Res
 		}
 	}
 
-	err = tc.syncTimeSeriesPrediction(p)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
+	tc.syncTimeSeriesPrediction(p)
 
 	return ctrl.Result{}, nil
 }
@@ -105,11 +102,11 @@ func (tc *Controller) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 // sync the config to predictor
-func (tc *Controller) syncTimeSeriesPrediction(prediction *predictionv1alph1.TimeSeriesPrediction) error {
+func (tc *Controller) syncTimeSeriesPrediction(prediction *predictionv1alph1.TimeSeriesPrediction) {
 	key := GetTimeSeriesPredictionKey(prediction)
 
 	last, ok := tc.tsPredictionMap.Load(key)
-	if !ok { // first time created
+	if !ok { // first time created or system start
 
 		predconfig.WithApiConfigs(prediction.Spec.PredictionMetrics)
 		//newStatus := prediction.Status.DeepCopy()
@@ -143,7 +140,6 @@ func (tc *Controller) syncTimeSeriesPrediction(prediction *predictionv1alph1.Tim
 	// add the prediction to time delay queue for update
 	tc.delayQueue.AddAfter(key, time.Duration(prediction.Spec.PredictionWindowSeconds)*time.Second)
 
-	return nil
 }
 
 func (tc *Controller) removeTimeSeriesPrediction(ctx context.Context, prediction *predictionv1alph1.TimeSeriesPrediction) error {
