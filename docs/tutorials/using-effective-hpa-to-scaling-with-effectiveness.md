@@ -1,4 +1,4 @@
-#EffectiveHorizontalPodAutoscaler
+# EffectiveHorizontalPodAutoscaler
 
 EffectiveHorizontalPodAutoscaler helps you manage application scaling in an easy way. It is compatible with
 HorizontalPodAutoscaler but extends more features.
