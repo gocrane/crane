@@ -102,7 +102,7 @@ lint: golangci-lint  ## Run golang lint against code
 
 .PHONY: test
 test: manifests fmt vet goimports ## Run tests.
-	go test -race -coverprofile coverage.out -covermode=atomic ./...
+	go test -coverprofile coverage.out -covermode=atomic ./...
 
 
 .PHONY: build
@@ -123,11 +123,11 @@ metric-adapter: ## Build binary with the metric adapter.
 images: image-craned image-metric-adapter
 
 .PHONY: image-craned
-image-craned: test ## Build docker image with the crane manager.
+image-craned: ## Build docker image with the crane manager.
 	docker build --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=craned -t ${MANAGER_IMG} .
 
 .PHONY: image-metric-adapter
-image-metric-adapter: test ## Build docker image with the metric adapter.
+image-metric-adapter: ## Build docker image with the metric adapter.
 	docker build --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=metric-adapter -t ${ADAPTER_IMG} .
 
 .PHONY: push-images
