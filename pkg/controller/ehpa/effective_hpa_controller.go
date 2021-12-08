@@ -23,6 +23,8 @@ import (
 
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
+
+	"github.com/gocrane/crane/pkg/metrics"
 )
 
 // EffectiveHPAController is responsible for scaling workload's replica based on EffectiveHorizontalPodAutoscaler spec
@@ -44,6 +46,13 @@ func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+
+	// record expect replicas
+	labels := map[string]string{
+		"identity": klog.KObj(ehpa).String(),
+		"strategy": string(ehpa.Spec.ScaleStrategy),
+	}
+	metrics.EHPAReplicas.With(labels).Set(float64(*ehpa.Status.ExpectReplicas))
 
 	newStatus := ehpa.Status.DeepCopy()
 
