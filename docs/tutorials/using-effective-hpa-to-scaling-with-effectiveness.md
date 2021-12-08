@@ -7,7 +7,7 @@ application ahead, also user can know when the peak flow will end and scale down
 
 Besides that, EffectiveHorizontalPodAutoscaler also defines several scale strategies to support different scaling scenarios.
 
-# Features
+## Features
 A EffectiveHorizontalPodAutoscaler sample yaml looks like below:
 ```yaml
 apiVersion: autoscaling.crane.io/v1alpha1
@@ -51,7 +51,7 @@ spec:
 * spec.metrics contains the specifications for which to use to calculate the desired replica count. Please refer to the details:
 * spec.prediction defines configurations for predict resources.If unspecified, defaults don't enable prediction.
 
-## Prediction-driven autoscaling
+### Prediction-driven autoscaling
 Most of online applications follow regular pattern. We can predict future trend of hours or days. DSP is a time series prediction algorithm that
 applicable for application metrics prediction.
 
@@ -70,7 +70,7 @@ spec:
 
 ```
 
-### Metric conversion
+#### Metric conversion
 When user defines `spec.metrics` in EffectiveHorizontalPodAutoscaler and prediction configuration is enabled, EffectiveHPAController will convert it to a new metric
 and configure the background HorizontalPodAutoscaler. 
 
@@ -113,7 +113,7 @@ In this sample, the resource metric defined by user is converted into two metric
 
 HorizontalPodAutoscaler will calculate on each metric, and propose new replicas based on that. The **largest** one will be picked as the new scale.
 
-### Horizontal scaling process
+#### Horizontal scaling process
 There are six steps of prediction and scaling process:
 1. EffectiveHPAController create HorizontalPodAutoscaler and TimeSeriesPrediction instance 
 2. PredictionCore get historic metric from prometheus and persist into TimeSeriesPrediction
@@ -125,7 +125,7 @@ There are six steps of prediction and scaling process:
 Below is the process flow.
 <div align="center"><img src="../images/crane-ehpa.png" style="width:900px;" /></div>
 
-### Use case
+#### Use case
 Let's take one use case that using EffectiveHorizontalPodAutoscaler in production cluster.
 
 We did a profiling on the load history of one application in production and replayed it in staging environment. With the same application, we leverage both EffectiveHorizontalPodAutoscaler and HorizontalPodAutoscaler to manage the scale and compare the result.
@@ -141,15 +141,15 @@ We can see significant improvement with EffectiveHorizontalPodAutoscaler:
 * Scale down gracefully after peek flow
 * Fewer replicas changes than HorizontalPodAutoscaler
 
-## ScaleStrategy
+### ScaleStrategy
 EffectiveHorizontalPodAutoscaler provides two strategies for scaling: `Auto` and `Manual`. User can change the strategy at runtime, and it will take effect on the fly.
 
-### Auto
+#### Auto
 Auto strategy achieves automatic scaling based on metrics. It is the default strategy. With this strategy, EffectiveHorizontalPodAutoscaler will create and control a HorizontalPodAutoscaler 
 instance in backend. We don't recommend explicit configuration on the underlying HorizontalPodAutoscaler because it will be overridden by EffectiveHPAController。
 If user delete EffectiveHorizontalPodAutoscaler, HorizontalPodAutoscaler will be cleaned up too.
 
-### Manual
+#### Manual
 Manual strategy means user can specify replicas of target. User can switch from default strategy to this one by applying `spec.scaleStrategy` to `Manual`. It will take effect immediately，
 During the switch, EffectiveHPAController will disable HorizontalPodAutoscaler if exists and scale the target to the value 
 `spec.specificReplicas`, if user not set `spec.specificReplicas`, when ScaleStrategy is change to Manual, it will just stop scaling.
@@ -164,13 +164,13 @@ spec:
 
 ```
 
-## HorizontalPodAutoscaler compatible
+### HorizontalPodAutoscaler compatible
 EffectiveHorizontalPodAutoscaler is designed to be compatible with k8s native HorizontalPodAutoscaler, because we don't reinvent the autoscaling part but take advantage of the extension
 from HorizontalPodAutoscaler and build a high level autoscaling CRD. EffectiveHorizontalPodAutoscaler support all abilities from HorizontalPodAutoscaler like metricSpec and behavior.
 
 EffectiveHorizontalPodAutoscaler will continue support incoming new feature from HorizontalPodAutoscaler.
 
-## EffectiveHorizontalPodAutoscaler status
+### EffectiveHorizontalPodAutoscaler status
 This is a yaml from EffectiveHorizontalPodAutoscaler.Status
 ```yaml
 apiVersion: autoscaling.crane.io/v1alpha1

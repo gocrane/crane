@@ -4,16 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	autoscalingapiv1 "k8s.io/api/autoscaling/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/scale"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -21,6 +17,7 @@ import (
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/known"
+	"github.com/gocrane/crane/pkg/utils"
 )
 
 func (c *EffectiveHPAController) ReconcileHPA(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, substitute *autoscalingapi.Substitute) (*autoscalingv2.HorizontalPodAutoscaler, error) {
@@ -157,32 +154,6 @@ func (c *EffectiveHPAController) UpdateHPAIfNeed(ctx context.Context, ehpa *auto
 	return hpaExist, nil
 }
 
-func GetScale(ctx context.Context, restMapper meta.RESTMapper, scaleClient scale.ScalesGetter, namespace string, ref autoscalingv2.CrossVersionObjectReference) (*autoscalingapiv1.Scale, *meta.RESTMapping, error) {
-	targetGV, err := schema.ParseGroupVersion(ref.APIVersion)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	targetGK := schema.GroupKind{
-		Group: targetGV.Group,
-		Kind:  ref.Kind,
-	}
-
-	mappings, err := restMapper.RESTMappings(targetGK)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	for _, mapping := range mappings {
-		scale, err := scaleClient.Scales(namespace).Get(ctx, mapping.Resource.GroupResource(), ref.Name, metav1.GetOptions{})
-		if err == nil {
-			return scale, mapping, nil
-		}
-	}
-
-	return nil, nil, fmt.Errorf("unrecognized resource")
-}
-
 // GetHPAMetrics loop metricSpec in EffectiveHorizontalPodAutoscaler and generate metricSpec for HPA
 func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) ([]autoscalingv2.MetricSpec, error) {
 	var metrics []autoscalingv2.MetricSpec
@@ -220,12 +191,12 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 
 				// When use AverageUtilization in EffectiveHorizontalPodAutoscaler's metricSpec, convert to AverageValue
 				if metric.Resource.Target.AverageUtilization != nil {
-					scale, _, err := GetScale(ctx, c.RestMapper, c.scaleClient, ehpa.Namespace, ehpa.Spec.ScaleTargetRef)
+					scale, _, err := utils.GetScale(ctx, c.RestMapper, c.ScaleClient, ehpa.Namespace, ehpa.Spec.ScaleTargetRef)
 					if err != nil {
 						return nil, err
 					}
 
-					pods, err := c.GetPodsFromScale(scale)
+					pods, err := utils.GetPodsFromScale(c.Client, scale)
 					if err != nil {
 						return nil, err
 					}
@@ -250,37 +221,6 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 	}
 
 	return metrics, nil
-}
-
-// DisableHPA use a substitute object to replace actual target for HPA, then the scaling will affect to substitute
-func (c *EffectiveHPAController) DisableHPA(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, substitute *autoscalingapi.Substitute) error {
-	hpa, err := c.GetHPA(ctx, ehpa)
-	if err != nil {
-		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedGetHPA", err.Error())
-		c.Log.Error(err, "Failed to get", "HorizontalPodAutoscaler", hpa)
-		return err
-	}
-
-	if hpa == nil {
-		// do nothing if not create hpa before
-		return nil
-	}
-
-	hpa.Spec.ScaleTargetRef = autoscalingv2.CrossVersionObjectReference{
-		Kind:       "Substitute",
-		Name:       substitute.Name,
-		APIVersion: "autoscaling.crane.io/v1alpha1",
-	}
-
-	err = c.Update(ctx, hpa)
-	if err != nil {
-		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedDisableHPA", err.Error())
-		c.Log.Error(err, "Failed to disable", "HorizontalPodAutoscaler", hpa)
-		return err
-	}
-
-	c.Log.Info("Disable scaling successful", "HorizontalPodAutoscaler", hpa)
-	return nil
 }
 
 // GetPredictionMetricName return metric name used by prediction
