@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/gocrane/crane/pkg/controller/noderesource"
 	"os"
 	"strings"
 
@@ -183,6 +184,18 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 	}
 	if err := mgr.Add(tspController); err != nil {
 		log.Logger().Error(err, "unable to add controller", "controller", "TspController")
+		os.Exit(1)
+	}
+
+	// init node resource controller
+	if err := (&noderesource.NodeResourceReconciler {
+		Client:     mgr.GetClient(),
+		Log:        log.Logger().WithName("node-resource-controller"),
+		Scheme:     mgr.GetScheme(),
+		RestMapper: mgr.GetRESTMapper(),
+		Recorder:   mgr.GetEventRecorderFor("node-resource-controller"),
+	}).SetupWithManager(mgr); err != nil {
+		log.Logger().Error(err, "unable to create node-resource controller", "controller", "NodeResourceReconciler")
 		os.Exit(1)
 	}
 
