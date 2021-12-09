@@ -28,6 +28,7 @@ import (
 	"github.com/gocrane/crane/pkg/providers/mock"
 	"github.com/gocrane/crane/pkg/providers/prom"
 	"github.com/gocrane/crane/pkg/utils/log"
+	webhooks "github.com/gocrane/crane/pkg/webhooks"
 )
 
 var (
@@ -92,9 +93,8 @@ func Run(ctx context.Context, opts *options.Options) error {
 		log.Logger().Error(err, "failed to add health check endpoint")
 		return err
 	}
-
+	initializationWebhooks(mgr, opts)
 	initializationControllers(ctx, mgr, opts)
-
 	log.Logger().Info("Starting crane manager")
 	if err := mgr.Start(ctx); err != nil {
 		log.Logger().Error(err, "problem running crane manager")
@@ -102,6 +102,13 @@ func Run(ctx context.Context, opts *options.Options) error {
 	}
 
 	return nil
+}
+func initializationWebhooks(mgr ctrl.Manager, opts *options.Options) {
+	log.Logger().Info(fmt.Sprintf("opts %v", opts))
+	if err := webhooks.SetupWebhookWithManager(mgr); err != nil {
+		log.Logger().Error(err, "unable to create webhook", "webhook", "TimeSeriesPrediction")
+		os.Exit(1)
+	}
 }
 
 // initializationControllers setup controllers with manager
