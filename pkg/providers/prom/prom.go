@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/gocrane/crane/pkg/providers"
-	"k8s.io/klog/v2"
 
 	prometheus "github.com/prometheus/client_golang/api"
 	promapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -53,12 +52,12 @@ func (c *context) QueryRangeSync(ctx gocontext.Context, query string, start, end
 	}
 	results, warnings, err := c.api.QueryRange(ctx, query, r)
 	if len(warnings) != 0 {
-		klog.Warning(warnings)
+		logger.Info("prom query range warnings", "warnings", warnings)
 	}
 	if err != nil {
 		return ts, err
 	}
-
+	logger.V(10).Info("prom query range result", "result", results.String(), "resultsType", results.Type())
 	return c.convertPromResultsToTimeSeries(results)
 }
 
@@ -67,12 +66,12 @@ func (c *context) QuerySync(ctx gocontext.Context, query string) ([]*common.Time
 	var ts []*common.TimeSeries
 	results, warnings, err := c.api.Query(ctx, query, time.Now())
 	if len(warnings) != 0 {
-		klog.Warning(warnings)
+		logger.Info("prom query warnings", "warnings", warnings)
 	}
 	if err != nil {
 		return ts, err
 	}
-
+	logger.V(10).Info("prom query result", "result", results.String(), "resultsType", results.Type())
 	return c.convertPromResultsToTimeSeries(results)
 
 }
@@ -92,7 +91,7 @@ func (c *context) convertPromResultsToTimeSeries(value prommodel.Value) ([]*comm
 					ts.AppendLabel(string(key), string(val))
 				}
 				for _, pair := range sampleStream.Values {
-					ts.AppendSample(int64(pair.Timestamp), float64(pair.Value))
+					ts.AppendSample(int64(pair.Timestamp/1000), float64(pair.Value))
 				}
 				results = append(results, ts)
 			}
@@ -112,7 +111,8 @@ func (c *context) convertPromResultsToTimeSeries(value prommodel.Value) ([]*comm
 					ts.AppendLabel(string(key), string(val))
 				}
 				// for vector, all the sample has the same timestamp. just one point for each metric
-				ts.AppendSample(int64(sample.Timestamp), float64(sample.Value))
+				ts.AppendSample(int64(sample.Timestamp/1000), float64(sample.Value))
+				results = append(results, ts)
 			}
 			return results, nil
 		} else {

@@ -60,7 +60,7 @@ func TestConfig(t *testing.T) {
 	assert.Equal(t, defaultMaxNumOfSpectrumItems, e2.maxNumOfSpectrumItems)
 
 	// Delete a config
-	config.DeleteConfig(*cfg)
+	config.DeleteConfig(cfg)
 
 	// Wait a second for the internal config being deleted
 	time.Sleep(time.Second)

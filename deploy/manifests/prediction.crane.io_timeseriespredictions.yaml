@@ -134,6 +134,16 @@ spec:
                           description: MetricName is the name of the metric.
                           type: string
                       type: object
+                    nodeResource:
+                      description: '!!! NOTE following NodeResource、WorkloadResource、MetricSelector、Query is exclusive options. !!! Must configure only one NodeResource is used to predict a node metric, only support cpu, memory'
+                      properties:
+                        name:
+                          description: 'Name of the node; More info: http://kubernetes.io/docs/user-guide/identifiers#names'
+                          type: string
+                        resource:
+                          description: Resource is cpu or memory
+                          type: string
+                      type: object
                     query:
                       description: Query is a query expression of DSL style, such as prometheus query language
                       properties:
@@ -144,6 +154,25 @@ spec:
                     resourceIdentifier:
                       description: ResourceIdentifier is a resource to identify the metric, but now it is just a identifier now. reference otlp https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/resource/sdk.md
                       type: string
+                    workloadRef:
+                      description: WorkloadResource is used to predict a workload metric, only support cpu, memory
+                      properties:
+                        apiVersion:
+                          description: API version of the referent
+                          type: string
+                        kind:
+                          description: 'Kind of the referent; More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"'
+                          type: string
+                        name:
+                          description: 'Name of the referent; More info: http://kubernetes.io/docs/user-guide/identifiers#names'
+                          type: string
+                        namespace:
+                          description: Namespace of the referent, if not defined, use the TimeSeriesPrediction's namespace;
+                          type: string
+                        resource:
+                          description: Resource is cpu or memory
+                          type: string
+                      type: object
                   type: object
                 type: array
               predictionWindowSeconds:
@@ -157,36 +186,36 @@ spec:
               conditions:
                 description: Conditions is the condition of TimeSeriesPrediction
                 items:
-                  description: TimeSeriesPredictionCondition contains details for the current condition of this TimeSeriesPrediction.
+                  description: "Condition contains details for one aspect of the current state of this API Resource. --- This struct is intended for direct use as an array at the field path .status.conditions.  For example, type FooStatus struct{     // Represents the observations of a foo's current state.     // Known .status.conditions.type are: \"Available\", \"Progressing\", and \"Degraded\"     // +patchMergeKey=type     // +patchStrategy=merge     // +listType=map     // +listMapKey=type     Conditions []metav1.Condition `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"` \n     // other fields }"
                   properties:
                     lastTransitionTime:
-                      description: Last time the condition transitioned from one status to another.
+                      description: lastTransitionTime is the last time the condition transitioned from one status to another. This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
-                      description: Human-readable message indicating details about last transition.
+                      description: message is a human readable message indicating details about the transition. This may be an empty string.
+                      maxLength: 32768
                       type: string
                     observedGeneration:
-                      description: observedGeneration represents the .metadata.generation
-                        that the condition was set based upon. For instance, if .metadata.generation
-                        is currently 12, but the .status.conditions[x].observedGeneration
-                        is 9, the condition is out of date with respect to the current
-                        state of the instance.
+                      description: observedGeneration represents the .metadata.generation that the condition was set based upon. For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date with respect to the current state of the instance.
                       format: int64
                       minimum: 0
                       type: integer
                     reason:
-                      description: Unique, one-word, CamelCase reason for the condition's last transition.
+                      description: reason contains a programmatic identifier indicating the reason for the condition's last transition. Producers of specific condition types may define expected values and meanings for this field, and whether the values are considered a guaranteed API. The value should be a CamelCase string. This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
                       type: string
                     status:
-                      description: Status is the status of the condition. Can be True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
                       type: string
                     type:
-                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
-                        --- Many .condition.type values are consistent across resources
-                        like Available, but because arbitrary conditions can be useful
-                        (see .node.status.conditions), the ability to deconflict is
-                        important. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase. --- Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be useful (see .node.status.conditions), the ability to deconflict is important. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
                       maxLength: 316
                       pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                       type: string
@@ -196,6 +225,46 @@ spec:
                   - reason
                   - status
                   - type
+                  type: object
+                type: array
+              metricPredictedDataList:
+                description: MetricPredictedDataList is an array of predicted time series of all PredictionMetrics, the MetricPredictedData. Note!!, the MetricTimeSeries maybe only has one instant sample value rather then a range values, which is depend on your PredictionMetric.Algorithm
+                items:
+                  description: MetricPredictedData is predicted data of an metric, which denote a metric by ResourceIdentifier in the PredictionMetric
+                  properties:
+                    prediction:
+                      description: Prediction is the predicted time series data of the metric
+                      items:
+                        description: MetricTimeSeries is a stream of samples that belong to a metric with a set of labels
+                        properties:
+                          labels:
+                            description: A collection of Labels that are attached by monitoring system as metadata for the metrics, which are known as dimensions.
+                            items:
+                              description: A Label is a Name and Value pair that provides additional information about the metric. It is metadata for the metric. For example, Kubernetes pod metrics always have 'namespace' label that represents which namespace it belongs to.
+                              properties:
+                                name:
+                                  type: string
+                                value:
+                                  type: string
+                              type: object
+                            type: array
+                          samples:
+                            description: A collection of Samples in chronological order.
+                            items:
+                              description: Sample pairs a Value with a Timestamp.
+                              properties:
+                                timestamp:
+                                  format: int64
+                                  type: integer
+                                value:
+                                  type: string
+                              type: object
+                            type: array
+                        type: object
+                      type: array
+                    resourceIdentifier:
+                      description: ResourceIdentifier is a resource to identify the metric, but now it is just a identifier now. such as cpu, memory
+                      type: string
                   type: object
                 type: array
               predictionMetrics:

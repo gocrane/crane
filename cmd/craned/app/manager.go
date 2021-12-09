@@ -5,19 +5,28 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
-	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
+	"github.com/spf13/cobra"
+
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 	"github.com/gocrane/crane/cmd/craned/app/options"
 	"github.com/gocrane/crane/pkg/controller/ehpa"
+	"github.com/gocrane/crane/pkg/controller/tsp"
 	"github.com/gocrane/crane/pkg/known"
+	predict "github.com/gocrane/crane/pkg/prediction"
+	"github.com/gocrane/crane/pkg/prediction/dsp"
+	"github.com/gocrane/crane/pkg/prediction/percentile"
+	"github.com/gocrane/crane/pkg/providers"
+	"github.com/gocrane/crane/pkg/providers/mock"
+	"github.com/gocrane/crane/pkg/providers/prom"
 	"github.com/gocrane/crane/pkg/utils/log"
 )
 
@@ -84,7 +93,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 		return err
 	}
 
-	initializationControllers(mgr, opts)
+	initializationControllers(ctx, mgr, opts)
 
 	log.Logger().Info("Starting crane manager")
 	if err := mgr.Start(ctx); err != nil {
@@ -96,7 +105,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 }
 
 // initializationControllers setup controllers with manager
-func initializationControllers(mgr ctrl.Manager, opts *options.Options) {
+func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *options.Options) {
 	log.Logger().Info(fmt.Sprintf("opts %v", opts))
 	if err := (&ehpa.EffectiveHPAController{
 		Client:     mgr.GetClient(),
@@ -119,4 +128,62 @@ func initializationControllers(mgr ctrl.Manager, opts *options.Options) {
 		log.Logger().Error(err, "unable to create controller", "controller", "SubstituteController")
 		os.Exit(1)
 	}
+
+	// TspController
+	var dataSource providers.Interface
+	var err error
+	switch strings.ToLower(opts.DataSource) {
+	case "prometheus", "prom":
+		dataSource, err = prom.NewProvider(&opts.DataSourcePromConfig)
+	case "mock":
+		dataSource, err = mock.NewProvider(&opts.DataSourceMockConfig)
+	default:
+		// default is prom
+		dataSource, err = prom.NewProvider(&opts.DataSourcePromConfig)
+	}
+	if err != nil {
+		log.Logger().Error(err, "unable to create controller", "controller", "TspController")
+		os.Exit(1)
+	}
+
+	// algorithm provider inject data source
+	percentilePredictor := percentile.NewPrediction()
+	percentilePredictor.WithProviders(map[string]providers.Interface{
+		predict.RealtimeProvider: dataSource,
+		predict.HistoryProvider:  dataSource,
+	})
+	go percentilePredictor.Run(ctx.Done())
+
+	dspPredictor, err := dsp.NewPrediction()
+	if err != nil {
+		log.Logger().Error(err, "unable to create controller", "controller", "TspController")
+		os.Exit(1)
+	}
+	dspPredictor.WithProviders(map[string]providers.Interface{
+		predict.RealtimeProvider: dataSource,
+		predict.HistoryProvider:  dataSource,
+	})
+	go dspPredictor.Run(ctx.Done())
+
+	predictors := map[predictionapi.AlgorithmType]predict.Interface{
+		predictionapi.AlgorithmTypePercentile: percentilePredictor,
+		predictionapi.AlgorithmTypeDSP:        dspPredictor,
+	}
+
+	tspController := tsp.NewController(
+		mgr.GetClient(),
+		log.Logger().WithName("time-series-prediction-controller"),
+		mgr.GetEventRecorderFor("time-series-prediction-controller"),
+		opts.PredictionUpdateFrequency,
+		predictors,
+	)
+	if err := tspController.SetupWithManager(mgr); err != nil {
+		log.Logger().Error(err, "unable to create controller", "controller", "TspController")
+		os.Exit(1)
+	}
+	if err := mgr.Add(tspController); err != nil {
+		log.Logger().Error(err, "unable to add controller", "controller", "TspController")
+		os.Exit(1)
+	}
+
 }
