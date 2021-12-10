@@ -4,7 +4,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.5.0
+    controller-gen.kubebuilder.io/version: v0.7.0
   creationTimestamp: null
   name: podgrouppredictions.prediction.crane.io
 spec:
@@ -19,13 +19,19 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: PodGroupPrediction is a prediction on the resource consumed by a pod group. In kubernetes context, a pod group often refers to a batch of pods that satisfy a label selector.
+        description: PodGroupPrediction is a prediction on the resource consumed by
+          a pod group. In kubernetes context, a pod group often refers to a batch
+          of pods that satisfy a label selector.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -33,25 +39,39 @@ spec:
             description: PodGroupPredictionSpec is a description of a PodGroupPrediction.
             properties:
               end:
-                description: Prediction end time. If current time is after end, the prediction will be stopped and the status will not be updated afterward. If end is null, the prediction will never stop.
+                description: Prediction end time. If current time is after end, the
+                  prediction will be stopped and the status will not be updated afterward.
+                  If end is null, the prediction will never stop.
                 format: date-time
                 type: string
               labelSelector:
-                description: 'LabelSelector is the aggregator label selector. aggregator group all data by same key . for example, [online: label=v1] denotes all pods with label label=v1 will aggregate by sum all the resources.'
+                description: 'LabelSelector is the aggregator label selector. aggregator
+                  group all data by same key . for example, [online: label=v1] denotes
+                  all pods with label label=v1 will aggregate by sum all the resources.'
                 properties:
                   matchExpressions:
-                    description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
                     items:
-                      description: A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+                      description: A label selector requirement is a selector that
+                        contains values, a key, and an operator that relates the key
+                        and values.
                       properties:
                         key:
-                          description: key is the label key that the selector applies to.
+                          description: key is the label key that the selector applies
+                            to.
                           type: string
                         operator:
-                          description: operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.
+                          description: operator represents a key's relationship to
+                            a set of values. Valid operators are In, NotIn, Exists
+                            and DoesNotExist.
                           type: string
                         values:
-                          description: values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.
+                          description: values is an array of string values. If the
+                            operator is In or NotIn, the values array must be non-empty.
+                            If the operator is Exists or DoesNotExist, the values
+                            array must be empty. This array is replaced during a strategic
+                            merge patch.
                           items:
                             type: string
                           type: array
@@ -63,11 +83,16 @@ spec:
                   matchLabels:
                     additionalProperties:
                       type: string
-                    description: matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.
+                    description: matchLabels is a map of {key,value} pairs. A single
+                      {key,value} in the matchLabels map is equivalent to an element
+                      of matchExpressions, whose key field is "key", the operator
+                      is "In", and the values array contains only "value". The requirements
+                      are ANDed.
                     type: object
                 type: object
               metricPredictionConfigs:
-                description: MetricPredictionConfigs is the prediction configs of metric. each metric has its config for different prediction behaviors
+                description: MetricPredictionConfigs is the prediction configs of
+                  metric. each metric has its config for different prediction behaviors
                 items:
                   properties:
                     algorithmType:
@@ -103,10 +128,13 @@ spec:
                               type: array
                           type: object
                         historyLength:
-                          description: HistoryLength describes how long back should be queried against provider to get historical metrics for prediction.
+                          description: HistoryLength describes how long back should
+                            be queried against provider to get historical metrics
+                            for prediction.
                           type: string
                         sampleInterval:
-                          description: SampleInterval is the sampling interval of metrics.
+                          description: SampleInterval is the sampling interval of
+                            metrics.
                           type: string
                       type: object
                     metricName:
@@ -143,15 +171,19 @@ spec:
                 description: Mode is the prediction time series mode. instant or range
                 type: string
               pods:
-                description: Pods is a list of pod names that belong to this pod group. If not specified then WorkloadRef is invalid. The aggregator aggregate priority is  Pods > WorkloadRef > LabelSelector
+                description: Pods is a list of pod names that belong to this pod group.
+                  If not specified then WorkloadRef is invalid. The aggregator aggregate
+                  priority is  Pods > WorkloadRef > LabelSelector
                 items:
                   type: string
                 type: array
               predictionWindow:
-                description: PredictionWindow, for example, 24-hours means predicting time series in next 24 hours. This should be used only for PredictionModeRange.
+                description: PredictionWindow, for example, 24-hours means predicting
+                  time series in next 24 hours. This should be used only for PredictionModeRange.
                 type: string
               start:
-                description: Prediction start time. If not specified, the prediction starts from the object creationTimestamp.
+                description: Prediction start time. If not specified, the prediction
+                  starts from the object creationTimestamp.
                 format: date-time
                 type: string
               workloadRef:
@@ -188,29 +220,35 @@ spec:
                         type: string
                     type: object
                   type: array
-                description: Aggregation is the aggregated prediction value of all pods.
+                description: Aggregation is the aggregated prediction value of all
+                  pods.
                 type: object
               conditions:
                 description: Conditions is the condition of PodGroupPrediction
                 items:
-                  description: PodGroupPredictionCondition contains details for the current condition of this pod.
+                  description: PodGroupPredictionCondition contains details for the
+                    current condition of this pod.
                   properties:
                     lastProbeTime:
                       description: Last time we probed the condition.
                       format: date-time
                       type: string
                     lastTransitionTime:
-                      description: Last time the condition transitioned from one status to another.
+                      description: Last time the condition transitioned from one status
+                        to another.
                       format: date-time
                       type: string
                     message:
-                      description: Human-readable message indicating details about last transition.
+                      description: Human-readable message indicating details about
+                        last transition.
                       type: string
                     reason:
-                      description: Unique, one-word, CamelCase reason for the condition's last transition.
+                      description: Unique, one-word, CamelCase reason for the condition's
+                        last transition.
                       type: string
                     status:
-                      description: Status is the status of the condition. Can be True, False, Unknown.
+                      description: Status is the status of the condition. Can be True,
+                        False, Unknown.
                       type: string
                     type:
                       description: Type is the type of the condition.
@@ -234,7 +272,8 @@ spec:
                     type: array
                   description: Prediction define metrics prediction
                   type: object
-                description: Containers is all the containers in pod group. excludes pause container. key is the namesapce/podname/containername
+                description: Containers is all the containers in pod group. excludes
+                  pause container. key is the namesapce/podname/containername
                 type: object
               status:
                 description: Status

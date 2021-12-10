@@ -105,10 +105,12 @@ func (tc *Controller) SetupWithManager(mgr ctrl.Manager) error {
 func (tc *Controller) syncTimeSeriesPrediction(prediction *predictionv1alph1.TimeSeriesPrediction) {
 	key := GetTimeSeriesPredictionKey(prediction)
 
+	c := NewMetricContext(prediction)
+
 	last, ok := tc.tsPredictionMap.Load(key)
 	if !ok { // first time created or system start
 
-		predconfig.WithApiConfigs(prediction.Spec.PredictionMetrics)
+		c.WithApiConfigs(prediction.Spec.PredictionMetrics)
 		//newStatus := prediction.Status.DeepCopy()
 		//cond := &predictionv1alph1.TimeSeriesPredictionCondition{
 		//	Type:               predictionv1alph1.TimeSeriesPredictionConditionNotReady,
@@ -123,16 +125,16 @@ func (tc *Controller) syncTimeSeriesPrediction(prediction *predictionv1alph1.Tim
 			// now just diff the cache in the controller to decide, it can not cover all the cases when users modify the spec
 			for _, newMetricConf := range prediction.Spec.PredictionMetrics {
 				if !ExistsPredictionMetric(newMetricConf, old.Spec.PredictionMetrics) {
-					predconfig.WithApiConfig(&newMetricConf)
+					c.WithApiConfig(&newMetricConf)
 				}
 			}
 			for _, oldMetricConf := range old.Spec.PredictionMetrics {
 				if !ExistsPredictionMetric(oldMetricConf, prediction.Spec.PredictionMetrics) {
-					predconfig.DeleteApiConfig(&oldMetricConf)
+					c.DeleteApiConfig(&oldMetricConf)
 				}
 			}
 		} else {
-			predconfig.WithApiConfigs(prediction.Spec.PredictionMetrics)
+			c.WithApiConfigs(prediction.Spec.PredictionMetrics)
 		}
 	}
 
@@ -142,8 +144,20 @@ func (tc *Controller) syncTimeSeriesPrediction(prediction *predictionv1alph1.Tim
 
 }
 
+func NewMetricContext(prediction *predictionv1alph1.TimeSeriesPrediction) *predconfig.MetricContext {
+	c := &predconfig.MetricContext{
+		Namespace:  prediction.Namespace,
+		TargetKind: prediction.Spec.TargetRef.Kind,
+	}
+	if c.TargetKind != predconfig.TargetKindNode && prediction.Spec.TargetRef.Namespace != "" {
+		c.Namespace = prediction.Spec.TargetRef.Namespace
+	}
+	return c
+}
+
 func (tc *Controller) removeTimeSeriesPrediction(ctx context.Context, prediction *predictionv1alph1.TimeSeriesPrediction) error {
-	predconfig.DeleteApiConfigs(prediction.Spec.PredictionMetrics)
+	c := NewMetricContext(prediction)
+	c.DeleteApiConfigs(prediction.Spec.PredictionMetrics)
 	return tc.Client.Delete(ctx, prediction)
 }
 
