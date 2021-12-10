@@ -9,16 +9,21 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/dynamic"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/scale"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
 	"github.com/spf13/cobra"
 
+	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 	"github.com/gocrane/crane/cmd/craned/app/options"
 	"github.com/gocrane/crane/pkg/controller/ehpa"
+	"github.com/gocrane/crane/pkg/controller/recommendation"
 	"github.com/gocrane/crane/pkg/controller/tsp"
 	"github.com/gocrane/crane/pkg/known"
 	predict "github.com/gocrane/crane/pkg/prediction"
@@ -39,6 +44,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(autoscalingapi.AddToScheme(scheme))
 	utilruntime.Must(predictionapi.AddToScheme(scheme))
+	utilruntime.Must(analysisapi.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 
 }
@@ -114,23 +120,39 @@ func initializationWebhooks(mgr ctrl.Manager, opts *options.Options) {
 // initializationControllers setup controllers with manager
 func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *options.Options) {
 	log.Logger().Info(fmt.Sprintf("opts %v", opts))
+
+	discoveryClientSet, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
+	if err != nil {
+		log.Logger().Error(err, "unable to create discover client")
+		os.Exit(1)
+	}
+
+	scaleKindResolver := scale.NewDiscoveryScaleKindResolver(discoveryClientSet)
+	scaleClient := scale.New(
+		discoveryClientSet.RESTClient(), mgr.GetRESTMapper(),
+		dynamic.LegacyAPIPathResolverFunc,
+		scaleKindResolver,
+	)
+
 	if err := (&ehpa.EffectiveHPAController{
-		Client:     mgr.GetClient(),
-		Log:        log.Logger().WithName("effective-hpa-controller"),
-		Scheme:     mgr.GetScheme(),
-		RestMapper: mgr.GetRESTMapper(),
-		Recorder:   mgr.GetEventRecorderFor("effective-hpa-controller"),
+		Client:      mgr.GetClient(),
+		Log:         log.Logger().WithName("effective-hpa-controller"),
+		Scheme:      mgr.GetScheme(),
+		RestMapper:  mgr.GetRESTMapper(),
+		Recorder:    mgr.GetEventRecorderFor("effective-hpa-controller"),
+		ScaleClient: scaleClient,
 	}).SetupWithManager(mgr); err != nil {
 		log.Logger().Error(err, "unable to create controller", "controller", "EffectiveHPAController")
 		os.Exit(1)
 	}
 
 	if err := (&ehpa.SubstituteController{
-		Client:     mgr.GetClient(),
-		Log:        log.Logger().WithName("substitute-controller"),
-		Scheme:     mgr.GetScheme(),
-		RestMapper: mgr.GetRESTMapper(),
-		Recorder:   mgr.GetEventRecorderFor("substitute-controller"),
+		Client:      mgr.GetClient(),
+		Log:         log.Logger().WithName("substitute-controller"),
+		Scheme:      mgr.GetScheme(),
+		RestMapper:  mgr.GetRESTMapper(),
+		Recorder:    mgr.GetEventRecorderFor("substitute-controller"),
+		ScaleClient: scaleClient,
 	}).SetupWithManager(mgr); err != nil {
 		log.Logger().Error(err, "unable to create controller", "controller", "SubstituteController")
 		os.Exit(1)
@@ -147,9 +169,20 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 		os.Exit(1)
 	}
 
+	if err := (&recommendation.RecommendationController{
+		Client:      mgr.GetClient(),
+		Log:         log.Logger().WithName("recommendation-controller"),
+		Scheme:      mgr.GetScheme(),
+		RestMapper:  mgr.GetRESTMapper(),
+		Recorder:    mgr.GetEventRecorderFor("recommendation-controller"),
+		ScaleClient: scaleClient,
+	}).SetupWithManager(mgr); err != nil {
+		log.Logger().Error(err, "unable to create controller", "controller", "RecommendationController")
+		os.Exit(1)
+	}
+
 	// TspController
 	var dataSource providers.Interface
-	var err error
 	switch strings.ToLower(opts.DataSource) {
 	case "prometheus", "prom":
 		dataSource, err = prom.NewProvider(&opts.DataSourcePromConfig)

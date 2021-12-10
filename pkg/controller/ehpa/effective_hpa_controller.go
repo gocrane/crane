@@ -4,17 +4,14 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
-	autoscalingapiv1 "k8s.io/api/autoscaling/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/scale"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
@@ -23,8 +20,8 @@ import (
 
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
-
 	"github.com/gocrane/crane/pkg/metrics"
+	"github.com/gocrane/crane/pkg/utils"
 )
 
 // EffectiveHPAController is responsible for scaling workload's replica based on EffectiveHorizontalPodAutoscaler spec
@@ -34,7 +31,7 @@ type EffectiveHPAController struct {
 	Scheme      *runtime.Scheme
 	RestMapper  meta.RESTMapper
 	Recorder    record.EventRecorder
-	scaleClient scale.ScalesGetter
+	ScaleClient scale.ScalesGetter
 	K8SVersion  *version.Version
 }
 
@@ -47,16 +44,11 @@ func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, err
 	}
 
-	// record expect replicas
-	labels := map[string]string{
-		"identity": klog.KObj(ehpa).String(),
-		"strategy": string(ehpa.Spec.ScaleStrategy),
-	}
-	metrics.EHPAReplicas.With(labels).Set(float64(*ehpa.Status.ExpectReplicas))
+	RecordMetrics(ehpa)
 
 	newStatus := ehpa.Status.DeepCopy()
 
-	scale, mapping, err := GetScale(ctx, c.RestMapper, c.scaleClient, ehpa.Namespace, ehpa.Spec.ScaleTargetRef)
+	scale, mapping, err := utils.GetScale(ctx, c.RestMapper, c.ScaleClient, ehpa.Namespace, ehpa.Spec.ScaleTargetRef)
 	if err != nil {
 		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedGetScale", err.Error())
 		c.Log.Error(err, "Failed to get scale", "ehpa", klog.KObj(ehpa))
@@ -86,7 +78,7 @@ func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 		// scale target to its specific replicas
 		if ehpa.Spec.SpecificReplicas != nil && *ehpa.Spec.SpecificReplicas != scale.Status.Replicas {
 			scale.Spec.Replicas = *ehpa.Spec.SpecificReplicas
-			updatedScale, err := c.scaleClient.Scales(scale.Namespace).Update(ctx, mapping.Resource.GroupResource(), scale, metav1.UpdateOptions{})
+			updatedScale, err := c.ScaleClient.Scales(scale.Namespace).Update(ctx, mapping.Resource.GroupResource(), scale, metav1.UpdateOptions{})
 			if err != nil {
 				c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedManualScale", err.Error())
 				c.Log.Error(err, "Failed to manual scale target to specific replicas", "ehpa", klog.KObj(ehpa), "replicas", ehpa.Spec.SpecificReplicas)
@@ -147,38 +139,11 @@ func (c *EffectiveHPAController) UpdateStatus(ctx context.Context, ehpa *autosca
 	}
 }
 
-func (c *EffectiveHPAController) GetPodsFromScale(scale *autoscalingapiv1.Scale) ([]v1.Pod, error) {
-	selector, err := labels.ConvertSelectorToLabelsMap(scale.Status.Selector)
-	if err != nil {
-		return nil, err
-	}
-
-	opts := []client.ListOption{
-		client.InNamespace(scale.GetNamespace()),
-		client.MatchingLabels(selector),
-	}
-
-	podList := &v1.PodList{}
-	err = c.Client.List(context.TODO(), podList, opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	return podList.Items, nil
-}
-
 func (c *EffectiveHPAController) SetupWithManager(mgr ctrl.Manager) error {
 	discoveryClientSet, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
 	if err != nil {
 		return err
 	}
-	scaleKindResolver := scale.NewDiscoveryScaleKindResolver(discoveryClientSet)
-	scaleClient := scale.New(
-		discoveryClientSet.RESTClient(), mgr.GetRESTMapper(),
-		dynamic.LegacyAPIPathResolverFunc,
-		scaleKindResolver,
-	)
-	c.scaleClient = scaleClient
 	serverVersion, err := discoveryClientSet.ServerVersion()
 	if err != nil {
 		return err
@@ -213,4 +178,12 @@ func setCondition(status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus,
 		Message:            message,
 		LastTransitionTime: metav1.Now(),
 	})
+}
+
+func RecordMetrics(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) {
+	labels := map[string]string{
+		"identity": klog.KObj(ehpa).String(),
+		"strategy": string(ehpa.Spec.ScaleStrategy),
+	}
+	metrics.EHPAReplicas.With(labels).Set(float64(*ehpa.Status.ExpectReplicas))
 }
