@@ -2,11 +2,11 @@ package percentile
 
 import (
 	"fmt"
+	"k8s.io/klog/v2"
 	"time"
 
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/prediction/config"
-	"k8s.io/klog/v2"
 
 	"github.com/gocrane/crane/pkg/prediction"
 )
@@ -45,6 +45,12 @@ func (p *percentilePrediction) QueryRealtimePredictedValues(queryExpr string) ([
 	}
 	logger.Info("Query latest time series", "latestTimeSeries", latestTimeSeries)
 
+	if cfg.aggregated {
+		key := prediction.AggregateSignalKey(queryExpr, nil)
+		s, exists := p.a.Load(key)
+		if
+	}
+
 	estimatedTimeSeries := make([]*common.TimeSeries, 0)
 
 	now := time.Now().Unix()
@@ -71,12 +77,10 @@ func (p *percentilePrediction) QueryRealtimePredictedValues(queryExpr string) ([
 }
 
 func NewPrediction() prediction.Interface {
-	mb := config.NewBroadcaster()
 	qb := config.NewBroadcaster()
 	return &percentilePrediction{
-		GenericPrediction: prediction.NewGenericPrediction(mb, qb),
+		GenericPrediction: prediction.NewGenericPrediction(qb),
 		a:                 aggregateSignalMap{},
-		//mr:             mb.Listen(),
 		qr: qb.Listen(),
 	}
 }
@@ -91,8 +95,8 @@ func (p *percentilePrediction) Run(stopCh <-chan struct{}) {
 			if expr == "" {
 				return
 			}
-			if ic := getInternalConfig(expr); ic != nil {
-				ticker := time.NewTicker(ic.sampleInterval)
+			if internalCfg := getInternalConfig(expr); internalCfg != nil {
+				ticker := time.NewTicker(internalCfg.sampleInterval)
 
 				defer ticker.Stop()
 				for {

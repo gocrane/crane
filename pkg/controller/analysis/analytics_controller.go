@@ -44,7 +44,7 @@ func (ac *AnalyticsController) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
-	//var fingerPrints []string
+	containerIdentities  := map[string]ContainerIdentity{}
 
 	for _, rs := range a.Spec.ResourceSelectors {
 		if rs.Kind == "" {
@@ -73,12 +73,15 @@ func (ac *AnalyticsController) Reconcile(ctx context.Context, req ctrl.Request) 
 		gvr := gv.WithResource(resName)
 
 		var us []unstructured.Unstructured
+		var ownerNames []string
+
 		if rs.Name != "" {
 			u, err := ac.dynamicClient.Resource(gvr).Namespace(req.Namespace).Get(ctx, rs.Name, metav1.GetOptions{})
 			if err != nil {
 				return ctrl.Result{}, err
 			}
 			us = append(us, *u)
+			ownerNames = append(ownerNames, rs.Name)
 		} else {
 			ul, err := ac.dynamicClient.Resource(gvr).Namespace(req.Namespace).List(ctx, metav1.ListOptions{})
 			if err != nil {
@@ -95,12 +98,13 @@ func (ac *AnalyticsController) Reconcile(ctx context.Context, req ctrl.Request) 
 				}
 				if match(rs.LabelSelector, matchLabels) {
 					us = append(us, u)
+					ownerNames = append(ownerNames, u.GetName())
 				}
 			}
 		}
 
-		for _, u := range us {
-			m, ok, err := unstructured.NestedMap(u.Object, "spec", "selector", "matchLabels")
+		for i := range us {
+			m, ok, err := unstructured.NestedMap(us[i].Object, "spec", "selector", "matchLabels")
 			if !ok || err != nil {
 				return ctrl.Result{}, fmt.Errorf("%s not supported", gvr.String())
 			}
@@ -124,13 +128,23 @@ func (ac *AnalyticsController) Reconcile(ctx context.Context, req ctrl.Request) 
 				return ctrl.Result{}, fmt.Errorf("pod not found for %s", gvr.String())
 			}
 
-			//pod := podList.Items[0]
-			//for _, c := range pod.Spec.Containers {
-			//	fp := fmt.Sprintf("%s/%s", pod.Namespace, )
-			//}
+			pod := podList.Items[0]
+			for _, c := range pod.Spec.Containers {
+				k := fmt.Sprintf("%s/%s/%s", pod.Namespace, rs.Kind, c.Name)
+				if _, exists := containerIdentities[k]; !exists {
+					containerIdentities[k] = ContainerIdentity{
+						Namespace: pod.Namespace,
+						Name: c.Name,
+						OwnerKind: rs.Kind,
+						OwnerAPIVersion: rs.APIVersion,
+						OwnerName: ownerNames[i],
+					}
+				}
+			}
 		}
-
 	}
+
+	//containerIdentities =
 
 	return ctrl.Result{}, nil
 }
@@ -198,4 +212,13 @@ func (ac *AnalyticsController) SetupWithManager(mgr ctrl.Manager) error {
 		For(&analysisv1alph1.Analytics{}).
 		Owns(&analysisv1alph1.Recommendation{}).
 		Complete(ac)
+}
+
+type ContainerIdentity struct {
+	Namespace string
+	OwnerAPIVersion string
+	OwnerKind      string
+	OwnerName string
+	Name string
+
 }

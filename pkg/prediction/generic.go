@@ -58,32 +58,6 @@ func (p *GenericPrediction) WithProviders(providers map[string]providers.Interfa
 	}
 }
 
-//func (p *GenericPrediction) WithMetric(m *config.MetricSelector) error {
-//	if m == nil {
-//		return fmt.Errorf("empty metric")
-//	}
-//
-//	newMetric := false
-//
-//	p.mu.Lock()
-//	defer p.mu.Unlock()
-//
-//	k := m.String()
-//
-//	if _, exists := p.metricsMap[k]; !exists {
-//		p.metricsMap[k] = []common.QueryCondition{}
-//		newMetric = true
-//	}
-//
-//	if newMetric {
-//		p.withMetricEventBroadcaster.Write(WithMetricEvent{
-//			MetricName: metricName,
-//			Conditions: conditions,
-//		})
-//	}
-//	return nil
-//}
-
 func (p *GenericPrediction) WithQuery(query string) error {
 	if query == "" {
 		return fmt.Errorf("empty query")
@@ -101,7 +75,7 @@ func (p *GenericPrediction) WithQuery(query string) error {
 }
 
 func AggregateSignalKey(id string, labels []common.Label) string {
-	labelSet := make([]string, 0, len(labels)+1)
+	labelSet := make([]string, 0, len(labels))
 	for _, label := range labels {
 		labelSet = append(labelSet, label.Name+"="+label.Value)
 	}

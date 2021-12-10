@@ -33,6 +33,7 @@ var defaultInternalConfig = internalConfig{
 }
 
 type internalConfig struct {
+	aggregated             bool
 	sampleInterval         time.Duration
 	histogramOptions       vpa.HistogramOptions
 	histogramDecayHalfLife time.Duration

@@ -24,8 +24,8 @@ type Estimator interface {
 	String() string
 }
 
-func NewMaxValueEstimator() Estimator {
-	return &maxValueEstimator{}
+func NewMaxValueEstimator(marginFraction float64) Estimator {
+	return &maxValueEstimator{marginFraction}
 }
 
 func NewFFTEstimator(minNumOfSpectrumItems, maxNumOfSpectrumItems int, highFrequencyThreshold, lowAmplitudeThreshold, marginFraction float64) Estimator {
