@@ -12,7 +12,7 @@ import (
 
 	ensuaranceset "github.com/gocrane/api/pkg/generated/clientset/versioned"
 	"github.com/gocrane/api/pkg/generated/informers/externalversions"
-	"github.com/gocrane/crane/pkg/utils/clogs"
+	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 const (
@@ -62,20 +62,20 @@ func (c *Context) ContextInit() error {
 
 	clientConfig, err := clientcmd.BuildConfigFromFlags(c.master, c.kubeConfig)
 	if err != nil {
-		clogs.Log().Error(err, "BuildConfigFromFlags failed")
+		log.Logger().Error(err, "BuildConfigFromFlags failed")
 		return err
 	}
 
 	c.kubeClient = clientset.NewForConfigOrDie(clientConfig)
 
-	clogs.Log().V(2).Info("ContextInit kubernetes client succeed")
+	log.Logger().V(2).Info("ContextInit kubernetes client succeed")
 
 	return nil
 }
 
 func NewContextInitWithClient(client clientset.Interface, ensuranceClient ensuaranceset.Interface, nodeName string) *Context {
 
-	var ctx = &Context{kubeClient: client, stop: make(chan struct{})}
+	var ctx = &Context{kubeClient: client, stop: make(chan struct{}), nodeName: nodeName}
 
 	var fieldPodSelector string
 	if nodeName != "" {

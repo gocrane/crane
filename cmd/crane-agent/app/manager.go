@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/gocrane/crane/pkg/ensurance/cache"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -18,14 +17,13 @@ import (
 	ensuaranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 	ensuaranceset "github.com/gocrane/api/pkg/generated/clientset/versioned"
 	"github.com/gocrane/crane/cmd/crane-agent/app/options"
-	ensurancecontroller "github.com/gocrane/crane/pkg/controller/ensurance"
 	"github.com/gocrane/crane/pkg/ensurance/analyzer"
 	"github.com/gocrane/crane/pkg/ensurance/avoidance"
 	"github.com/gocrane/crane/pkg/ensurance/executor"
 	einformer "github.com/gocrane/crane/pkg/ensurance/informer"
 	"github.com/gocrane/crane/pkg/ensurance/manager"
 	"github.com/gocrane/crane/pkg/ensurance/statestore"
-	"github.com/gocrane/crane/pkg/utils/clogs"
+	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 var (
@@ -47,11 +45,11 @@ func NewManagerCommand(ctx context.Context) *cobra.Command {
 		Long: `The crane agent is responsible agent in crane`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(); err != nil {
-				clogs.Log().Error(err, "opts complete failed,exit")
+				log.Logger().Error(err, "opts complete failed,exit")
 				os.Exit(255)
 			}
 			if err := opts.Validate(); err != nil {
-				clogs.Log().Error(err, "opts validate failed,exit")
+				log.Logger().Error(err, "opts validate failed,exit")
 				os.Exit(255)
 			}
 
@@ -78,21 +76,21 @@ func Run(ctx context.Context, opts *options.Options) error {
 		LeaderElection:         false,
 	})
 	if err != nil {
-		clogs.Log().Error(err, "Unable to start crane agent")
+		log.Logger().Error(err, "Unable to start crane agent")
 		os.Exit(1)
 	}
 
 	if err := mgr.AddHealthzCheck("ping", healthz.Ping); err != nil {
-		clogs.Log().Error(err, "Failed to add health check endpoint")
+		log.Logger().Error(err, "Failed to add health check endpoint")
 		return err
 	}
 
 	if opts.HostnameOverride == "" {
-		clogs.Log().Error(err, "HostnameOverride must be set as the k8s node name")
+		log.Logger().Error(err, "HostnameOverride must be set as the k8s node name")
 		os.Exit(1)
 	}
 
-	clogs.Log().V(2).Info(fmt.Sprintf("opts %v", opts))
+	log.Logger().V(2).Info(fmt.Sprintf("opts %v", opts))
 
 	// init context
 	ec := initializationContext(mgr, opts)
@@ -103,13 +101,13 @@ func Run(ctx context.Context, opts *options.Options) error {
 
 	// start managers
 	for _, v := range components {
-		clogs.Log().V(2).Info(fmt.Sprintf("Starting manager %s", v.Name()))
+		log.Logger().V(2).Info(fmt.Sprintf("Starting manager %s", v.Name()))
 		v.Run(ec.GetStopChannel())
 	}
 
-	clogs.Log().V(2).Info("Starting crane agent")
+	log.Logger().V(2).Info("Starting crane agent")
 	if err := mgr.Start(ctx); err != nil {
-		clogs.Log().Error(err, "problem running crane manager")
+		log.Logger().Error(err, "problem running crane manager")
 		return err
 	}
 
@@ -117,7 +115,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 }
 
 func initializationComponents(mgr ctrl.Manager, opts *options.Options, ec *einformer.Context) []manager.Manager {
-	clogs.Log().V(2).Info(fmt.Sprintf("initializationComponents"))
+	log.Logger().V(2).Info(fmt.Sprintf("initializationComponents"))
 
 	var managers []manager.Manager
 	podInformer := ec.GetPodInformer()
@@ -140,26 +138,11 @@ func initializationComponents(mgr ctrl.Manager, opts *options.Options, ec *einfo
 	avoidanceManager := avoidance.NewAvoidanceManager(ec.GetKubeClient(), opts.HostnameOverride, podInformer, nodeInformer, avoidanceInformer, noticeCh)
 	managers = append(managers, avoidanceManager)
 
-	// init nep controller
-	nepRecorder := mgr.GetEventRecorderFor("node-qos-controller")
-	if err := (&ensurancecontroller.NodeQOSEnsurancePolicyController{
-		Client:     mgr.GetClient(),
-		Log:        clogs.Log().WithName("node-qos-controller"),
-		Scheme:     mgr.GetScheme(),
-		RestMapper: mgr.GetRESTMapper(),
-		Recorder:   nepRecorder,
-		Cache:      &cache.NodeQOSEnsurancePolicyCache{},
-		StateStore: stateStoreManager,
-	}).SetupWithManager(mgr); err != nil {
-		clogs.Log().Error(err, "unable to create controller", "controller", "NodeQOSEnsurancePolicyController")
-		os.Exit(1)
-	}
-
 	return managers
 }
 
 func initializationContext(mgr ctrl.Manager, opts *options.Options) *einformer.Context {
-	clogs.Log().V(2).Info(fmt.Sprintf("initializationContext"))
+	log.Logger().V(2).Info(fmt.Sprintf("initializationContext"))
 
 	generatedClient := kubernetes.NewForConfigOrDie(mgr.GetConfig())
 	clientSet := ensuaranceset.NewForConfigOrDie(mgr.GetConfig())

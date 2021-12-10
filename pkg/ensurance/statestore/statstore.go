@@ -12,7 +12,7 @@ import (
 	"github.com/gocrane/crane/pkg/ensurance/statestore/nodelocal"
 	"github.com/gocrane/crane/pkg/ensurance/statestore/types"
 	"github.com/gocrane/crane/pkg/utils"
-	"github.com/gocrane/crane/pkg/utils/clogs"
+	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 type stateStoreManager struct {
@@ -44,17 +44,17 @@ func (s *stateStoreManager) Run(stop <-chan struct{}) {
 		for {
 			select {
 			case <-updateTicker.C:
-				clogs.Log().V(4).Info("StateStore config check run periodically")
+				log.Logger().V(4).Info("StateStore config check run periodically")
 				if s.checkConfig() {
 					s.index++
-					clogs.Log().V(4).Info("StateStore update event", "index", s.index)
+					log.Logger().V(4).Info("StateStore update event", "index", s.index)
 					s.eventChannel <- types.UpdateEvent{Index: s.index}
 				} else {
-					clogs.Log().V(4).Info("StateStore config false, not to update")
+					log.Logger().V(4).Info("StateStore config false, not to update")
 				}
 				continue
 			case <-stop:
-				clogs.Log().Info("StateStore config check exit")
+				log.Logger().Info("StateStore config check exit")
 				return
 			}
 		}
@@ -67,22 +67,22 @@ func (s *stateStoreManager) Run(stop <-chan struct{}) {
 		for {
 			select {
 			case <-updateTicker.C:
-				clogs.Log().V(2).Info("StateStore run periodically")
+				log.Logger().V(2).Info("StateStore run periodically")
 				for _, c := range s.collectors {
 					if data, err := c.Collect(); err == nil {
 						for key, v := range data {
 							s.StatusCache.Store(key, v)
 						}
 					} else {
-						clogs.Log().Error(err, "StateStore collect failed", c.GetType())
+						log.Logger().Error(err, "StateStore collect failed", c.GetType())
 					}
 				}
 				continue
 			case v := <-s.eventChannel:
-				clogs.Log().V(3).Info("StateStore update config index", "Index", v.Index)
+				log.Logger().V(3).Info("StateStore update config index", "Index", v.Index)
 				s.updateConfig()
 			case <-stop:
-				clogs.Log().V(2).Info("StateStore exit")
+				log.Logger().V(2).Info("StateStore exit")
 				return
 			}
 		}
@@ -121,7 +121,7 @@ func (s *stateStoreManager) DeleteMetric(key string, t types.CollectType) {
 }
 
 func (s *stateStoreManager) checkConfig() bool {
-	clogs.Log().V(4).Info("StateStore checkConfig")
+	log.Logger().V(4).Info("StateStore checkConfig")
 
 	// step1 copy neps
 	var neps []*ensuranceapi.NodeQOSEnsurancePolicy
@@ -130,7 +130,7 @@ func (s *stateStoreManager) checkConfig() bool {
 	for _, n := range allNeps {
 		nep := n.(*ensuranceapi.NodeQOSEnsurancePolicy).DeepCopy()
 		if nep.Spec.NodeQualityProbe.NodeLocalGet == nil {
-			clogs.Log().V(4).Info("Warning: skip the config not node-local, it will support other kind of config in the future")
+			log.Logger().V(4).Info("Warning: skip the config not node-local, it will support other kind of config in the future")
 			continue
 		}
 		neps = append(neps, nep)
@@ -147,7 +147,7 @@ func (s *stateStoreManager) checkConfig() bool {
 		}
 	}
 
-	clogs.Log().V(4).Info("checkConfig", "nodeLocal", nodeLocal)
+	log.Logger().V(4).Info("checkConfig", "nodeLocal", nodeLocal)
 
 	if !nodeLocal {
 		if _, ok := s.configCache.Load(string(types.NodeLocalCollectorType)); ok {
@@ -164,9 +164,9 @@ func (s *stateStoreManager) updateConfig() {
 	allNeps := s.nepInformer.GetStore().List()
 	for _, n := range allNeps {
 		nep := n.(*ensuranceapi.NodeQOSEnsurancePolicy).DeepCopy()
-		clogs.Log().V(4).Info(fmt.Sprintf("nep: %#v", nep))
+		log.Logger().V(4).Info(fmt.Sprintf("nep: %#v", nep))
 		if nep.Spec.NodeQualityProbe.NodeLocalGet == nil {
-			clogs.Log().V(4).Info("Warning: skip the config not node-local, it will support other kind of config in the future")
+			log.Logger().V(4).Info("Warning: skip the config not node-local, it will support other kind of config in the future")
 			continue
 		}
 

@@ -9,7 +9,7 @@ import (
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 
-	"github.com/gocrane/crane/pkg/utils/clogs"
+	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 type UpdateOptions struct {
@@ -40,28 +40,16 @@ type ListOptions struct {
 	podID string
 	// Regular expression pattern to match pod or container
 	nameRegexp string
-	// Regular expression pattern to match the pod namespace
-	podNamespaceRegexp string
 	// state of the sandbox
 	state string
-	// show verbose info for the sandbox
-	verbose bool
 	// labels are selectors for the sandbox
 	labels map[string]string
-	// quiet is for listing just container/sandbox/image IDs
-	quiet bool
-	// output format
-	output string
 	// all containers
 	all bool
 	// latest container
 	latest bool
 	// last n containers
 	last int
-	// out with truncating the id
-	noTrunc bool
-	// image used by the container
-	image string
 }
 
 type containerByCreated []*pb.Container
@@ -90,13 +78,13 @@ func UpdateContainerResources(client pb.RuntimeServiceClient, containerId string
 		},
 	}
 
-	clogs.Log().V(5).Info("UpdateContainerResourcesRequest: %v", request)
+	log.Logger().V(5).Info("UpdateContainerResourcesRequest: %v", request)
 	r, err := client.UpdateContainerResources(context.Background(), request)
 	if err != nil {
 		return err
 	}
 
-	clogs.Log().V(5).Info("UpdateContainerResourcesResponse: %v", r)
+	log.Logger().V(5).Info("UpdateContainerResourcesResponse: %v", r)
 
 	return nil
 }
@@ -112,14 +100,14 @@ func RemoveContainer(client pb.RuntimeServiceClient, ContainerId string) error {
 		ContainerId: ContainerId,
 	}
 
-	clogs.Log().V(5).Info("RemoveContainerRequest: %v", request)
+	log.Logger().V(5).Info("RemoveContainerRequest: %v", request)
 
 	r, err := client.RemoveContainer(context.Background(), request)
 	if err != nil {
 		return err
 	}
 
-	clogs.Log().V(5).Info("RemoveContainerResponse: %v", r)
+	log.Logger().V(5).Info("RemoveContainerResponse: %v", r)
 	return nil
 }
 
@@ -156,7 +144,7 @@ func ListContainers(runtimeClient pb.RuntimeServiceClient, opts ListOptions) ([]
 			st.State = pb.ContainerState_CONTAINER_UNKNOWN
 			filter.State = st
 		default:
-			clogs.Log().Error(fmt.Errorf("state should be one of created, running, exited or unknown"), "")
+			log.Logger().Error(fmt.Errorf("state should be one of created, running, exited or unknown"), "")
 			return []*pb.Container{}, fmt.Errorf("state should be one of created, running, exited or unknown")
 		}
 	}
@@ -174,14 +162,14 @@ func ListContainers(runtimeClient pb.RuntimeServiceClient, opts ListOptions) ([]
 		Filter: filter,
 	}
 
-	clogs.Log().V(5).Info("ListContainerRequest: %v", request)
+	log.Logger().V(5).Info("ListContainerRequest: %v", request)
 
 	r, err := runtimeClient.ListContainers(context.Background(), request)
 	if err != nil {
 		return []*pb.Container{}, err
 	}
 
-	clogs.Log().V(5).Info("ListContainerResponse: %v", r)
+	log.Logger().V(5).Info("ListContainerResponse: %v", r)
 
 	r.Containers = filterContainersList(r.GetContainers(), opts)
 

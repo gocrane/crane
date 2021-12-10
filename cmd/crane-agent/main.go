@@ -8,7 +8,7 @@ import (
 	"k8s.io/component-base/logs"
 
 	"github.com/gocrane/crane/cmd/crane-agent/app"
-	"github.com/gocrane/crane/pkg/utils/clogs"
+	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 // crane-agent main.
@@ -16,7 +16,7 @@ func main() {
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
-	clogs.InitLogs("crane-agent")
+	log.Init("crane-agent")
 
 	ctx := genericapiserver.SetupSignalContext()
 

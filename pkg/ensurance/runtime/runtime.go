@@ -7,20 +7,20 @@ import (
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 
 	"github.com/gocrane/crane/pkg/ensurance/grpcc"
-	"github.com/gocrane/crane/pkg/utils/clogs"
+	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 // runtimeEndpointIsSet is true when RuntimeEndpoint is configured
 // runtimeEndpoint is CRI server runtime endpoint
 func getRuntimeClientConnection(runtimeEndpoint string, runtimeEndpointIsSet bool) (*grpc.ClientConn, error) {
-	clogs.Log().V(2).Info("GetRuntimeClientConnection")
+	log.Logger().V(2).Info("GetRuntimeClientConnection")
 
 	if runtimeEndpointIsSet && runtimeEndpoint == "" {
 		return nil, fmt.Errorf("runtime-endpoint is not set")
 	}
 
 	if !runtimeEndpointIsSet {
-		clogs.Log().V(2).Info(fmt.Sprintf("Runtime connect using default endpoints: %v. "+"As the default settings are now deprecated, you should set the "+
+		log.Logger().V(2).Info(fmt.Sprintf("Runtime connect using default endpoints: %v. "+"As the default settings are now deprecated, you should set the "+
 			"endpoint instead.", defaultRuntimeEndpoints))
 		return grpcc.InitGrpcConnection(defaultRuntimeEndpoints)
 	}
@@ -31,7 +31,7 @@ func getRuntimeClientConnection(runtimeEndpoint string, runtimeEndpointIsSet boo
 // imageEndpoint is CRI server image endpoint, default same as runtime endpoint
 // imageEndpointIsSet is true when imageEndpoint is configured
 func getImageClientConnection(imageEndpoint string, imageEndpointIsSet bool) (*grpc.ClientConn, error) {
-	clogs.Log().V(2).Info("GetImageClientConnection")
+	log.Logger().V(2).Info("GetImageClientConnection")
 
 	if imageEndpoint == "" {
 		if imageEndpointIsSet && imageEndpoint == "" {
@@ -40,7 +40,7 @@ func getImageClientConnection(imageEndpoint string, imageEndpointIsSet bool) (*g
 	}
 
 	if !imageEndpointIsSet {
-		clogs.Log().V(2).Info(fmt.Sprintf("Image connect using default endpoints: %v. "+"As the default settings are now deprecated, you should set the "+
+		log.Logger().V(2).Info(fmt.Sprintf("Image connect using default endpoints: %v. "+"As the default settings are now deprecated, you should set the "+
 			"endpoint instead.", defaultRuntimeEndpoints))
 		return grpcc.InitGrpcConnection(defaultRuntimeEndpoints)
 	}

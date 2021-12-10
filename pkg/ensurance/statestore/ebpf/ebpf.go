@@ -25,8 +25,3 @@ func NewEBPF() *EBPF {
 func (e *EBPF) Collect() {
 	fmt.Println("ebpf collecting")
 }
-
-func (e *EBPF) List() sync.Map {
-	fmt.Println("ebpf listing")
-	return e.StatusCache
-}

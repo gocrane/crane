@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	einformer "github.com/gocrane/crane/pkg/ensurance/informer"
-	"github.com/gocrane/crane/pkg/utils/clogs"
+	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 const (
@@ -44,7 +44,7 @@ func (e EvictPods) Find(podTypes types.NamespacedName) int {
 }
 
 func (e *EvictExecutor) Avoid(ctx *ExecuteContext) error {
-	clogs.Log().V(4).Info("Avoid", "EvictExecutor", *e)
+	log.Logger().V(4).Info("Avoid", "EvictExecutor", *e)
 
 	var bSucceed = true
 	var errPodKeys []string
@@ -64,12 +64,12 @@ func (e *EvictExecutor) Avoid(ctx *ExecuteContext) error {
 				return
 			}
 
-			clogs.Log().V(4).Info(fmt.Sprintf("Pod %s", clogs.GenerateObj(pod)))
+			log.Logger().V(4).Info(fmt.Sprintf("Pod %s", log.GenerateObj(pod)))
 			err = einformer.EvictPodWithGracePeriod(ctx.Client, pod, v.DeletionGracePeriodSeconds)
 			if err != nil {
 				bSucceed = false
 				errPodKeys = append(errPodKeys, "evict failed ", v.PodTypes.String())
-				clogs.Log().V(4).Info(fmt.Sprintf("Warning: evict failed %s, err %s", v.PodTypes.String(), err.Error()))
+				log.Logger().V(4).Info(fmt.Sprintf("Warning: evict failed %s, err %s", v.PodTypes.String(), err.Error()))
 				return
 			}
 		}(e.Executors[i])

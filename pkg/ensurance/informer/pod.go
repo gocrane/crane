@@ -11,18 +11,14 @@ import (
 	"k8s.io/client-go/tools/cache"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 
-	"github.com/gocrane/crane/pkg/utils/clogs"
-)
-
-const (
-	defaultGracePeriodSeconds = uint64(30)
+	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 //EvictPodWithGracePeriod evict pod with grace period
 func EvictPodWithGracePeriod(client clientset.Interface, pod *v1.Pod, gracePeriodSeconds int32) error {
 
 	if kubelettypes.IsCriticalPod(pod) {
-		return fmt.Errorf("Eviction manager: cannot evict a critical pod(%s)", clogs.GenerateObj(pod))
+		return fmt.Errorf("Eviction manager: cannot evict a critical pod(%s)", log.GenerateObj(pod))
 	}
 
 	e := &policyv1beta1.Eviction{
@@ -63,8 +59,4 @@ func GetPodFromInformer(podInformer cache.SharedIndexInformer, key string) (*v1.
 
 	// re-assign new pod info
 	return obj.(*v1.Pod), nil
-}
-
-func generateKey(namespace string, podName string) string {
-	return fmt.Sprintf("%s/%s", namespace, podName)
 }

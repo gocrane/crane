@@ -107,10 +107,10 @@ test: manifests fmt vet goimports ## Run tests.
 
 
 .PHONY: build
-build: craned metric-adapter
+build: craned crane-agent metric-adapter
 
 .PHONY: all
-all: test lint vet craned  crane-agentmetric-adapter
+all: test lint vet craned  crane-agent metric-adapter
 
 .PHONY: craned
 craned: ## Build binary with the crane manager.

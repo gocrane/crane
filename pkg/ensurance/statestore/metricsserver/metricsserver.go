@@ -25,8 +25,3 @@ func (m *MetricsServer) GetName() string {
 func (e *MetricsServer) Collect() {
 	fmt.Println("metrics server collecting")
 }
-
-func (e *MetricsServer) List() sync.Map {
-	fmt.Println("metrics server listing")
-	return e.StatusCache
-}

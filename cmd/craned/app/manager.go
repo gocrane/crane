@@ -4,8 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -13,6 +11,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/scale"
+	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
@@ -115,7 +114,6 @@ func initializationWebhooks(mgr ctrl.Manager, opts *options.Options) {
 }
 
 // initializationControllers setup controllers with manager
-<<<<<<< HEAD
 func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *options.Options) {
 	log.Logger().Info(fmt.Sprintf("opts %v", opts))
 
@@ -146,6 +144,7 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 
 	if err := (&ehpa.SubstituteController{
 <<<<<<< HEAD
+<<<<<<< HEAD
 		Client:      mgr.GetClient(),
 		Log:         log.Logger().WithName("substitute-controller"),
 		Scheme:      mgr.GetScheme(),
@@ -159,6 +158,8 @@ func initializationControllers(mgr ctrl.Manager, opts *options.Options) {
 	hpaRecorder := mgr.GetEventRecorderFor("advanced-hpa-controller")
 	if err := (&hpa.AdvancedHPAController{
 >>>>>>> 3c489e2 (the first commit for ensurance, add node-qos-controller, collect, analyzer and avoidance)
+=======
+>>>>>>> 8abab3f (bugfix: modify clogs to log)
 		Client:     mgr.GetClient(),
 		Log:        log.Logger().WithName("substitute-controller"),
 		Scheme:     mgr.GetScheme(),

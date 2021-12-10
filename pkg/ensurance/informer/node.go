@@ -11,7 +11,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/gocrane/crane/pkg/utils"
-	"github.com/gocrane/crane/pkg/utils/clogs"
+	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 // UpdateNodeConditions be used to update node condition with check whether it needs to update
@@ -59,7 +59,7 @@ func UpdateNodeTaints(node *v1.Node, taint v1.Taint) (*v1.Node, bool) {
 
 // RemoveNodeTaints be used to update node taint
 func RemoveNodeTaints(node *v1.Node, taint v1.Taint) (*v1.Node, bool) {
-	clogs.Log().Info(fmt.Sprintf("RemoveNodeTaints %v", taint))
+	log.Logger().Info(fmt.Sprintf("RemoveNodeTaints %v", taint))
 
 	updatedNode := node.DeepCopy()
 
@@ -67,7 +67,7 @@ func RemoveNodeTaints(node *v1.Node, taint v1.Taint) (*v1.Node, bool) {
 	var taints []v1.Taint
 
 	for _, t := range updatedNode.Spec.Taints {
-		clogs.Log().V(4).Info(fmt.Sprintf("taint %s", t.Key))
+		log.Logger().V(4).Info(fmt.Sprintf("taint %s", t.Key))
 		if t.Key == taint.Key {
 			bFound = true
 		} else {

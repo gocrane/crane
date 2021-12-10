@@ -5,7 +5,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/gocrane/crane/pkg/ensurance/executor"
-	"github.com/gocrane/crane/pkg/utils/clogs"
+	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 type AvoidanceManager struct {
@@ -36,20 +36,20 @@ func (a *AvoidanceManager) Name() string {
 
 // Run does nothing
 func (a *AvoidanceManager) Run(stop <-chan struct{}) {
-	clogs.Log().V(2).Info("Avoidance manager starts running")
+	log.Logger().V(2).Info("Avoidance manager starts running")
 
 	go func() {
 		for {
 			select {
 			case as := <-a.noticeCh:
-				clogs.Log().V(4).Info("Avoidance by analyzer noticed")
+				log.Logger().V(4).Info("Avoidance by analyzer noticed")
 				if err := a.doAction(as, stop); err != nil {
 					// TODO: if it failed in action, how to retry
-					clogs.Log().Error(err, "doAction failed")
+					log.Logger().Error(err, "doAction failed")
 				}
 			case <-stop:
 				{
-					clogs.Log().V(2).Info("Avoidance exit")
+					log.Logger().V(2).Info("Avoidance exit")
 					return
 				}
 			}
@@ -59,7 +59,7 @@ func (a *AvoidanceManager) Run(stop <-chan struct{}) {
 	return
 }
 
-func (a *AvoidanceManager) doAction(ae executor.AvoidanceExecutor, stop <-chan struct{}) error {
+func (a *AvoidanceManager) doAction(ae executor.AvoidanceExecutor, _ <-chan struct{}) error {
 
 	var ctx = &executor.ExecuteContext{
 		NodeName:     a.nodeName,

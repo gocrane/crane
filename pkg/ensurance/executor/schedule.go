@@ -5,7 +5,7 @@ import (
 
 	einformer "github.com/gocrane/crane/pkg/ensurance/informer"
 	"github.com/gocrane/crane/pkg/known"
-	"github.com/gocrane/crane/pkg/utils/clogs"
+	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 type BlockScheduledExecutor struct {
@@ -19,7 +19,7 @@ type ScheduledQOSPriority struct {
 }
 
 func (b *BlockScheduledExecutor) Avoid(ctx *ExecuteContext) error {
-	clogs.Log().V(4).Info("Avoid", "BlockScheduledExecutor", *b)
+	log.Logger().V(4).Info("Avoid", "BlockScheduledExecutor", *b)
 
 	if b.BlockScheduledQOSPriority == nil {
 		return nil
@@ -48,7 +48,7 @@ func (b *BlockScheduledExecutor) Avoid(ctx *ExecuteContext) error {
 }
 
 func (b *BlockScheduledExecutor) Restore(ctx *ExecuteContext) error {
-	clogs.Log().V(4).Info("Restore", "BlockScheduledExecutor", *b)
+	log.Logger().V(4).Info("Restore", "BlockScheduledExecutor", *b)
 
 	if b.RestoreScheduledQOSPriority == nil {
 		return nil
@@ -68,12 +68,12 @@ func (b *BlockScheduledExecutor) Restore(ctx *ExecuteContext) error {
 
 	// update node taint for restored scheduled
 	if updateNode, needUpdate := einformer.RemoveNodeTaints(node, v1.Taint{Key: known.EnsuranceAnalyzedPressureTaintKey, Effect: v1.TaintEffectPreferNoSchedule}); needUpdate {
-		clogs.Log().V(4).Info("RemoveNodeTaints update true")
+		log.Logger().V(4).Info("RemoveNodeTaints update true")
 		if err := einformer.UpdateNode(ctx.Client, updateNode, nil); err != nil {
 			return err
 		}
 	} else {
-		clogs.Log().V(4).Info("RemoveNodeTaints update false")
+		log.Logger().V(4).Info("RemoveNodeTaints update false")
 	}
 
 	return nil

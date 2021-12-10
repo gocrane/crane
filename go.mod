@@ -3,16 +3,24 @@ module github.com/gocrane/crane
 go 1.17
 
 require (
+	github.com/go-echarts/go-echarts/v2 v2.2.4
 	github.com/go-logr/logr v0.4.0
 	github.com/gocrane/api v0.0.4
+	github.com/google/go-cmp v0.5.6 // indirect
+	github.com/mjibson/go-dsp v0.0.0-20180508042940-11479a337f12
+	github.com/prometheus/client_golang v1.11.0
+	github.com/prometheus/common v0.26.0
 	github.com/shirou/gopsutil v3.21.10+incompatible
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
+	github.com/stretchr/testify v1.7.0
 	golang.org/x/net v0.0.0-20210520170846-37e1c6afe023
+	golang.org/x/tools v0.1.5 // indirect
 	google.golang.org/grpc v1.38.0
 	k8s.io/api v0.22.3
 	k8s.io/apimachinery v0.22.3
 	k8s.io/apiserver v0.22.3
+	k8s.io/autoscaler/vertical-pod-autoscaler v0.9.2
 	k8s.io/client-go v0.22.3
 	k8s.io/component-base v0.22.3
 	k8s.io/cri-api v0.22.3
@@ -21,20 +29,12 @@ require (
 	k8s.io/metrics v0.22.3
 	sigs.k8s.io/controller-runtime v0.10.2
 	sigs.k8s.io/custom-metrics-apiserver v1.22.0
-    github.com/go-echarts/go-echarts/v2 v2.2.4
-    k8s.io/autoscaler/vertical-pod-autoscaler v0.9.2
-    github.com/gocrane/api v0.0.0-20211207120055-f3b9cee38e7f
-    github.com/google/go-cmp v0.5.6 // indirect
-    github.com/mjibson/go-dsp v0.0.0-20180508042940-11479a337f12
-    github.com/prometheus/client_golang v1.11.0
-    github.com/prometheus/common v0.26.0
-    github.com/stretchr/testify v1.7.0
-    golang.org/x/tools v0.1.5 // indirect
 
 )
 
+require github.com/davecgh/go-spew v1.1.1
+
 require (
-	k8s.io/kube-openapi v0.0.0-20210817084001-7fbd8d59e5b8 // indirect
 	github.com/Microsoft/go-winio v0.4.15 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
@@ -45,7 +45,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/go-restful v2.15.0+incompatible // indirect
 	github.com/emicklei/go-restful-swagger12 v0.0.0-20201014110547-68ccff494617 // indirect
 	github.com/evanphx/json-patch v4.11.0+incompatible // indirect
@@ -112,28 +111,25 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	k8s.io/apiextensions-apiserver v0.22.2 // indirect
+	k8s.io/kube-openapi v0.0.0-20210817084001-7fbd8d59e5b8 // indirect
 	k8s.io/utils v0.0.0-20210819203725-bdf08cb9a70a // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.22 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.1.2 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
+	github.com/go-echarts/go-echarts/v2 v2.2.4
+    github.com/google/go-cmp v0.5.6 // indirect
+    github.com/mjibson/go-dsp v0.0.0-20180508042940-11479a337f12
+    github.com/prometheus/client_golang v1.11.0
+    github.com/prometheus/common v0.26.0
+    github.com/stretchr/testify v1.7.0
+    golang.org/x/tools v0.1.5 // indirect
+    k8s.io/autoscaler/vertical-pod-autoscaler v0.9.2
+    k8s.io/kube-openapi v0.0.0-20210817084001-7fbd8d59e5b8 // indirect
 )
 
 
-require (
-	github.com/go-echarts/go-echarts/v2 v2.2.4
-	github.com/gocrane/api v0.0.0-20211215114952-2a4631530892
-	github.com/google/go-cmp v0.5.6 // indirect
-	github.com/mjibson/go-dsp v0.0.0-20180508042940-11479a337f12
-	github.com/prometheus/client_golang v1.11.0
-	github.com/prometheus/common v0.26.0
-	github.com/stretchr/testify v1.7.0
-	golang.org/x/tools v0.1.5 // indirect
-	k8s.io/autoscaler/vertical-pod-autoscaler v0.9.2
-	k8s.io/kube-openapi v0.0.0-20210817084001-7fbd8d59e5b8 // indirect
-	)
-
 replace (
-	github.com/gocrane/api => github.com/yan234280533/api2 v0.0.0-20211202040236-9fdcc4deae14
+	github.com/gocrane/api => github.com/yan234280533/api2 v0.0.0-20211210071841-99f6e00814d4
 	golang.org/x/net => github.com/golang/net v0.0.0-20210825183410-e898025ed96a
 	k8s.io/api => k8s.io/api v0.22.3
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.22.3

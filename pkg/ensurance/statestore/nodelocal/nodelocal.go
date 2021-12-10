@@ -6,7 +6,7 @@ import (
 
 	"github.com/gocrane/crane/pkg/ensurance/statestore/types"
 	"github.com/gocrane/crane/pkg/utils"
-	"github.com/gocrane/crane/pkg/utils/clogs"
+	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 type newCollectorFunc func() (nodeLocalCollector, error)
@@ -16,7 +16,7 @@ var nodeLocalFunc = make(map[string]newCollectorFunc, 10)
 
 func registerMetrics(collectorName string, metricsNames []types.MetricName, newCollector newCollectorFunc) {
 	if _, ok := nodeLocalMetric[collectorName]; ok {
-		clogs.Log().V(2).Info(
+		log.Logger().V(2).Info(
 			fmt.Sprintf("Warning: node local metrics collectorName %s is registered, not to register again", collectorName))
 		return
 	}
@@ -31,7 +31,7 @@ type NodeLocal struct {
 }
 
 func NewNodeLocal() *NodeLocal {
-	clogs.Log().V(1).Info("NewNodeLocal")
+	log.Logger().V(1).Info("NewNodeLocal")
 
 	n := NodeLocal{
 		Name: types.NodeLocalCollectorType,
@@ -43,7 +43,7 @@ func NewNodeLocal() *NodeLocal {
 		if c, err := f(); err == nil {
 			n.nlcs = append(n.nlcs, c)
 		} else {
-			clogs.Log().Error(err, "NewNodeLocal init failed")
+			log.Logger().Error(err, "NewNodeLocal init failed")
 		}
 	}
 
@@ -55,7 +55,7 @@ func (n *NodeLocal) GetType() types.CollectType {
 }
 
 func (n *NodeLocal) Collect() (map[string][]utils.TimeSeries, error) {
-	clogs.Log().V(5).Info("Node local collecting")
+	log.Logger().V(5).Info("Node local collecting")
 
 	var status = make(map[string][]utils.TimeSeries)
 	for _, c := range n.nlcs {
@@ -65,12 +65,12 @@ func (n *NodeLocal) Collect() (map[string][]utils.TimeSeries, error) {
 			}
 		} else {
 			if !strings.Contains(err.Error(), "collect_init") {
-				clogs.Log().Error(err, fmt.Sprintf("NodeLocal collect %s", c.name()))
+				log.Logger().Error(err, fmt.Sprintf("NodeLocal collect %s", c.name()))
 			}
 		}
 	}
 
-	clogs.Log().V(5).Info("Node local collecting", "status", status)
+	log.Logger().V(5).Info("Node local collecting", "status", status)
 
 	return status, nil
 }

@@ -1,9 +1,5 @@
 package types
 
-import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
 type CollectType string
 
 type MetricName string
@@ -18,8 +14,8 @@ const (
 )
 
 type MetricNameConfig struct {
-	metricName string
-	selector   metav1.LabelSelector
+	//metricName string
+	//selector   metav1.LabelSelector
 }
 
 type MetricNameConfigs []MetricNameConfig

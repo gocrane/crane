@@ -9,7 +9,7 @@ import (
 
 	"github.com/gocrane/crane/pkg/ensurance/statestore/types"
 	"github.com/gocrane/crane/pkg/utils"
-	"github.com/gocrane/crane/pkg/utils/clogs"
+	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 const (
@@ -40,7 +40,7 @@ func NewCPUCollector() (nodeLocalCollector, error) {
 		cpuCoreNumbers = uint64(len(cpuInfos))
 	}
 
-	clogs.Log().V(2).Info("NewCPUCollector", "cpuCoreNumbers", cpuCoreNumbers)
+	log.Logger().V(2).Info("NewCPUCollector", "cpuCoreNumbers", cpuCoreNumbers)
 
 	var data = make(map[string][]utils.TimeSeries)
 
@@ -69,7 +69,7 @@ func (c *CpuCollector) collect() (map[string][]utils.TimeSeries, error) {
 	}
 
 	usagePercent := calculateBusy(c.cpuState.stat, nowCpuState.stat)
-	clogs.Log().V(4).Info("CpuCollector collect", "usagePercent", usagePercent)
+	log.Logger().V(4).Info("CpuCollector collect", "usagePercent", usagePercent)
 	usageCore := usagePercent * float64(c.cpuCoreNumbers) * 1000 / 100
 
 	c.cpuState = nowCpuState

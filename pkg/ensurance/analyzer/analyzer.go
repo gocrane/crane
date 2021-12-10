@@ -19,7 +19,7 @@ import (
 	"github.com/gocrane/crane/pkg/ensurance/logic"
 	"github.com/gocrane/crane/pkg/ensurance/statestore"
 	"github.com/gocrane/crane/pkg/utils"
-	"github.com/gocrane/crane/pkg/utils/clogs"
+	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 type AnalyzerManager struct {
@@ -73,10 +73,10 @@ func (s *AnalyzerManager) Run(stop <-chan struct{}) {
 		for {
 			select {
 			case <-updateTicker.C:
-				clogs.Log().V(3).Info("Analyzer run periodically")
+				log.Logger().V(3).Info("Analyzer run periodically")
 				s.Analyze()
 			case <-stop:
-				clogs.Log().V(2).Info("Analyzer exit")
+				log.Logger().V(2).Info("Analyzer exit")
 				return
 			}
 		}
@@ -89,7 +89,7 @@ func (s *AnalyzerManager) Analyze() {
 	// step1 copy neps
 	node, err := einformer.GetNodeFromInformer(s.nodeInformer, s.nodeName)
 	if err != nil {
-		clogs.Log().V(2).Info("Warning: get node name failed, not to do analyze")
+		log.Logger().V(2).Info("Warning: get node name failed, not to do analyze")
 		return
 	}
 
@@ -100,7 +100,7 @@ func (s *AnalyzerManager) Analyze() {
 
 		//check the node is selected by the
 		if matched, err := utils.LabelSelectorMatched(node.Labels, &nep.Spec.LabelSelector); err != nil {
-			clogs.Log().V(5).Info(fmt.Sprintf("Warning: the nep label selector error,err: %s", err.Error()))
+			log.Logger().V(5).Info(fmt.Sprintf("Warning: the nep label selector error,err: %s", err.Error()))
 			continue
 		} else if !matched {
 			continue
@@ -125,19 +125,19 @@ func (s *AnalyzerManager) Analyze() {
 			var key = strings.Join([]string{n.Name, v.Name}, ".")
 			detection, err := s.doAnalyze(key, v)
 			if err != nil {
-				clogs.Log().V(4).Info(fmt.Sprintf("Warning: doAnalyze failed %s", err.Error()))
+				log.Logger().V(4).Info(fmt.Sprintf("Warning: doAnalyze failed %s", err.Error()))
 			}
 			detection.Nep = n
 			dcs = append(dcs, detection)
 		}
 	}
 
-	clogs.Log().V(4).Info("Analyze:", "dcs", dcs)
+	log.Logger().V(4).Info("Analyze:", "dcs", dcs)
 
 	//step 3 : doMerge
-	avoidanceAction, err := s.doMerge(asMaps, dcs)
+	avoidanceAction := s.doMerge(asMaps, dcs)
 	if err != nil {
-		clogs.Log().Error(err, "Analyze doMerge failed")
+		log.Logger().Error(err, "Analyze doMerge failed")
 		return
 	}
 
@@ -148,7 +148,7 @@ func (s *AnalyzerManager) Analyze() {
 }
 
 func (s *AnalyzerManager) doAnalyze(key string, object ensuranceapi.ObjectiveEnsurance) (ecache.DetectionCondition, error) {
-	clogs.Log().V(6).Info("doAnalyze", "status", s.status)
+	log.Logger().V(6).Info("doAnalyze", "status", s.status)
 
 	var dc = ecache.DetectionCondition{DryRun: object.DryRun, ObjectiveEnsuranceName: object.Name, ActionName: object.AvoidanceActionName}
 
@@ -186,7 +186,7 @@ func (s *AnalyzerManager) doAnalyze(key string, object ensuranceapi.ObjectiveEns
 	return dc, nil
 }
 
-func (s *AnalyzerManager) doMerge(asMaps map[string]*ensuranceapi.AvoidanceAction, dcs []ecache.DetectionCondition) (executor.AvoidanceExecutor, error) {
+func (s *AnalyzerManager) doMerge(asMaps map[string]*ensuranceapi.AvoidanceAction, dcs []ecache.DetectionCondition) executor.AvoidanceExecutor {
 	var now = time.Now()
 
 	//step1 filter the only dryRun detection
@@ -221,13 +221,13 @@ func (s *AnalyzerManager) doMerge(asMaps map[string]*ensuranceapi.AvoidanceActio
 			for _, dc := range dcsFiltered {
 				action, ok := asMaps[dc.ActionName]
 				if !ok {
-					clogs.Log().V(4).Info(fmt.Sprintf("Waring: doMerge for detection the action %s  not found", dc.ActionName))
+					log.Logger().V(4).Info(fmt.Sprintf("Waring: doMerge for detection the action %s  not found", dc.ActionName))
 					continue
 				}
 
 				if dc.Restored {
 					var schedulingCoolDown = utils.GetInt64withDefault(action.Spec.SchedulingCoolDown, 300)
-					clogs.Log().V(4).Info("doMerge", "schedulingCoolDown", schedulingCoolDown)
+					log.Logger().V(4).Info("doMerge", "schedulingCoolDown", schedulingCoolDown)
 					if now.After(s.lastTriggeredTime.Add(time.Duration(schedulingCoolDown) * time.Second)) {
 						bRestoreScheduled = true
 						break
@@ -249,7 +249,7 @@ func (s *AnalyzerManager) doMerge(asMaps map[string]*ensuranceapi.AvoidanceActio
 		if dc.Triggered {
 			action, ok := asMaps[dc.ActionName]
 			if !ok {
-				clogs.Log().V(4).Info("Waring: doMerge for detection the action ", dc.ActionName, " not found")
+				log.Logger().V(4).Info("Waring: doMerge for detection the action ", dc.ActionName, " not found")
 				continue
 			}
 
@@ -283,7 +283,7 @@ func (s *AnalyzerManager) doMerge(asMaps map[string]*ensuranceapi.AvoidanceActio
 	// sort the evicting executor by pod qos priority
 	sort.Sort(ae.EvictExecutor.Executors)
 
-	return ae, nil
+	return ae
 }
 
 func (s *AnalyzerManager) doLogEvent(dc ecache.DetectionCondition, now time.Time) {
@@ -299,7 +299,7 @@ func (s *AnalyzerManager) doLogEvent(dc ecache.DetectionCondition, now time.Time
 	//step1 print log if the detection state is changed
 	//step2 produce event
 	if dc.Triggered {
-		clogs.Log().V(2).Info(fmt.Sprintf("%s triggered action %s", key, dc.ActionName))
+		log.Logger().V(2).Info(fmt.Sprintf("%s triggered action %s", key, dc.ActionName))
 
 		// record an event about the objective ensurance triggered
 		s.recorder.Event(nodeRef, v1.EventTypeWarning, "ObjectiveEnsuranceTriggered", fmt.Sprintf("%s triggered action %s", key, dc.ActionName))
@@ -308,7 +308,7 @@ func (s *AnalyzerManager) doLogEvent(dc ecache.DetectionCondition, now time.Time
 
 	if dc.Restored {
 		if s.needSendEventForRestore(dc) {
-			clogs.Log().V(2).Info(fmt.Sprintf("%s restored action %s", key, dc.ActionName))
+			log.Logger().V(2).Info(fmt.Sprintf("%s restored action %s", key, dc.ActionName))
 			// record an event about the objective ensurance restored
 			s.recorder.Event(nodeRef, v1.EventTypeNormal, "ObjectiveEnsuranceRestored", fmt.Sprintf("%s restored action %s", key, dc.ActionName))
 			s.actionEventStatus[key] = ecache.DetectionStatus{IsTriggered: false, LastTime: now}

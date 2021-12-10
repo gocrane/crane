@@ -7,7 +7,7 @@ import (
 	"google.golang.org/grpc"
 	"k8s.io/kubernetes/pkg/kubelet/util"
 
-	"github.com/gocrane/crane/pkg/utils/clogs"
+	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 const (
@@ -23,13 +23,13 @@ func InitGrpcConnection(endPoints []string) (*grpc.ClientConn, error) {
 
 	var conn *grpc.ClientConn
 	for idx, v := range endPoints {
-		clogs.Log().V(5).Info(fmt.Sprintf("Connect using endpoint '%s' with '%s' timeout", v, defaultTimeout))
+		log.Logger().V(5).Info(fmt.Sprintf("Connect using endpoint '%s' with '%s' timeout", v, defaultTimeout))
 		addr, dialer, err := util.GetAddressAndDialer(v)
 		if err != nil {
 			if idx == (len - 1) {
 				return nil, err
 			}
-			clogs.Log().V(5).Info(fmt.Sprintf("Waring: connect using endpoint '%s' failed, err: %s", v, err.Error()))
+			log.Logger().V(5).Info(fmt.Sprintf("Waring: connect using endpoint '%s' failed, err: %s", v, err.Error()))
 			continue
 		}
 
@@ -39,9 +39,9 @@ func InitGrpcConnection(endPoints []string) (*grpc.ClientConn, error) {
 			if idx == (len - 1) {
 				return nil, errMsg
 			}
-			clogs.Log().V(5).Info(fmt.Sprintf("Waring: %s", errMsg))
+			log.Logger().V(5).Info(fmt.Sprintf("Waring: %s", errMsg))
 		} else {
-			clogs.Log().V(5).Info(fmt.Sprintf("Connected successfully using endpoint: %s", v))
+			log.Logger().V(5).Info(fmt.Sprintf("Connected successfully using endpoint: %s", v))
 			break
 		}
 	}

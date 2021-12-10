@@ -32,18 +32,6 @@ func (s *NodeQOSEnsurancePolicyCache) ListKeys() []string {
 	return keys
 }
 
-// ListKeys implements the interface required by DeltaFIFO to list the keys we
-// already know about.
-func (s *NodeQOSEnsurancePolicyCache) allNeps() []*ensuranceapi.NodeQOSEnsurancePolicy {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	neps := make([]*ensuranceapi.NodeQOSEnsurancePolicy, 0, len(s.nepMap))
-	for _, v := range s.nepMap {
-		neps = append(neps, v.Nep)
-	}
-	return neps
-}
-
 func (s *NodeQOSEnsurancePolicyCache) Get(name string) (*CachedNodeQOSEnsurancePolicy, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
