@@ -8,7 +8,7 @@ import (
 )
 
 func TestMetricSelector_String(t *testing.T) {
-	m := &v1alpha1.MetricSelector{
+	m := &v1alpha1.ExpressionQuery{
 		MetricName: "xyz",
 		QueryConditions: []v1alpha1.QueryCondition{
 			{Key: "c", Operator: v1alpha1.OperatorEqual, Value: []string{"3", "2", "1"}},

@@ -7,8 +7,6 @@ import (
 	"strings"
 	"time"
 
-	predconfig "github.com/gocrane/crane/pkg/prediction/config"
-
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -52,7 +50,7 @@ func (tc *Controller) syncPredictionsStatus(ctx context.Context) error {
 
 		windowStart := time.Now()
 		windowEnd := windowStart.Add(time.Duration(tsPrediction.Spec.PredictionWindowSeconds) * time.Second)
-		warnings := tc.isPredictionDataOutDated(windowStart, windowEnd, tsPrediction.Status.MetricPredictedDataList)
+		warnings := tc.isPredictionDataOutDated(windowStart, windowEnd, tsPrediction.Status.PredictionMetrics)
 		// force predict and update the status
 		if len(warnings) > 0 {
 			start := time.Now()
@@ -115,7 +113,7 @@ func (tc *Controller) syncPredictionsStatus(ctx context.Context) error {
 				if err != nil {
 					tc.Logger.Error(err, "UpdateStatusDelayQueue")
 				}
-				newStatus.MetricPredictedDataList = predictedData
+				newStatus.PredictionMetrics = predictedData
 				err = tc.UpdateStatus(ctx, tsPrediction, newStatus)
 				if err != nil {
 					// todo: update status failed, then add it again for update?
@@ -193,7 +191,7 @@ func (tc *Controller) updateStatusDelayQueue() {
 
 		windowStart := start
 		windowEnd := start.Add(time.Duration(tsPrediction.Spec.PredictionWindowSeconds) * time.Second)
-		warnings := tc.isPredictionDataOutDated(windowStart, windowEnd, tsPrediction.Status.MetricPredictedDataList)
+		warnings := tc.isPredictionDataOutDated(windowStart, windowEnd, tsPrediction.Status.PredictionMetrics)
 		if len(warnings) > 0 {
 			cond := &metav1.Condition{
 				Type:               string(v1alpha1.TimeSeriesPredictionConditionReady),
@@ -227,12 +225,12 @@ func (tc *Controller) updateStatusDelayQueue() {
 	}
 }
 
-func (tc *Controller) isPredictionDataOutDated(windowStart, windowEnd time.Time, predictionDataList []*v1alpha1.MetricPredictedData) (warnings []string) {
-	if len(predictionDataList) == 0 {
+func (tc *Controller) isPredictionDataOutDated(windowStart, windowEnd time.Time, predictionMetricStatus []v1alpha1.PredictionMetricStatus) (warnings []string) {
+	if len(predictionMetricStatus) == 0 {
 		warnings = append(warnings, "no predicated data")
 		return warnings
 	}
-	for _, predictedData := range predictionDataList {
+	for _, predictedData := range predictionMetricStatus {
 		if len(predictedData.Prediction) == 0 {
 			warnings = append(warnings, fmt.Sprintf("metric %v no predicated data", predictedData.ResourceIdentifier))
 		}
@@ -251,22 +249,26 @@ func (tc *Controller) getPredictor(algorithmType v1alpha1.AlgorithmType) predict
 	return tc.predictors[algorithmType]
 }
 
-func (tc *Controller) doPredict(tsPrediction *v1alpha1.TimeSeriesPrediction, start, end time.Time) ([]*v1alpha1.MetricPredictedData, error) {
-	var result []*v1alpha1.MetricPredictedData
+func (tc *Controller) doPredict(tsPrediction *v1alpha1.TimeSeriesPrediction, start, end time.Time) ([]v1alpha1.PredictionMetricStatus, error) {
+	var result []v1alpha1.PredictionMetricStatus
+	c := NewMetricContext(tsPrediction)
 	for _, metric := range tsPrediction.Spec.PredictionMetrics {
 		predictor := tc.getPredictor(metric.Algorithm.AlgorithmType)
 		if predictor == nil {
 			return result, fmt.Errorf("do not support algorithm type %v for metric %v", metric.Algorithm.AlgorithmType, metric.ResourceIdentifier)
 		}
 		var queryExpr string
-		if metric.NodeResource != nil {
-			queryExpr = predconfig.NodeResourceToPromQueryExpr(metric.NodeResource)
-		} else if metric.WorkloadResource != nil {
-			queryExpr = predconfig.WorkloadResourceToPromQueryExpr(metric.WorkloadResource)
-		} else if metric.Query != nil {
-			queryExpr = metric.Query.Expression
-		} else if metric.MetricSelector != nil {
+
+		if metric.ResourceQuery != nil {
+			queryExpr = c.ResourceToPromQueryExpr(metric.ResourceQuery)
+			if tsPrediction.Spec.TargetRef.Kind == "Node" {
+			} else {
+				queryExpr = c.ResourceToPromQueryExpr(metric.ResourceQuery)
+			}
+		} else if metric.ExpressionQuery != nil {
 			//todo
+		} else {
+			queryExpr = metric.RawQuery.Expression
 		}
 
 		err := predictor.WithQuery(queryExpr)
@@ -281,7 +283,7 @@ func (tc *Controller) doPredict(tsPrediction *v1alpha1.TimeSeriesPrediction, sta
 		}
 		predictedData := CommonTimeSeries2ApiTimeSeries(data)
 		tc.Logger.V(10).Info("Predicted data details", "data", predictedData)
-		result = append(result, &v1alpha1.MetricPredictedData{ResourceIdentifier: metric.ResourceIdentifier, Prediction: predictedData})
+		result = append(result, v1alpha1.PredictionMetricStatus{ResourceIdentifier: metric.ResourceIdentifier, Prediction: predictedData})
 	}
 	return result, nil
 }
