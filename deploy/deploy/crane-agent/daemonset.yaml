@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    app: crane-agent
+  name: crane-agent
+  namespace: crane-system
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: crane-agent
+  template:
+    metadata:
+      labels:
+        app: crane-agent
+    spec:
+      containers:
+        - env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+          image: docker.io/gocrane/crane-agent:v0.0.1
+          imagePullPolicy: Always
+          name: crane-agent
+          resources:
+            limits:
+              cpu: 100m
+              memory: 100Mi
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: crane-agent

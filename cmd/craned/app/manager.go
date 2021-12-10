@@ -5,8 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 
+	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/discovery"
@@ -16,22 +16,12 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
-	"github.com/spf13/cobra"
-
 	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 	"github.com/gocrane/crane/cmd/craned/app/options"
 	"github.com/gocrane/crane/pkg/controller/ehpa"
-	"github.com/gocrane/crane/pkg/controller/recommendation"
-	"github.com/gocrane/crane/pkg/controller/tsp"
 	"github.com/gocrane/crane/pkg/known"
-	predict "github.com/gocrane/crane/pkg/prediction"
-	"github.com/gocrane/crane/pkg/prediction/dsp"
-	"github.com/gocrane/crane/pkg/prediction/percentile"
-	"github.com/gocrane/crane/pkg/providers"
-	"github.com/gocrane/crane/pkg/providers/mock"
-	"github.com/gocrane/crane/pkg/providers/prom"
 	"github.com/gocrane/crane/pkg/utils/log"
 	webhooks "github.com/gocrane/crane/pkg/webhooks"
 )
@@ -99,9 +89,11 @@ func Run(ctx context.Context, opts *options.Options) error {
 		log.Logger().Error(err, "failed to add health check endpoint")
 		return err
 	}
+
 	initializationWebhooks(mgr, opts)
 	initializationControllers(ctx, mgr, opts)
 	log.Logger().Info("Starting crane manager")
+
 	if err := mgr.Start(ctx); err != nil {
 		log.Logger().Error(err, "problem running crane manager")
 		return err
@@ -123,6 +115,7 @@ func initializationWebhooks(mgr ctrl.Manager, opts *options.Options) {
 }
 
 // initializationControllers setup controllers with manager
+<<<<<<< HEAD
 func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *options.Options) {
 	log.Logger().Info(fmt.Sprintf("opts %v", opts))
 
@@ -152,12 +145,26 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 	}
 
 	if err := (&ehpa.SubstituteController{
+<<<<<<< HEAD
 		Client:      mgr.GetClient(),
 		Log:         log.Logger().WithName("substitute-controller"),
 		Scheme:      mgr.GetScheme(),
 		RestMapper:  mgr.GetRESTMapper(),
 		Recorder:    mgr.GetEventRecorderFor("substitute-controller"),
 		ScaleClient: scaleClient,
+=======
+=======
+func initializationControllers(mgr ctrl.Manager, opts *options.Options) {
+	clogs.Log().V(1).Info(fmt.Sprintf("opts %v", opts))
+	hpaRecorder := mgr.GetEventRecorderFor("advanced-hpa-controller")
+	if err := (&hpa.AdvancedHPAController{
+>>>>>>> 3c489e2 (the first commit for ensurance, add node-qos-controller, collect, analyzer and avoidance)
+		Client:     mgr.GetClient(),
+		Log:        log.Logger().WithName("substitute-controller"),
+		Scheme:     mgr.GetScheme(),
+		RestMapper: mgr.GetRESTMapper(),
+		Recorder:   mgr.GetEventRecorderFor("substitute-controller"),
+>>>>>>> df9d06c (bugfix: modify clogs to log)
 	}).SetupWithManager(mgr); err != nil {
 		log.Logger().Error(err, "unable to create controller", "controller", "SubstituteController")
 		os.Exit(1)

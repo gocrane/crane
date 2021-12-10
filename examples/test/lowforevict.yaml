@@ -1,0 +1,25 @@
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: greedy
+description: Priority for low level  services.
+value: -100
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: low
+spec:
+  nodeSelector:
+    group: "s-000001"
+  containers:
+    - image: docker.io/gocrane/stress-ng:v0.12.09
+      imagePullPolicy: IfNotPresent
+      name: low
+      command:
+      - /bin/bash
+      - -c
+      - "sleep 36000"
+  priorityClassName: greedy

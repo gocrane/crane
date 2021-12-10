@@ -23,7 +23,7 @@ import (
 
 	"k8s.io/component-base/logs"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"github.com/gocrane-io/crane/pkg/utils/clogs"
+	"github.com/gocrane/crane/pkg/utils/clogs"
 )
 
 func main() {
@@ -38,11 +38,11 @@ func main() {
 
 ```
 import (
-   "github.com/gocrane-io/crane/pkg/utils/clogs"
+   "github.com/gocrane/crane/pkg/utils/clogs"
 )
 
 func A() {
-   clogs.Log().Info("run manager")
+   clogs.Log().V(2).Info("run manager")
    clogs.Log().Error(err, "opts validate failed")
 }
 
@@ -52,7 +52,7 @@ func A() {
 
 ```
 import (
-   "github.com/gocrane-io/crane/pkg/utils/clogs"
+   "github.com/gocrane/crane/pkg/utils/clogs"
 )
 
 func A() {
@@ -81,5 +81,5 @@ then in the controller logics to use the log like this(p is the ptr of the contr
 
 we can use `GenerateKey` to print the info of resource object, like this:
 ```
-clogs.Log().Info("object %s is updated successfully", clogs.GenerateKey(object.Name, object.Namespace))
+clogs.Log().V(2).Info("object %s is updated successfully", clogs.GenerateKey(object.Name, object.Namespace))
 ```
