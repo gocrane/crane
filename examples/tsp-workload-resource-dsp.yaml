@@ -4,14 +4,15 @@ metadata:
   name: workload-resource-dsp
   namespace: default
 spec:
+  targetRef:
+    kind: Deployment
+    name: dep-1-100m-500mib
+    namespace: default
   predictionWindowSeconds: 3600
   predictionMetrics:
     - resourceIdentifier: workload-cpu
-      workloadRef:
-        kind: Deployment
-        name: dep-1-100m-500mib
-        namespace: default
-        resource: cpu
+      type: ResourceQuery
+      resourceQuery: cpu
       algorithm:
         algorithmType: "dsp"
         dsp:
@@ -25,11 +26,8 @@ spec:
                 minNumOfSpectrumItems: 10
                 maxNumOfSpectrumItems: 20
     - resourceIdentifier: workload-mem
-      workloadRef:
-        kind: Deployment
-        name: dep-1-100m-500mib
-        namespace: default
-        resource: memory
+      type: ResourceQuery
+      resourceQuery: memory
       algorithm:
         algorithmType: "dsp"
         dsp:

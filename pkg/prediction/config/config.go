@@ -31,18 +31,23 @@ var logger = log.Logger()
 func (c *MetricContext) WithApiConfig(conf *v1alpha1.PredictionMetric) {
 	if conf.ExpressionQuery != nil {
 		logger.V(2).Info("WithApiConfig", "metricSelector", metricSelectorToQueryExpr(conf.ExpressionQuery))
-	} else if conf.RawQuery != nil {
+	}
+	if conf.RawQuery != nil {
 		logger.V(2).Info("WithApiConfig", "queryExpr", conf.RawQuery.Expression)
+	}
+	if conf.ResourceQuery != nil {
+		logger.V(2).Info("WithApiConfig", "resourceQuery", conf.ResourceQuery)
 	}
 
 	UpdateEventBroadcaster.Write(c.ConvertApiMetric2InternalConfig(conf))
 }
 
-var TargetKindNode = "Node"
+const TargetKindNode = "Node"
 
 type MetricContext struct {
 	Namespace  string
 	TargetKind string
+	Name       string
 }
 
 func (c *MetricContext) WithApiConfigs(configs []v1alpha1.PredictionMetric) {
@@ -105,19 +110,19 @@ func metricSelectorToQueryExpr(m *v1alpha1.ExpressionQuery) string {
 }
 
 func (c *MetricContext) ResourceToPromQueryExpr(resourceName *corev1.ResourceName) string {
-	if c.TargetKind == TargetKindNode {
+	if strings.ToLower(c.TargetKind) == strings.ToLower(TargetKindNode) {
 		switch *resourceName {
 		case corev1.ResourceCPU:
-			return fmt.Sprintf(NodeCpuUsagePromQLFmtStr, resourceName, "1m")
+			return fmt.Sprintf(NodeCpuUsagePromQLFmtStr, c.Name, "1m")
 		case corev1.ResourceMemory:
-			return fmt.Sprintf(NodeMemUsagePromQLFmtStr, resourceName, resourceName)
+			return fmt.Sprintf(NodeMemUsagePromQLFmtStr, c.Name, c.Name)
 		}
 	} else {
 		switch *resourceName {
 		case corev1.ResourceCPU:
-			return fmt.Sprintf(WorkloadCpuUsagePromQLFmtStr, c.Namespace, resourceName, "1m")
+			return fmt.Sprintf(WorkloadCpuUsagePromQLFmtStr, c.Namespace, c.Name, "1m")
 		case corev1.ResourceMemory:
-			return fmt.Sprintf(WorkloadMemUsagePromQLFmtStr, c.Namespace, resourceName)
+			return fmt.Sprintf(WorkloadMemUsagePromQLFmtStr, c.Namespace, c.Name)
 		}
 	}
 	return ""

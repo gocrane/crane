@@ -11,8 +11,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/gocrane/api/prediction/v1alpha1"
@@ -22,217 +22,91 @@ import (
 	"github.com/gocrane/crane/pkg/prediction"
 )
 
-// Scan all TimeSeriesPredictions and update the status if it is needed,
-// update each time series prediction status window length is double of the spec.PredictionWindowSeconds.
-// check the actual state of world and decide if need to update the crd status, it is periodic check to meet updateStatusDelayQueue's flaw.
-func (tc *Controller) syncPredictionsStatus(ctx context.Context) error {
-	predictionList := &v1alpha1.TimeSeriesPredictionList{}
-	if err := tc.Client.List(ctx, predictionList); err != nil {
-		return err
+// check and update the status if it is needed, update each time series prediction status window length is double of the spec.PredictionWindowSeconds.
+// check the actual state of world and decide if need to update the crd status,
+// driven by time tick not by events, because time series prediction need to update the prediction window data to avoid the data is out of date.
+// NOTE: update period is better higher resolution than the algorithm sample interval, reduce the possibility of the data is out date.
+// but it is a final consistent system, so the data will be in date when next update reconcile in controller runtime.
+func (tc *Controller) syncPredictionStatus(ctx context.Context, tsPrediction *v1alpha1.TimeSeriesPrediction) (ctrl.Result, error) {
+	newStatus := tsPrediction.Status.DeepCopy()
+	key := GetTimeSeriesPredictionKey(tsPrediction)
+	tc.Logger.Info("SyncPredictionsStatus check asw and dsw", "key", key)
+	if err := tc.Client.Get(ctx, client.ObjectKey{Name: tsPrediction.Name, Namespace: tsPrediction.Namespace}, tsPrediction); err != nil {
+		// If the prediction does not exist any more, we delete the prediction data from the map.
+		if apierrors.IsNotFound(err) {
+			tc.tsPredictionMap.Delete(key)
+		}
+		tc.Logger.Error(err, "SyncPredictionsStatus", key, err)
+		// time driven
+		return ctrl.Result{RequeueAfter: tc.UpdatePeriod}, err
 	}
+	// check if the prediction data is out of date, if it is, force predict and update crd status,
+	// or we do nothing to avoid status update frequently, reduce the api server traffic
 
-	predictions := predictionList.Items
-	for i := range predictions {
-		tsPrediction := &predictions[i]
-		newStatus := tsPrediction.Status.DeepCopy()
-		key := GetTimeSeriesPredictionKey(tsPrediction)
-		tc.Logger.Info("SyncPredictionsStatus check asw and dsw", "key", key)
-		if err := tc.Client.Get(ctx, client.ObjectKey{Name: tsPrediction.Name, Namespace: tsPrediction.Namespace}, tsPrediction); err != nil {
-			// If the prediction does not exist any more, we delete the prediction data from the map.
-			if apierrors.IsNotFound(err) {
-				tc.tsPredictionMap.Delete(key)
-			}
-			tc.Logger.Error(err, "SyncPredictionsStatus", key, err)
-			continue
-		}
-		// check if the prediction data is out of date, if it is, force predict and update crd status,
-		// or we do nothing to avoid status update frequently, reduce the api server traffic
+	windowStart := time.Now()
+	windowEnd := windowStart.Add(time.Duration(tsPrediction.Spec.PredictionWindowSeconds) * time.Second)
+	warnings := tc.isPredictionDataOutDated(windowStart, windowEnd, tsPrediction.Status.PredictionMetrics)
+	// force predict and update the status
+	if len(warnings) > 0 {
+		tc.Logger.Info("Check status predict data is out of date", "range", fmt.Sprintf("[%v, %v]", windowStart, windowEnd), "key", key)
+		predictionStart := time.Now()
+		// double the time to predict so that crd consumer always see time series range [now, now + PredictionWindowSeconds] in PredictionWindowSeconds window
+		predictionEnd := predictionStart.Add(time.Duration(tsPrediction.Spec.PredictionWindowSeconds) * time.Second * 2)
 
-		windowStart := time.Now()
-		windowEnd := windowStart.Add(time.Duration(tsPrediction.Spec.PredictionWindowSeconds) * time.Second)
-		warnings := tc.isPredictionDataOutDated(windowStart, windowEnd, tsPrediction.Status.PredictionMetrics)
-		// force predict and update the status
-		if len(warnings) > 0 {
-			start := time.Now()
-			// double the time to predict so that crd consumer always see time series range [now, now + PredictionWindowSeconds] in PredictionWindowSeconds window
-			end := start.Add(time.Duration(tsPrediction.Spec.PredictionWindowSeconds) * time.Second * 2)
-
-			predictedData, err := tc.doPredict(tsPrediction, start, end)
-			if err != nil {
-				tc.Recorder.Event(tsPrediction, v1.EventTypeWarning, "FailedPredict", err.Error())
-				tc.Logger.Error(err, "Failed to doPredict")
-			}
-
-			tc.Logger.Info("DoPredict", "range", fmt.Sprintf("[%v, %v]", start, end), "key", key)
-
-			if len(tsPrediction.Spec.PredictionMetrics) != len(predictedData) {
-				cond := &metav1.Condition{
-					Type:               string(v1alpha1.TimeSeriesPredictionConditionReady),
-					Status:             metav1.ConditionFalse,
-					LastTransitionTime: metav1.Now(),
-					Message:            "not all metric predicted",
-					Reason:             known.ReasonTimeSeriesPredictPartial,
-				}
-				UpdateTimeSeriesPredictionCondition(newStatus, cond)
-				err = tc.UpdateStatus(ctx, tsPrediction, newStatus)
-				if err != nil {
-					// todo: update status failed, then add it again for update?
-				}
-				continue
-			}
-
-			windowStart := start
-			windowEnd := start.Add(time.Duration(tsPrediction.Spec.PredictionWindowSeconds) * time.Second)
-			warnings := tc.isPredictionDataOutDated(windowStart, windowEnd, predictedData)
-			if len(warnings) > 0 {
-				tc.Logger.Info("DoPredict predicated data is partial", "range", fmt.Sprintf("[%v, %v]", start, end), "key", key)
-
-				cond := &metav1.Condition{
-					Type:               string(v1alpha1.TimeSeriesPredictionConditionReady),
-					Status:             metav1.ConditionFalse,
-					LastTransitionTime: metav1.Now(),
-					Message:            strings.Join(warnings, ";"),
-					Reason:             known.ReasonTimeSeriesPredictPartial,
-				}
-				UpdateTimeSeriesPredictionCondition(newStatus, cond)
-				err = tc.UpdateStatus(ctx, tsPrediction, newStatus)
-				if err != nil {
-					// todo
-				}
-			} else {
-				cond := &metav1.Condition{
-					Type:               string(v1alpha1.TimeSeriesPredictionConditionReady),
-					Status:             metav1.ConditionTrue,
-					LastTransitionTime: metav1.Now(),
-					// status.conditions.reason in body should be at least 1 chars long
-					Reason: known.ReasonTimeSeriesPredictSucceed,
-				}
-				UpdateTimeSeriesPredictionCondition(newStatus, cond)
-
-				err = tc.UpdateStatus(ctx, tsPrediction, newStatus)
-				if err != nil {
-					tc.Logger.Error(err, "UpdateStatusDelayQueue")
-				}
-				newStatus.PredictionMetrics = predictedData
-				err = tc.UpdateStatus(ctx, tsPrediction, newStatus)
-				if err != nil {
-					// todo: update status failed, then add it again for update?
-				}
-			}
-		}
-	}
-	return nil
-}
-
-// Update the CRD status based on each crd's PredictionWindowSeconds to reduce the api server traffic
-func (tc *Controller) updateStatusDelayQueue() {
-	for {
-		// block if no item now
-		key, shutdown := tc.delayQueue.Get()
-		if shutdown {
-			return
-		}
-		pkey, ok := key.(string)
-		if !ok {
-			tc.Logger.Error(fmt.Errorf("wrong type key: %+v", key), "UpdateStatusDelayQueue")
-			continue
-		}
-
-		ns, name, err := cache.SplitMetaNamespaceKey(pkey)
+		predictedData, err := tc.doPredict(tsPrediction, predictionStart, predictionEnd)
 		if err != nil {
-			tc.Logger.Error(err, "UpdateStatusDelayQueue")
-		}
-		tsPrediction := &v1alpha1.TimeSeriesPrediction{}
-		err = tc.Client.Get(context.TODO(), client.ObjectKey{Name: name, Namespace: ns}, tsPrediction)
-		if err != nil {
-			// If the prediction does not exist any more, we delete the prediction data from the map.
-			if apierrors.IsNotFound(err) {
-				tc.tsPredictionMap.Delete(key)
-			}
-			tc.Logger.Error(err, "UpdateStatusDelayQueue")
-			continue
-		}
-		newStatus := tsPrediction.Status.DeepCopy()
-		start := time.Now()
-		// double the time to predict
-		end := start.Add(time.Duration(tsPrediction.Spec.PredictionWindowSeconds) * time.Second * 2)
-		predictionMetricsData, err := tc.doPredict(tsPrediction, start, end)
-		if err != nil {
+			tc.Recorder.Event(tsPrediction, v1.EventTypeWarning, "FailedPredict", err.Error())
 			tc.Logger.Error(err, "Failed to doPredict")
-			cond := &metav1.Condition{
-				Type:               string(v1alpha1.TimeSeriesPredictionConditionReady),
-				Status:             metav1.ConditionFalse,
-				LastTransitionTime: metav1.Now(),
-				Message:            err.Error(),
-				Reason:             known.ReasonTimeSeriesPredictFailed,
-			}
-			UpdateTimeSeriesPredictionCondition(newStatus, cond)
-			err = tc.UpdateStatus(context.TODO(), tsPrediction, newStatus)
-			if err != nil {
-				// todo: update status failed, then add it again for update?
-			}
-			continue
+			return ctrl.Result{RequeueAfter: tc.UpdatePeriod}, err
 		}
-		if len(tsPrediction.Spec.PredictionMetrics) != len(predictionMetricsData) {
-			cond := &metav1.Condition{
-				Type:               string(v1alpha1.TimeSeriesPredictionConditionReady),
-				Status:             metav1.ConditionFalse,
-				LastTransitionTime: metav1.Now(),
-				Message:            "not all metric predicted",
-				Reason:             known.ReasonTimeSeriesPredictPartial,
-			}
-			UpdateTimeSeriesPredictionCondition(newStatus, cond)
-			err = tc.UpdateStatus(context.TODO(), tsPrediction, newStatus)
+		newStatus.PredictionMetrics = predictedData
+
+		if len(tsPrediction.Spec.PredictionMetrics) != len(predictedData) {
+			tc.Logger.Info("DoPredict predict data is partial", "predictedDataLen", len(predictedData), "key", key)
+			setCondition(newStatus, v1alpha1.TimeSeriesPredictionConditionReady, metav1.ConditionFalse, known.ReasonTimeSeriesPredictPartial, "not all metric predicted")
+			err = tc.UpdateStatus(ctx, tsPrediction, newStatus)
 			if err != nil {
 				// todo
+				return ctrl.Result{}, err
 			}
-			continue
+			return ctrl.Result{RequeueAfter: tc.UpdatePeriod}, err
 		}
 
-		windowStart := start
-		windowEnd := start.Add(time.Duration(tsPrediction.Spec.PredictionWindowSeconds) * time.Second)
-		warnings := tc.isPredictionDataOutDated(windowStart, windowEnd, tsPrediction.Status.PredictionMetrics)
+		windowStart := predictionStart
+		windowEnd := predictionStart.Add(time.Duration(tsPrediction.Spec.PredictionWindowSeconds) * time.Second)
+		warnings := tc.isPredictionDataOutDated(windowStart, windowEnd, predictedData)
 		if len(warnings) > 0 {
-			cond := &metav1.Condition{
-				Type:               string(v1alpha1.TimeSeriesPredictionConditionReady),
-				Status:             metav1.ConditionFalse,
-				LastTransitionTime: metav1.Now(),
-				Message:            strings.Join(warnings, ";"),
-				Reason:             known.ReasonTimeSeriesPredictPartial,
-			}
-			UpdateTimeSeriesPredictionCondition(newStatus, cond)
-			err = tc.UpdateStatus(context.TODO(), tsPrediction, newStatus)
+			tc.Logger.Info("DoPredict predict data is partial", "range", fmt.Sprintf("[%v, %v]", windowStart, windowEnd), "key", key)
+			setCondition(newStatus, v1alpha1.TimeSeriesPredictionConditionReady, metav1.ConditionFalse, known.ReasonTimeSeriesPredictPartial, strings.Join(warnings, ";"))
+			err = tc.UpdateStatus(ctx, tsPrediction, newStatus)
 			if err != nil {
 				// todo
-				//tc.delayQueue.Add(key)
+				return ctrl.Result{}, err
 			}
 		} else {
-			cond := &metav1.Condition{
-				Type:               string(v1alpha1.TimeSeriesPredictionConditionReady),
-				Status:             metav1.ConditionTrue,
-				LastTransitionTime: metav1.Now(),
-				Reason:             known.ReasonTimeSeriesPredictSucceed,
-			}
-			UpdateTimeSeriesPredictionCondition(newStatus, cond)
+			tc.Logger.Info("DoPredict predict data is complete", "range", fmt.Sprintf("[%v, %v]", windowStart, windowEnd), "key", key)
+			// status.conditions.reason in body should be at least 1 chars long
+			setCondition(newStatus, v1alpha1.TimeSeriesPredictionConditionReady, metav1.ConditionTrue, known.ReasonTimeSeriesPredictSucceed, "")
 
-			err = tc.UpdateStatus(context.TODO(), tsPrediction, newStatus)
+			err = tc.UpdateStatus(ctx, tsPrediction, newStatus)
 			if err != nil {
-				tc.Logger.Error(err, "UpdateStatusDelayQueue")
+				// todo: update status failed, then add it again for update?
+				return ctrl.Result{}, err
 			}
-			// add again for next PredictionWindowSeconds to update status
-			tc.delayQueue.AddAfter(key, time.Duration(tsPrediction.Spec.PredictionWindowSeconds)*time.Second)
+			return ctrl.Result{RequeueAfter: tc.UpdatePeriod}, nil
 		}
 	}
+	return ctrl.Result{RequeueAfter: tc.UpdatePeriod}, nil
 }
 
 func (tc *Controller) isPredictionDataOutDated(windowStart, windowEnd time.Time, predictionMetricStatus []v1alpha1.PredictionMetricStatus) (warnings []string) {
 	if len(predictionMetricStatus) == 0 {
-		warnings = append(warnings, "no predicated data")
+		warnings = append(warnings, "no predict data")
 		return warnings
 	}
 	for _, predictedData := range predictionMetricStatus {
 		if len(predictedData.Prediction) == 0 {
-			warnings = append(warnings, fmt.Sprintf("metric %v no predicated data", predictedData.ResourceIdentifier))
+			warnings = append(warnings, fmt.Sprintf("metric %v no predict data", predictedData.ResourceIdentifier))
 		}
 		for i, ts := range predictedData.Prediction {
 			if !IsWindowInSamples(windowStart, windowEnd, ts.Samples) {
@@ -261,12 +135,9 @@ func (tc *Controller) doPredict(tsPrediction *v1alpha1.TimeSeriesPrediction, sta
 
 		if metric.ResourceQuery != nil {
 			queryExpr = c.ResourceToPromQueryExpr(metric.ResourceQuery)
-			if tsPrediction.Spec.TargetRef.Kind == "Node" {
-			} else {
-				queryExpr = c.ResourceToPromQueryExpr(metric.ResourceQuery)
-			}
 		} else if metric.ExpressionQuery != nil {
 			//todo
+			return result, fmt.Errorf("do not support query type %v, metric %v now", metric.ExpressionQuery, metric.ResourceIdentifier)
 		} else {
 			queryExpr = metric.RawQuery.Expression
 		}
@@ -291,7 +162,7 @@ func (tc *Controller) doPredict(tsPrediction *v1alpha1.TimeSeriesPrediction, sta
 func (tc *Controller) UpdateStatus(ctx context.Context, tsPrediction *v1alpha1.TimeSeriesPrediction, newStatus *v1alpha1.TimeSeriesPredictionStatus) error {
 	if !equality.Semantic.DeepEqual(&tsPrediction.Status, newStatus) {
 		tsPrediction.Status = *newStatus
-		err := tc.Status().Update(ctx, tsPrediction)
+		err := tc.Client.Status().Update(ctx, tsPrediction)
 		if err != nil {
 			tc.Recorder.Event(tsPrediction, v1.EventTypeNormal, "FailedUpdateStatus", err.Error())
 			tc.Logger.Error(err, "Failed to update status", "TimeSeriesPrediction", klog.KObj(tsPrediction))
@@ -300,7 +171,6 @@ func (tc *Controller) UpdateStatus(ctx context.Context, tsPrediction *v1alpha1.T
 
 		tc.Logger.Info("Update status successful", "TimeSeriesPrediction", klog.KObj(tsPrediction))
 	}
-
 	return nil
 }
 
@@ -323,42 +193,23 @@ func CommonTimeSeries2ApiTimeSeries(tsList []*common.TimeSeries) v1alpha1.Metric
 	return list
 }
 
-// UpdateTimeSeriesPredictionCondition updates existing timeseriesprediction condition or creates a new one. Sets LastTransitionTime to now if the
-// status has changed.
-// Returns true if pod condition has changed or has been added.
-func UpdateTimeSeriesPredictionCondition(status *v1alpha1.TimeSeriesPredictionStatus, condition *metav1.Condition) bool {
-	condition.LastTransitionTime = metav1.Now()
-	// Try to find this TimeSeriesPrediction condition.
-	conditionIndex, oldCondition := GetTimeSeriesPredictionCondition(status, condition.Type)
-
-	if oldCondition == nil {
-		status.Conditions = append(status.Conditions, *condition)
-		return true
-	}
-	// We are updating an existing condition, so we need to check if it has changed.
-	if condition.Status == oldCondition.Status {
-		condition.LastTransitionTime = oldCondition.LastTransitionTime
-	}
-
-	status.Conditions[conditionIndex] = *condition
-	// Return true if one of the fields have changed.
-	return !equality.Semantic.DeepEqual(condition, oldCondition)
-}
-
-// GetTimeSeriesPredictionCondition return the prediction condition of status
-func GetTimeSeriesPredictionCondition(status *v1alpha1.TimeSeriesPredictionStatus, conditionType string) (int, *metav1.Condition) {
-	var index int
-	var condition *metav1.Condition
-	if status == nil {
-		return index, condition
-	}
-	for i, cond := range status.Conditions {
-		if cond.Type == conditionType {
-			index = i
-			condition = &cond
+func setCondition(status *v1alpha1.TimeSeriesPredictionStatus, conditionType v1alpha1.PredictionConditionType, conditionStatus metav1.ConditionStatus, reason string, message string) {
+	for i := range status.Conditions {
+		if status.Conditions[i].Type == string(conditionType) {
+			status.Conditions[i].Status = conditionStatus
+			status.Conditions[i].Reason = reason
+			status.Conditions[i].Message = message
+			status.Conditions[i].LastTransitionTime = metav1.Now()
+			return
 		}
 	}
-	return index, condition
+	status.Conditions = append(status.Conditions, metav1.Condition{
+		Type:               string(conditionType),
+		Status:             conditionStatus,
+		Reason:             reason,
+		Message:            message,
+		LastTransitionTime: metav1.Now(),
+	})
 }
 
 func IsWindowInSamples(start, end time.Time, samples []v1alpha1.Sample) bool {
