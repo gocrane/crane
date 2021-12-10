@@ -136,6 +136,17 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 		os.Exit(1)
 	}
 
+	if err := (&ehpa.HPAReplicasController{
+		Client:     mgr.GetClient(),
+		Log:        log.Logger().WithName("hpa-replicas-controller"),
+		Scheme:     mgr.GetScheme(),
+		RestMapper: mgr.GetRESTMapper(),
+		Recorder:   mgr.GetEventRecorderFor("hpareplicas-controller"),
+	}).SetupWithManager(mgr); err != nil {
+		log.Logger().Error(err, "unable to create controller", "controller", "HPAReplicasController")
+		os.Exit(1)
+	}
+
 	// TspController
 	var dataSource providers.Interface
 	var err error
@@ -186,10 +197,6 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 	)
 	if err := tspController.SetupWithManager(mgr); err != nil {
 		log.Logger().Error(err, "unable to create controller", "controller", "TspController")
-		os.Exit(1)
-	}
-	if err := mgr.Add(tspController); err != nil {
-		log.Logger().Error(err, "unable to add controller", "controller", "TspController")
 		os.Exit(1)
 	}
 
