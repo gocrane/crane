@@ -63,8 +63,10 @@ func TestFftEstimator_GetEstimation(t *testing.T) {
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
-		components.NewPage().AddCharts(line).Render(w)
+		if err := components.NewPage().AddCharts(line).Render(w); err != nil {
+			// nothing to do
+		}
 	})
 	fmt.Println("Open your browser and access 'http://localhost:7001'")
-	http.ListenAndServe(":7001", nil)
+	//http.ListenAndServe(":7001", nil)
 }

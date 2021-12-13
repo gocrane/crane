@@ -1,0 +1,40 @@
+apiVersion: prediction.crane.io/v1alpha1
+kind: TimeSeriesPrediction
+metadata:
+  name: node-resource-dsp
+  namespace: default
+spec:
+  predictionWindowSeconds: 3600
+  predictionMetrics:
+    - resourceIdentifier: node-cpu
+      nodeResource:
+        name: 192.168.56.166
+        resource: cpu
+      algorithm:
+        algorithmType: "dsp"
+        dsp:
+          sampleInterval: "60s"
+          historyLength: "3d"
+          estimators:
+            fft:
+              - marginFraction: "0.2"
+                lowAmplitudeThreshold: "1.0"
+                highFrequencyThreshold: "0.05"
+                minNumOfSpectrumItems: 10
+                maxNumOfSpectrumItems: 20
+    - resourceIdentifier: node-mem
+      nodeResource:
+        name: 192.168.56.166
+        resource: memory
+      algorithm:
+        algorithmType: "dsp"
+        dsp:
+          sampleInterval: "60s"
+          historyLength: "3d"
+          estimators:
+            fft:
+              - marginFraction: "0.2"
+                lowAmplitudeThreshold: "1.0"
+                highFrequencyThreshold: "0.05"
+                minNumOfSpectrumItems: 10
+                maxNumOfSpectrumItems: 20

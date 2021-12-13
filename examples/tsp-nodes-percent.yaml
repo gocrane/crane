@@ -1,0 +1,38 @@
+apiVersion: prediction.crane.io/v1alpha1
+kind: TimeSeriesPrediction
+metadata:
+  name: tsp-nodes-percent
+  namespace: default
+spec:
+  predictionWindowSeconds: 600
+  predictionMetrics:
+    - resourceIdentifier: nodes-cpu
+      query:
+        expression: '1-avg(rate(node_cpu_seconds_total{mode="idle"}[1m])) by (instance)'
+      algorithm:
+        algorithmType: "percentile"
+        percentile:
+          sampleInterval: "1m"
+          minSampleWeight: "1.0"
+          histogram:
+            maxValue: "10000.0"
+            epsilon: "1e-10"
+            halfLife: "12h"
+            bucketSize: "10"
+            firstBucketSize: "40"
+            bucketSizeGrowthRatio: "1.5"
+    - resourceIdentifier: nodes-mem
+      query:
+        expression: 'sum(node_memory_MemTotal_bytes{} - node_memory_MemAvailable_bytes{}) by (instance)'
+      algorithm:
+        algorithmType: "percentile"
+        percentile:
+          sampleInterval: "1m"
+          minSampleWeight: "1.0"
+          histogram:
+            maxValue: "1000000.0"
+            epsilon: "1e-10"
+            halfLife: "12h"
+            bucketSize: "10"
+            firstBucketSize: "40"
+            bucketSizeGrowthRatio: "1.5"

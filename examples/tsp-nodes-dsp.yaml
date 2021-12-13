@@ -1,0 +1,38 @@
+apiVersion: prediction.crane.io/v1alpha1
+kind: TimeSeriesPrediction
+metadata:
+  name: tsp-nodes-dsp
+  namespace: default
+spec:
+  predictionWindowSeconds: 3600
+  predictionMetrics:
+    - resourceIdentifier: nodes-cpu
+      query:
+        expression: '1-avg(rate(node_cpu_seconds_total{mode="idle"}[1m])) by (instance)'
+      algorithm:
+        algorithmType: "dsp"
+        dsp:
+          sampleInterval: "60s"
+          historyLength: "3d"
+          estimators:
+            fft:
+              - marginFraction: "0.2"
+                lowAmplitudeThreshold: "1.0"
+                highFrequencyThreshold: "0.05"
+                minNumOfSpectrumItems: 10
+                maxNumOfSpectrumItems: 20
+    - resourceIdentifier: nodes-mem
+      query:
+        expression: 'sum(node_memory_MemTotal_bytes{} - node_memory_MemAvailable_bytes{}) by (instance)'
+      algorithm:
+        algorithmType: "dsp"
+        dsp:
+          sampleInterval: "60s"
+          historyLength: "3d"
+          estimators:
+            fft:
+              - marginFraction: "0.2"
+                lowAmplitudeThreshold: "1.0"
+                highFrequencyThreshold: "0.05"
+                minNumOfSpectrumItems: 10
+                maxNumOfSpectrumItems: 20

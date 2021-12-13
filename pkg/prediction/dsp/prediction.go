@@ -47,7 +47,7 @@ func preProcessTimeSeriesList(tsList []*common.TimeSeries, config *internalConfi
 		go func(ts *common.TimeSeries) {
 			defer wg.Done()
 			if err := preProcessTimeSeries(ts, config, Day); err != nil {
-				logger.Error(err, "Failed to pre process time series.")
+				logger.Error(err, "Dsp failed to pre process time series.")
 			} else {
 				tsCh <- ts
 			}
@@ -143,14 +143,16 @@ func (p *periodicSignalPrediction) Run(stopCh <-chan struct{}) {
 	for {
 		// Waiting for a WithQuery request
 		queryExpr := p.qr.Read().(string)
-		logger.Info("Received a WithQuery reques", "queryExpr", queryExpr)
+		logger.Info("Dsp received a WithQuery reques", "queryExpr", queryExpr)
 
 		go func(queryExpr string) {
 			ticker := time.NewTicker(queryInterval)
 			defer ticker.Stop()
 
 			for {
-				p.updateAggregateSignalsWithQuery(queryExpr)
+				if err := p.updateAggregateSignalsWithQuery(queryExpr); err != nil {
+					logger.V(6).Info(fmt.Sprintf("Warning: updateAggregateSignalsWithQuery failed, err: %s", err.Error()))
+				}
 				select {
 				case <-stopCh:
 					return
@@ -166,7 +168,7 @@ func (p *periodicSignalPrediction) updateAggregateSignalsWithQuery(queryExpr str
 	// Query history data for prediction
 	tsList, err := p.queryHistoryTimeSeries(queryExpr)
 	if err != nil {
-		logger.Error(err, "Failed to get time series.", "queryExpr", queryExpr)
+		logger.Error(err, "Dsp failed to get time series.", "queryExpr", queryExpr)
 		return err
 	}
 
@@ -189,9 +191,11 @@ func (p *periodicSignalPrediction) queryHistoryTimeSeries(queryExpr string) ([]*
 
 	tsList, err := p.GetHistoryProvider().QueryTimeSeries(queryExpr, start, end, config.historyResolution)
 	if err != nil {
-		logger.Error(err, "Failed to query history time series.")
+		logger.Error(err, "Dsp failed to query history time series.")
 		return nil, err
 	}
+
+	logger.V(7).Info("Dsp queryHistoryTimeSeries", "tsList", tsList, "config", *config)
 
 	return preProcessTimeSeriesList(tsList, config)
 }
@@ -207,12 +211,12 @@ func (p *periodicSignalPrediction) updateAggregateSignals(id string, tsList []*c
 
 		if isPeriodicTimeSeries(ts, config.historyResolution, Day) {
 			cycleDuration = Day
-			logger.Info("Time series is periodic.", "labels", ts.Labels, "cycleDuration", cycleDuration)
+			logger.Info("dsp time series is periodic.", "labels", ts.Labels, "cycleDuration", cycleDuration)
 		} else if isPeriodicTimeSeries(ts, config.historyResolution, Week) {
 			cycleDuration = Week
-			logger.Info("Time series is periodic.", "labels", ts.Labels, "cycleDuration", cycleDuration)
+			logger.Info("dsp time series is periodic.", "labels", ts.Labels, "cycleDuration", cycleDuration)
 		} else {
-			logger.Info("Time series is not periodic", "labels", ts.Labels)
+			logger.Info("dsp time series is not periodic", "labels", ts.Labels)
 		}
 
 		if cycleDuration > 0 {
@@ -246,8 +250,9 @@ func (p *periodicSignalPrediction) updateAggregateSignals(id string, tsList []*c
 
 	for i := range predictedTimeSeriesList {
 		key := prediction.AggregateSignalKey(id, predictedTimeSeriesList[i].Labels)
+		logger.Info("Dsp store aggregate signal key", "key", key)
 		if _, exists := p.a.Load(key); !exists {
-			logger.Info("AggregateSignalKey added.", "key", key)
+			logger.Info("dsp aggregateSignalKey added.", "key", key)
 			p.a.Store(key, newAggregateSignal())
 		}
 		a, _ := p.a.Load(key)
@@ -274,7 +279,7 @@ func bestEstimator(estimators []Estimator, signal *Signal, totalCycles int, cycl
 		estimated := estimators[i].GetEstimation(history, cycleDuration)
 		if estimated != nil {
 			pe, err := accuracy.PredictionError(actual.Samples, estimated.Samples)
-			logger.Info("Testing estimators ...", "estimator", estimators[i].String(), "error", pe)
+			logger.Info("Dsp testing estimators ...", "estimator", estimators[i].String(), "error", pe)
 			if err == nil && pe < minPE {
 				minPE = pe
 				bestEstimator = estimators[i]
@@ -282,7 +287,7 @@ func bestEstimator(estimators []Estimator, signal *Signal, totalCycles int, cycl
 		}
 	}
 
-	logger.Info("Got the best estimator", "error", minPE, "estimator", bestEstimator.String())
+	logger.Info("Dsp got the best estimator", "error", minPE, "estimator", bestEstimator.String())
 	return bestEstimator
 }
 
@@ -293,7 +298,7 @@ func (p *periodicSignalPrediction) QueryPredictedTimeSeries(rawQuery string, sta
 
 	tsList, err := p.GetRealtimeProvider().QueryLatestTimeSeries(rawQuery)
 	if err != nil {
-		logger.Error(err, "Failed to query latest time series")
+		logger.Error(err, "Dsp failed to query latest time series")
 		return nil, err
 	}
 
@@ -304,14 +309,13 @@ func (p *periodicSignalPrediction) QueryRealtimePredictedValues(queryExpr string
 	if p.GetRealtimeProvider() == nil {
 		return nil, fmt.Errorf("realtime data provider not set")
 	}
+	config := getInternalConfig(queryExpr)
 
 	tsList, err := p.GetRealtimeProvider().QueryLatestTimeSeries(queryExpr)
 	if err != nil {
-		logger.Error(err, "Failed to query latest time series")
+		logger.Error(err, "Dsp failed to query latest time series")
 		return nil, err
 	}
-
-	config := getInternalConfig(queryExpr)
 
 	now := time.Now()
 	start := now.Truncate(config.historyResolution)
@@ -344,9 +348,10 @@ func (p *periodicSignalPrediction) getPredictedTimeSeriesList(id string, tsList 
 
 	for _, ts := range tsList {
 		key := prediction.AggregateSignalKey(id, ts.Labels)
+		logger.Info("Dsp get aggregate signal key", "key", key)
 		a, exists := p.a.Load(key)
 		if !exists {
-			logger.Info("Aggregate signal not found", "key", key)
+			logger.Info("Dsp aggregate signal not found", "key", key)
 			continue
 		}
 
@@ -368,7 +373,7 @@ func (p *periodicSignalPrediction) getPredictedTimeSeriesList(id string, tsList 
 			})
 		}
 
-		logger.Info("Got predicted samples.", "id", id, "len", len(samples), "labels", a.predictedTimeSeries.Labels)
+		logger.Info("Dsp got predicted samples.", "id", id, "len", len(samples), "labels", a.predictedTimeSeries.Labels)
 	}
 	return predictedTimeSeriesList
 }
