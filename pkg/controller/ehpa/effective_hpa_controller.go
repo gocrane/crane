@@ -161,12 +161,12 @@ func (c *EffectiveHPAController) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func setCondition(status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus, conditionType autoscalingapi.ConditionType, conditionStatus metav1.ConditionStatus, reason string, message string) {
-	for _, cond := range status.Conditions {
-		if cond.Type == string(conditionType) {
-			cond.Status = conditionStatus
-			cond.Reason = reason
-			cond.Message = message
-			cond.LastTransitionTime = metav1.Now()
+	for i := range status.Conditions {
+		if status.Conditions[i].Type == string(conditionType) {
+			status.Conditions[i].Status = conditionStatus
+			status.Conditions[i].Reason = reason
+			status.Conditions[i].Message = message
+			status.Conditions[i].LastTransitionTime = metav1.Now()
 			return
 		}
 	}
