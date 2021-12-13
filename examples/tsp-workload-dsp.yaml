@@ -4,10 +4,15 @@ metadata:
   name: tsp-workload-dsp
   namespace: default
 spec:
+  targetRef:
+    kind: Deployment
+    name: dep-1-100m-500mib
+    namespace: default
   predictionWindowSeconds: 3600
   predictionMetrics:
     - resourceIdentifier: workload-cpu
-      query:
+      type: RawQuery
+      rawQuery:
         expression: 'sum (irate (container_cpu_usage_seconds_total{container!="",image!="",name=~"^k8s_.*",container!="POD",pod=~"^dep-1-100m-500mib-.*$"}[1m]))'
       algorithm:
         algorithmType: "dsp"
@@ -22,7 +27,8 @@ spec:
                 minNumOfSpectrumItems: 10
                 maxNumOfSpectrumItems: 20
     - resourceIdentifier: workload-mem
-      query:
+      type: RawQuery
+      rawQuery:
         expression: 'sum(container_memory_working_set_bytes{container!="",image!="", container!="POD",pod=~"^dep-1-100m-500mib-.*$"})'
       algorithm:
         algorithmType: "dsp"

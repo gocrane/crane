@@ -3,14 +3,13 @@ package tsp
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/equality"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -31,9 +30,6 @@ type Controller struct {
 	lock sync.Mutex
 	// predictors used to do predict and config, maybe the predictor should running as a independent system not as a built-in goroutines logic
 	predictors map[predictionv1alph1.AlgorithmType]prediction.Interface
-
-	// delayQueue is used to put the TimeSeriesPrediction based on PredictionWindowSeconds
-	delayQueue workqueue.DelayingInterface
 }
 
 func NewController(
@@ -49,10 +45,10 @@ func NewController(
 		Recorder:     recorder,
 		UpdatePeriod: updatePeriod,
 		predictors:   predictors,
-		delayQueue:   workqueue.NewNamedDelayingQueue("tsp-controller"),
 	}
 }
 
+// Reconcile
 func (tc *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	tc.Logger.Info("Got a time series prediction res", "tsp", req.NamespacedName)
 
@@ -70,28 +66,7 @@ func (tc *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Res
 		}
 	}
 
-	tc.syncTimeSeriesPrediction(p)
-
-	return ctrl.Result{}, nil
-}
-
-// Start starts an asynchronous loop that update the status of TimeSeriesPrediction.
-// Scan all of the predictions in actual state of worlds, check if the prediction need to update, then get the predicted data.
-func (c *Controller) Start(ctx context.Context) error {
-	c.Logger.Info("Starting TimeSeriesPrediction updator")
-	defer c.Logger.Info("Shutting TimeSeriesPrediction updator")
-
-	go wait.UntilWithContext(ctx, func(ctx context.Context) {
-		if err := c.syncPredictionsStatus(ctx); err != nil {
-			c.Logger.Error(err, "Error syncPredictionsStatus")
-		}
-	}, c.UpdatePeriod)
-
-	go c.updateStatusDelayQueue()
-
-	<-ctx.Done()
-
-	return nil
+	return tc.syncTimeSeriesPrediction(ctx, p)
 }
 
 // SetupWithManager creates a controller and register to controller manager.
@@ -102,23 +77,14 @@ func (tc *Controller) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 // sync the config to predictor
-func (tc *Controller) syncTimeSeriesPrediction(prediction *predictionv1alph1.TimeSeriesPrediction) {
+func (tc *Controller) syncTimeSeriesPrediction(ctx context.Context, prediction *predictionv1alph1.TimeSeriesPrediction) (ctrl.Result, error) {
 	key := GetTimeSeriesPredictionKey(prediction)
 
 	c := NewMetricContext(prediction)
 
 	last, ok := tc.tsPredictionMap.Load(key)
 	if !ok { // first time created or system start
-
 		c.WithApiConfigs(prediction.Spec.PredictionMetrics)
-		//newStatus := prediction.Status.DeepCopy()
-		//cond := &predictionv1alph1.TimeSeriesPredictionCondition{
-		//	Type:               predictionv1alph1.TimeSeriesPredictionConditionNotReady,
-		//	Status:             metav1.ConditionTrue,
-		//	LastProbeTime:      metav1.Now(),
-		//	LastTransitionTime: metav1.Now(),
-		//}
-		//UpdateTimeSeriesPredictionCondition(newStatus, cond)
 	} else {
 		if old, ok := last.(*predictionv1alph1.TimeSeriesPrediction); ok {
 			// predictor need a interface to query the config and then diff.
@@ -139,8 +105,8 @@ func (tc *Controller) syncTimeSeriesPrediction(prediction *predictionv1alph1.Tim
 	}
 
 	tc.tsPredictionMap.Store(key, prediction)
-	// add the prediction to time delay queue for update
-	tc.delayQueue.AddAfter(key, time.Duration(prediction.Spec.PredictionWindowSeconds)*time.Second)
+
+	return tc.syncPredictionStatus(ctx, prediction)
 
 }
 
@@ -148,8 +114,9 @@ func NewMetricContext(prediction *predictionv1alph1.TimeSeriesPrediction) *predc
 	c := &predconfig.MetricContext{
 		Namespace:  prediction.Namespace,
 		TargetKind: prediction.Spec.TargetRef.Kind,
+		Name:       prediction.Spec.TargetRef.Name,
 	}
-	if c.TargetKind != predconfig.TargetKindNode && prediction.Spec.TargetRef.Namespace != "" {
+	if strings.ToLower(c.TargetKind) != strings.ToLower(predconfig.TargetKindNode) && prediction.Spec.TargetRef.Namespace != "" {
 		c.Namespace = prediction.Spec.TargetRef.Namespace
 	}
 	return c
