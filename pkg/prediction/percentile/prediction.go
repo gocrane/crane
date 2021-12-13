@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gocrane/crane/pkg/common"
-	"github.com/gocrane/crane/pkg/prediction/config"
 	"k8s.io/klog/v2"
 
+	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/prediction"
+	"github.com/gocrane/crane/pkg/prediction/config"
 )
 
 var _ prediction.Interface = &percentilePrediction{}

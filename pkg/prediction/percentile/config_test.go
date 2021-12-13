@@ -7,7 +7,6 @@ import (
 	"github.com/gocrane/api/prediction/v1alpha1"
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/stretchr/testify/assert"
-	//"time"
 )
 
 var expr = "container_cpu_core_used"
