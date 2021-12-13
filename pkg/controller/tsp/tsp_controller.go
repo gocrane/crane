@@ -116,7 +116,7 @@ func NewMetricContext(prediction *predictionv1alph1.TimeSeriesPrediction) *predc
 		TargetKind: prediction.Spec.TargetRef.Kind,
 		Name:       prediction.Spec.TargetRef.Name,
 	}
-	if strings.ToLower(c.TargetKind) != predconfig.TargetKindNode && prediction.Spec.TargetRef.Namespace != "" {
+	if strings.ToLower(c.TargetKind) != strings.ToLower(predconfig.TargetKindNode) && prediction.Spec.TargetRef.Namespace != "" {
 		c.Namespace = prediction.Spec.TargetRef.Namespace
 	}
 	return c

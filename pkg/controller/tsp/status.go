@@ -30,7 +30,7 @@ import (
 func (tc *Controller) syncPredictionStatus(ctx context.Context, tsPrediction *v1alpha1.TimeSeriesPrediction) (ctrl.Result, error) {
 	newStatus := tsPrediction.Status.DeepCopy()
 	key := GetTimeSeriesPredictionKey(tsPrediction)
-	tc.Logger.Info("SyncPredictionsStatus check asw and dsw", "key", key)
+	tc.Logger.V(3).Info("SyncPredictionsStatus check asw and dsw", "key", key)
 	if err := tc.Client.Get(ctx, client.ObjectKey{Name: tsPrediction.Name, Namespace: tsPrediction.Namespace}, tsPrediction); err != nil {
 		// If the prediction does not exist any more, we delete the prediction data from the map.
 		if apierrors.IsNotFound(err) {
@@ -48,7 +48,7 @@ func (tc *Controller) syncPredictionStatus(ctx context.Context, tsPrediction *v1
 	warnings := tc.isPredictionDataOutDated(windowStart, windowEnd, tsPrediction.Status.PredictionMetrics)
 	// force predict and update the status
 	if len(warnings) > 0 {
-		tc.Logger.Info("Check status predict data is out of date", "range", fmt.Sprintf("[%v, %v]", windowStart, windowEnd), "key", key)
+		tc.Logger.V(3).Info("Check status predict data is out of date", "range", fmt.Sprintf("[%v, %v]", windowStart, windowEnd), "key", key)
 		predictionStart := time.Now()
 		// double the time to predict so that crd consumer always see time series range [now, now + PredictionWindowSeconds] in PredictionWindowSeconds window
 		predictionEnd := predictionStart.Add(time.Duration(tsPrediction.Spec.PredictionWindowSeconds) * time.Second * 2)
@@ -62,7 +62,7 @@ func (tc *Controller) syncPredictionStatus(ctx context.Context, tsPrediction *v1
 		newStatus.PredictionMetrics = predictedData
 
 		if len(tsPrediction.Spec.PredictionMetrics) != len(predictedData) {
-			tc.Logger.Info("DoPredict predict data is partial", "predictedDataLen", len(predictedData), "key", key)
+			tc.Logger.V(3).Info("DoPredict predict data is partial", "predictedDataLen", len(predictedData), "key", key)
 			setCondition(newStatus, v1alpha1.TimeSeriesPredictionConditionReady, metav1.ConditionFalse, known.ReasonTimeSeriesPredictPartial, "not all metric predicted")
 			err = tc.UpdateStatus(ctx, tsPrediction, newStatus)
 			if err != nil {
@@ -76,7 +76,7 @@ func (tc *Controller) syncPredictionStatus(ctx context.Context, tsPrediction *v1
 		windowEnd := predictionStart.Add(time.Duration(tsPrediction.Spec.PredictionWindowSeconds) * time.Second)
 		warnings := tc.isPredictionDataOutDated(windowStart, windowEnd, predictedData)
 		if len(warnings) > 0 {
-			tc.Logger.Info("DoPredict predict data is partial", "range", fmt.Sprintf("[%v, %v]", windowStart, windowEnd), "key", key)
+			tc.Logger.V(3).Info("DoPredict predict data is partial", "range", fmt.Sprintf("[%v, %v]", windowStart, windowEnd), "key", key)
 			setCondition(newStatus, v1alpha1.TimeSeriesPredictionConditionReady, metav1.ConditionFalse, known.ReasonTimeSeriesPredictPartial, strings.Join(warnings, ";"))
 			err = tc.UpdateStatus(ctx, tsPrediction, newStatus)
 			if err != nil {
@@ -84,7 +84,7 @@ func (tc *Controller) syncPredictionStatus(ctx context.Context, tsPrediction *v1
 				return ctrl.Result{}, err
 			}
 		} else {
-			tc.Logger.Info("DoPredict predict data is complete", "range", fmt.Sprintf("[%v, %v]", windowStart, windowEnd), "key", key)
+			tc.Logger.V(3).Info("DoPredict predict data is complete", "range", fmt.Sprintf("[%v, %v]", windowStart, windowEnd), "key", key)
 			// status.conditions.reason in body should be at least 1 chars long
 			setCondition(newStatus, v1alpha1.TimeSeriesPredictionConditionReady, metav1.ConditionTrue, known.ReasonTimeSeriesPredictSucceed, "")
 
