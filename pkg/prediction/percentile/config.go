@@ -2,15 +2,14 @@ package percentile
 
 import (
 	"reflect"
-
-	"github.com/gocrane/api/prediction/v1alpha1"
-	"github.com/gocrane/crane/pkg/utils"
-	vpa "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/recommender/util"
-
 	"sync"
 	"time"
 
+	vpa "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/recommender/util"
+
+	"github.com/gocrane/api/prediction/v1alpha1"
 	"github.com/gocrane/crane/pkg/prediction/config"
+	"github.com/gocrane/crane/pkg/utils"
 )
 
 //var metricToInternalConfigMap map[string]*internalConfig = map[string]*internalConfig{}
