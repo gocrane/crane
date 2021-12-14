@@ -51,7 +51,7 @@ func (c *RecommendationController) Reconcile(ctx context.Context, req ctrl.Reque
 
 	proposed, err := recommender.Offer()
 	if err != nil {
-		c.Recorder.Event(recommendation, v1.EventTypeNormal, "FailedOfferRecommend", err.Error())
+		c.Recorder.Event(recommendation, v1.EventTypeNormal, "FailedOfferRecommendation", err.Error())
 		c.Log.Error(err, "Failed to offer recommend", "recommendation", klog.KObj(recommendation))
 		setCondition(newStatus, "Ready", metav1.ConditionFalse, "FailedOfferRecommend", "Failed to offer recommend")
 		c.UpdateStatus(ctx, recommendation, newStatus)
@@ -80,7 +80,7 @@ func (c *RecommendationController) UpdateStatus(ctx context.Context, recommendat
 			return
 		}
 
-		c.Log.Info("Update Recommendation status successful", "ehpa", klog.KObj(recommendation))
+		c.Log.Info("Update Recommendation status successful", "recommendation", klog.KObj(recommendation))
 	}
 }
 

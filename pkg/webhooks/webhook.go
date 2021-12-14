@@ -18,12 +18,13 @@ package v1alpha1
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/gocrane/api/prediction/v1alpha1"
-	"github.com/gocrane/crane/pkg/utils/log"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	"github.com/gocrane/api/prediction/v1alpha1"
+
+	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 func SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -50,7 +51,6 @@ func (p *PredictionAdmission) Default(ctx context.Context, req runtime.Object) e
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (p *PredictionAdmission) ValidateCreate(ctx context.Context, req runtime.Object) error {
-	fmt.Println("ValidateCreate")
 	log.Logger().Info("validate create", "name", req)
 	return nil
 }

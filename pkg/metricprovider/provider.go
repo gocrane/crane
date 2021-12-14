@@ -32,7 +32,7 @@ type metricValue struct {
 
 var _ provider.CustomMetricsProvider = &MetricProvider{}
 
-// MetricProvider is a implementation of provider.MetricsProvider which provide predictive metric for resource
+// MetricProvider is an implementation of provider.MetricsProvider which provide predictive metric for resource
 type MetricProvider struct {
 	client   client.Client
 	recorder record.EventRecorder
@@ -56,7 +56,7 @@ func (p *MetricProvider) GetMetricBySelector(ctx context.Context, namespace stri
 	klog.Info("Get metric for custom metric", "GroupResource", info.GroupResource.String(), "namespace", namespace, "metric", info.Metric, "selector", selector.String(), "metricSelector", metricSelector.String())
 
 	var matchingMetrics []custom_metrics.MetricValue
-	prediction, err := p.GetPodPrediction(ctx, namespace, metricSelector)
+	prediction, err := p.GetPrediction(ctx, namespace, metricSelector)
 	if err != nil {
 		return nil, err
 	}
@@ -75,18 +75,23 @@ func (p *MetricProvider) GetMetricBySelector(ctx context.Context, namespace stri
 	// check prediction is ongoing
 	if prediction.Status.Conditions != nil {
 		for _, condition := range prediction.Status.Conditions {
-			if condition.Type == predictionapi.PredictionConditionPredicting && condition.Status == metav1.ConditionTrue {
+			if condition.Type == string(predictionapi.TimeSeriesPredictionConditionReady) && condition.Status == metav1.ConditionTrue {
 				isPredicting = true
 			}
 		}
 	}
 
 	if !isPredicting {
-		return nil, fmt.Errorf("PodGroupPrediction is not predicting. ")
+		return nil, fmt.Errorf("TimeSeriesPrediction is not ready. ")
 	}
 
-	timeSeries := prediction.Status.Aggregation[info.Metric]
-	// check time series for current metric is fulfilled
+	var timeSeries *predictionapi.MetricTimeSeries
+	for _, metricStatus := range prediction.Status.PredictionMetrics {
+		if metricStatus.ResourceIdentifier == info.Metric && len(metricStatus.Prediction) == 1 {
+			timeSeries = metricStatus.Prediction[0]
+		}
+	}
+	// check time series for current metric is empty
 	if timeSeries == nil {
 		return nil, fmt.Errorf("TimeSeries is empty, metric name %s", info.Metric)
 	}
@@ -94,9 +99,9 @@ func (p *MetricProvider) GetMetricBySelector(ctx context.Context, namespace stri
 	// get the largest value from timeSeries
 	// use the largest value will bring up the scaling up and defer the scaling down
 	timestampStart := time.Now()
-	timestamepEnd := timestampStart.Add(prediction.Spec.PredictionWindow.Duration)
+	timestamepEnd := timestampStart.Add(time.Duration(prediction.Spec.PredictionWindowSeconds) * time.Second)
 	largestMetricValue := &metricValue{}
-	for _, v := range timeSeries {
+	for _, v := range timeSeries.Samples {
 		// exclude values that not in time range
 		if v.Timestamp < timestampStart.Unix() || v.Timestamp > timestamepEnd.Unix() {
 			continue
@@ -162,7 +167,7 @@ func (p *MetricProvider) ListAllMetrics() []provider.CustomMetricInfo {
 	}
 }
 
-func (p *MetricProvider) GetPodPrediction(ctx context.Context, namespace string, metricSelector labels.Selector) (*predictionapi.PodGroupPrediction, error) {
+func (p *MetricProvider) GetPrediction(ctx context.Context, namespace string, metricSelector labels.Selector) (*predictionapi.TimeSeriesPrediction, error) {
 	labelSelector, err := labels.ConvertSelectorToLabelsMap(metricSelector.String())
 	if err != nil {
 		klog.Error(err, "Failed to convert metric selectors to labels")
@@ -175,16 +180,16 @@ func (p *MetricProvider) GetPodPrediction(ctx context.Context, namespace string,
 		matchingLabels[key] = value
 	}
 
-	predictionList := &predictionapi.PodGroupPredictionList{}
+	predictionList := &predictionapi.TimeSeriesPredictionList{}
 	opts := []client.ListOption{
 		matchingLabels,
 		client.InNamespace(namespace),
 	}
 	err = p.client.List(ctx, predictionList, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get PodGroupPrediction when get custom metric ")
+		return nil, fmt.Errorf("Failed to get TimeSeriesPrediction when get custom metric ")
 	} else if len(predictionList.Items) != 1 {
-		return nil, fmt.Errorf("Only one PodGroupPrediction should match the selector %s ", metricSelector.String())
+		return nil, fmt.Errorf("Only one TimeSeriesPrediction should match the selector %s ", metricSelector.String())
 	}
 
 	return &predictionList.Items[0], nil

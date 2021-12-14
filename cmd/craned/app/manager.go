@@ -111,6 +111,11 @@ func Run(ctx context.Context, opts *options.Options) error {
 }
 func initializationWebhooks(mgr ctrl.Manager, opts *options.Options) {
 	log.Logger().Info(fmt.Sprintf("opts %v", opts))
+
+	if certDir := os.Getenv("WEBHOOK_CERT_DIR"); len(certDir) > 0 {
+		mgr.GetWebhookServer().CertDir = certDir
+	}
+
 	if err := webhooks.SetupWebhookWithManager(mgr); err != nil {
 		log.Logger().Error(err, "unable to create webhook", "webhook", "TimeSeriesPrediction")
 		os.Exit(1)

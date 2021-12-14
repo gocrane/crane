@@ -33,7 +33,6 @@ spec:
             - /metric-adapter
             - --secure-port=6443
             - --alsologtostderr=true
-            - --v=10
           ports:
             - containerPort: 6443
               name: https
