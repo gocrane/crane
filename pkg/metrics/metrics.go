@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
+
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
@@ -23,6 +24,16 @@ var (
 			Help:      "Replicas for Effective HPA",
 		},
 		[]string{"identity", "strategy"},
+	)
+
+	TSPMetric = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "crane",
+			Subsystem: "prediction",
+			Name:      "time_series_prediction_metric",
+			Help:      "prediction value for TimeSeriesPrediction",
+		},
+		[]string{"targetKind", "targetName", "targetNamespace", "resourceIdentifier", "type", "resourceQuery", "expressionQuery", "rawQuery", "algorithm", "aggregateKey"},
 	)
 )
 

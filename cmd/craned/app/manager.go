@@ -227,6 +227,8 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 		opts.PredictionUpdateFrequency,
 		predictors,
 	)
+	// register as prometheus metric collector
+	tspController.RegisterMetric()
 	if err := tspController.SetupWithManager(mgr); err != nil {
 		log.Logger().Error(err, "unable to create controller", "controller", "TspController")
 		os.Exit(1)
