@@ -51,7 +51,7 @@ func (c *SubstituteController) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	newStatus := autoscalingapi.SubstituteStatus{
 		LabelSelector: scale.Status.Selector,
-		Replicas: substitute.Spec.Replicas,
+		Replicas:      substitute.Spec.Replicas,
 	}
 
 	if !equality.Semantic.DeepEqual(&substitute.Status, &newStatus) {

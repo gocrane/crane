@@ -75,7 +75,7 @@ func (c *EffectiveHPAController) NewSubstituteObject(ehpa *autoscalingapi.Effect
 		},
 		Spec: autoscalingapi.SubstituteSpec{
 			SubstituteTargetRef: ehpa.Spec.ScaleTargetRef,
-			Replicas: scale.Spec.Replicas,
+			Replicas:            scale.Spec.Replicas,
 		},
 	}
 
