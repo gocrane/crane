@@ -205,7 +205,7 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 	})
 	go percentilePredictor.Run(ctx.Done())
 
-	dspPredictor, err := dsp.NewPrediction()
+	dspPredictor, err := dsp.NewPrediction(opts.AlgorithmModelConfig)
 	if err != nil {
 		log.Logger().Error(err, "unable to create controller", "controller", "TspController")
 		os.Exit(1)

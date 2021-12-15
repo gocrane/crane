@@ -1,8 +1,14 @@
 package config
 
 import (
+	"time"
+
 	"github.com/gocrane/api/prediction/v1alpha1"
 )
+
+type AlgorithmModelConfig struct {
+	UpdateInterval time.Duration
+}
 
 type Config struct {
 	MetricSelector *v1alpha1.ExpressionQuery

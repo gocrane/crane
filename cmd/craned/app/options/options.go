@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/pflag"
 
+	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/providers"
 )
 
@@ -26,6 +27,9 @@ type Options struct {
 	DataSourcePromConfig providers.PromConfig
 	// DataSourceMockConfig is the mock data provider
 	DataSourceMockConfig providers.MockConfig
+
+	// AlgorithmModelConfig
+	AlgorithmModelConfig config.AlgorithmModelConfig
 }
 
 // NewOptions builds an empty options.
@@ -68,5 +72,7 @@ func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.DurationVar(&o.DataSourcePromConfig.Timeout, "prometheus-timeout", 60*time.Second, "prometheus timeout")
 	flags.BoolVar(&o.DataSourcePromConfig.BRateLimit, "prometheus-bratelimit", false, "prometheus bratelimit")
 	flags.StringVar(&o.DataSourceMockConfig.SeedFile, "seed-file", "", "mock provider seed file")
+
+	flags.DurationVar(&o.AlgorithmModelConfig.UpdateInterval, "model-update-interval", 12*time.Hour, "algorithm model update interval, now used for dsp model update interval")
 
 }
