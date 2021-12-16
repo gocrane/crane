@@ -1,0 +1,85 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: crane-agent
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods/eviction
+      - pods/status
+      - pods
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - "*"
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+      - nodes/status
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - patch
+  - apiGroups:
+      - "ensurance.crane.io"
+    resources:
+      - nodeqosensurancepolicies
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - patch
+  - apiGroups:
+      - "ensurance.crane.io"
+    resources:
+      - podqosensurancepolicies
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - patch
+  - apiGroups:
+      - "ensurance.crane.io"
+    resources:
+      - avoidanceactions
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: crane-agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: crane-agent
+subjects:
+  - kind: ServiceAccount
+    name: crane-agent
+    namespace: crane-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: crane-agent
+  namespace: crane-system

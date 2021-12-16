@@ -23,7 +23,7 @@ import (
 
 	"k8s.io/component-base/logs"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"github.com/gocrane-io/crane/pkg/utils/clogs"
+	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 func main() {
@@ -38,12 +38,12 @@ func main() {
 
 ```
 import (
-   "github.com/gocrane-io/crane/pkg/utils/clogs"
+   "github.com/gocrane/crane/pkg/utils/log"
 )
 
 func A() {
-   clogs.Log().Info("run manager")
-   clogs.Log().Error(err, "opts validate failed")
+   log.Logger().V(2).Info("run manager")
+   log.Logger().Error(err, "opts validate failed")
 }
 
 ```
@@ -52,12 +52,12 @@ func A() {
 
 ```
 import (
-   "github.com/gocrane-io/crane/pkg/utils/clogs"
+   "github.com/gocrane/crane/pkg/utils/log"
 )
 
 func A() {
-   clogs.Log().WithName("extent-name").Info("run manager")
-   clogs.Log().WithName("extent-name").Error(err, "opts validate failed")
+   log.Logger().WithName("extent-name").Info("run manager")
+   log.Logger().WithName("extent-name").Error(err, "opts validate failed")
 }
 
 ```
@@ -66,7 +66,7 @@ when in controller, we can initialize a logger when new the controller manager
 ```
 &xxxx.xxxxxController{
 		Client:     mgr.GetClient(),
-		Log:        clogs.Log().WithName("extent-name"),
+		Log:        log.Logger().WithName("extent-name"),
 		Scheme:     mgr.GetScheme(),
 	}
 ```
@@ -81,5 +81,5 @@ then in the controller logics to use the log like this(p is the ptr of the contr
 
 we can use `GenerateKey` to print the info of resource object, like this:
 ```
-clogs.Log().Info("object %s is updated successfully", clogs.GenerateKey(object.Name, object.Namespace))
+log.Logger().V(2).Info("object %s is updated successfully", clogs.GenerateKey(object.Name, object.Namespace))
 ```

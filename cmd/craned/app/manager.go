@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/discovery"
@@ -15,8 +16,6 @@ import (
 	"k8s.io/client-go/scale"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
-
-	"github.com/spf13/cobra"
 
 	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
@@ -99,9 +98,11 @@ func Run(ctx context.Context, opts *options.Options) error {
 		log.Logger().Error(err, "failed to add health check endpoint")
 		return err
 	}
+
 	initializationWebhooks(mgr, opts)
 	initializationControllers(ctx, mgr, opts)
 	log.Logger().Info("Starting crane manager")
+
 	if err := mgr.Start(ctx); err != nil {
 		log.Logger().Error(err, "problem running crane manager")
 		return err
