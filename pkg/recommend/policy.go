@@ -6,11 +6,11 @@ func init() {
 	recommenderPolicy = RecommendationPolicy{
 		Spec: RecommendationPolicySpec{
 			InspectorPolicy: InspectorPolicy{
-				PodAvailableRatio:  0.5,
-				PodMinReadySeconds: 0,
-				DeploymentMinReplicas: 2,
+				PodAvailableRatio:      0.5,
+				PodMinReadySeconds:     0,
+				DeploymentMinReplicas:  2,
 				StatefulSetMinReplicas: 2,
-				WorkloadMinReplicas: 2,
+				WorkloadMinReplicas:    2,
 			},
 		},
 	}

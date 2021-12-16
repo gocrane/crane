@@ -39,6 +39,7 @@ spec:
           imagePullPolicy: IfNotPresent
           command:
             - /craned
+            - --prometheus-address=http://prometheus-service.monitoring.svc.cluster.local
             - -v=4
           volumeMounts:
             - mountPath: /tmp/k8s-webhook-server/serving-certs

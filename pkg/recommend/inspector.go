@@ -59,9 +59,9 @@ func NewInspectors(context *Context) []Inspector {
 	var inspectors []Inspector
 
 	switch context.Recommendation.Spec.Type {
-	case analysisapi.TypeResource:
+	case analysisapi.AnalysisTypeResource:
 		// todo
-	case analysisapi.TypeHPA:
+	case analysisapi.AnalysisTypeHPA:
 		if context.Scale != nil {
 			inspector := &WorkloadInspector{
 				Context: context,

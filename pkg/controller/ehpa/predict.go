@@ -3,7 +3,6 @@ package ehpa
 import (
 	"context"
 	"fmt"
-	"time"
 
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	v1 "k8s.io/api/core/v1"
@@ -20,29 +19,29 @@ import (
 	"github.com/gocrane/crane/pkg/known"
 )
 
-func (c *EffectiveHPAController) ReconcilePodPredication(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) (*predictionapi.PodGroupPrediction, error) {
-	predictionList := &predictionapi.PodGroupPredictionList{}
+func (c *EffectiveHPAController) ReconcilePredication(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) (*predictionapi.TimeSeriesPrediction, error) {
+	predictionList := &predictionapi.TimeSeriesPredictionList{}
 	opts := []client.ListOption{
 		client.MatchingLabels(map[string]string{known.EffectiveHorizontalPodAutoscalerUidLabel: string(ehpa.UID)}),
 	}
 	err := c.Client.List(ctx, predictionList, opts...)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return c.CreatePodPrediction(ctx, ehpa)
+			return c.CreatePrediction(ctx, ehpa)
 		} else {
 			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedGetPrediction", err.Error())
-			c.Log.Error(err, "Failed to get PodGroupPrediction", "ehpa", klog.KObj(ehpa))
+			c.Log.Error(err, "Failed to get TimeSeriesPrediction", "ehpa", klog.KObj(ehpa))
 			return nil, err
 		}
 	} else if len(predictionList.Items) == 0 {
-		return c.CreatePodPrediction(ctx, ehpa)
+		return c.CreatePrediction(ctx, ehpa)
 	}
 
-	return c.UpdatePodPredictionIfNeed(ctx, ehpa, &predictionList.Items[0])
+	return c.UpdatePredictionIfNeed(ctx, ehpa, &predictionList.Items[0])
 }
 
-func (c *EffectiveHPAController) GetPodPredication(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) (*predictionapi.PodGroupPrediction, error) {
-	predictionList := &predictionapi.PodGroupPredictionList{}
+func (c *EffectiveHPAController) GetPredication(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) (*predictionapi.TimeSeriesPrediction, error) {
+	predictionList := &predictionapi.TimeSeriesPredictionList{}
 	opts := []client.ListOption{
 		client.MatchingLabels(map[string]string{known.EffectiveHorizontalPodAutoscalerUidLabel: string(ehpa.UID)}),
 	}
@@ -56,55 +55,55 @@ func (c *EffectiveHPAController) GetPodPredication(ctx context.Context, ehpa *au
 	return &predictionList.Items[0], nil
 }
 
-func (c *EffectiveHPAController) CreatePodPrediction(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) (*predictionapi.PodGroupPrediction, error) {
-	podPrediction, err := c.NewPodPredictionObject(ehpa)
+func (c *EffectiveHPAController) CreatePrediction(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) (*predictionapi.TimeSeriesPrediction, error) {
+	prediction, err := c.NewPredictionObject(ehpa)
 	if err != nil {
 		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreatePredictionObject", err.Error())
-		c.Log.Error(err, "Failed to create object", "PodGroupPrediction", podPrediction)
+		c.Log.Error(err, "Failed to create object", "TimeSeriesPrediction", prediction)
 		return nil, err
 	}
 
-	err = c.Client.Create(ctx, podPrediction)
+	err = c.Client.Create(ctx, prediction)
 	if err != nil {
 		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreatePrediction", err.Error())
-		c.Log.Error(err, "Failed to create", "PodGroupPrediction", podPrediction)
+		c.Log.Error(err, "Failed to create", "TimeSeriesPrediction", prediction)
 		return nil, err
 	}
 
-	c.Log.Info("Create successfully", "PodGroupPrediction", klog.KObj(podPrediction))
-	c.Recorder.Event(ehpa, v1.EventTypeNormal, "PodGroupPredictionCreated", "Create PodGroupPrediction successfully")
+	c.Log.Info("Create successfully", "TimeSeriesPrediction", klog.KObj(prediction))
+	c.Recorder.Event(ehpa, v1.EventTypeNormal, "PredictionCreated", "Create TimeSeriesPrediction successfully")
 
-	return podPrediction, nil
+	return prediction, nil
 }
 
-func (c *EffectiveHPAController) UpdatePodPredictionIfNeed(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, podPredictionExist *predictionapi.PodGroupPrediction) (*predictionapi.PodGroupPrediction, error) {
-	podPrediction, err := c.NewPodPredictionObject(ehpa)
+func (c *EffectiveHPAController) UpdatePredictionIfNeed(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, predictionExist *predictionapi.TimeSeriesPrediction) (*predictionapi.TimeSeriesPrediction, error) {
+	prediction, err := c.NewPredictionObject(ehpa)
 	if err != nil {
 		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreatePredictionObject", err.Error())
-		c.Log.Error(err, "Failed to create object", "PodGroupPrediction", podPrediction)
+		c.Log.Error(err, "Failed to create object", "TimeSeriesPrediction", prediction)
 		return nil, err
 	}
 
-	if !equality.Semantic.DeepEqual(&podPredictionExist.Spec, &podPrediction.Spec) {
-		c.Log.V(4).Info("PodGroupPrediction is unsynced according to EffectiveHorizontalPodAutoscaler, should be updated", "currentPodPrediction", podPredictionExist.Spec, "expectPodPrediction", podPrediction.Spec)
+	if !equality.Semantic.DeepEqual(&predictionExist.Spec, &prediction.Spec) {
+		c.Log.V(4).Info("TimeSeriesPrediction is unsynced according to EffectiveHorizontalPodAutoscaler, should be updated", "currentTimeSeriesPrediction", predictionExist.Spec, "expectTimeSeriesPrediction", prediction.Spec)
 
-		podPredictionExist.Spec = podPrediction.Spec
-		err := c.Update(ctx, podPredictionExist)
+		predictionExist.Spec = prediction.Spec
+		err := c.Update(ctx, predictionExist)
 		if err != nil {
 			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedUpdatePrediction", err.Error())
-			c.Log.Error(err, "Failed to update", "PodGroupPrediction", podPredictionExist)
+			c.Log.Error(err, "Failed to update", "TimeSeriesPrediction", predictionExist)
 			return nil, err
 		}
 
-		c.Log.Info("Update PodGroupPrediction successful", "PodGroupPrediction", klog.KObj(podPredictionExist))
+		c.Log.Info("Update TimeSeriesPrediction successful", "TimeSeriesPrediction", klog.KObj(predictionExist))
 	}
 
-	return podPredictionExist, nil
+	return predictionExist, nil
 }
 
-func (c *EffectiveHPAController) NewPodPredictionObject(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) (*predictionapi.PodGroupPrediction, error) {
+func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) (*predictionapi.TimeSeriesPrediction, error) {
 	name := fmt.Sprintf("ehpa-%s", ehpa.Name)
-	prediction := &predictionapi.PodGroupPrediction{
+	prediction := &predictionapi.TimeSeriesPrediction{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ehpa.Namespace, // the same namespace to effectivehpa
 			Name:      name,
@@ -115,15 +114,18 @@ func (c *EffectiveHPAController) NewPodPredictionObject(ehpa *autoscalingapi.Eff
 				known.EffectiveHorizontalPodAutoscalerUidLabel: string(ehpa.UID),
 			},
 		},
-		Spec: predictionapi.PodGroupPredictionSpec{
-			PredictionWindow:        metav1.Duration{Duration: time.Duration(*ehpa.Spec.Prediction.PredictionWindowSeconds) * time.Second},
-			Mode:                    predictionapi.PredictionModeRange,
-			MetricPredictionConfigs: make([]predictionapi.MetricPredictionConfig, 0),
-			WorkloadRef:             &ehpa.Spec.ScaleTargetRef,
+		Spec: predictionapi.TimeSeriesPredictionSpec{
+			PredictionWindowSeconds: *ehpa.Spec.Prediction.PredictionWindowSeconds,
+			TargetRef: v1.ObjectReference{
+				Kind:       ehpa.Spec.ScaleTargetRef.Kind,
+				Namespace:  ehpa.Namespace,
+				Name:       ehpa.Spec.ScaleTargetRef.Name,
+				APIVersion: ehpa.Spec.ScaleTargetRef.APIVersion,
+			},
 		},
 	}
 
-	var metricPredictionConfigs []predictionapi.MetricPredictionConfig
+	var predictionMetrics []predictionapi.PredictionMetric
 	for _, metric := range ehpa.Spec.Metrics {
 		// Convert resource metric into prediction metric
 		if metric.Type == autoscalingv2.ResourceMetricSourceType {
@@ -132,15 +134,19 @@ func (c *EffectiveHPAController) NewPodPredictionObject(ehpa *autoscalingapi.Eff
 				return nil, err
 			}
 
-			metricPredictionConfigs = append(metricPredictionConfigs, predictionapi.MetricPredictionConfig{
-				MetricName:    metricName,
-				AlgorithmType: ehpa.Spec.Prediction.PredictionAlgorithm.AlgorithmType,
-				DSP:           ehpa.Spec.Prediction.PredictionAlgorithm.DSP.DeepCopy(),
-				Percentile:    ehpa.Spec.Prediction.PredictionAlgorithm.Percentile.DeepCopy(),
+			predictionMetrics = append(predictionMetrics, predictionapi.PredictionMetric{
+				ResourceIdentifier: metricName,
+				Type:               predictionapi.ResourceQueryMetricType,
+				ResourceQuery:      &metric.Resource.Name,
+				Algorithm: predictionapi.Algorithm{
+					AlgorithmType: ehpa.Spec.Prediction.PredictionAlgorithm.AlgorithmType,
+					DSP:           ehpa.Spec.Prediction.PredictionAlgorithm.DSP,
+					Percentile:    ehpa.Spec.Prediction.PredictionAlgorithm.Percentile,
+				},
 			})
 		}
 	}
-	prediction.Spec.MetricPredictionConfigs = metricPredictionConfigs
+	prediction.Spec.PredictionMetrics = predictionMetrics
 
 	// EffectiveHPA control the underground prediction so set controller reference for it here
 	if err := controllerutil.SetControllerReference(ehpa, prediction, c.Scheme); err != nil {
@@ -154,10 +160,10 @@ func IsPredictionEnabled(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) 
 	return ehpa.Spec.Prediction != nil && ehpa.Spec.Prediction.PredictionWindowSeconds != nil && ehpa.Spec.Prediction.PredictionAlgorithm != nil
 }
 
-func setPredictionCondition(status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus, conditions []predictionapi.PodGroupPredictionCondition) {
+func setPredictionCondition(status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus, conditions []metav1.Condition) {
 	for _, cond := range conditions {
-		if cond.Type == predictionapi.PredictionConditionPredicting {
-			if len(cond.Reason) > 0 && len(cond.Message) > 0 {
+		if cond.Type == string(predictionapi.TimeSeriesPredictionConditionReady) {
+			if len(cond.Reason) > 0 {
 				setCondition(status, autoscalingapi.PredictionReady, cond.Status, cond.Reason, cond.Message)
 			}
 		}

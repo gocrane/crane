@@ -4,6 +4,7 @@ import (
 	"context"
 
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -66,7 +67,14 @@ func toInspectorCondition(err error) metav1.Condition {
 
 func GetContext(kubeClient client.Client, restMapper meta.RESTMapper, scaleClient scale.ScalesGetter, recommendation *analysisapi.Recommendation) (*Context, error) {
 	c := &Context{}
-	scale, mapping, err := utils.GetScale(context.TODO(), restMapper, scaleClient, recommendation.Namespace, recommendation.Spec.TargetRef)
+
+	targetRef := autoscalingv2.CrossVersionObjectReference{
+		APIVersion: recommendation.Spec.TargetRef.APIVersion,
+		Kind:       recommendation.Spec.TargetRef.Kind,
+		Name:       recommendation.Spec.TargetRef.Name,
+	}
+
+	scale, mapping, err := utils.GetScale(context.TODO(), restMapper, scaleClient, recommendation.Spec.TargetRef.Namespace, targetRef)
 	if err != nil {
 		return nil, err
 	}

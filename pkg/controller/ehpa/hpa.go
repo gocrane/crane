@@ -148,7 +148,7 @@ func (c *EffectiveHPAController) UpdateHPAIfNeed(ctx context.Context, ehpa *auto
 			return nil, err
 		}
 
-		c.Log.Info("Update HorizontalPodAutoscaler successful", "HorizontalPodAutoscaler", hpaExist)
+		c.Log.Info("Update HorizontalPodAutoscaler successful", "HorizontalPodAutoscaler", klog.KObj(hpaExist))
 	}
 
 	return hpaExist, nil
@@ -177,7 +177,7 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 					Metric: autoscalingv2.MetricIdentifier{
 						Name: name,
 						// add known.EffectiveHorizontalPodAutoscalerUidLabel=uid in metric.selector
-						// MetricAdapter use label selector to match the matching PodGroupPrediction to return metrics
+						// MetricAdapter use label selector to match the matching TimeSeriesPrediction to return metrics
 						Selector: &metav1.LabelSelector{
 							MatchLabels: map[string]string{
 								known.EffectiveHorizontalPodAutoscalerUidLabel: string(ehpa.UID),

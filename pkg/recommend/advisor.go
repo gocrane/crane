@@ -20,9 +20,9 @@ func (a *PredictionAdvisor) Advise(proposed *ProposedRecommendation) error {
 
 func NewAdvisors(context *Context) (advisors []Advisor) {
 	switch context.Recommendation.Spec.Type {
-	case analysisapi.TypeResource:
+	case analysisapi.AnalysisTypeResource:
 		// todo
-	case analysisapi.TypeHPA:
+	case analysisapi.AnalysisTypeHPA:
 		advisors = []Advisor{
 			&MinMaxReplicasAdvisor{
 				Context: context,

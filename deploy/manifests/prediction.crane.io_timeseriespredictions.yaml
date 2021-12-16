@@ -4,7 +4,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.5.0
+    controller-gen.kubebuilder.io/version: v0.7.0
   creationTimestamp: null
   name: timeseriespredictions.prediction.crane.io
 spec:
@@ -31,7 +31,8 @@ spec:
       jsonPath: .spec.PredictionWindowSeconds
       name: PredictionWindowSeconds
       type: integer
-    - description: CreationTimestamp is a timestamp representing the server time when this object was created.
+    - description: CreationTimestamp is a timestamp representing the server time when
+        this object was created.
       jsonPath: .metadata.creationTimestamp
       name: AGE
       type: date
@@ -41,10 +42,14 @@ spec:
         description: TimeSeriesPrediction is a prediction for a time series.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -54,16 +59,21 @@ spec:
               predictionMetrics:
                 description: PredictionMetrics is an array of PredictionMetric
                 items:
-                  description: PredictionMetric describe what metric of your time series prediction, how to query, use which algorithm to predict.
+                  description: PredictionMetric describe what metric of your time
+                    series prediction, how to query, use which algorithm to predict.
                   properties:
                     algorithm:
-                      description: Algorithm is the algorithm used by this prediction metric.
+                      description: Algorithm is the algorithm used by this prediction
+                        metric.
                       properties:
                         algorithmType:
-                          description: AlgorithmType is the algorithm type, currently supports dsp and percentile.
+                          description: AlgorithmType is the algorithm type, currently
+                            supports dsp and percentile.
                           type: string
                         dsp:
-                          description: DSP is an algorithm which use FFT to deal with time series, typically it is used to predict some periodic time series
+                          description: DSP is an algorithm which use FFT to deal with
+                            time series, typically it is used to predict some periodic
+                            time series
                           properties:
                             estimators:
                               description: Estimator
@@ -94,14 +104,19 @@ spec:
                                   type: array
                               type: object
                             historyLength:
-                              description: HistoryLength describes how long back should be queried against provider to get historical metrics for prediction.
+                              description: HistoryLength describes how long back should
+                                be queried against provider to get historical metrics
+                                for prediction.
                               type: string
                             sampleInterval:
-                              description: SampleInterval is the sampling interval of metrics.
+                              description: SampleInterval is the sampling interval
+                                of metrics.
                               type: string
                           type: object
                         percentile:
-                          description: Percentile is an algorithm which use exponential time decay histogram, it can predict a reasonable value according your history time series
+                          description: Percentile is an algorithm which use exponential
+                            time decay histogram, it can predict a reasonable value
+                            according your history time series
                           properties:
                             histogram:
                               properties:
@@ -129,12 +144,18 @@ spec:
                           type: object
                       type: object
                     expressionQuery:
-                      description: following QueryExpressions depend on your crane system data source configured when the system start. if you use different sources with your system start params, it is not valid. ExpressionQuery is a query expression of non-prometheus style, usually is api style
+                      description: following QueryExpressions depend on your crane
+                        system data source configured when the system start. if you
+                        use different sources with your system start params, it is
+                        not valid. ExpressionQuery is a query expression of non-prometheus
+                        style, usually is api style
                       properties:
                         labels:
                           description: QueryConditions is a query condition list.
                           items:
-                            description: QueryCondition is a key, operator, value triple. E.g. 'namespace = default', 'role in [Admin, Developer]'
+                            description: QueryCondition is a key, operator, value
+                              triple. E.g. 'namespace = default', 'role in [Admin,
+                              Developer]'
                             properties:
                               key:
                                 description: Key is the key of the query condition
@@ -154,17 +175,22 @@ spec:
                           type: string
                       type: object
                     rawQuery:
-                      description: RawQuery is a query expression of DSL style, such as prometheus query language
+                      description: RawQuery is a query expression of DSL style, such
+                        as prometheus query language
                       properties:
                         expression:
-                          description: Expression is the query expression. For prometheus, it is promQL.
+                          description: Expression is the query expression. For prometheus,
+                            it is promQL.
                           type: string
                       type: object
                     resourceIdentifier:
-                      description: ResourceIdentifier is a resource to identify the metric, but now it is just an identifier now. reference otlp https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/resource/sdk.md
+                      description: ResourceIdentifier is a resource to identify the
+                        metric, but now it is just an identifier now. reference otlp
+                        https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/resource/sdk.md
                       type: string
                     resourceQuery:
-                      description: ResourceQuery is a kubernetes built in metric, only support cpu, memory
+                      description: ResourceQuery is a kubernetes built in metric,
+                        only support cpu, memory
                       type: string
                     type:
                       description: Type is the type of metric, now support ResourceQuery、ExpressionQuery、RawQuery
@@ -172,17 +198,30 @@ spec:
                   type: object
                 type: array
               predictionWindowSeconds:
-                description: PredictionWindowSeconds is a time window in seconds, indicating how long to predict in the future.
+                description: PredictionWindowSeconds is a time window in seconds,
+                  indicating how long to predict in the future.
                 format: int32
                 type: integer
               targetRef:
-                description: Target is the target referent of time series prediction. each TimeSeriesPrediction associate with just only one target ref. all metrics in PredictionMetricConfigurations is about the TargetRef
+                description: Target is the target referent of time series prediction.
+                  each TimeSeriesPrediction associate with just only one target ref.
+                  all metrics in PredictionMetricConfigurations is about the TargetRef
                 properties:
                   apiVersion:
                     description: API version of the referent.
                     type: string
                   fieldPath:
-                    description: 'If referring to a piece of an object instead of an entire object, this string should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2]. For example, if the object reference is to a container within a pod, this would take on a value like: "spec.containers{name}" (where "name" refers to the name of the container that triggered the event) or if no container name is specified "spec.containers[2]" (container with index 2 in this pod). This syntax is chosen only to have some well-defined way of referencing a part of an object. TODO: this design is not final and this field is subject to change in the future.'
+                    description: 'If referring to a piece of an object instead of
+                      an entire object, this string should contain a valid JSON/Go
+                      field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within
+                      a pod, this would take on a value like: "spec.containers{name}"
+                      (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]"
+                      (container with index 2 in this pod). This syntax is chosen
+                      only to have some well-defined way of referencing a part of
+                      an object. TODO: this design is not final and this field is
+                      subject to change in the future.'
                     type: string
                   kind:
                     description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
@@ -194,7 +233,8 @@ spec:
                     description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
                     type: string
                   resourceVersion:
-                    description: 'Specific resourceVersion to which this reference is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                    description: 'Specific resourceVersion to which this reference
+                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
                     type: string
                   uid:
                     description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
@@ -207,23 +247,45 @@ spec:
               conditions:
                 description: Conditions is the condition of TimeSeriesPrediction
                 items:
-                  description: "Condition contains details for one aspect of the current state of this API Resource. --- This struct is intended for direct use as an array at the field path .status.conditions.  For example, type FooStatus struct{     // Represents the observations of a foo's current state.     // Known .status.conditions.type are: \"Available\", \"Progressing\", and \"Degraded\"     // +patchMergeKey=type     // +patchStrategy=merge     // +listType=map     // +listMapKey=type     Conditions []metav1.Condition `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"` \n     // other fields }"
+                  description: "Condition contains details for one aspect of the current
+                    state of this API Resource. --- This struct is intended for direct
+                    use as an array at the field path .status.conditions.  For example,
+                    type FooStatus struct{     // Represents the observations of a
+                    foo's current state.     // Known .status.conditions.type are:
+                    \"Available\", \"Progressing\", and \"Degraded\"     // +patchMergeKey=type
+                    \    // +patchStrategy=merge     // +listType=map     // +listMapKey=type
+                    \    Conditions []metav1.Condition `json:\"conditions,omitempty\"
+                    patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"`
+                    \n     // other fields }"
                   properties:
                     lastTransitionTime:
-                      description: lastTransitionTime is the last time the condition transitioned from one status to another. This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      description: lastTransitionTime is the last time the condition
+                        transitioned from one status to another. This should be when
+                        the underlying condition changed.  If that is not known, then
+                        using the time when the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
-                      description: message is a human readable message indicating details about the transition. This may be an empty string.
+                      description: message is a human readable message indicating
+                        details about the transition. This may be an empty string.
                       maxLength: 32768
                       type: string
                     observedGeneration:
-                      description: observedGeneration represents the .metadata.generation that the condition was set based upon. For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date with respect to the current state of the instance.
+                      description: observedGeneration represents the .metadata.generation
+                        that the condition was set based upon. For instance, if .metadata.generation
+                        is currently 12, but the .status.conditions[x].observedGeneration
+                        is 9, the condition is out of date with respect to the current
+                        state of the instance.
                       format: int64
                       minimum: 0
                       type: integer
                     reason:
-                      description: reason contains a programmatic identifier indicating the reason for the condition's last transition. Producers of specific condition types may define expected values and meanings for this field, and whether the values are considered a guaranteed API. The value should be a CamelCase string. This field may not be empty.
+                      description: reason contains a programmatic identifier indicating
+                        the reason for the condition's last transition. Producers
+                        of specific condition types may define expected values and
+                        meanings for this field, and whether the values are considered
+                        a guaranteed API. The value should be a CamelCase string.
+                        This field may not be empty.
                       maxLength: 1024
                       minLength: 1
                       pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
@@ -236,7 +298,11 @@ spec:
                       - Unknown
                       type: string
                     type:
-                      description: type of condition in CamelCase or in foo.example.com/CamelCase. --- Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be useful (see .node.status.conditions), the ability to deconflict is important. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                        --- Many .condition.type values are consistent across resources
+                        like Available, but because arbitrary conditions can be useful
+                        (see .node.status.conditions), the ability to deconflict is
+                        important. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
                       maxLength: 316
                       pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                       type: string
@@ -249,19 +315,30 @@ spec:
                   type: object
                 type: array
               predictionMetrics:
-                description: PredictionMetrics is an array of PredictionMetricStatus of all PredictionMetrics, PredictionMetricStatus include predicted time series data
+                description: PredictionMetrics is an array of PredictionMetricStatus
+                  of all PredictionMetrics, PredictionMetricStatus include predicted
+                  time series data
                 items:
-                  description: MetricPredictedData is predicted data of an metric, which denote a metric by ResourceIdentifier in the PredictionMetric
+                  description: MetricPredictedData is predicted data of an metric,
+                    which denote a metric by ResourceIdentifier in the PredictionMetric
                   properties:
                     prediction:
-                      description: Prediction is the predicted time series data of the metric
+                      description: Prediction is the predicted time series data of
+                        the metric
                       items:
-                        description: MetricTimeSeries is a stream of samples that belong to a metric with a set of labels
+                        description: MetricTimeSeries is a stream of samples that
+                          belong to a metric with a set of labels
                         properties:
                           labels:
-                            description: A collection of Labels that are attached by monitoring system as metadata for the metrics, which are known as dimensions.
+                            description: A collection of Labels that are attached
+                              by monitoring system as metadata for the metrics, which
+                              are known as dimensions.
                             items:
-                              description: A Label is a Name and Value pair that provides additional information about the metric. It is metadata for the metric. For example, Kubernetes pod metrics always have 'namespace' label that represents which namespace it belongs to.
+                              description: A Label is a Name and Value pair that provides
+                                additional information about the metric. It is metadata
+                                for the metric. For example, Kubernetes pod metrics
+                                always have 'namespace' label that represents which
+                                namespace it belongs to.
                               properties:
                                 name:
                                   type: string
@@ -270,7 +347,8 @@ spec:
                               type: object
                             type: array
                           samples:
-                            description: A collection of Samples in chronological order.
+                            description: A collection of Samples in chronological
+                              order.
                             items:
                               description: Sample pairs a Value with a Timestamp.
                               properties:
@@ -284,7 +362,9 @@ spec:
                         type: object
                       type: array
                     resourceIdentifier:
-                      description: ResourceIdentifier is a resource to identify the metric, but now it is just an identifier now. such as cpu, memory
+                      description: ResourceIdentifier is a resource to identify the
+                        metric, but now it is just an identifier now. such as cpu,
+                        memory
                       type: string
                   type: object
                 type: array
