@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strings"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/gocrane/api/prediction/v1alpha1"
 	"github.com/gocrane/crane/pkg/utils/log"
 )
@@ -26,62 +28,74 @@ var DeleteEventBroadcaster Broadcaster = NewBroadcaster()
 
 var logger = log.Logger()
 
-func WithApiConfig(conf *v1alpha1.PredictionMetric) {
-	if conf.MetricSelector != nil {
-		logger.V(2).Info("WithApiConfig", "metricSelector", metricSelectorToQueryExpr(conf.MetricSelector))
-	} else if conf.Query != nil {
-		logger.V(2).Info("WithApiConfig", "queryExpr", conf.Query.Expression)
+func (c *MetricContext) WithApiConfig(conf *v1alpha1.PredictionMetric) {
+	if conf.MetricQuery != nil {
+		logger.V(2).Info("WithApiConfig", "metricSelector", metricSelectorToQueryExpr(conf.MetricQuery))
+	}
+	if conf.ExpressionQuery != nil {
+		logger.V(2).Info("WithApiConfig", "queryExpr", conf.ExpressionQuery.Expression)
+	}
+	if conf.ResourceQuery != nil {
+		logger.V(2).Info("WithApiConfig", "resourceQuery", conf.ResourceQuery)
 	}
 
-	UpdateEventBroadcaster.Write(ConvertApiMetric2InternalConfig(conf))
+	UpdateEventBroadcaster.Write(c.ConvertApiMetric2InternalConfig(conf))
 }
 
-func WithApiConfigs(configs []v1alpha1.PredictionMetric) {
+const TargetKindNode = "Node"
+
+type MetricContext struct {
+	Namespace  string
+	TargetKind string
+	Name       string
+}
+
+func (c *MetricContext) WithApiConfigs(configs []v1alpha1.PredictionMetric) {
 	for _, conf := range configs {
-		WithApiConfig(&conf)
+		c.WithApiConfig(&conf)
 	}
 }
 
-func DeleteApiConfig(conf *v1alpha1.PredictionMetric) {
-	if conf.MetricSelector != nil {
-		logger.V(2).Info("DeleteApiConfig", "metricSelector", metricSelectorToQueryExpr(conf.MetricSelector))
-	} else if conf.Query != nil {
-		logger.V(2).Info("DeleteApiConfig", "queryExpr", conf.Query.Expression)
+func (c *MetricContext) DeleteApiConfig(conf *v1alpha1.PredictionMetric) {
+	if conf.MetricQuery != nil {
+		logger.V(2).Info("DeleteApiConfig", "metricSelector", metricSelectorToQueryExpr(conf.MetricQuery))
+	} else if conf.ExpressionQuery != nil {
+		logger.V(2).Info("DeleteApiConfig", "queryExpr", conf.ExpressionQuery.Expression)
 	}
-	DeleteEventBroadcaster.Write(ConvertApiMetric2InternalConfig(conf))
+	DeleteEventBroadcaster.Write(c.ConvertApiMetric2InternalConfig(conf))
 }
 
-func DeleteApiConfigs(configs []v1alpha1.PredictionMetric) {
+func (c *MetricContext) DeleteApiConfigs(configs []v1alpha1.PredictionMetric) {
 	for _, conf := range configs {
-		DeleteApiConfig(&conf)
+		c.DeleteApiConfig(&conf)
 	}
 }
 
-func WithConfigs(configs []*Config) {
+func (c *MetricContext) WithConfigs(configs []*Config) {
 	for _, conf := range configs {
-		WithConfig(conf)
+		c.WithConfig(conf)
 	}
 }
 
-func WithConfig(conf *Config) {
-	if conf.MetricSelector != nil {
-		logger.V(2).Info("WithConfig", "metricSelector", metricSelectorToQueryExpr(conf.MetricSelector))
-	} else if conf.Query != nil {
-		logger.V(2).Info("WithConfig", "queryExpr", conf.Query.Expression)
+func (c *MetricContext) WithConfig(conf *Config) {
+	if conf.Metric != nil {
+		logger.V(2).Info("WithConfig", "metricSelector", metricSelectorToQueryExpr(conf.Metric))
+	} else if conf.Expression != nil {
+		logger.V(2).Info("WithConfig", "queryExpr", conf.Expression)
 	}
 	UpdateEventBroadcaster.Write(conf)
 }
 
-func DeleteConfig(conf *Config) {
-	if conf.MetricSelector != nil {
-		logger.V(2).Info("DeleteConfig", "metricSelector", metricSelectorToQueryExpr(conf.MetricSelector))
-	} else if conf.Query != nil {
-		logger.V(2).Info("DeleteConfig", "queryExpr", conf.Query.Expression)
+func (c *MetricContext) DeleteConfig(conf *Config) {
+	if conf.Metric != nil {
+		logger.V(2).Info("DeleteConfig", "metricSelector", metricSelectorToQueryExpr(conf.Metric))
+	} else if conf.Expression != nil {
+		logger.V(2).Info("DeleteConfig", "queryExpr", conf.Expression.Expression)
 	}
 	DeleteEventBroadcaster.Write(conf)
 }
 
-func metricSelectorToQueryExpr(m *v1alpha1.MetricSelector) string {
+func metricSelectorToQueryExpr(m *v1alpha1.MetricQuery) string {
 	conditions := make([]string, 0, len(m.QueryConditions))
 	for _, cond := range m.QueryConditions {
 		values := make([]string, 0, len(cond.Value))
@@ -95,27 +109,21 @@ func metricSelectorToQueryExpr(m *v1alpha1.MetricSelector) string {
 	return fmt.Sprintf("%s{%s}", m.MetricName, strings.Join(conditions, ","))
 }
 
-func WorkloadResourceToPromQueryExpr(resourceMetric *v1alpha1.WorkloadResource) string {
-	switch resourceMetric.Resource {
-	case v1alpha1.ResourceCPU:
-		return fmt.Sprintf(WorkloadCpuUsagePromQLFmtStr, resourceMetric.Namespace, resourceMetric.Name, "1m")
-	case v1alpha1.ResourceMemory:
-		return fmt.Sprintf(WorkloadMemUsagePromQLFmtStr, resourceMetric.Namespace, resourceMetric.Name)
+func (c *MetricContext) ResourceToPromQueryExpr(resourceName *corev1.ResourceName) string {
+	if strings.ToLower(c.TargetKind) == strings.ToLower(TargetKindNode) {
+		switch *resourceName {
+		case corev1.ResourceCPU:
+			return fmt.Sprintf(NodeCpuUsagePromQLFmtStr, c.Name, "1m")
+		case corev1.ResourceMemory:
+			return fmt.Sprintf(NodeMemUsagePromQLFmtStr, c.Name, c.Name)
+		}
+	} else {
+		switch *resourceName {
+		case corev1.ResourceCPU:
+			return fmt.Sprintf(WorkloadCpuUsagePromQLFmtStr, c.Namespace, c.Name, "1m")
+		case corev1.ResourceMemory:
+			return fmt.Sprintf(WorkloadMemUsagePromQLFmtStr, c.Namespace, c.Name)
+		}
 	}
 	return ""
-}
-
-func NodeResourceToPromQueryExpr(resourceMetric *v1alpha1.NodeResource) string {
-	switch resourceMetric.Resource {
-	case v1alpha1.ResourceCPU:
-		return fmt.Sprintf(NodeCpuUsagePromQLFmtStr, resourceMetric.Name, "1m")
-	case v1alpha1.ResourceMemory:
-		return fmt.Sprintf(NodeMemUsagePromQLFmtStr, resourceMetric.Name, resourceMetric.Name)
-	}
-	return ""
-}
-
-// todo
-func WorkloadResourceToMetricSelector(resourceMetric *v1alpha1.WorkloadResource) *v1alpha1.MetricSelector {
-	return nil
 }

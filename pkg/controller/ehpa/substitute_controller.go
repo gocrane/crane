@@ -8,8 +8,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/scale"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
@@ -17,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
+	"github.com/gocrane/crane/pkg/utils"
 )
 
 // SubstituteController is responsible for sync labelSelector to Substitute
@@ -26,7 +25,7 @@ type SubstituteController struct {
 	Scheme      *runtime.Scheme
 	RestMapper  meta.RESTMapper
 	Recorder    record.EventRecorder
-	scaleClient scale.ScalesGetter
+	ScaleClient scale.ScalesGetter
 }
 
 func (c *SubstituteController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -38,7 +37,7 @@ func (c *SubstituteController) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
-	scale, _, err := GetScale(ctx, c.RestMapper, c.scaleClient, substitute.Namespace, substitute.Spec.SubstituteTargetRef)
+	scale, _, err := utils.GetScale(ctx, c.RestMapper, c.ScaleClient, substitute.Namespace, substitute.Spec.SubstituteTargetRef)
 	if err != nil {
 		c.Recorder.Event(substitute, v1.EventTypeNormal, "FailedGetScale", err.Error())
 		c.Log.Error(err, "Failed to get scale", "Substitute", klog.KObj(substitute))
@@ -61,24 +60,13 @@ func (c *SubstituteController) Reconcile(ctx context.Context, req ctrl.Request) 
 		c.Log.Info("Update Substitute status successful", "Substitute", klog.KObj(substitute))
 	}
 
-	// Rsync every 1 minute
+	// Rsync every 15 seconds
 	return ctrl.Result{
-		RequeueAfter: time.Minute,
+		RequeueAfter: time.Second * 15,
 	}, nil
 }
 
 func (c *SubstituteController) SetupWithManager(mgr ctrl.Manager) error {
-	discoveryClientSet, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
-	if err != nil {
-		return err
-	}
-	scaleKindResolver := scale.NewDiscoveryScaleKindResolver(discoveryClientSet)
-	scaleClient := scale.New(
-		discoveryClientSet.RESTClient(), mgr.GetRESTMapper(),
-		dynamic.LegacyAPIPathResolverFunc,
-		scaleKindResolver,
-	)
-	c.scaleClient = scaleClient
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&autoscalingapi.Substitute{}).
 		Complete(c)

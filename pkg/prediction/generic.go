@@ -6,10 +6,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/providers"
-
-	"github.com/gocrane/crane/pkg/common"
 )
 
 const (

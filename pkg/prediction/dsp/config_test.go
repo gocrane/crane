@@ -12,7 +12,7 @@ import (
 var expr = "irate(container_cpu_core_used[3m])"
 
 var cfg = &config.Config{
-	Query: &v1alpha1.Query{Expression: expr},
+	Query: &v1alpha1.RawQuery{Expression: expr},
 	DSP: &v1alpha1.DSP{
 		SampleInterval: "15s",
 		HistoryLength:  "14d",
@@ -28,9 +28,9 @@ var cfg = &config.Config{
 func TestConfig(t *testing.T) {
 	internalCfg := getInternalConfig(expr)
 	assert.Equal(t, &defaultInternalConfig, internalCfg)
-
+	c := &config.MetricContext{}
 	// Add a config
-	config.WithConfig(cfg)
+	c.WithConfig(cfg)
 
 	// Wait a second for the internal config being added
 	time.Sleep(time.Second)
@@ -60,7 +60,7 @@ func TestConfig(t *testing.T) {
 	assert.Equal(t, defaultMaxNumOfSpectrumItems, e2.maxNumOfSpectrumItems)
 
 	// Delete a config
-	config.DeleteConfig(cfg)
+	c.DeleteConfig(cfg)
 
 	// Wait a second for the internal config being deleted
 	time.Sleep(time.Second)

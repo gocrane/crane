@@ -1,15 +1,17 @@
 apiVersion: prediction.crane.io/v1alpha1
 kind: TimeSeriesPrediction
 metadata:
-  name: node-resource-percentile
+  name: tsp-node-resource-percentile
   namespace: default
 spec:
+  targetRef:
+    kind: Node
+    name: 192.168.56.166
   predictionWindowSeconds: 600
   predictionMetrics:
     - resourceIdentifier: node-cpu
-      nodeResource:
-        name: 192.168.56.166
-        resource: cpu
+      type: ResourceQuery
+      resourceQuery: cpu
       algorithm:
         algorithmType: "percentile"
         percentile:
@@ -23,9 +25,8 @@ spec:
             firstBucketSize: "40"
             bucketSizeGrowthRatio: "1.5"
     - resourceIdentifier: node-mem
-      nodeResource:
-        name: 192.168.56.166
-        resource: memory
+      type: ResourceQuery
+      resourceQuery: memory
       algorithm:
         algorithmType: "percentile"
         percentile:

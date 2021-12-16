@@ -144,11 +144,20 @@ spec:
                           type: object
                       type: object
                     expressionQuery:
+                      description: ExpressionQuery is a query with a DSL-style expression,
+                        such as prometheus promQL
+                      properties:
+                        expression:
+                          description: Expression is the query expression. For prometheus,
+                            it is promQL.
+                          type: string
+                      type: object
+                    metricQuery:
                       description: following QueryExpressions depend on your crane
                         system data source configured when the system start. if you
                         use different sources with your system start params, it is
-                        not valid. ExpressionQuery is a query expression of non-prometheus
-                        style, usually is api style
+                        not valid. MetricQuery is a query against a metric with a
+                        set of conditions
                       properties:
                         labels:
                           description: QueryConditions is a query condition list.
@@ -174,15 +183,6 @@ spec:
                           description: MetricName is the name of the metric.
                           type: string
                       type: object
-                    rawQuery:
-                      description: RawQuery is a query expression of DSL style, such
-                        as prometheus query language
-                      properties:
-                        expression:
-                          description: Expression is the query expression. For prometheus,
-                            it is promQL.
-                          type: string
-                      type: object
                     resourceIdentifier:
                       description: ResourceIdentifier is a resource to identify the
                         metric, but now it is just an identifier now. reference otlp
@@ -193,7 +193,7 @@ spec:
                         only support cpu, memory
                       type: string
                     type:
-                      description: Type is the type of metric, now support ResourceQuery、ExpressionQuery、RawQuery
+                      description: Type is the type of metric, now support ResourceQuery、MetricQuery、ExpressionQuery
                       type: string
                   type: object
                 type: array

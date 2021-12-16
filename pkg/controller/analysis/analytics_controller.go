@@ -3,20 +3,20 @@ package analysis
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
+
+	"k8s.io/apimachinery/pkg/types"
 
 	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
 	craneclient "github.com/gocrane/api/pkg/generated/clientset/versioned"
 	analysisinformer "github.com/gocrane/api/pkg/generated/informers/externalversions"
 	analysislister "github.com/gocrane/api/pkg/generated/listers/analysis/v1alpha1"
-	"github.com/gocrane/crane/pkg/prediction"
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -37,7 +37,6 @@ type AnalyticsController struct {
 	Scheme          *runtime.Scheme
 	RestMapper      meta.RESTMapper
 	Recorder        record.EventRecorder
-	Prediction      prediction.Interface
 	kubeClient      kubernetes.Interface
 	dynamicClient   dynamic.Interface
 	discoveryClient discovery.DiscoveryInterface
@@ -46,7 +45,7 @@ type AnalyticsController struct {
 }
 
 func (ac *AnalyticsController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	ac.Logger.Info("Got an analytics res", "analytics", req.NamespacedName)
+	ac.Logger.V(4).Info("Got an analytics resource.", "analytics", req.NamespacedName)
 
 	a := &analysisv1alph1.Analytics{}
 
@@ -55,11 +54,24 @@ func (ac *AnalyticsController) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
-	identities := map[autoscalingv2.CrossVersionObjectReference]ObjectIdentity{}
+	if a.DeletionTimestamp != nil {
+		ac.Logger.Info("Analytics resource is being deleted.", "name", req.NamespacedName)
+		return ctrl.Result{}, nil
+	}
+
+	if a.Spec.CompletionStrategy.CompletionStrategyType == analysisv1alph1.CompletionStrategyPeriodical &&
+		a.Spec.CompletionStrategy.PeriodSeconds != nil && a.Status.LastSuccessfulTime != nil {
+		d := time.Second * time.Duration(*a.Spec.CompletionStrategy.PeriodSeconds)
+		if a.Status.LastSuccessfulTime.Add(d).After(time.Now()) {
+			return ctrl.Result{}, nil
+		}
+	}
+
+	identities := map[string]ObjectIdentity{}
 
 	for _, rs := range a.Spec.ResourceSelectors {
 		if rs.Kind == "" {
-			return ctrl.Result{}, fmt.Errorf("emtpy kind")
+			return ctrl.Result{}, fmt.Errorf("empty kind")
 		}
 
 		resList, err := ac.discoveryClient.ServerResourcesForGroupVersion(rs.APIVersion)
@@ -116,51 +128,49 @@ func (ac *AnalyticsController) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 
 		for i := range us {
-			m, ok, err := unstructured.NestedStringMap(us[i].Object, "spec", "selector", "matchLabels")
-			if !ok || err != nil {
-				return ctrl.Result{}, fmt.Errorf("%s not supported", gvr.String())
-			}
+			//m, ok, err := unstructured.NestedStringMap(us[i].Object, "spec", "selector", "matchLabels")
+			//if !ok || err != nil {
+			//	return ctrl.Result{}, fmt.Errorf("%s not supported", gvr.String())
+			//}
+			//
+			//ls := labels.NewSelector()
+			//for k, v := range m {
+			//	r, err := labels.NewRequirement(k, selection.Equals, []string{v})
+			//	if err != nil {
+			//		return ctrl.Result{}, err
+			//	}
+			//	ls = ls.Add(*r)
+			//}
+			//
+			//opts := metav1.ListOptions{
+			//	LabelSelector: ls.String(),
+			//	Limit:         1,
+			//}
+			//
+			//podList, err := ac.kubeClient.CoreV1().Pods(req.Namespace).List(ctx, opts)
+			//if err != nil {
+			//	return ctrl.Result{}, err
+			//}
+			//
+			//if len(podList.Items) != 1 {
+			//	return ctrl.Result{}, fmt.Errorf("pod not found for %s", gvr.String())
+			//}
 
-			ls := labels.NewSelector()
-			for k, v := range m {
-				r, err := labels.NewRequirement(k, selection.Equals, []string{v})
-				if err != nil {
-					return ctrl.Result{}, err
-				}
-				ls.Add(*r)
-			}
+			k := objRefKey(rs.Kind, rs.APIVersion, ownerNames[i])
 
-			opts := metav1.ListOptions{
-				LabelSelector: ls.String(),
-				Limit:         1,
-			}
+			//pod := podList.Items[0]
 
-			podList, err := ac.kubeClient.CoreV1().Pods(req.Namespace).List(ctx, opts)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-
-			if len(podList.Items) != 1 {
-				return ctrl.Result{}, fmt.Errorf("pod not found for %s", gvr.String())
-			}
-
-			pod := podList.Items[0]
-			objRef := autoscalingv2.CrossVersionObjectReference{
-				Kind:       rs.Kind,
-				Name:       ownerNames[i],
-				APIVersion: rs.APIVersion,
-			}
-			if _, exists := identities[objRef]; !exists {
-				var cs []string
-				for _, c := range pod.Spec.Containers {
-					cs = append(cs, c.Name)
-				}
-				identities[objRef] = ObjectIdentity{
-					Namespace:  pod.Namespace,
-					Name:       objRef.Name,
-					Kind:       objRef.Kind,
-					APIVersion: objRef.APIVersion,
-					Containers: cs,
+			if _, exists := identities[k]; !exists {
+				//var cs []string
+				//for _, c := range pod.Spec.Containers {
+				//	cs = append(cs, c.Name)
+				//}
+				identities[k] = ObjectIdentity{
+					Namespace:  req.Namespace,
+					Name:       ownerNames[i],
+					Kind:       rs.Kind,
+					APIVersion: rs.APIVersion,
+					//Containers: cs,
 				}
 			}
 		}
@@ -171,19 +181,21 @@ func (ac *AnalyticsController) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
-	rm := map[autoscalingv2.CrossVersionObjectReference]*analysisv1alph1.Recommendation{}
+	rm := map[string]*analysisv1alph1.Recommendation{}
 	for _, r := range rs {
-		rm[r.Spec.TargetRef] = r
+		k := objRefKey(r.Spec.TargetRef.Kind, r.Spec.TargetRef.APIVersion, r.Spec.TargetRef.Name)
+		rm[k] = r.DeepCopy()
 	}
 
 	var refs []corev1.ObjectReference
 
-	for ref, id := range identities {
-		if r, exists := rm[ref]; exists {
+	for k, id := range identities {
+		if r, exists := rm[k]; exists {
 			refs = append(refs, corev1.ObjectReference{
-				Kind:       id.Kind,
-				Name:       id.Name,
-				APIVersion: id.APIVersion,
+				Kind:       rm[k].Kind,
+				Name:       rm[k].Name,
+				APIVersion: rm[k].APIVersion,
+				UID:        rm[k].UID,
 			})
 			found := false
 			for _, or := range r.OwnerReferences {
@@ -194,51 +206,79 @@ func (ac *AnalyticsController) Reconcile(ctx context.Context, req ctrl.Request) 
 			}
 			if !found {
 				nr := r.DeepCopy()
-				nr.OwnerReferences = append(nr.OwnerReferences, metav1.OwnerReference{
-					APIVersion: id.APIVersion,
-					Kind:       id.Kind,
-					Name:       id.Name,
-				})
-				if err = ac.Client.Update(ctx, nr); err != nil {
+				nr.OwnerReferences = append(nr.OwnerReferences,
+					*metav1.NewControllerRef(a, schema.GroupVersionKind{Version: a.APIVersion, Kind: a.Kind}))
+				if err = ac.Update(ctx, nr); err != nil {
 					return ctrl.Result{}, err
 				}
 			}
 		} else {
-			if err = ac.createRecommendations(ctx, a, identities, refs); err != nil {
+			if err = ac.createRecommendation(ctx, a, id, &refs); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
 	}
-
 	na := a.DeepCopy()
 	na.Status.Recommendations = refs
+	t := metav1.Now()
+	na.Status.LastSuccessfulTime = &t
 	if err = ac.Client.Update(ctx, na); err != nil {
 		return ctrl.Result{}, err
+	}
+
+	if a.Spec.CompletionStrategy.CompletionStrategyType == analysisv1alph1.CompletionStrategyPeriodical {
+		if a.Spec.CompletionStrategy.PeriodSeconds != nil {
+			d := time.Second * time.Duration(*a.Spec.CompletionStrategy.PeriodSeconds)
+			ac.Logger.V(5).Info("Will re-sync", "after", d)
+			return ctrl.Result{
+				RequeueAfter: d,
+			}, nil
+		}
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func (ac *AnalyticsController) createRecommendations(ctx context.Context, a *analysisv1alph1.Analytics,
-	identities map[autoscalingv2.CrossVersionObjectReference]ObjectIdentity, refs []corev1.ObjectReference) error {
-	for ref := range identities {
-		r := &analysisv1alph1.Recommendation{
-			Spec: analysisv1alph1.RecommendationSpec{
-				TargetRef:       ref,
-				Type:            a.Spec.Type,
-				IntervalSeconds: a.Spec.IntervalSeconds,
+func (ac *AnalyticsController) createRecommendation(ctx context.Context, a *analysisv1alph1.Analytics,
+	id ObjectIdentity, refs *[]corev1.ObjectReference) error {
+
+	r := &analysisv1alph1.Recommendation{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("%s-%s-%s-%s",
+				a.Name, strings.ToLower(id.Kind), strings.ReplaceAll(id.APIVersion, "/", "-"), id.Name),
+			Namespace: a.Namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				*metav1.NewControllerRef(a, schema.GroupVersionKind{Version: a.APIVersion, Kind: a.Kind}),
 			},
-		}
-		if err := ac.Create(ctx, r); err != nil {
-			return err
-		}
-		refs = append(refs, corev1.ObjectReference{
-			Kind:       ref.Kind,
-			Name:       ref.Name,
-			APIVersion: ref.APIVersion,
-		})
+		},
+		Spec: analysisv1alph1.RecommendationSpec{
+			TargetRef:          corev1.ObjectReference{Kind: id.Kind, APIVersion: id.APIVersion, Name: id.Name},
+			Type:               a.Spec.Type,
+			CompletionStrategy: a.Spec.CompletionStrategy,
+		},
 	}
+
+	if err := ac.Create(ctx, r); err != nil {
+		ac.Logger.Error(err, "Failed to create Recommendation")
+		return err
+	}
+
+	if err := ac.Get(ctx, types.NamespacedName{Namespace: r.Namespace, Name: r.Name}, r); err != nil {
+		ac.Logger.Error(err, "Failed to get Recommendation")
+		return err
+	}
+	*refs = append(*refs, corev1.ObjectReference{
+		Kind:       r.Kind,
+		Name:       r.Name,
+		APIVersion: r.APIVersion,
+		UID:        r.UID,
+	})
+
 	return nil
+}
+
+func objRefKey(kind, apiVersion, name string) string {
+	return fmt.Sprintf("%s#%s#%s", kind, apiVersion, name)
 }
 
 func match(labelSelector metav1.LabelSelector, matchLabels map[string]string) bool {
@@ -311,7 +351,6 @@ func (ac *AnalyticsController) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&analysisv1alph1.Analytics{}).
-		Owns(&analysisv1alph1.Recommendation{}).
 		Complete(ac)
 }
 
@@ -320,5 +359,5 @@ type ObjectIdentity struct {
 	APIVersion string
 	Kind       string
 	Name       string
-	Containers []string
+	//Containers []string
 }

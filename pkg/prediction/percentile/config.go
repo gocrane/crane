@@ -2,15 +2,14 @@ package percentile
 
 import (
 	"reflect"
-
-	"github.com/gocrane/api/prediction/v1alpha1"
-	"github.com/gocrane/crane/pkg/utils"
-	vpa "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/recommender/util"
-
 	"sync"
 	"time"
 
+	vpa "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/recommender/util"
+
+	"github.com/gocrane/api/prediction/v1alpha1"
 	"github.com/gocrane/crane/pkg/prediction/config"
+	"github.com/gocrane/crane/pkg/utils"
 )
 
 //var metricToInternalConfigMap map[string]*internalConfig = map[string]*internalConfig{}
@@ -34,6 +33,7 @@ var defaultInternalConfig = internalConfig{
 
 type internalConfig struct {
 	aggregated             bool
+	historyLength          time.Duration
 	sampleInterval         time.Duration
 	histogramOptions       vpa.HistogramOptions
 	histogramDecayHalfLife time.Duration
@@ -166,10 +166,10 @@ func init() {
 			}
 
 			mu.Lock()
-			if cfg.Query != nil && len(cfg.Query.Expression) > 0 {
-				orig, exists := queryToInternalConfigMap[cfg.Query.Expression]
+			if cfg.Expression != nil && len(cfg.Expression.Expression) > 0 {
+				orig, exists := queryToInternalConfigMap[cfg.Expression.Expression]
 				if !exists || !reflect.DeepEqual(orig, internalCfg) {
-					queryToInternalConfigMap[cfg.Query.Expression] = internalCfg
+					queryToInternalConfigMap[cfg.Expression.Expression] = internalCfg
 				}
 			}
 			mu.Unlock()
@@ -181,8 +181,8 @@ func init() {
 			cfg := configDeleteEventReceiver.Read().(*config.Config)
 
 			mu.Lock()
-			if cfg.Query != nil {
-				delete(queryToInternalConfigMap, cfg.Query.Expression)
+			if cfg.Expression != nil {
+				delete(queryToInternalConfigMap, cfg.Expression.Expression)
 			}
 			mu.Unlock()
 		}

@@ -1,15 +1,17 @@
 apiVersion: prediction.crane.io/v1alpha1
 kind: TimeSeriesPrediction
 metadata:
-  name: node-resource-dsp
+  name: tsp-node-resource-dsp
   namespace: default
 spec:
-  predictionWindowSeconds: 3600
+  targetRef:
+    kind: Node
+    name: 192.168.56.166
+  predictionWindowSeconds: 180
   predictionMetrics:
     - resourceIdentifier: node-cpu
-      nodeResource:
-        name: 192.168.56.166
-        resource: cpu
+      type: ResourceQuery
+      resourceQuery: cpu
       algorithm:
         algorithmType: "dsp"
         dsp:
@@ -23,9 +25,8 @@ spec:
                 minNumOfSpectrumItems: 10
                 maxNumOfSpectrumItems: 20
     - resourceIdentifier: node-mem
-      nodeResource:
-        name: 192.168.56.166
-        resource: memory
+      type: ResourceQuery
+      resourceQuery: memory
       algorithm:
         algorithmType: "dsp"
         dsp:

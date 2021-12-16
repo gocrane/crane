@@ -5,50 +5,40 @@ import (
 )
 
 type Config struct {
-	MetricSelector *v1alpha1.MetricSelector
-	Query          *v1alpha1.Query
-	DSP            *v1alpha1.DSP
-	Percentile     *v1alpha1.Percentile
+	Metric     *v1alpha1.MetricQuery
+	Expression *v1alpha1.ExpressionQuery
+	DSP        *v1alpha1.DSP
+	Percentile *v1alpha1.Percentile
 }
 
 // ConvertApiMetrics2InternalConfigs
-func ConvertApiMetrics2InternalConfigs(metrics []v1alpha1.PredictionMetric) []*Config {
+func (c *MetricContext) ConvertApiMetrics2InternalConfigs(metrics []v1alpha1.PredictionMetric) []*Config {
 	var confs []*Config
 	for _, metric := range metrics {
-		confs = append(confs, ConvertApiMetric2InternalConfig(&metric))
+		confs = append(confs, c.ConvertApiMetric2InternalConfig(&metric))
 	}
 	return confs
 }
 
 // ConvertApiMetric2InternalConfig
-func ConvertApiMetric2InternalConfig(metric *v1alpha1.PredictionMetric) *Config {
+func (c *MetricContext) ConvertApiMetric2InternalConfig(metric *v1alpha1.PredictionMetric) *Config {
 	// transfer the workload to query
-	if metric.WorkloadResource != nil {
+	if metric.ResourceQuery != nil {
 		// todo: different data source has different querys.
-		query := &v1alpha1.Query{
-			Expression: WorkloadResourceToPromQueryExpr(metric.WorkloadResource),
+		expr := &v1alpha1.ExpressionQuery{
+			Expression: c.ResourceToPromQueryExpr(metric.ResourceQuery),
 		}
 		return &Config{
-			Query:      query,
-			DSP:        metric.Algorithm.DSP,
-			Percentile: metric.Algorithm.Percentile,
-		}
-	} else if metric.NodeResource != nil {
-		// todo: different data source has different querys.
-		query := &v1alpha1.Query{
-			Expression: NodeResourceToPromQueryExpr(metric.NodeResource),
-		}
-		return &Config{
-			Query:      query,
+			Expression: expr,
 			DSP:        metric.Algorithm.DSP,
 			Percentile: metric.Algorithm.Percentile,
 		}
 	} else {
 		return &Config{
-			MetricSelector: metric.MetricSelector,
-			Query:          metric.Query,
-			DSP:            metric.Algorithm.DSP,
-			Percentile:     metric.Algorithm.Percentile,
+			Metric:     metric.MetricQuery,
+			Expression: metric.ExpressionQuery,
+			DSP:        metric.Algorithm.DSP,
+			Percentile: metric.Algorithm.Percentile,
 		}
 	}
 }
