@@ -3,8 +3,10 @@ module github.com/gocrane/crane
 go 1.17
 
 require (
+	github.com/davecgh/go-spew v1.1.1
 	github.com/go-echarts/go-echarts/v2 v2.2.4
 	github.com/go-logr/logr v0.4.0
+	github.com/gocrane/api v0.0.0-20211216072340-d289c59f03cf
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/mjibson/go-dsp v0.0.0-20180508042940-11479a337f12
 	github.com/prometheus/client_golang v1.11.0
@@ -28,12 +30,9 @@ require (
 	k8s.io/metrics v0.22.3
 	sigs.k8s.io/controller-runtime v0.10.2
 	sigs.k8s.io/custom-metrics-apiserver v1.22.0
-	github.com/davecgh/go-spew v1.1.1
-	github.com/gocrane/api v0.0.0-20211216072340-d289c59f03cf
 )
 
 require (
-	github.com/Microsoft/go-winio v0.4.15 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
@@ -52,7 +51,6 @@ require (
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.19.5 // indirect
 	github.com/go-openapi/swag v0.19.14 // indirect
-	github.com/gocrane/api v0.0.0-20211216072340-d289c59f03cf
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
