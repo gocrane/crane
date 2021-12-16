@@ -11,9 +11,9 @@ type Executor interface {
 }
 
 type AvoidanceExecutor struct {
-	BlockScheduledExecutor BlockScheduledExecutor
-	ThrottleExecutor       ThrottleExecutor
-	EvictExecutor          EvictExecutor
+	ScheduledExecutor ScheduledExecutor
+	ThrottleExecutor  ThrottleExecutor
+	EvictExecutor     EvictExecutor
 }
 
 type ExecuteContext struct {

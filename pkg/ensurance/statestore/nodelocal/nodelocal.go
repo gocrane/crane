@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/ensurance/statestore/types"
-	"github.com/gocrane/crane/pkg/utils"
 	"github.com/gocrane/crane/pkg/utils/log"
 )
 
@@ -54,10 +54,10 @@ func (n *NodeLocal) GetType() types.CollectType {
 	return n.Name
 }
 
-func (n *NodeLocal) Collect() (map[string][]utils.TimeSeries, error) {
+func (n *NodeLocal) Collect() (map[string][]common.TimeSeries, error) {
 	log.Logger().V(5).Info("Node local collecting")
 
-	var status = make(map[string][]utils.TimeSeries)
+	var status = make(map[string][]common.TimeSeries)
 	for _, c := range n.nlcs {
 		if data, err := c.collect(); err == nil {
 			for key, d := range data {

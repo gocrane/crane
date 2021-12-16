@@ -7,13 +7,15 @@ import (
 
 	"github.com/shirou/gopsutil/cpu"
 
+	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/ensurance/statestore/types"
-	"github.com/gocrane/crane/pkg/utils"
 	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 const (
 	cpuCollectorName = "cpu"
+	MAX_PERCENTAGE   = 100
+	MIN_PERCENTAGE   = 0
 )
 
 func init() {
@@ -28,7 +30,7 @@ type CpuTimeStampState struct {
 type CpuCollector struct {
 	cpuState       *CpuTimeStampState
 	cpuCoreNumbers uint64
-	data           map[string][]utils.TimeSeries
+	data           map[string][]common.TimeSeries
 }
 
 // NewCPUCollector returns a new Collector exposing kernel/system statistics.
@@ -42,20 +44,20 @@ func NewCPUCollector() (nodeLocalCollector, error) {
 
 	log.Logger().V(2).Info("NewCPUCollector", "cpuCoreNumbers", cpuCoreNumbers)
 
-	var data = make(map[string][]utils.TimeSeries)
+	var data = make(map[string][]common.TimeSeries)
 
 	return &CpuCollector{cpuCoreNumbers: cpuCoreNumbers, data: data}, nil
 }
 
-func (c *CpuCollector) collect() (map[string][]utils.TimeSeries, error) {
+func (c *CpuCollector) collect() (map[string][]common.TimeSeries, error) {
 	var now = time.Now()
 	stats, err := cpu.Times(false)
 	if err != nil {
-		return map[string][]utils.TimeSeries{}, err
+		return map[string][]common.TimeSeries{}, err
 	}
 
 	if len(stats) != 1 {
-		return map[string][]utils.TimeSeries{}, fmt.Errorf("len stat is not 1")
+		return map[string][]common.TimeSeries{}, fmt.Errorf("len stat is not 1")
 	}
 
 	nowCpuState := &CpuTimeStampState{
@@ -65,7 +67,7 @@ func (c *CpuCollector) collect() (map[string][]utils.TimeSeries, error) {
 
 	if c.cpuState == nil {
 		c.cpuState = nowCpuState
-		return map[string][]utils.TimeSeries{}, fmt.Errorf("collect_init")
+		return map[string][]common.TimeSeries{}, fmt.Errorf("collect_init")
 	}
 
 	usagePercent := calculateBusy(c.cpuState.stat, nowCpuState.stat)
@@ -74,8 +76,8 @@ func (c *CpuCollector) collect() (map[string][]utils.TimeSeries, error) {
 
 	c.cpuState = nowCpuState
 
-	c.data[string(types.MetricNamCpuTotalUsage)] = []utils.TimeSeries{{Samples: []utils.Sample{{Value: usageCore, Timestamp: now.Unix()}}}}
-	c.data[string(types.MetricNamCpuTotalUtilization)] = []utils.TimeSeries{{Samples: []utils.Sample{{Value: usagePercent, Timestamp: now.Unix()}}}}
+	c.data[string(types.MetricNamCpuTotalUsage)] = []common.TimeSeries{{Samples: []common.Sample{{Value: usageCore, Timestamp: now.Unix()}}}}
+	c.data[string(types.MetricNamCpuTotalUtilization)] = []common.TimeSeries{{Samples: []common.Sample{{Value: usagePercent, Timestamp: now.Unix()}}}}
 	return c.data, nil
 }
 
@@ -88,12 +90,12 @@ func calculateBusy(stat1 cpu.TimesStat, stat2 cpu.TimesStat) float64 {
 	stat2All, stat2Busy := getAllBusy(stat2)
 
 	if stat2Busy <= stat1Busy {
-		return 0
+		return MIN_PERCENTAGE
 	}
 	if stat2All <= stat1All {
-		return 100
+		return MAX_PERCENTAGE
 	}
-	return math.Min(100, math.Max(0, (stat2Busy-stat1Busy)/(stat2All-stat1All)*100))
+	return math.Min(MAX_PERCENTAGE, math.Max(MIN_PERCENTAGE, (stat2Busy-stat1Busy)/(stat2All-stat1All)*100))
 }
 
 func getAllBusy(stat cpu.TimesStat) (float64, float64) {

@@ -8,8 +8,12 @@ import (
 	"github.com/gocrane/crane/pkg/utils/log"
 )
 
-type BlockScheduledExecutor struct {
-	BlockScheduledQOSPriority   *ScheduledQOSPriority
+const (
+	DefaultCoolDownSeconds = 300
+)
+
+type ScheduledExecutor struct {
+	DisableScheduledQOSPriority *ScheduledQOSPriority
 	RestoreScheduledQOSPriority *ScheduledQOSPriority
 }
 
@@ -18,10 +22,10 @@ type ScheduledQOSPriority struct {
 	PriorityClassValue int32
 }
 
-func (b *BlockScheduledExecutor) Avoid(ctx *ExecuteContext) error {
-	log.Logger().V(4).Info("Avoid", "BlockScheduledExecutor", *b)
+func (b *ScheduledExecutor) Avoid(ctx *ExecuteContext) error {
+	log.Logger().V(4).Info("Avoid", "DisableScheduledExecutor", *b)
 
-	if b.BlockScheduledQOSPriority == nil {
+	if b.DisableScheduledQOSPriority == nil {
 		return nil
 	}
 
@@ -47,8 +51,8 @@ func (b *BlockScheduledExecutor) Avoid(ctx *ExecuteContext) error {
 	return nil
 }
 
-func (b *BlockScheduledExecutor) Restore(ctx *ExecuteContext) error {
-	log.Logger().V(4).Info("Restore", "BlockScheduledExecutor", *b)
+func (b *ScheduledExecutor) Restore(ctx *ExecuteContext) error {
+	log.Logger().V(4).Info("Restore", "DisableScheduledExecutor", *b)
 
 	if b.RestoreScheduledQOSPriority == nil {
 		return nil
@@ -81,12 +85,12 @@ func (b *BlockScheduledExecutor) Restore(ctx *ExecuteContext) error {
 
 func (s ScheduledQOSPriority) Less(i ScheduledQOSPriority) bool {
 
-	if getPodQosLevel(s.PodQOSClass) < getPodQosLevel(i.PodQOSClass) {
-		return true
+	if comparePodQos(s.PodQOSClass, i.PodQOSClass) == 1 {
+		return false
 	}
 
-	if getPodQosLevel(s.PodQOSClass) > getPodQosLevel(i.PodQOSClass) {
-		return false
+	if comparePodQos(s.PodQOSClass, i.PodQOSClass) == -1 {
+		return true
 	}
 
 	return s.PriorityClassValue < i.PriorityClassValue
@@ -94,26 +98,51 @@ func (s ScheduledQOSPriority) Less(i ScheduledQOSPriority) bool {
 
 func (s ScheduledQOSPriority) Greater(i ScheduledQOSPriority) bool {
 
-	if getPodQosLevel(s.PodQOSClass) < getPodQosLevel(i.PodQOSClass) {
-		return false
+	if comparePodQos(s.PodQOSClass, i.PodQOSClass) == 1 {
+		return true
 	}
 
-	if getPodQosLevel(s.PodQOSClass) > getPodQosLevel(i.PodQOSClass) {
-		return true
+	if comparePodQos(s.PodQOSClass, i.PodQOSClass) == -1 {
+		return false
 	}
 
 	return s.PriorityClassValue > i.PriorityClassValue
 }
 
-func getPodQosLevel(a v1.PodQOSClass) uint64 {
+// We defined guaranteed is the highest qos class, burstable is the middle level
+// bestEffort is the lowest
+// if a qos class is greater than b, return 1
+// if a qos class is less than b, return -1
+// if a qos class equal with b , return 0
+func comparePodQos(a v1.PodQOSClass, b v1.PodQOSClass) int32 {
 	switch a {
 	case v1.PodQOSGuaranteed:
-		return 3
+		if b == v1.PodQOSGuaranteed {
+			return 0
+		} else {
+			return -1
+		}
 	case v1.PodQOSBurstable:
-		return 2
+		if b == v1.PodQOSGuaranteed {
+			return 1
+		} else if b == v1.PodQOSBurstable {
+			return 0
+		} else {
+			return -1
+		}
 	case v1.PodQOSBestEffort:
-		return 1
+		if (b == v1.PodQOSGuaranteed) || (b == v1.PodQOSBurstable) {
+			return 1
+		} else if b == v1.PodQOSBestEffort {
+			return 0
+		} else {
+			return -1
+		}
 	default:
-		return 0
+		if (b == v1.PodQOSGuaranteed) || (b == v1.PodQOSBurstable) || (b == v1.PodQOSBestEffort) {
+			return 1
+		} else {
+			return 0
+		}
 	}
 }

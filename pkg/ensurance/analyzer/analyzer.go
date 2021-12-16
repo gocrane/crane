@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/tools/record"
 
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
+	"github.com/gocrane/crane/pkg/common"
 	ecache "github.com/gocrane/crane/pkg/ensurance/cache"
 	"github.com/gocrane/crane/pkg/ensurance/executor"
 	einformer "github.com/gocrane/crane/pkg/ensurance/informer"
@@ -33,7 +34,7 @@ type AnalyzerManager struct {
 	noticeCh          chan<- executor.AvoidanceExecutor
 
 	logic             logic.Logic
-	status            map[string][]utils.TimeSeries
+	status            map[string][]common.TimeSeries
 	reached           map[string]uint64
 	restored          map[string]uint64
 	actionEventStatus map[string]ecache.DetectionStatus
@@ -73,7 +74,6 @@ func (s *AnalyzerManager) Run(stop <-chan struct{}) {
 		for {
 			select {
 			case <-updateTicker.C:
-				log.Logger().V(3).Info("Analyzer run periodically")
 				s.Analyze()
 			case <-stop:
 				log.Logger().V(2).Info("Analyzer exit")
@@ -100,7 +100,7 @@ func (s *AnalyzerManager) Analyze() {
 
 		//check the node is selected by the
 		if matched, err := utils.LabelSelectorMatched(node.Labels, &nep.Spec.LabelSelector); err != nil {
-			log.Logger().V(5).Info(fmt.Sprintf("Warning: the nep label selector error,err: %s", err.Error()))
+			log.Logger().V(2).Info(fmt.Sprintf("Warning: the nep label selector error,err: %s", err.Error()))
 			continue
 		} else if !matched {
 			continue
@@ -109,11 +109,11 @@ func (s *AnalyzerManager) Analyze() {
 		neps = append(neps, nep.DeepCopy())
 	}
 
-	var asMaps = make(map[string]*ensuranceapi.AvoidanceAction)
-	allAss := s.avoidanceInformer.GetStore().List()
-	for _, n := range allAss {
-		as := n.(*ensuranceapi.AvoidanceAction)
-		asMaps[as.Name] = as
+	var avoidanceMaps = make(map[string]*ensuranceapi.AvoidanceAction)
+	allAvoidance := s.avoidanceInformer.GetStore().List()
+	for _, n := range allAvoidance {
+		avoidance := n.(*ensuranceapi.AvoidanceAction)
+		avoidanceMaps[avoidance.Name] = avoidance
 	}
 
 	s.status = s.statestore.List()
@@ -135,7 +135,7 @@ func (s *AnalyzerManager) Analyze() {
 	log.Logger().V(4).Info("Analyze:", "dcs", dcs)
 
 	//step 3 : doMerge
-	avoidanceAction := s.doMerge(asMaps, dcs)
+	avoidanceAction := s.doMerge(avoidanceMaps, dcs)
 	if err != nil {
 		log.Logger().Error(err, "Analyze doMerge failed")
 		return
@@ -148,7 +148,6 @@ func (s *AnalyzerManager) Analyze() {
 }
 
 func (s *AnalyzerManager) doAnalyze(key string, object ensuranceapi.ObjectiveEnsurance) (ecache.DetectionCondition, error) {
-	log.Logger().V(6).Info("doAnalyze", "status", s.status)
 
 	var dc = ecache.DetectionCondition{DryRun: object.DryRun, ObjectiveEnsuranceName: object.Name, ActionName: object.AvoidanceActionName}
 
@@ -159,13 +158,13 @@ func (s *AnalyzerManager) doAnalyze(key string, object ensuranceapi.ObjectiveEns
 	}
 
 	//step2: use opa to check if reached
-	b, err := s.logic.EvalWithMetric(object.MetricRule.Metric.Name, float64(object.MetricRule.Target.Value.Value()), value)
+	threshold, err := s.logic.EvalWithMetric(object.MetricRule.Metric.Name, float64(object.MetricRule.Target.Value.Value()), value)
 	if err != nil {
 		return dc, err
 	}
 
 	//step3: check is reached action or restored, set the detection
-	if b {
+	if threshold {
 		s.restored[key] = 0
 		reached := utils.GetUint64FromMaps(key, s.reached)
 		reached++
@@ -186,50 +185,49 @@ func (s *AnalyzerManager) doAnalyze(key string, object ensuranceapi.ObjectiveEns
 	return dc, nil
 }
 
-func (s *AnalyzerManager) doMerge(asMaps map[string]*ensuranceapi.AvoidanceAction, dcs []ecache.DetectionCondition) executor.AvoidanceExecutor {
+func (s *AnalyzerManager) doMerge(avoidanceMaps map[string]*ensuranceapi.AvoidanceAction, dcs []ecache.DetectionCondition) executor.AvoidanceExecutor {
 	var now = time.Now()
 
 	//step1 filter the only dryRun detection
 	var dcsFiltered []ecache.DetectionCondition
 	for _, dc := range dcs {
-		if dc.DryRun {
-			s.doLogEvent(dc, now)
-		} else {
+		s.doLogEvent(dc, now)
+		if !dc.DryRun {
 			dcsFiltered = append(dcsFiltered, dc)
 		}
 	}
 
 	var ae executor.AvoidanceExecutor
 
-	//step2 do BlockScheduled merge
-	var bBlockScheduled bool
-	var bRestoreScheduled bool
+	//step2 do DisableScheduled merge
+	var disableScheduled bool
+	var restoreScheduled bool
 	for _, dc := range dcsFiltered {
 		if dc.Triggered {
-			bBlockScheduled = true
-			bRestoreScheduled = false
+			disableScheduled = true
+			restoreScheduled = false
 		}
 	}
 
-	if bBlockScheduled {
-		ae.BlockScheduledExecutor.BlockScheduledQOSPriority = &executor.ScheduledQOSPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
+	if disableScheduled {
+		ae.ScheduledExecutor.DisableScheduledQOSPriority = &executor.ScheduledQOSPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
 		s.lastTriggeredTime = now
 	} else {
 		if len(dcsFiltered) == 0 {
-			bRestoreScheduled = true
+			restoreScheduled = true
 		} else {
 			for _, dc := range dcsFiltered {
-				action, ok := asMaps[dc.ActionName]
+				action, ok := avoidanceMaps[dc.ActionName]
 				if !ok {
 					log.Logger().V(4).Info(fmt.Sprintf("Waring: doMerge for detection the action %s  not found", dc.ActionName))
 					continue
 				}
 
 				if dc.Restored {
-					var schedulingCoolDown = utils.GetInt64withDefault(action.Spec.SchedulingCoolDown, 300)
+					var schedulingCoolDown = utils.GetInt64withDefault(action.Spec.CoolDownSeconds, executor.DefaultCoolDownSeconds)
 					log.Logger().V(4).Info("doMerge", "schedulingCoolDown", schedulingCoolDown)
 					if now.After(s.lastTriggeredTime.Add(time.Duration(schedulingCoolDown) * time.Second)) {
-						bRestoreScheduled = true
+						restoreScheduled = true
 						break
 					}
 				}
@@ -237,8 +235,8 @@ func (s *AnalyzerManager) doMerge(asMaps map[string]*ensuranceapi.AvoidanceActio
 		}
 	}
 
-	if bRestoreScheduled {
-		ae.BlockScheduledExecutor.RestoreScheduledQOSPriority = &executor.ScheduledQOSPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
+	if restoreScheduled {
+		ae.ScheduledExecutor.RestoreScheduledQOSPriority = &executor.ScheduledQOSPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
 	}
 
 	//step3 do Throttle merge FilterAndSortThrottlePods
@@ -247,7 +245,7 @@ func (s *AnalyzerManager) doMerge(asMaps map[string]*ensuranceapi.AvoidanceActio
 	var evictPods executor.EvictPods
 	for _, dc := range dcsFiltered {
 		if dc.Triggered {
-			action, ok := asMaps[dc.ActionName]
+			action, ok := avoidanceMaps[dc.ActionName]
 			if !ok {
 				log.Logger().V(4).Info("Waring: doMerge for detection the action ", dc.ActionName, " not found")
 				continue
@@ -319,11 +317,10 @@ func (s *AnalyzerManager) doLogEvent(dc ecache.DetectionCondition, now time.Time
 }
 
 func (s *AnalyzerManager) getMetricFromMap(metricName string, selector *metav1.LabelSelector) (float64, error) {
-
 	// step1: get the value from map
 	if v, ok := s.status[metricName]; ok {
 		for _, vv := range v {
-			if matched, err := utils.LabelSelectorMatched(utils.Labels2Maps(vv.Labels), selector); err != nil {
+			if matched, err := utils.LabelSelectorMatched(common.Labels2Maps(vv.Labels), selector); err != nil {
 				return 0.0, err
 			} else if !matched {
 				continue

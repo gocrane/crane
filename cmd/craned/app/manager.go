@@ -4,6 +4,9 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -11,7 +14,6 @@ import (
 	"k8s.io/client-go/dynamic"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/scale"
-	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
@@ -20,7 +22,15 @@ import (
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 	"github.com/gocrane/crane/cmd/craned/app/options"
 	"github.com/gocrane/crane/pkg/controller/ehpa"
+	"github.com/gocrane/crane/pkg/controller/recommendation"
+	"github.com/gocrane/crane/pkg/controller/tsp"
 	"github.com/gocrane/crane/pkg/known"
+	predict "github.com/gocrane/crane/pkg/prediction"
+	"github.com/gocrane/crane/pkg/prediction/dsp"
+	"github.com/gocrane/crane/pkg/prediction/percentile"
+	"github.com/gocrane/crane/pkg/providers"
+	"github.com/gocrane/crane/pkg/providers/mock"
+	"github.com/gocrane/crane/pkg/providers/prom"
 	"github.com/gocrane/crane/pkg/utils/log"
 	webhooks "github.com/gocrane/crane/pkg/webhooks"
 )
@@ -143,29 +153,12 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 	}
 
 	if err := (&ehpa.SubstituteController{
-<<<<<<< HEAD
-<<<<<<< HEAD
 		Client:      mgr.GetClient(),
 		Log:         log.Logger().WithName("substitute-controller"),
 		Scheme:      mgr.GetScheme(),
 		RestMapper:  mgr.GetRESTMapper(),
 		Recorder:    mgr.GetEventRecorderFor("substitute-controller"),
 		ScaleClient: scaleClient,
-=======
-=======
-func initializationControllers(mgr ctrl.Manager, opts *options.Options) {
-	clogs.Log().V(1).Info(fmt.Sprintf("opts %v", opts))
-	hpaRecorder := mgr.GetEventRecorderFor("advanced-hpa-controller")
-	if err := (&hpa.AdvancedHPAController{
->>>>>>> 3c489e2 (the first commit for ensurance, add node-qos-controller, collect, analyzer and avoidance)
-=======
->>>>>>> 8abab3f (bugfix: modify clogs to log)
-		Client:     mgr.GetClient(),
-		Log:        log.Logger().WithName("substitute-controller"),
-		Scheme:     mgr.GetScheme(),
-		RestMapper: mgr.GetRESTMapper(),
-		Recorder:   mgr.GetEventRecorderFor("substitute-controller"),
->>>>>>> df9d06c (bugfix: modify clogs to log)
 	}).SetupWithManager(mgr); err != nil {
 		log.Logger().Error(err, "unable to create controller", "controller", "SubstituteController")
 		os.Exit(1)

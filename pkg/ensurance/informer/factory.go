@@ -3,36 +3,33 @@ package informer
 import (
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/informers"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/record"
 
 	ensuaranceset "github.com/gocrane/api/pkg/generated/clientset/versioned"
 	"github.com/gocrane/api/pkg/generated/informers/externalversions"
-	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 const (
 	nodeNameField      = "metadata.name"
 	specNodeNameField  = "spec.nodeName"
-	statusPhaseFiled   = "status.phase"
+	statusPhaseField   = "status.phase"
 	informerSyncPeriod = time.Minute
 	defaultRetryTimes  = 3
 )
 
 // Context stores k8s client and factory,which generate the resource informers
 type Context struct {
-	// kubernetes master address be used to connect the kubernetes api-server
-	master string
-	// kubernetes config used to access the kubernetes api-server
-	kubeConfig string
-	// nodeName for filter, if nodeName is empty not to filer
 	nodeName string
 	// stop channel
-	stop chan struct{}
+	stop <-chan struct{}
 	// kubernetes client to communication with kubernetes api-server
 	kubeClient clientset.Interface
 	// ensurance client
@@ -53,38 +50,22 @@ type Context struct {
 	nepFactory externalversions.SharedInformerFactory
 	// node qos ensurance policy resource informer
 	nepInformer cache.SharedIndexInformer
+	// recorder is an event recorder for recording Event
+	recorder record.EventRecorder
 }
 
-func (c *Context) ContextInit() error {
-	if c.kubeClient != nil {
-		return nil
-	}
+func NewContextWithClient(client clientset.Interface, ensuranceClient ensuaranceset.Interface, nodeName string, stop <-chan struct{}) *Context {
 
-	clientConfig, err := clientcmd.BuildConfigFromFlags(c.master, c.kubeConfig)
-	if err != nil {
-		log.Logger().Error(err, "BuildConfigFromFlags failed")
-		return err
-	}
-
-	c.kubeClient = clientset.NewForConfigOrDie(clientConfig)
-
-	log.Logger().V(2).Info("ContextInit kubernetes client succeed")
-
-	return nil
-}
-
-func NewContextInitWithClient(client clientset.Interface, ensuranceClient ensuaranceset.Interface, nodeName string) *Context {
-
-	var ctx = &Context{kubeClient: client, stop: make(chan struct{}), nodeName: nodeName}
+	var ctx = &Context{kubeClient: client, stop: stop, nodeName: nodeName}
 
 	var fieldPodSelector string
 	if nodeName != "" {
 		fieldPodSelector = fields.AndSelectors(fields.OneTermEqualSelector(specNodeNameField, nodeName),
-			fields.OneTermNotEqualSelector(statusPhaseFiled, "Succeeded"),
-			fields.OneTermNotEqualSelector(statusPhaseFiled, "Failed")).String()
+			fields.OneTermNotEqualSelector(statusPhaseField, "Succeeded"),
+			fields.OneTermNotEqualSelector(statusPhaseField, "Failed")).String()
 	} else {
-		fieldPodSelector = fields.AndSelectors(fields.OneTermNotEqualSelector(statusPhaseFiled, "Succeeded"),
-			fields.OneTermNotEqualSelector(statusPhaseFiled, "Failed")).String()
+		fieldPodSelector = fields.AndSelectors(fields.OneTermNotEqualSelector(statusPhaseField, "Succeeded"),
+			fields.OneTermNotEqualSelector(statusPhaseField, "Failed")).String()
 	}
 
 	ctx.podFactory = informers.NewSharedInformerFactoryWithOptions(client, informerSyncPeriod,
@@ -109,6 +90,11 @@ func NewContextInitWithClient(client clientset.Interface, ensuranceClient ensuar
 	ctx.podInformer = ctx.podFactory.Core().V1().Pods().Informer()
 	ctx.avoidanceInformer = ctx.avoidanceFactory.Ensurance().V1alpha1().AvoidanceActions().Informer()
 	ctx.nepInformer = ctx.nepFactory.Ensurance().V1alpha1().NodeQOSEnsurancePolicies().Informer()
+
+	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartStructuredLogging(0)
+	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: client.CoreV1().Events("")})
+	ctx.recorder = eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: "crane-agent"})
 
 	return ctx
 }
@@ -159,7 +145,11 @@ func (c *Context) GetNepInformer() cache.SharedIndexInformer {
 	return c.nepInformer
 }
 
-func (c *Context) GetStopChannel() chan struct{} {
+func (c *Context) GetRecorder() record.EventRecorder {
+	return c.recorder
+}
+
+func (c *Context) GetStop() <-chan struct{} {
 	return c.stop
 }
 

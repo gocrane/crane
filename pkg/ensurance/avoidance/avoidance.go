@@ -42,7 +42,6 @@ func (a *AvoidanceManager) Run(stop <-chan struct{}) {
 		for {
 			select {
 			case as := <-a.noticeCh:
-				log.Logger().V(4).Info("Avoidance by analyzer noticed")
 				if err := a.doAction(as, stop); err != nil {
 					// TODO: if it failed in action, how to retry
 					log.Logger().Error(err, "doAction failed")
@@ -83,8 +82,8 @@ func (a *AvoidanceManager) doAction(ae executor.AvoidanceExecutor, _ <-chan stru
 
 func doAvoidance(ctx *executor.ExecuteContext, ae executor.AvoidanceExecutor) error {
 
-	//step1 do BlockScheduled action
-	if err := ae.BlockScheduledExecutor.Avoid(ctx); err != nil {
+	//step1 do DisableScheduled action
+	if err := ae.ScheduledExecutor.Avoid(ctx); err != nil {
 		return err
 	}
 
@@ -103,8 +102,8 @@ func doAvoidance(ctx *executor.ExecuteContext, ae executor.AvoidanceExecutor) er
 
 func doRestoration(ctx *executor.ExecuteContext, ae executor.AvoidanceExecutor) error {
 
-	//step1 do BlockScheduled action
-	if err := ae.BlockScheduledExecutor.Restore(ctx); err != nil {
+	//step1 do DisableScheduled action
+	if err := ae.ScheduledExecutor.Restore(ctx); err != nil {
 		return err
 	}
 

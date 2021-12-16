@@ -267,6 +267,10 @@ github.com/gocrane/api v0.0.0-20211207120055-f3b9cee38e7f h1:mesTr3rEY0gZoajWEYO
 github.com/gocrane/api v0.0.0-20211207120055-f3b9cee38e7f/go.mod h1:gcWZenR28tVclKJL6g5dIQlVvZXcj1XGFmUqGXnyReM=
 github.com/gocrane/api v0.0.0-20211209141951-4dc46c2c6a7a h1:JQUpX+d3KO7ApmY7ndHUZqw6s+oBMAZrDBV3k8oRtgM=
 github.com/gocrane/api v0.0.0-20211209141951-4dc46c2c6a7a/go.mod h1:gcWZenR28tVclKJL6g5dIQlVvZXcj1XGFmUqGXnyReM=
+github.com/gocrane/api v0.0.0-20211215114952-2a4631530892 h1:MOhVQAAYrX7RH7mGu8HQy0PYJ1tKm7VKIvSBv1+UxQU=
+github.com/gocrane/api v0.0.0-20211215114952-2a4631530892/go.mod h1:RnAori/vZNl5ymrEpyq0FhJ+dyFUfbGaKidzoaoxwy4=
+github.com/gocrane/api v0.0.0-20211216072340-d289c59f03cf h1:tKdzJuKq4LWKZmapv3mh/i+0D9Qs/ixJJ2ZFmCYbHcY=
+github.com/gocrane/api v0.0.0-20211216072340-d289c59f03cf/go.mod h1:RnAori/vZNl5ymrEpyq0FhJ+dyFUfbGaKidzoaoxwy4=
 github.com/gocrane/crane v0.0.0-20211126052053-c1204d921972 h1:Vz2N/pycVxKTWgL7D5xTfLP2dsq8V1W+GHyQgM6o/C8=
 github.com/godbus/dbus/v5 v5.0.3/go.mod h1:xhWf0FNVPg57R7Z0UbKHbJfkEywrmjJnf7w5xrFpKfA=
 >>>>>>> dcc5233 (the first commit for ensurance, add node-qos-controller, collect, analyzer and avoidance)
@@ -660,6 +664,8 @@ github.com/yan234280533/api2 v0.0.0-20211202040236-9fdcc4deae14 h1:qa5jeZF3nEAYI
 github.com/yan234280533/api2 v0.0.0-20211202040236-9fdcc4deae14/go.mod h1:31WrDJxI3fN5CA7wLoBYcVCuzvslsxvFW0F/ZF9SrPU=
 github.com/yan234280533/api2 v0.0.0-20211210071841-99f6e00814d4 h1:2oFmz3+7IovcpGcbFudg9XWg1J6yE8t/+31ln/5WirM=
 github.com/yan234280533/api2 v0.0.0-20211210071841-99f6e00814d4/go.mod h1:gcWZenR28tVclKJL6g5dIQlVvZXcj1XGFmUqGXnyReM=
+github.com/yan234280533/api2 v0.0.0-20211213081651-713a59815a97 h1:ZqMvpKrifjjPESYMLjYg4NdCYFpemQZIVZmc1wR+5Z0=
+github.com/yan234280533/api2 v0.0.0-20211213081651-713a59815a97/go.mod h1:gcWZenR28tVclKJL6g5dIQlVvZXcj1XGFmUqGXnyReM=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.32/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=

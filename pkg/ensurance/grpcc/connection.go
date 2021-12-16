@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
-	"k8s.io/kubernetes/pkg/kubelet/util"
 
+	"github.com/gocrane/crane/pkg/utils"
 	"github.com/gocrane/crane/pkg/utils/log"
 )
 
@@ -24,7 +24,7 @@ func InitGrpcConnection(endPoints []string) (*grpc.ClientConn, error) {
 	var conn *grpc.ClientConn
 	for idx, v := range endPoints {
 		log.Logger().V(5).Info(fmt.Sprintf("Connect using endpoint '%s' with '%s' timeout", v, defaultTimeout))
-		addr, dialer, err := util.GetAddressAndDialer(v)
+		addr, dialer, err := utils.GetAddressAndDialer(v)
 		if err != nil {
 			if idx == (len - 1) {
 				return nil, err

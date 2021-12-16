@@ -75,3 +75,18 @@ const (
 )
 
 type Options map[string]interface{}
+
+func Labels2Maps(labels []Label) map[string]string {
+	if len(labels) == 0 {
+		return make(map[string]string)
+	}
+
+	var maps = make(map[string]string)
+	for _, v := range labels {
+		if v.Name != "" {
+			maps[v.Name] = v.Value
+		}
+	}
+
+	return maps
+}

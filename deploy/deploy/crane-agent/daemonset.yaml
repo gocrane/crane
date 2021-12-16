@@ -35,11 +35,6 @@ spec:
             - /crane-agent
             - -v=4
           name: crane-agent
-          resources:
-            limits:
-              cpu: 100m
-              memory: 100Mi
       restartPolicy: Always
-      schedulerName: default-scheduler
-      securityContext: {}
+      priorityClassName: system-node-critical
       serviceAccount: crane-agent

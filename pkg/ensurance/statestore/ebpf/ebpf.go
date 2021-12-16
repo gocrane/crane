@@ -1,8 +1,9 @@
 package ebpf
 
 import (
-	"fmt"
 	"sync"
+
+	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 type EBPF struct {
@@ -23,5 +24,6 @@ func NewEBPF() *EBPF {
 }
 
 func (e *EBPF) Collect() {
-	fmt.Println("ebpf collecting")
+	log.Logger().V(4).Info("Ebpf collecting")
+	return
 }

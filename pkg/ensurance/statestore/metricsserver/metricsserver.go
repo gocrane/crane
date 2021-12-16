@@ -1,8 +1,9 @@
 package metricsserver
 
 import (
-	"fmt"
 	"sync"
+
+	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 type MetricsServer struct {
@@ -22,6 +23,7 @@ func (m *MetricsServer) GetName() string {
 	return m.Name
 }
 
-func (e *MetricsServer) Collect() {
-	fmt.Println("metrics server collecting")
+func (m *MetricsServer) Collect() {
+	log.Logger().V(4).Info("Metrics server collecting")
+	return
 }

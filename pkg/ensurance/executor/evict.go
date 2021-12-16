@@ -54,22 +54,22 @@ func (e *EvictExecutor) Avoid(ctx *ExecuteContext) error {
 	for i := range e.Executors {
 		wg.Add(1)
 
-		go func(v EvictPod) {
+		go func(evictPod EvictPod) {
 			defer wg.Done()
 
-			pod, err := einformer.GetPodFromInformer(ctx.PodInformer, v.PodTypes.String())
+			pod, err := einformer.GetPodFromInformer(ctx.PodInformer, evictPod.PodTypes.String())
 			if err != nil {
 				bSucceed = false
-				errPodKeys = append(errPodKeys, "not found ", v.PodTypes.String())
+				errPodKeys = append(errPodKeys, "not found ", evictPod.PodTypes.String())
 				return
 			}
 
 			log.Logger().V(4).Info(fmt.Sprintf("Pod %s", log.GenerateObj(pod)))
-			err = einformer.EvictPodWithGracePeriod(ctx.Client, pod, v.DeletionGracePeriodSeconds)
+			err = einformer.EvictPodWithGracePeriod(ctx.Client, pod, evictPod.DeletionGracePeriodSeconds)
 			if err != nil {
 				bSucceed = false
-				errPodKeys = append(errPodKeys, "evict failed ", v.PodTypes.String())
-				log.Logger().V(4).Info(fmt.Sprintf("Warning: evict failed %s, err %s", v.PodTypes.String(), err.Error()))
+				errPodKeys = append(errPodKeys, "evict failed ", evictPod.PodTypes.String())
+				log.Logger().V(4).Info(fmt.Sprintf("Warning: evict failed %s, err %s", evictPod.PodTypes.String(), err.Error()))
 				return
 			}
 		}(e.Executors[i])
