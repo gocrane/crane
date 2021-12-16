@@ -13,7 +13,7 @@ import (
 
 var mu = sync.Mutex{}
 
-var logger = log.Logger()
+var logger = log.NewLogger("dsp-predictor")
 
 var queryToInternalConfigMap map[string]*internalConfig = map[string]*internalConfig{}
 

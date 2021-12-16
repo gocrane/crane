@@ -29,6 +29,10 @@ func Init(name string) {
 	})
 }
 
+func NewLogger(name string) logr.Logger {
+	return ctrl.Log.WithName(name)
+}
+
 func GenerateKey(name string, namespace string) string {
 	return fmt.Sprintf("%s/%s", namespace, name)
 }
