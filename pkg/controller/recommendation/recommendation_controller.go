@@ -22,8 +22,8 @@ import (
 	"github.com/gocrane/crane/pkg/recommend"
 )
 
-// RecommendationController is responsible for reconcile Recommendation
-type RecommendationController struct {
+// Controller is responsible for reconcile Recommendation
+type Controller struct {
 	client.Client
 	Log         logr.Logger
 	Scheme      *runtime.Scheme
@@ -33,7 +33,7 @@ type RecommendationController struct {
 	Predictors  map[predictionapi.AlgorithmType]prediction.Interface
 }
 
-func (c *RecommendationController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	c.Log.Info("got", "Recommendation", req.NamespacedName)
 
 	recommendation := &analysisv1alph1.Recommendation{}
@@ -43,12 +43,13 @@ func (c *RecommendationController) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	if recommendation.DeletionTimestamp != nil {
+		// todo stop prediction
 		return ctrl.Result{}, nil
 	}
 
 	newStatus := recommendation.Status.DeepCopy()
 
-	recommender, err := recommend.NewRecommender(c.Client, c.RestMapper, c.ScaleClient, recommendation, c.Predictors)
+	recommender, err := recommend.NewRecommender(c.Client, c.RestMapper, c.ScaleClient, recommendation, c.Predictors, c.Log)
 	if err != nil {
 		c.Recorder.Event(recommendation, v1.EventTypeNormal, "FailedCreateRecommender", err.Error())
 		c.Log.Error(err, "Failed to create recommender", "recommendation", klog.KObj(recommendation))
@@ -59,7 +60,7 @@ func (c *RecommendationController) Reconcile(ctx context.Context, req ctrl.Reque
 
 	proposed, err := recommender.Offer()
 	if err != nil {
-		c.Recorder.Event(recommendation, v1.EventTypeNormal, "FailedOfferRecommend", err.Error())
+		c.Recorder.Event(recommendation, v1.EventTypeNormal, "FailedOfferRecommendation", err.Error())
 		c.Log.Error(err, "Failed to offer recommend", "recommendation", klog.KObj(recommendation))
 		setCondition(newStatus, "Ready", metav1.ConditionFalse, "FailedOfferRecommend", "Failed to offer recommend")
 		c.UpdateStatus(ctx, recommendation, newStatus)
@@ -75,7 +76,7 @@ func (c *RecommendationController) Reconcile(ctx context.Context, req ctrl.Reque
 	return ctrl.Result{}, nil
 }
 
-func (c *RecommendationController) UpdateStatus(ctx context.Context, recommendation *analysisv1alph1.Recommendation, newStatus *analysisv1alph1.RecommendationStatus) {
+func (c *Controller) UpdateStatus(ctx context.Context, recommendation *analysisv1alph1.Recommendation, newStatus *analysisv1alph1.RecommendationStatus) {
 	if !equality.Semantic.DeepEqual(&recommendation.Status, newStatus) {
 		c.Log.V(4).Info("Recommendation status should be updated", "currentStatus", &recommendation.Status, "newStatus", newStatus)
 
@@ -88,11 +89,11 @@ func (c *RecommendationController) UpdateStatus(ctx context.Context, recommendat
 			return
 		}
 
-		c.Log.Info("Update Recommendation status successful", "ehpa", klog.KObj(recommendation))
+		c.Log.Info("Update Recommendation status successful", "recommendation", klog.KObj(recommendation))
 	}
 }
 
-func (c *RecommendationController) SetupWithManager(mgr ctrl.Manager) error {
+func (c *Controller) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&analysisv1alph1.Recommendation{}).
 		Complete(c)

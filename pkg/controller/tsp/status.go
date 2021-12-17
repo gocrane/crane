@@ -139,7 +139,7 @@ func (tc *Controller) doPredict(tsPrediction *v1alpha1.TimeSeriesPrediction, sta
 			//todo
 			return result, fmt.Errorf("do not support query type %v, metric %v now", metric.ExpressionQuery, metric.ResourceIdentifier)
 		} else {
-			queryExpr = metric.RawQuery.Expression
+			queryExpr = metric.ExpressionQuery.Expression
 		}
 
 		err := predictor.WithQuery(queryExpr)

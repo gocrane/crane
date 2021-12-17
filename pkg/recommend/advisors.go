@@ -3,6 +3,8 @@ package recommend
 import (
 	"fmt"
 
+	"github.com/gocrane/crane/pkg/prediction/config"
+
 	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -20,6 +22,70 @@ type MinMaxReplicasAdvisor struct {
 
 type ResourceRequestAdvisor struct {
 	*Context
+}
+
+func (a *ResourceRequestAdvisor) Init() error {
+	p := a.Predictors[predictionapi.AlgorithmTypePercentile]
+	a.V(5).Info("Percentile", "predictor", p)
+
+	if len(a.Pods) == 0 {
+		return fmt.Errorf("pod not found")
+	}
+	pod := a.Pods[0]
+	namespace := pod.Namespace
+	podNamePrefix := pod.OwnerReferences[0].Name + "-"
+
+	var expr string
+	mc := &config.MetricContext{}
+	for _, c := range pod.Spec.Containers {
+		expr = fmt.Sprintf(cpuQueryExprTemplate, c.Name, namespace, podNamePrefix)
+		a.V(5).Info("CPU query:", "expr", expr)
+		if err := p.WithQuery(expr); err != nil {
+			return err
+		}
+		mc.WithConfig(makeCpuConfig(expr))
+
+		expr = fmt.Sprintf(memQueryExprTemplate, c.Name, namespace, podNamePrefix)
+		a.V(5).Info("Memory query:", "expr", expr)
+		if err := p.WithQuery(expr); err != nil {
+			return err
+		}
+		mc.WithConfig(makeMemConfig(expr))
+	}
+
+	return nil
+}
+
+func makeCpuConfig(expr string) *config.Config {
+	return &config.Config{
+		Expression: &predictionapi.ExpressionQuery{Expression: expr},
+		Percentile: &predictionapi.Percentile{
+			SampleInterval: "1m",
+			MarginFraction: "0.15",
+			Percentile:     "0.99",
+			Histogram: predictionapi.HistogramConfig{
+				HalfLife:   "24h",
+				BucketSize: "0.1",
+				MaxValue:   "100",
+			},
+		},
+	}
+}
+
+func makeMemConfig(expr string) *config.Config {
+	return &config.Config{
+		Expression: &predictionapi.ExpressionQuery{Expression: expr},
+		Percentile: &predictionapi.Percentile{
+			SampleInterval: "1m",
+			MarginFraction: "0.15",
+			Percentile:     "0.99",
+			Histogram: predictionapi.HistogramConfig{
+				HalfLife:   "48h",
+				BucketSize: "104857600",
+				MaxValue:   "104857600000",
+			},
+		},
+	}
 }
 
 func (a *ResourceRequestAdvisor) Advise(proposed *ProposedRecommendation) error {
@@ -76,10 +142,11 @@ func (a *PredictionAdvisor) Advise(proposed *ProposedRecommendation) error {
 func NewAdvisors(ctx *Context) (advisors []Advisor) {
 	switch ctx.Recommendation.Spec.Type {
 	case analysisapi.AnalysisTypeResource:
-
-		advisors = []Advisor{
-			&ResourceRequestAdvisor{Context: ctx},
+		a := &ResourceRequestAdvisor{Context: ctx}
+		if err := a.Init(); err != nil {
+			panic(err)
 		}
+		advisors = []Advisor{a}
 	case analysisapi.AnalysisTypeHPA:
 		advisors = []Advisor{
 			&MinMaxReplicasAdvisor{

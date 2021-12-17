@@ -12,7 +12,7 @@ import (
 var expr = "irate(container_cpu_core_used[3m])"
 
 var cfg = &config.Config{
-	Query: &v1alpha1.RawQuery{Expression: expr},
+	Expression: &v1alpha1.ExpressionQuery{Expression: expr},
 	DSP: &v1alpha1.DSP{
 		SampleInterval: "15s",
 		HistoryLength:  "14d",

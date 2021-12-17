@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/scale"
@@ -37,6 +38,10 @@ func (c *SubstituteController) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
+	if substitute.DeletionTimestamp != nil {
+		return ctrl.Result{}, err
+	}
+
 	scale, _, err := utils.GetScale(ctx, c.RestMapper, c.ScaleClient, substitute.Namespace, substitute.Spec.SubstituteTargetRef)
 	if err != nil {
 		c.Recorder.Event(substitute, v1.EventTypeNormal, "FailedGetScale", err.Error())
@@ -44,12 +49,15 @@ func (c *SubstituteController) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
-	if substitute.Status.LabelSelector != scale.Status.Selector || substitute.Status.Replicas != *substitute.Spec.Replicas {
-		c.Log.V(4).Info("Substitute labelSelector should be updated", "current", substitute.Status.LabelSelector, "new", scale.Status.Selector)
+	newStatus := autoscalingapi.SubstituteStatus{
+		LabelSelector: scale.Status.Selector,
+		Replicas:      substitute.Spec.Replicas,
+	}
 
-		// Update substitute labelSelector based on target scale
-		substitute.Status.LabelSelector = scale.Status.Selector
-		substitute.Status.Replicas = *substitute.Spec.Replicas
+	if !equality.Semantic.DeepEqual(&substitute.Status, &newStatus) {
+		c.Log.V(4).Info("Substitute status should be updated", "current", substitute.Status, "new", newStatus)
+
+		substitute.Status = newStatus
 		err := c.Status().Update(ctx, substitute)
 		if err != nil {
 			c.Recorder.Event(substitute, v1.EventTypeNormal, "FailedUpdateStatus", err.Error())

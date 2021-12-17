@@ -57,65 +57,59 @@ func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, err
 	}
 
+	var substitute *autoscalingapi.Substitute
 	if ehpa.Spec.ScaleStrategy == autoscalingapi.ScaleStrategyPreview {
-		substitute, err := c.ReconcileSubstitute(ctx, ehpa, scale)
+		substitute, err = c.ReconcileSubstitute(ctx, ehpa, scale)
 		if err != nil {
 			setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedReconcileSubstitute", "Failed to reconcile substitute")
 			c.UpdateStatus(ctx, ehpa, newStatus)
 			return ctrl.Result{}, err
 		}
+	}
 
-		hpa, err := c.ReconcileHPA(ctx, ehpa, substitute)
+	// reconcile prediction if enabled
+	if IsPredictionEnabled(ehpa) {
+		prediction, err := c.ReconcilePredication(ctx, ehpa)
 		if err != nil {
-			setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedReconcileHPA", err.Error())
+			setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedReconcilePrediction", err.Error())
 			c.UpdateStatus(ctx, ehpa, newStatus)
 			return ctrl.Result{}, err
 		}
+		setPredictionCondition(newStatus, prediction.Status.Conditions)
+	}
 
-		newStatus.ExpectReplicas = &hpa.Status.DesiredReplicas
-		newStatus.CurrentReplicas = &scale.Status.Replicas
+	hpa, err := c.ReconcileHPA(ctx, ehpa, substitute)
+	if err != nil {
+		setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedReconcileHPA", err.Error())
+		c.UpdateStatus(ctx, ehpa, newStatus)
+		return ctrl.Result{}, err
+	}
 
-		// scale target to its specific replicas
-		if ehpa.Spec.SpecificReplicas != nil && *ehpa.Spec.SpecificReplicas != scale.Status.Replicas {
-			scale.Spec.Replicas = *ehpa.Spec.SpecificReplicas
-			updatedScale, err := c.ScaleClient.Scales(scale.Namespace).Update(ctx, mapping.Resource.GroupResource(), scale, metav1.UpdateOptions{})
-			if err != nil {
-				c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedManualScale", err.Error())
-				c.Log.Error(err, "Failed to manual scale target to specific replicas", "ehpa", klog.KObj(ehpa), "replicas", ehpa.Spec.SpecificReplicas)
-				setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedScale", "Failed to scale target manually")
-				c.UpdateStatus(ctx, ehpa, newStatus)
-				return ctrl.Result{}, err
-			}
+	newStatus.ExpectReplicas = &hpa.Status.DesiredReplicas
+	newStatus.CurrentReplicas = &hpa.Status.CurrentReplicas
 
-			c.Log.Info("Manual scale target to specific replicas", "ehpa", klog.KObj(ehpa), "replicas", ehpa.Spec.SpecificReplicas)
-			now := metav1.Now()
-			newStatus.LastScaleTime = &now
-			newStatus.CurrentReplicas = &updatedScale.Status.Replicas
-		}
-	} else if ehpa.Spec.ScaleStrategy == autoscalingapi.ScaleStrategyAuto {
-		// reconcile prediction if enabled
-		if IsPredictionEnabled(ehpa) {
-			prediction, err := c.ReconcilePodPredication(ctx, ehpa)
-			if err != nil {
-				setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedReconcilePrediction", err.Error())
-				c.UpdateStatus(ctx, ehpa, newStatus)
-				return ctrl.Result{}, err
-			}
-			setPredictionCondition(newStatus, prediction.Status.Conditions)
-		}
-
-		hpa, err := c.ReconcileHPA(ctx, ehpa, nil)
-		if err != nil {
-			setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedReconcileHPA", err.Error())
-			c.UpdateStatus(ctx, ehpa, newStatus)
-			return ctrl.Result{}, err
-		}
-
-		newStatus.ExpectReplicas = &hpa.Status.DesiredReplicas
+	if hpa.Status.LastScaleTime.After(newStatus.LastScaleTime.Time) {
 		newStatus.LastScaleTime = hpa.Status.LastScaleTime
-		newStatus.CurrentReplicas = &hpa.Status.CurrentReplicas
+	}
 
-		setHPACondition(newStatus, hpa.Status.Conditions)
+	setHPACondition(newStatus, hpa.Status.Conditions)
+
+	// scale target to its specific replicas for Preview strategy
+	if ehpa.Spec.ScaleStrategy == autoscalingapi.ScaleStrategyPreview && ehpa.Spec.SpecificReplicas != nil && *ehpa.Spec.SpecificReplicas != scale.Status.Replicas {
+		scale.Spec.Replicas = *ehpa.Spec.SpecificReplicas
+		updatedScale, err := c.ScaleClient.Scales(scale.Namespace).Update(ctx, mapping.Resource.GroupResource(), scale, metav1.UpdateOptions{})
+		if err != nil {
+			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedManualScale", err.Error())
+			c.Log.Error(err, "Failed to manual scale target to specific replicas", "ehpa", klog.KObj(ehpa), "replicas", ehpa.Spec.SpecificReplicas)
+			setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedScale", "Failed to scale target manually")
+			c.UpdateStatus(ctx, ehpa, newStatus)
+			return ctrl.Result{}, err
+		}
+
+		c.Log.Info("Manual scale target to specific replicas", "ehpa", klog.KObj(ehpa), "replicas", ehpa.Spec.SpecificReplicas)
+		now := metav1.Now()
+		newStatus.LastScaleTime = &now
+		newStatus.CurrentReplicas = &updatedScale.Status.Replicas
 	}
 
 	setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionTrue, "EffectiveHorizontalPodAutoscalerReady", "Effective HPA is ready")
@@ -156,7 +150,7 @@ func (c *EffectiveHPAController) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&autoscalingapi.EffectiveHorizontalPodAutoscaler{}).
 		Owns(&autoscalingv2.HorizontalPodAutoscaler{}).
-		Owns(&predictionapi.PodGroupPrediction{}).
+		Owns(&predictionapi.TimeSeriesPrediction{}).
 		Complete(c)
 }
 
@@ -181,9 +175,11 @@ func setCondition(status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus,
 }
 
 func RecordMetrics(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) {
-	labels := map[string]string{
-		"identity": klog.KObj(ehpa).String(),
-		"strategy": string(ehpa.Spec.ScaleStrategy),
+	if ehpa.Status.ExpectReplicas != nil {
+		labels := map[string]string{
+			"identity": klog.KObj(ehpa).String(),
+			"strategy": string(ehpa.Spec.ScaleStrategy),
+		}
+		metrics.EHPAReplicas.With(labels).Set(float64(*ehpa.Status.ExpectReplicas))
 	}
-	metrics.EHPAReplicas.With(labels).Set(float64(*ehpa.Status.ExpectReplicas))
 }

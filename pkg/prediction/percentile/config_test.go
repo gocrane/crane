@@ -12,7 +12,7 @@ import (
 var expr = "container_cpu_core_used"
 
 var cfg *config.Config = &config.Config{
-	Query: &v1alpha1.RawQuery{Expression: expr},
+	Expression: &v1alpha1.ExpressionQuery{Expression: expr},
 	Percentile: &v1alpha1.Percentile{
 		SampleInterval:  "15s",
 		MinSampleWeight: "0.01",

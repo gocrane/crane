@@ -3,6 +3,8 @@ package recommend
 import (
 	"context"
 
+	"github.com/go-logr/logr"
+
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 	"github.com/gocrane/crane/pkg/prediction"
 
@@ -22,8 +24,8 @@ import (
 )
 
 func NewRecommender(kubeClient client.Client, restMapper meta.RESTMapper, scaleClient scale.ScalesGetter,
-	recommendation *analysisapi.Recommendation, predictors map[predictionapi.AlgorithmType]prediction.Interface) (*Recommender, error) {
-	c, err := GetContext(kubeClient, restMapper, scaleClient, recommendation, predictors)
+	recommendation *analysisapi.Recommendation, predictors map[predictionapi.AlgorithmType]prediction.Interface, logger logr.Logger) (*Recommender, error) {
+	c, err := GetContext(kubeClient, restMapper, scaleClient, recommendation, predictors, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -71,10 +73,17 @@ func toInspectorCondition(err error) metav1.Condition {
 }
 
 func GetContext(kubeClient client.Client, restMapper meta.RESTMapper, scaleClient scale.ScalesGetter,
-	recommendation *analysisapi.Recommendation, predictors map[predictionapi.AlgorithmType]prediction.Interface) (*Context, error) {
-	c := &Context{}
-	ref := autoscalingv2.CrossVersionObjectReference{Kind: recommendation.Kind, Name: recommendation.Name, APIVersion: recommendation.APIVersion}
-	scale, mapping, err := utils.GetScale(context.TODO(), restMapper, scaleClient, recommendation.Namespace, ref)
+	recommendation *analysisapi.Recommendation, predictors map[predictionapi.AlgorithmType]prediction.Interface, logger logr.Logger) (*Context, error) {
+	c := &Context{Logger: logger}
+
+	targetRef := autoscalingv2.CrossVersionObjectReference{
+		APIVersion: recommendation.Spec.TargetRef.APIVersion,
+		Kind:       recommendation.Spec.TargetRef.Kind,
+		Name:       recommendation.Spec.TargetRef.Name,
+	}
+
+	scale, mapping, err := utils.GetScale(context.TODO(), restMapper, scaleClient, recommendation.Spec.TargetRef.Namespace, targetRef)
+
 	if err != nil {
 		return nil, err
 	}

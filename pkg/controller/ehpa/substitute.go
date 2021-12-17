@@ -40,7 +40,7 @@ func (c *EffectiveHPAController) ReconcileSubstitute(ctx context.Context, ehpa *
 }
 
 func (c *EffectiveHPAController) CreateSubstitute(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, scale *autoscalingapiv1.Scale) (*autoscalingapi.Substitute, error) {
-	substitute, err := c.NewSubstituteObject(ctx, ehpa, scale)
+	substitute, err := c.NewSubstituteObject(ehpa, scale)
 	if err != nil {
 		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreateSubstituteObject", err.Error())
 		c.Log.Error(err, "Failed to create object", "Substitute", substitute)
@@ -60,7 +60,7 @@ func (c *EffectiveHPAController) CreateSubstitute(ctx context.Context, ehpa *aut
 	return substitute, nil
 }
 
-func (c *EffectiveHPAController) NewSubstituteObject(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, scale *autoscalingapiv1.Scale) (*autoscalingapi.Substitute, error) {
+func (c *EffectiveHPAController) NewSubstituteObject(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, scale *autoscalingapiv1.Scale) (*autoscalingapi.Substitute, error) {
 	name := fmt.Sprintf("ehpa-%s", ehpa.Name)
 	substitute := &autoscalingapi.Substitute{
 		ObjectMeta: metav1.ObjectMeta{
@@ -75,6 +75,7 @@ func (c *EffectiveHPAController) NewSubstituteObject(ctx context.Context, ehpa *
 		},
 		Spec: autoscalingapi.SubstituteSpec{
 			SubstituteTargetRef: ehpa.Spec.ScaleTargetRef,
+			Replicas:            scale.Spec.Replicas,
 		},
 	}
 
@@ -87,17 +88,10 @@ func (c *EffectiveHPAController) NewSubstituteObject(ctx context.Context, ehpa *
 }
 
 func (c *EffectiveHPAController) UpdateSubstituteIfNeed(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, substituteExist *autoscalingapi.Substitute, scale *autoscalingapiv1.Scale) (*autoscalingapi.Substitute, error) {
-	substitute, err := c.NewSubstituteObject(ctx, ehpa, scale)
-	if err != nil {
-		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreateSubstituteObject", err.Error())
-		c.Log.Error(err, "Failed to create object", "Substitute", substitute)
-		return nil, err
-	}
+	if !equality.Semantic.DeepEqual(&substituteExist.Spec.SubstituteTargetRef, &ehpa.Spec.ScaleTargetRef) {
+		c.Log.V(4).Info("Substitute is unsynced according to EffectiveHorizontalPodAutoscaler, should be updated", "currentTarget", substituteExist.Spec.SubstituteTargetRef, "expectTarget", ehpa.Spec.ScaleTargetRef)
 
-	if !equality.Semantic.DeepEqual(&substituteExist.Spec.SubstituteTargetRef, &substitute.Spec.SubstituteTargetRef) {
-		c.Log.V(4).Info("Substitute is unsynced according to EffectiveHorizontalPodAutoscaler, should be updated", "currentSubstitute", substituteExist.Spec, "expectSubstitute", substitute.Spec)
-
-		substituteExist.Spec.SubstituteTargetRef = substitute.Spec.SubstituteTargetRef
+		substituteExist.Spec.SubstituteTargetRef = ehpa.Spec.ScaleTargetRef
 		err := c.Update(ctx, substituteExist)
 		if err != nil {
 			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedUpdateSubstitute", err.Error())
@@ -105,7 +99,7 @@ func (c *EffectiveHPAController) UpdateSubstituteIfNeed(ctx context.Context, ehp
 			return nil, err
 		}
 
-		c.Log.Info("Update Substitute successful", "Substitute", substituteExist)
+		c.Log.Info("Update Substitute successful", "Substitute", klog.KObj(substituteExist))
 	}
 
 	return substituteExist, nil

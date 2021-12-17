@@ -1,6 +1,7 @@
 package percentile
 
 import (
+	"fmt"
 	"reflect"
 	"sync"
 	"time"
@@ -40,6 +41,11 @@ type internalConfig struct {
 	minSampleWeight        float64
 	marginFraction         float64
 	percentile             float64
+}
+
+func (c *internalConfig) String() string {
+	return fmt.Sprintf("{aggregated: %v, historyLength: %v, sampleInterval: %v, histogramDecayHalfLife: %v, minSampleWeight: %v, marginFraction: %v, percentile: %v}",
+		c.aggregated, c.historyLength, c.sampleInterval, c.histogramDecayHalfLife, c.minSampleWeight, c.marginFraction, c.percentile)
 }
 
 func makeInternalConfig(p *v1alpha1.Percentile) (*internalConfig, error) {
@@ -121,14 +127,17 @@ func makeInternalConfig(p *v1alpha1.Percentile) (*internalConfig, error) {
 		return nil, err
 	}
 
-	return &internalConfig{
+	c := &internalConfig{
 		sampleInterval:         sampleInterval,
 		histogramOptions:       options,
 		histogramDecayHalfLife: halfLife,
 		minSampleWeight:        minSampleWeight,
 		marginFraction:         marginFraction,
 		percentile:             percentile,
-	}, nil
+	}
+	logger.Info("Made an internal config", "internalConfig", c)
+
+	return c, nil
 }
 
 func getInternalConfig(queryExpr string) *internalConfig {

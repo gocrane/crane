@@ -1,4 +1,4 @@
-package analysis
+package analytics
 
 import (
 	"context"
@@ -31,7 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type AnalyticsController struct {
+type Controller struct {
 	client.Client
 	Logger          logr.Logger
 	Scheme          *runtime.Scheme
@@ -44,18 +44,18 @@ type AnalyticsController struct {
 	K8SVersion      *version.Version
 }
 
-func (ac *AnalyticsController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	ac.Logger.V(4).Info("Got an analytics resource.", "analytics", req.NamespacedName)
+func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	c.Logger.V(4).Info("Got an analytics resource.", "analytics", req.NamespacedName)
 
 	a := &analysisv1alph1.Analytics{}
 
-	err := ac.Client.Get(ctx, req.NamespacedName, a)
+	err := c.Client.Get(ctx, req.NamespacedName, a)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	if a.DeletionTimestamp != nil {
-		ac.Logger.Info("Analytics resource is being deleted.", "name", req.NamespacedName)
+		c.Logger.Info("Analytics resource is being deleted.", "name", req.NamespacedName)
 		return ctrl.Result{}, nil
 	}
 
@@ -74,7 +74,7 @@ func (ac *AnalyticsController) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrl.Result{}, fmt.Errorf("empty kind")
 		}
 
-		resList, err := ac.discoveryClient.ServerResourcesForGroupVersion(rs.APIVersion)
+		resList, err := c.discoveryClient.ServerResourcesForGroupVersion(rs.APIVersion)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -100,14 +100,14 @@ func (ac *AnalyticsController) Reconcile(ctx context.Context, req ctrl.Request) 
 		var ownerNames []string
 
 		if rs.Name != "" {
-			u, err := ac.dynamicClient.Resource(gvr).Namespace(req.Namespace).Get(ctx, rs.Name, metav1.GetOptions{})
+			u, err := c.dynamicClient.Resource(gvr).Namespace(req.Namespace).Get(ctx, rs.Name, metav1.GetOptions{})
 			if err != nil {
 				return ctrl.Result{}, err
 			}
 			us = append(us, *u)
 			ownerNames = append(ownerNames, rs.Name)
 		} else {
-			ul, err := ac.dynamicClient.Resource(gvr).Namespace(req.Namespace).List(ctx, metav1.ListOptions{})
+			ul, err := c.dynamicClient.Resource(gvr).Namespace(req.Namespace).List(ctx, metav1.ListOptions{})
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -128,55 +128,19 @@ func (ac *AnalyticsController) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 
 		for i := range us {
-			//m, ok, err := unstructured.NestedStringMap(us[i].Object, "spec", "selector", "matchLabels")
-			//if !ok || err != nil {
-			//	return ctrl.Result{}, fmt.Errorf("%s not supported", gvr.String())
-			//}
-			//
-			//ls := labels.NewSelector()
-			//for k, v := range m {
-			//	r, err := labels.NewRequirement(k, selection.Equals, []string{v})
-			//	if err != nil {
-			//		return ctrl.Result{}, err
-			//	}
-			//	ls = ls.Add(*r)
-			//}
-			//
-			//opts := metav1.ListOptions{
-			//	LabelSelector: ls.String(),
-			//	Limit:         1,
-			//}
-			//
-			//podList, err := ac.kubeClient.CoreV1().Pods(req.Namespace).List(ctx, opts)
-			//if err != nil {
-			//	return ctrl.Result{}, err
-			//}
-			//
-			//if len(podList.Items) != 1 {
-			//	return ctrl.Result{}, fmt.Errorf("pod not found for %s", gvr.String())
-			//}
-
 			k := objRefKey(rs.Kind, rs.APIVersion, ownerNames[i])
-
-			//pod := podList.Items[0]
-
 			if _, exists := identities[k]; !exists {
-				//var cs []string
-				//for _, c := range pod.Spec.Containers {
-				//	cs = append(cs, c.Name)
-				//}
 				identities[k] = ObjectIdentity{
 					Namespace:  req.Namespace,
 					Name:       ownerNames[i],
 					Kind:       rs.Kind,
 					APIVersion: rs.APIVersion,
-					//Containers: cs,
 				}
 			}
 		}
 	}
 
-	rs, err := ac.recommLister.Recommendations(req.Namespace).List(labels.Everything())
+	rs, err := c.recommLister.Recommendations(req.Namespace).List(labels.Everything())
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -208,12 +172,12 @@ func (ac *AnalyticsController) Reconcile(ctx context.Context, req ctrl.Request) 
 				nr := r.DeepCopy()
 				nr.OwnerReferences = append(nr.OwnerReferences,
 					*metav1.NewControllerRef(a, schema.GroupVersionKind{Version: a.APIVersion, Kind: a.Kind}))
-				if err = ac.Update(ctx, nr); err != nil {
+				if err = c.Update(ctx, nr); err != nil {
 					return ctrl.Result{}, err
 				}
 			}
 		} else {
-			if err = ac.createRecommendation(ctx, a, id, &refs); err != nil {
+			if err = c.createRecommendation(ctx, a, id, &refs); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -222,14 +186,14 @@ func (ac *AnalyticsController) Reconcile(ctx context.Context, req ctrl.Request) 
 	na.Status.Recommendations = refs
 	t := metav1.Now()
 	na.Status.LastSuccessfulTime = &t
-	if err = ac.Client.Update(ctx, na); err != nil {
+	if err = c.Client.Update(ctx, na); err != nil {
 		return ctrl.Result{}, err
 	}
 
 	if a.Spec.CompletionStrategy.CompletionStrategyType == analysisv1alph1.CompletionStrategyPeriodical {
 		if a.Spec.CompletionStrategy.PeriodSeconds != nil {
 			d := time.Second * time.Duration(*a.Spec.CompletionStrategy.PeriodSeconds)
-			ac.Logger.V(5).Info("Will re-sync", "after", d)
+			c.Logger.V(5).Info("Will re-sync", "after", d)
 			return ctrl.Result{
 				RequeueAfter: d,
 			}, nil
@@ -239,7 +203,7 @@ func (ac *AnalyticsController) Reconcile(ctx context.Context, req ctrl.Request) 
 	return ctrl.Result{}, nil
 }
 
-func (ac *AnalyticsController) createRecommendation(ctx context.Context, a *analysisv1alph1.Analytics,
+func (ac *Controller) createRecommendation(ctx context.Context, a *analysisv1alph1.Analytics,
 	id ObjectIdentity, refs *[]corev1.ObjectReference) error {
 
 	r := &analysisv1alph1.Recommendation{
@@ -327,31 +291,31 @@ func match(labelSelector metav1.LabelSelector, matchLabels map[string]string) bo
 	return true
 }
 
-func (ac *AnalyticsController) SetupWithManager(mgr ctrl.Manager) error {
-	ac.kubeClient = kubernetes.NewForConfigOrDie(mgr.GetConfig())
+func (c *Controller) SetupWithManager(mgr ctrl.Manager) error {
+	c.kubeClient = kubernetes.NewForConfigOrDie(mgr.GetConfig())
 
-	ac.discoveryClient = discovery.NewDiscoveryClientForConfigOrDie(mgr.GetConfig())
+	c.discoveryClient = discovery.NewDiscoveryClientForConfigOrDie(mgr.GetConfig())
 
-	ac.dynamicClient = dynamic.NewForConfigOrDie(mgr.GetConfig())
+	c.dynamicClient = dynamic.NewForConfigOrDie(mgr.GetConfig())
 
 	cli := craneclient.NewForConfigOrDie(mgr.GetConfig())
 	fact := analysisinformer.NewSharedInformerFactory(cli, time.Second*30)
-	ac.recommLister = fact.Analysis().V1alpha1().Recommendations().Lister()
+	c.recommLister = fact.Analysis().V1alpha1().Recommendations().Lister()
 
 	fact.Start(nil)
 	if ok := cache.WaitForCacheSync(nil, fact.Analysis().V1alpha1().Recommendations().Informer().HasSynced); !ok {
 		return fmt.Errorf("failed to sync")
 	}
 
-	serverVersion, err := ac.discoveryClient.ServerVersion()
+	serverVersion, err := c.discoveryClient.ServerVersion()
 	if err != nil {
 		return err
 	}
-	ac.K8SVersion = version.MustParseGeneric(serverVersion.GitVersion)
+	c.K8SVersion = version.MustParseGeneric(serverVersion.GitVersion)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&analysisv1alph1.Analytics{}).
-		Complete(ac)
+		Complete(c)
 }
 
 type ObjectIdentity struct {
@@ -359,5 +323,4 @@ type ObjectIdentity struct {
 	APIVersion string
 	Kind       string
 	Name       string
-	//Containers []string
 }
