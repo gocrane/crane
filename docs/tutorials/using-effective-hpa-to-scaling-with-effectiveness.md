@@ -1,9 +1,7 @@
 # EffectiveHorizontalPodAutoscaler
 
-EffectiveHorizontalPodAutoscaler helps you manage application scaling in an easy way. It is compatible with
-HorizontalPodAutoscaler but extends more features.
-EffectiveHorizontalPodAutoscaler supports prediction-driven autoscaling. With this capability, user can forecast the incoming peak flow and scale up their
-application ahead, also user can know when the peak flow will end and scale down their application gracefully.
+EffectiveHorizontalPodAutoscaler helps you manage application scaling in an easy way. It is compatible with HorizontalPodAutoscaler but extends more features.
+EffectiveHorizontalPodAutoscaler supports prediction-driven autoscaling. With this capability, user can forecast the incoming peak flow and scale up their application ahead, also user can know when the peak flow will end and scale down their application gracefully.
 
 Besides that, EffectiveHorizontalPodAutoscaler also defines several scale strategies to support different scaling scenarios.
 
@@ -52,8 +50,7 @@ spec:
 * spec.prediction defines configurations for predict resources.If unspecified, defaults don't enable prediction.
 
 ### Prediction-driven autoscaling
-Most of online applications follow regular pattern. We can predict future trend of hours or days. DSP is a time series prediction algorithm that
-applicable for application metrics prediction.
+Most of online applications follow regular pattern. We can predict future trend of hours or days. DSP is a time series prediction algorithm that applicable for application metrics prediction.
 
 The following shows a sample EffectiveHorizontalPodAutoscaler yaml with prediction enabled.
 ```yaml
@@ -71,8 +68,7 @@ spec:
 ```
 
 #### Metric conversion
-When user defines `spec.metrics` in EffectiveHorizontalPodAutoscaler and prediction configuration is enabled, EffectiveHPAController will convert it to a new metric
-and configure the background HorizontalPodAutoscaler. 
+When user defines `spec.metrics` in EffectiveHorizontalPodAutoscaler and prediction configuration is enabled, EffectiveHPAController will convert it to a new metric and configure the background HorizontalPodAutoscaler. 
 
 This is a source EffectiveHorizontalPodAutoscaler yaml for metric definition.
 ```yaml
@@ -145,14 +141,10 @@ We can see significant improvement with EffectiveHorizontalPodAutoscaler:
 EffectiveHorizontalPodAutoscaler provides two strategies for scaling: `Auto` and `Manual`. User can change the strategy at runtime, and it will take effect on the fly.
 
 #### Auto
-Auto strategy achieves automatic scaling based on metrics. It is the default strategy. With this strategy, EffectiveHorizontalPodAutoscaler will create and control a HorizontalPodAutoscaler 
-instance in backend. We don't recommend explicit configuration on the underlying HorizontalPodAutoscaler because it will be overridden by EffectiveHPAController。
-If user delete EffectiveHorizontalPodAutoscaler, HorizontalPodAutoscaler will be cleaned up too.
+Auto strategy achieves automatic scaling based on metrics. It is the default strategy. With this strategy, EffectiveHorizontalPodAutoscaler will create and control a HorizontalPodAutoscaler instance in backend. We don't recommend explicit configuration on the underlying HorizontalPodAutoscaler because it will be overridden by EffectiveHPAController. If user delete EffectiveHorizontalPodAutoscaler, HorizontalPodAutoscaler will be cleaned up too.
 
 #### Manual
-Manual strategy means user can specify replicas of target. User can switch from default strategy to this one by applying `spec.scaleStrategy` to `Manual`. It will take effect immediately，
-During the switch, EffectiveHPAController will disable HorizontalPodAutoscaler if exists and scale the target to the value 
-`spec.specificReplicas`, if user not set `spec.specificReplicas`, when ScaleStrategy is change to Manual, it will just stop scaling.
+Manual strategy means user can specify replicas of target. User can switch from default strategy to this one by applying `spec.scaleStrategy` to `Manual`. It will take effect immediately, During the switch, EffectiveHPAController will disable HorizontalPodAutoscaler if exists and scale the target to the value `spec.specificReplicas`, if user not set `spec.specificReplicas`, when ScaleStrategy is change to Manual, it will just stop scaling.
 
 A sample manual configuration looks like following:
 ```yaml
@@ -165,8 +157,7 @@ spec:
 ```
 
 ### HorizontalPodAutoscaler compatible
-EffectiveHorizontalPodAutoscaler is designed to be compatible with k8s native HorizontalPodAutoscaler, because we don't reinvent the autoscaling part but take advantage of the extension
-from HorizontalPodAutoscaler and build a high level autoscaling CRD. EffectiveHorizontalPodAutoscaler support all abilities from HorizontalPodAutoscaler like metricSpec and behavior.
+EffectiveHorizontalPodAutoscaler is designed to be compatible with k8s native HorizontalPodAutoscaler, because we don't reinvent the autoscaling part but take advantage of the extension from HorizontalPodAutoscaler and build a high level autoscaling CRD. EffectiveHorizontalPodAutoscaler support all abilities from HorizontalPodAutoscaler like metricSpec and behavior.
 
 EffectiveHorizontalPodAutoscaler will continue support incoming new feature from HorizontalPodAutoscaler.
 
