@@ -9,7 +9,7 @@ import (
 	vpa "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/recommender/util"
 )
 
-var logger = log.Logger()
+var logger = log.NewLogger("percentile-predictor")
 
 type aggregateSignal struct {
 	histogram         vpa.Histogram

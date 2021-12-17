@@ -48,7 +48,7 @@ func preProcessTimeSeriesList(tsList []*common.TimeSeries, config *internalConfi
 	for _, ts := range tsList {
 		go func(ts *common.TimeSeries) {
 			defer wg.Done()
-			if err := preProcessTimeSeries(ts, config, Day); err != nil {
+			if err := preProcessTimeSeries(ts, config, Hour); err != nil {
 				logger.Error(err, "Dsp failed to pre process time series.")
 			} else {
 				tsCh <- ts
@@ -206,6 +206,7 @@ func (p *periodicSignalPrediction) updateAggregateSignals(id string, tsList []*c
 	var predictedTimeSeriesList []*common.TimeSeries
 
 	for _, ts := range tsList {
+		logger.V(9).Info("Dsp get time series.", "queryExpr", id, "tsSamples", ts.Samples, "tsLabels", ts.Labels)
 		var chosenEstimator Estimator
 		var signal *Signal
 		var nCycles int
