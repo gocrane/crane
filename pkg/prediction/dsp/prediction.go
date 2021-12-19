@@ -381,3 +381,7 @@ func (p *periodicSignalPrediction) getPredictedTimeSeriesList(id string, tsList 
 	}
 	return predictedTimeSeriesList
 }
+
+func (p *periodicSignalPrediction) Name() string {
+	return "Periodic"
+}

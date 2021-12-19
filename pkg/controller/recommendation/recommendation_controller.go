@@ -69,6 +69,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	newStatus.ResourceRequest = proposed.ResourceRequest
 	newStatus.EffectiveHPA = proposed.EffectiveHPA
+	c.Log.Info("XXXXXX", "status", newStatus, "proposed", proposed)
 
 	setCondition(newStatus, "Ready", metav1.ConditionTrue, "RecommendationReady", "Recommendation is ready")
 	c.UpdateStatus(ctx, recommendation, newStatus)
@@ -82,7 +83,7 @@ func (c *Controller) UpdateStatus(ctx context.Context, recommendation *analysisv
 
 		recommendation.Status = *newStatus
 		recommendation.Status.LastUpdateTime = metav1.Now()
-		err := c.Status().Update(ctx, recommendation)
+		err := c.Update(ctx, recommendation)
 		if err != nil {
 			c.Recorder.Event(recommendation, v1.EventTypeNormal, "FailedUpdateStatus", err.Error())
 			c.Log.Error(err, "Failed to update status", "Recommendation", klog.KObj(recommendation))

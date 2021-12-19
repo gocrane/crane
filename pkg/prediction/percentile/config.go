@@ -128,6 +128,8 @@ func makeInternalConfig(p *v1alpha1.Percentile) (*internalConfig, error) {
 	}
 
 	c := &internalConfig{
+		aggregated:             true,
+		historyLength:          time.Hour * 24 * 7,
 		sampleInterval:         sampleInterval,
 		histogramOptions:       options,
 		histogramDecayHalfLife: halfLife,

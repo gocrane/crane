@@ -26,7 +26,6 @@ type ResourceRequestAdvisor struct {
 
 func (a *ResourceRequestAdvisor) Init() error {
 	p := a.Predictors[predictionapi.AlgorithmTypePercentile]
-	a.V(5).Info("Percentile", "predictor", p)
 
 	if len(a.Pods) == 0 {
 		return fmt.Errorf("pod not found")
@@ -96,31 +95,37 @@ func (a *ResourceRequestAdvisor) Advise(proposed *ProposedRecommendation) error 
 	pod := a.Pods[0]
 	namespace := pod.Namespace
 	podNamePrefix := pod.OwnerReferences[0].Name + "-"
+
+	var expr string
 	for _, c := range pod.Spec.Containers {
 		cr := analysisapi.ContainerRecommendation{
 			ContainerName: c.Name,
 			Target:        map[corev1.ResourceName]resource.Quantity{},
 		}
 
-		ts, err := p.QueryRealtimePredictedValues(fmt.Sprintf(cpuQueryExprTemplate, c.Name, namespace, podNamePrefix))
+		expr = fmt.Sprintf(cpuQueryExprTemplate, c.Name, namespace, podNamePrefix)
+		ts, err := p.QueryRealtimePredictedValues(expr)
 		if err != nil {
 			return err
 		}
 		if len(ts) < 1 || len(ts[0].Samples) < 1 {
-			return fmt.Errorf("no value")
+			return fmt.Errorf("no value, expr: %s", expr)
 		}
 		v := int64(ts[0].Samples[0].Value * 1000)
 		cr.Target[corev1.ResourceCPU] = *resource.NewMilliQuantity(v, resource.DecimalSI)
 
-		ts, err = p.QueryRealtimePredictedValues(fmt.Sprintf(memQueryExprTemplate, c.Name, namespace, podNamePrefix))
+		expr = fmt.Sprintf(memQueryExprTemplate, c.Name, namespace, podNamePrefix)
+		ts, err = p.QueryRealtimePredictedValues(expr)
 		if err != nil {
 			return err
 		}
 		if len(ts) < 1 || len(ts[0].Samples) < 1 {
-			return fmt.Errorf("no value")
+			return fmt.Errorf("no value, expr: %s", expr)
 		}
 		v = int64(ts[0].Samples[0].Value)
 		cr.Target[corev1.ResourceMemory] = *resource.NewMilliQuantity(v, resource.BinarySI)
+
+		r.Containers = append(r.Containers, cr)
 	}
 
 	proposed.ResourceRequest = r

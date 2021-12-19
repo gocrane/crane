@@ -38,6 +38,7 @@ func NewRecommender(kubeClient client.Client, restMapper meta.RESTMapper, scaleC
 }
 
 func (r *Recommender) Offer() (proposed *ProposedRecommendation, err error) {
+	proposed = &ProposedRecommendation{}
 	// Run inspectors to validate target is ready to recommend
 	for _, inspector := range r.Inspectors {
 		err := inspector.Inspect()
@@ -59,7 +60,7 @@ func (r *Recommender) Offer() (proposed *ProposedRecommendation, err error) {
 		}
 	}
 
-	return
+	return proposed, nil
 }
 
 func toInspectorCondition(err error) metav1.Condition {
@@ -82,15 +83,18 @@ func GetContext(kubeClient client.Client, restMapper meta.RESTMapper, scaleClien
 		Name:       recommendation.Spec.TargetRef.Name,
 	}
 
-	scale, mapping, err := utils.GetScale(context.TODO(), restMapper, scaleClient, recommendation.Spec.TargetRef.Namespace, targetRef)
+	scale, mapping, err := utils.GetScale(context.TODO(), restMapper, scaleClient, recommendation.Namespace, targetRef)
 
 	if err != nil {
 		return nil, err
 	}
+
 	c.Scale = scale
 	c.RestMapping = mapping
 
 	unstructured := &unstructured.Unstructured{}
+	unstructured.SetKind(recommendation.Spec.TargetRef.Kind)
+	unstructured.SetAPIVersion(recommendation.Spec.TargetRef.APIVersion)
 	if err = kubeClient.Get(context.TODO(), client.ObjectKey{Namespace: recommendation.Namespace, Name: recommendation.Spec.TargetRef.Name}, unstructured); err != nil {
 		return nil, err
 	}
@@ -115,9 +119,10 @@ func GetContext(kubeClient client.Client, restMapper meta.RESTMapper, scaleClien
 	if err != nil {
 		return nil, err
 	}
-	c.Pods = pods
 
+	c.Pods = pods
 	c.Predictors = predictors
+	c.Recommendation = *recommendation
 
 	return c, nil
 }

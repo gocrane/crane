@@ -178,7 +178,6 @@ func (p *percentilePrediction) init(queryExpr string) error {
 	if p.GetHistoryProvider() == nil {
 		return fmt.Errorf("history provider not found")
 	}
-
 	c := getInternalConfig(queryExpr)
 
 	end := time.Now().Truncate(time.Minute)
@@ -186,6 +185,7 @@ func (p *percentilePrediction) init(queryExpr string) error {
 
 	historyTimeSeries, err := p.GetHistoryProvider().QueryTimeSeries(queryExpr, start, end, c.sampleInterval)
 	if err != nil {
+		logger.Error(err, "Failed to query history time series.")
 		return err
 	}
 
@@ -314,4 +314,8 @@ func (p *percentilePrediction) addSamples(queryExpr string) {
 			a.addSample(sampleTime, sample.Value)
 		}
 	}
+}
+
+func (p *percentilePrediction) Name() string {
+	return "Percentile"
 }

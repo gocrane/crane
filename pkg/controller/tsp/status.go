@@ -135,7 +135,7 @@ func (tc *Controller) doPredict(tsPrediction *v1alpha1.TimeSeriesPrediction, sta
 
 		if metric.ResourceQuery != nil {
 			queryExpr = c.ResourceToPromQueryExpr(metric.ResourceQuery)
-		} else if metric.ExpressionQuery != nil {
+		} else if metric.MetricQuery != nil {
 			//todo
 			return result, fmt.Errorf("do not support query type %v, metric %v now", metric.ExpressionQuery, metric.ResourceIdentifier)
 		} else {
