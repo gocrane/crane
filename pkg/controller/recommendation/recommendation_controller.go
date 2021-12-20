@@ -4,10 +4,6 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
-	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
-	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
-	"github.com/gocrane/crane/pkg/prediction"
-	"github.com/gocrane/crane/pkg/recommend"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -18,6 +14,11 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
+	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
+	"github.com/gocrane/crane/pkg/prediction"
+	"github.com/gocrane/crane/pkg/recommend"
 )
 
 // Controller is responsible for reconcile Recommendation

@@ -6,13 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/types"
-
 	"github.com/go-logr/logr"
-	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
-	craneclient "github.com/gocrane/api/pkg/generated/clientset/versioned"
-	analysisinformer "github.com/gocrane/api/pkg/generated/informers/externalversions"
-	analysislister "github.com/gocrane/api/pkg/generated/listers/analysis/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
@@ -28,6 +23,11 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
+	craneclient "github.com/gocrane/api/pkg/generated/clientset/versioned"
+	analysisinformer "github.com/gocrane/api/pkg/generated/informers/externalversions"
+	analysislister "github.com/gocrane/api/pkg/generated/listers/analysis/v1alpha1"
 )
 
 type Controller struct {
