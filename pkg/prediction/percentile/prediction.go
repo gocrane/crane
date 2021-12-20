@@ -25,26 +25,26 @@ type percentilePrediction struct {
 //	return p.GetRealtimePredictedValues(metricName, conditions)
 //}
 
-func (p *percentilePrediction) QueryPredictedTimeSeries(rawQuery string, startTime time.Time, endTime time.Time) ([]*common.TimeSeries, error) {
+func (p *percentilePrediction) QueryPredictedTimeSeries(queryExpr string, startTime time.Time, endTime time.Time) ([]*common.TimeSeries, error) {
 	if p.GetRealtimeProvider() == nil {
 		return nil, fmt.Errorf("realtime data provider not set")
 	}
 
-	cfg := getInternalConfig(rawQuery)
+	cfg := getInternalConfig(queryExpr)
 
 	estimator := NewPercentileEstimator(cfg.percentile)
 	estimator = WithMargin(cfg.marginFraction, estimator)
 
-	latestTimeSeries, err := p.GetRealtimeProvider().QueryLatestTimeSeries(rawQuery)
+	latestTimeSeries, err := p.GetRealtimeProvider().QueryLatestTimeSeries(queryExpr)
 	if err != nil {
 		return nil, err
 	}
-	logger.Info("Percentile query latest time series", "rawQuery", rawQuery, "latestTimeSeries", latestTimeSeries, "cfg", *cfg)
+	logger.Info("Percentile query latest time series", "queryExpr", queryExpr, "latestTimeSeries", latestTimeSeries, "cfg", *cfg)
 
 	estimatedTimeSeries := make([]*common.TimeSeries, 0)
 
 	for _, ts := range latestTimeSeries {
-		key := prediction.AggregateSignalKey(rawQuery, ts.Labels)
+		key := prediction.AggregateSignalKey(queryExpr, ts.Labels)
 		s, exists := p.a.Load(key)
 		if !exists {
 			klog.Warningf("aggregate signal [%s] not found", key)
@@ -82,19 +82,21 @@ func (p *percentilePrediction) QueryRealtimePredictedValues(queryExpr string) ([
 
 	latestTimeSeries, err := p.GetRealtimeProvider().QueryLatestTimeSeries(queryExpr)
 	if err != nil {
+		logger.Error(err, "Failed to query latest time series.")
 		return nil, err
 	}
-	logger.Info("Percentile query latest time series", "latestTimeSeries", latestTimeSeries)
+	logger.V(5).Info("Percentile query latest time series", "latestTimeSeries", latestTimeSeries)
+
+	now := time.Now().Unix()
 
 	estimatedTimeSeries := make([]*common.TimeSeries, 0)
 
-	now := time.Now().Unix()
-	for _, ts := range latestTimeSeries {
-		key := prediction.AggregateSignalKey(queryExpr, ts.Labels)
+	if cfg.aggregated {
+		key := prediction.AggregateSignalKey(queryExpr, nil)
 		s, exists := p.a.Load(key)
 		if !exists {
-			klog.Warningf("Percentile aggregate signal [%s] not found", key)
-			continue
+			logger.V(4).Info("Percentile aggregate signal not found", "key", key, "aggregated", true)
+			return nil, nil
 		}
 
 		sample := common.Sample{
@@ -103,9 +105,28 @@ func (p *percentilePrediction) QueryRealtimePredictedValues(queryExpr string) ([
 		}
 
 		estimatedTimeSeries = append(estimatedTimeSeries, &common.TimeSeries{
-			Labels:  ts.Labels,
+			Labels:  nil,
 			Samples: []common.Sample{sample},
 		})
+	} else {
+		for _, ts := range latestTimeSeries {
+			key := prediction.AggregateSignalKey(queryExpr, ts.Labels)
+			s, exists := p.a.Load(key)
+			if !exists {
+				logger.V(4).Info("Percentile aggregate signal not found.", "key", key, "aggregated", false)
+				continue
+			}
+
+			sample := common.Sample{
+				Value:     estimator.GetEstimation(s.histogram),
+				Timestamp: now,
+			}
+
+			estimatedTimeSeries = append(estimatedTimeSeries, &common.TimeSeries{
+				Labels:  ts.Labels,
+				Samples: []common.Sample{sample},
+			})
+		}
 	}
 
 	return estimatedTimeSeries, nil
@@ -117,33 +138,94 @@ func NewPrediction() prediction.Interface {
 	return &percentilePrediction{
 		GenericPrediction: prediction.NewGenericPrediction(qb),
 		a:                 aggregateSignalMap{},
-		//mr:             mb.Listen(),
-		qr: qb.Listen(),
+		qr:                qb.Listen(),
 	}
 }
 
 func (p *percentilePrediction) Run(stopCh <-chan struct{}) {
 	for {
-		// Waiting for a WithQuery request
-		queryExpr := p.qr.Read().(string)
-		logger.Info("Percentile received a WithQuery reques", "queryExpr", queryExpr)
+		// Waiting for a new config
+		expr := p.qr.Read().(string)
 
-		cfg := getInternalConfig(queryExpr)
+		if err := p.init(expr); err != nil {
+			logger.Error(err, "Failed to init.")
+			continue
+		}
 
-		go func(cfg *internalConfig) {
-			ticker := time.NewTicker(cfg.sampleInterval)
-			defer ticker.Stop()
-			for {
-				p.addSamples(queryExpr)
-				select {
-				case <-stopCh:
-					return
-				case <-ticker.C:
-					continue
+		go func(expr string) {
+			if expr == "" {
+				return
+			}
+			if c := getInternalConfig(expr); c != nil {
+				ticker := time.NewTicker(c.sampleInterval)
+				defer ticker.Stop()
+
+				for {
+					p.addSamples(expr)
+					select {
+					case <-stopCh:
+						return
+					case <-ticker.C:
+						continue
+					}
 				}
 			}
-		}(cfg)
+		}(expr)
 	}
+}
+
+func (p *percentilePrediction) init(queryExpr string) error {
+	if p.GetHistoryProvider() == nil {
+		return fmt.Errorf("history provider not found")
+	}
+	c := getInternalConfig(queryExpr)
+
+	end := time.Now().Truncate(time.Minute)
+	start := end.Add(-c.historyLength)
+
+	historyTimeSeries, err := p.GetHistoryProvider().QueryTimeSeries(queryExpr, start, end, c.sampleInterval)
+	if err != nil {
+		logger.Error(err, "Failed to query history time series.")
+		return err
+	}
+
+	if c.aggregated {
+		key := prediction.AggregateSignalKey(queryExpr, nil)
+		if _, exists := p.a.Load(key); exists {
+			p.a.Delete(key)
+		}
+		p.a.Store(key, newAggregateSignal(c))
+		a, _ := p.a.Load(key)
+		for _, ts := range historyTimeSeries {
+			for _, s := range ts.Samples {
+				t := time.Unix(s.Timestamp, 0)
+				a.addSample(t, s.Value)
+			}
+		}
+	} else {
+		labelsToTimeSeriesMap := map[string]*common.TimeSeries{}
+		for i, ts := range historyTimeSeries {
+			key := prediction.AggregateSignalKey(queryExpr, ts.Labels)
+			if len(ts.Samples) < 1 {
+				continue
+			}
+			labelsToTimeSeriesMap[key] = historyTimeSeries[i]
+		}
+
+		for key, ts := range labelsToTimeSeriesMap {
+			if _, exists := p.a.Load(key); exists {
+				p.a.Delete(key)
+			}
+			p.a.Store(key, newAggregateSignal(c))
+			a, _ := p.a.Load(key)
+			for _, s := range ts.Samples {
+				t := time.Unix(s.Timestamp, 0)
+				a.addSample(t, s.Value)
+			}
+		}
+	}
+
+	return nil
 }
 
 //func (p *percentilePrediction) GetRealtimePredictedValues(metricName string, conditions []common.QueryCondition) ([]*common.TimeSeries, error) {
@@ -186,40 +268,54 @@ func (p *percentilePrediction) Run(stopCh <-chan struct{}) {
 //}
 
 func (p *percentilePrediction) addSamples(queryExpr string) {
-	labelsToTimeSeriesMap := map[string]*common.TimeSeries{}
-
 	latestTimeSeries, err := p.GetRealtimeProvider().QueryLatestTimeSeries(queryExpr)
 	if err != nil {
-		logger.Error(err, "Percentile failed to get latest time series")
+		logger.Error(err, "Failed to get latest time series")
 		return
 	}
 
-	for i, ts := range latestTimeSeries {
-		key := prediction.AggregateSignalKey(queryExpr, ts.Labels)
-		if len(ts.Samples) < 1 {
-			logger.V(4).Info("Percentile sample not found.", "key", key)
-			continue
-		}
-		if _, exists := labelsToTimeSeriesMap[key]; exists {
-			if labelsToTimeSeriesMap[key].Samples[0].Timestamp < ts.Samples[0].Timestamp {
-				labelsToTimeSeriesMap[key] = latestTimeSeries[i]
+	c := getInternalConfig(queryExpr)
+
+	if c.aggregated {
+		key := prediction.AggregateSignalKey(queryExpr, nil)
+		for _, ts := range latestTimeSeries {
+			if len(ts.Samples) < 1 {
+				logger.V(4).Info("Sample not found.", "key", key)
+				continue
 			}
-		} else {
+
+			if _, exists := p.a.Load(key); !exists {
+				p.a.Store(key, newAggregateSignal(c))
+			}
+
+			sample := ts.Samples[len(ts.Samples)-1]
+			sampleTime := time.Unix(sample.Timestamp, 0)
+			a, _ := p.a.Load(key)
+			a.addSample(sampleTime, sample.Value)
+		}
+	} else {
+		labelsToTimeSeriesMap := map[string]*common.TimeSeries{}
+		for i, ts := range latestTimeSeries {
+			key := prediction.AggregateSignalKey(queryExpr, ts.Labels)
+			if len(ts.Samples) < 1 {
+				logger.V(4).Info("Sample not found.", "key", key)
+				continue
+			}
 			labelsToTimeSeriesMap[key] = latestTimeSeries[i]
 		}
-	}
-
-	for _, ts := range labelsToTimeSeriesMap {
-		sample := ts.Samples[0]
-		key := prediction.AggregateSignalKey(queryExpr, ts.Labels)
-
-		logger.V(5).Info("Percentile got latest time series sample", "key", key, "sample", sample)
-
-		if _, exists := p.a.Load(key); !exists {
-			p.a.Store(key, newAggregateSignal(queryExpr))
+		for key, ts := range labelsToTimeSeriesMap {
+			sample := ts.Samples[len(ts.Samples)-1]
+			logger.V(5).Info("Percentile got latest time series sample", "key", key, "sample", sample)
+			if _, exists := p.a.Load(key); !exists {
+				p.a.Store(key, newAggregateSignal(c))
+			}
+			sampleTime := time.Unix(sample.Timestamp, 0)
+			a, _ := p.a.Load(key)
+			a.addSample(sampleTime, sample.Value)
 		}
-		sampleTime := time.Unix(sample.Timestamp, 0)
-		a, _ := p.a.Load(key)
-		a.addSample(sampleTime, sample.Value)
 	}
+}
+
+func (p *percentilePrediction) Name() string {
+	return "Percentile"
 }

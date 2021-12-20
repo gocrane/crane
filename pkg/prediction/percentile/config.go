@@ -1,6 +1,7 @@
 package percentile
 
 import (
+	"fmt"
 	"reflect"
 	"sync"
 	"time"
@@ -32,12 +33,19 @@ var defaultInternalConfig = internalConfig{
 }
 
 type internalConfig struct {
+	aggregated             bool
+	historyLength          time.Duration
 	sampleInterval         time.Duration
 	histogramOptions       vpa.HistogramOptions
 	histogramDecayHalfLife time.Duration
 	minSampleWeight        float64
 	marginFraction         float64
 	percentile             float64
+}
+
+func (c *internalConfig) String() string {
+	return fmt.Sprintf("{aggregated: %v, historyLength: %v, sampleInterval: %v, histogramDecayHalfLife: %v, minSampleWeight: %v, marginFraction: %v, percentile: %v}",
+		c.aggregated, c.historyLength, c.sampleInterval, c.histogramDecayHalfLife, c.minSampleWeight, c.marginFraction, c.percentile)
 }
 
 func makeInternalConfig(p *v1alpha1.Percentile) (*internalConfig, error) {
@@ -95,6 +103,7 @@ func makeInternalConfig(p *v1alpha1.Percentile) (*internalConfig, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		options, err = vpa.NewLinearHistogramOptions(maxValue, bucketSize, epsilon)
 		if err != nil {
 			return nil, err
@@ -118,14 +127,19 @@ func makeInternalConfig(p *v1alpha1.Percentile) (*internalConfig, error) {
 		return nil, err
 	}
 
-	return &internalConfig{
+	c := &internalConfig{
+		aggregated:             true,
+		historyLength:          time.Hour * 24 * 7,
 		sampleInterval:         sampleInterval,
 		histogramOptions:       options,
 		histogramDecayHalfLife: halfLife,
 		minSampleWeight:        minSampleWeight,
 		marginFraction:         marginFraction,
 		percentile:             percentile,
-	}, nil
+	}
+	logger.Info("Made an internal config", "internalConfig", c)
+
+	return c, nil
 }
 
 func getInternalConfig(queryExpr string) *internalConfig {
@@ -163,10 +177,10 @@ func init() {
 			}
 
 			mu.Lock()
-			if cfg.Query != nil && len(cfg.Query.Expression) > 0 {
-				orig, exists := queryToInternalConfigMap[cfg.Query.Expression]
+			if cfg.Expression != nil && len(cfg.Expression.Expression) > 0 {
+				orig, exists := queryToInternalConfigMap[cfg.Expression.Expression]
 				if !exists || !reflect.DeepEqual(orig, internalCfg) {
-					queryToInternalConfigMap[cfg.Query.Expression] = internalCfg
+					queryToInternalConfigMap[cfg.Expression.Expression] = internalCfg
 				}
 			}
 			mu.Unlock()
@@ -178,8 +192,8 @@ func init() {
 			cfg := configDeleteEventReceiver.Read().(*config.Config)
 
 			mu.Lock()
-			if cfg.Query != nil {
-				delete(queryToInternalConfigMap, cfg.Query.Expression)
+			if cfg.Expression != nil {
+				delete(queryToInternalConfigMap, cfg.Expression.Expression)
 			}
 			mu.Unlock()
 		}

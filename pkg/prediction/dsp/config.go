@@ -149,8 +149,8 @@ func init() {
 			}
 
 			mu.Lock()
-			if cfg.Query != nil && len(cfg.Query.Expression) > 0 {
-				queryToInternalConfigMap[cfg.Query.Expression] = internalCfg
+			if cfg.Expression != nil && len(cfg.Expression.Expression) > 0 {
+				queryToInternalConfigMap[cfg.Expression.Expression] = internalCfg
 			}
 			mu.Unlock()
 		}
@@ -161,8 +161,8 @@ func init() {
 			cfg := configDeleteEventReceiver.Read().(*config.Config)
 
 			mu.Lock()
-			if cfg.Query != nil {
-				delete(queryToInternalConfigMap, cfg.Query.Expression)
+			if cfg.Expression != nil {
+				delete(queryToInternalConfigMap, cfg.Expression.Expression)
 			}
 			mu.Unlock()
 		}

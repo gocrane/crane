@@ -29,11 +29,11 @@ var DeleteEventBroadcaster Broadcaster = NewBroadcaster()
 var logger = log.Logger()
 
 func (c *MetricContext) WithApiConfig(conf *v1alpha1.PredictionMetric) {
-	if conf.ExpressionQuery != nil {
-		logger.V(2).Info("WithApiConfig", "metricSelector", metricSelectorToQueryExpr(conf.ExpressionQuery))
+	if conf.MetricQuery != nil {
+		logger.V(2).Info("WithApiConfig", "metricSelector", metricSelectorToQueryExpr(conf.MetricQuery))
 	}
-	if conf.RawQuery != nil {
-		logger.V(2).Info("WithApiConfig", "queryExpr", conf.RawQuery.Expression)
+	if conf.ExpressionQuery != nil {
+		logger.V(2).Info("WithApiConfig", "queryExpr", conf.ExpressionQuery.Expression)
 	}
 	if conf.ResourceQuery != nil {
 		logger.V(2).Info("WithApiConfig", "resourceQuery", conf.ResourceQuery)
@@ -57,10 +57,10 @@ func (c *MetricContext) WithApiConfigs(configs []v1alpha1.PredictionMetric) {
 }
 
 func (c *MetricContext) DeleteApiConfig(conf *v1alpha1.PredictionMetric) {
-	if conf.ExpressionQuery != nil {
-		logger.V(2).Info("DeleteApiConfig", "metricSelector", metricSelectorToQueryExpr(conf.ExpressionQuery))
-	} else if conf.RawQuery != nil {
-		logger.V(2).Info("DeleteApiConfig", "queryExpr", conf.RawQuery.Expression)
+	if conf.MetricQuery != nil {
+		logger.V(2).Info("DeleteApiConfig", "metricSelector", metricSelectorToQueryExpr(conf.MetricQuery))
+	} else if conf.ExpressionQuery != nil {
+		logger.V(2).Info("DeleteApiConfig", "queryExpr", conf.ExpressionQuery.Expression)
 	}
 	DeleteEventBroadcaster.Write(c.ConvertApiMetric2InternalConfig(conf))
 }
@@ -78,24 +78,24 @@ func (c *MetricContext) WithConfigs(configs []*Config) {
 }
 
 func (c *MetricContext) WithConfig(conf *Config) {
-	if conf.MetricSelector != nil {
-		logger.V(2).Info("WithConfig", "metricSelector", metricSelectorToQueryExpr(conf.MetricSelector))
-	} else if conf.Query != nil {
-		logger.V(2).Info("WithConfig", "queryExpr", conf.Query)
+	if conf.Metric != nil {
+		logger.V(2).Info("WithConfig", "metricSelector", metricSelectorToQueryExpr(conf.Metric))
+	} else if conf.Expression != nil {
+		logger.V(2).Info("WithConfig", "queryExpr", conf.Expression)
 	}
 	UpdateEventBroadcaster.Write(conf)
 }
 
 func (c *MetricContext) DeleteConfig(conf *Config) {
-	if conf.MetricSelector != nil {
-		logger.V(2).Info("DeleteConfig", "metricSelector", metricSelectorToQueryExpr(conf.MetricSelector))
-	} else if conf.Query != nil {
-		logger.V(2).Info("DeleteConfig", "queryExpr", conf.Query.Expression)
+	if conf.Metric != nil {
+		logger.V(2).Info("DeleteConfig", "metricSelector", metricSelectorToQueryExpr(conf.Metric))
+	} else if conf.Expression != nil {
+		logger.V(2).Info("DeleteConfig", "queryExpr", conf.Expression.Expression)
 	}
 	DeleteEventBroadcaster.Write(conf)
 }
 
-func metricSelectorToQueryExpr(m *v1alpha1.ExpressionQuery) string {
+func metricSelectorToQueryExpr(m *v1alpha1.MetricQuery) string {
 	conditions := make([]string, 0, len(m.QueryConditions))
 	for _, cond := range m.QueryConditions {
 		values := make([]string, 0, len(cond.Value))

@@ -37,14 +37,27 @@ spec:
             description: AnalyticsSpec describes the analytics type, what the analysis
               is for and how often the analysis routine runs.
             properties:
-              intervalSeconds:
-                description: IntervalSeconds is the duration in seconds between two
-                  continuous analysis. Setting it to 0 means this is a one-off analysis.
-                format: int64
-                type: integer
+              completionStrategy:
+                description: CompletionStrategy indicate how to complete an Analytics.
+                properties:
+                  completionStrategyType:
+                    default: Once
+                    description: CompletionStrategy indicate the strategy to request
+                      an Analytics or Recommendation, value can be "Once" and "Periodical"
+                      the default CompletionStrategy is Once.
+                    enum:
+                    - Once
+                    - Periodical
+                    type: string
+                  periodSeconds:
+                    description: PeriodSeconds is the duration in seconds for an Analytics
+                      or Recommendation.
+                    format: int64
+                    type: integer
+                type: object
               resourceSelectors:
                 description: ResourceSelector indicates how to select resources(e.g.
-                  a set of Deployments) for the analytics.
+                  a set of Deployments) for an Analytics.
                 items:
                   description: ResourceSelector describes how the resources will be
                     selected.
@@ -110,7 +123,7 @@ spec:
                   type: object
                 type: array
               type:
-                description: Type is the analytics type, including HPA and resource.
+                description: Type is the analysis type, including HPA and resource.
                 type: string
             required:
             - resourceSelectors
@@ -190,8 +203,9 @@ spec:
                   - type
                   type: object
                 type: array
-              lastAnalysisTime:
-                description: LastAnalysisTime indicates the last time to perform analysis.
+              lastSuccessfulTime:
+                description: LastSuccessfulTime is the last time the recommendation
+                  successfully completed.
                 format: date-time
                 type: string
               recommendations:

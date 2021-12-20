@@ -7,6 +7,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/gocrane/crane/pkg/controller/recommendation"
+
+	"github.com/gocrane/crane/pkg/controller/analytics"
+
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -22,17 +26,15 @@ import (
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 	"github.com/gocrane/crane/cmd/craned/app/options"
 	"github.com/gocrane/crane/pkg/controller/ehpa"
-	"github.com/gocrane/crane/pkg/controller/recommendation"
 	"github.com/gocrane/crane/pkg/controller/tsp"
 	"github.com/gocrane/crane/pkg/known"
-	predict "github.com/gocrane/crane/pkg/prediction"
+	"github.com/gocrane/crane/pkg/prediction"
 	"github.com/gocrane/crane/pkg/prediction/dsp"
 	"github.com/gocrane/crane/pkg/prediction/percentile"
 	"github.com/gocrane/crane/pkg/providers"
 	"github.com/gocrane/crane/pkg/providers/mock"
 	"github.com/gocrane/crane/pkg/providers/prom"
 	"github.com/gocrane/crane/pkg/utils/log"
-	webhooks "github.com/gocrane/crane/pkg/webhooks"
 )
 
 var (
@@ -110,17 +112,18 @@ func Run(ctx context.Context, opts *options.Options) error {
 
 	return nil
 }
+
 func initializationWebhooks(mgr ctrl.Manager, opts *options.Options) {
-	log.Logger().Info(fmt.Sprintf("opts %v", opts))
-
-	if certDir := os.Getenv("WEBHOOK_CERT_DIR"); len(certDir) > 0 {
-		mgr.GetWebhookServer().CertDir = certDir
-	}
-
-	if err := webhooks.SetupWebhookWithManager(mgr); err != nil {
-		log.Logger().Error(err, "unable to create webhook", "webhook", "TimeSeriesPrediction")
-		os.Exit(1)
-	}
+	//log.Logger().Info(fmt.Sprintf("opts %v", opts))
+	//
+	//if certDir := os.Getenv("WEBHOOK_CERT_DIR"); len(certDir) > 0 {
+	//	mgr.GetWebhookServer().CertDir = certDir
+	//}
+	//
+	//if err := webhooks.SetupWebhookWithManager(mgr); err != nil {
+	//	log.Logger().Error(err, "unable to create webhook", "webhook", "TimeSeriesPrediction")
+	//	os.Exit(1)
+	//}
 }
 
 // initializationControllers setup controllers with manager
@@ -175,18 +178,6 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 		os.Exit(1)
 	}
 
-	if err := (&recommendation.RecommendationController{
-		Client:      mgr.GetClient(),
-		Log:         log.Logger().WithName("recommendation-controller"),
-		Scheme:      mgr.GetScheme(),
-		RestMapper:  mgr.GetRESTMapper(),
-		Recorder:    mgr.GetEventRecorderFor("recommendation-controller"),
-		ScaleClient: scaleClient,
-	}).SetupWithManager(mgr); err != nil {
-		log.Logger().Error(err, "unable to create controller", "controller", "RecommendationController")
-		os.Exit(1)
-	}
-
 	// TspController
 	var dataSource providers.Interface
 	switch strings.ToLower(opts.DataSource) {
@@ -206,8 +197,8 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 	// algorithm provider inject data source
 	percentilePredictor := percentile.NewPrediction()
 	percentilePredictor.WithProviders(map[string]providers.Interface{
-		predict.RealtimeProvider: dataSource,
-		predict.HistoryProvider:  dataSource,
+		prediction.RealtimeProvider: dataSource,
+		prediction.HistoryProvider:  dataSource,
 	})
 	go percentilePredictor.Run(ctx.Done())
 
@@ -217,12 +208,12 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 		os.Exit(1)
 	}
 	dspPredictor.WithProviders(map[string]providers.Interface{
-		predict.RealtimeProvider: dataSource,
-		predict.HistoryProvider:  dataSource,
+		prediction.RealtimeProvider: dataSource,
+		prediction.HistoryProvider:  dataSource,
 	})
 	go dspPredictor.Run(ctx.Done())
 
-	predictors := map[predictionapi.AlgorithmType]predict.Interface{
+	predictors := map[predictionapi.AlgorithmType]prediction.Interface{
 		predictionapi.AlgorithmTypePercentile: percentilePredictor,
 		predictionapi.AlgorithmTypeDSP:        dspPredictor,
 	}
@@ -239,4 +230,27 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 		os.Exit(1)
 	}
 
+	if err := (&analytics.Controller{
+		Client:     mgr.GetClient(),
+		Logger:     log.Logger().WithName("analytics-controller"),
+		Scheme:     mgr.GetScheme(),
+		RestMapper: mgr.GetRESTMapper(),
+		Recorder:   mgr.GetEventRecorderFor("analytics-controller"),
+	}).SetupWithManager(mgr); err != nil {
+		log.Logger().Error(err, "unable to create controller", "controller", "AnalyticsController")
+		os.Exit(1)
+	}
+
+	if err := (&recommendation.Controller{
+		Client:      mgr.GetClient(),
+		Log:         log.Logger().WithName("recommendation-controller"),
+		Scheme:      mgr.GetScheme(),
+		RestMapper:  mgr.GetRESTMapper(),
+		Recorder:    mgr.GetEventRecorderFor("recommendation-controller"),
+		ScaleClient: scaleClient,
+		Predictors:  predictors,
+	}).SetupWithManager(mgr); err != nil {
+		log.Logger().Error(err, "unable to create controller", "controller", "RecommendationController")
+		os.Exit(1)
+	}
 }
