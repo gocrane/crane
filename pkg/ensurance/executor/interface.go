@@ -2,7 +2,7 @@ package executor
 
 import (
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/cache"
+	corelisters "k8s.io/client-go/listers/core/v1"
 )
 
 type Executor interface {
@@ -17,8 +17,8 @@ type AvoidanceExecutor struct {
 }
 
 type ExecuteContext struct {
-	NodeName     string
-	Client       clientset.Interface
-	NodeInformer cache.SharedIndexInformer
-	PodInformer  cache.SharedIndexInformer
+	NodeName   string
+	Client     clientset.Interface
+	PodLister  corelisters.PodLister
+	NodeLister corelisters.NodeLister
 }

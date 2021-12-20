@@ -1,4 +1,4 @@
-package grpcc
+package grpc
 
 import (
 	"fmt"
@@ -6,8 +6,8 @@ import (
 
 	"google.golang.org/grpc"
 
+	"github.com/gocrane/crane/pkg/log"
 	"github.com/gocrane/crane/pkg/utils"
-	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 const (

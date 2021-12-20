@@ -8,26 +8,39 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+	coreinformers "k8s.io/client-go/informers/core/v1"
+	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
+	craneinformerfactory "github.com/gocrane/api/pkg/generated/informers/externalversions"
+	ensurancelisters "github.com/gocrane/api/pkg/generated/listers/ensurance/v1alpha1"
+
 	"github.com/gocrane/crane/pkg/common"
 	ecache "github.com/gocrane/crane/pkg/ensurance/cache"
 	"github.com/gocrane/crane/pkg/ensurance/executor"
-	einformer "github.com/gocrane/crane/pkg/ensurance/informer"
 	"github.com/gocrane/crane/pkg/ensurance/logic"
 	"github.com/gocrane/crane/pkg/ensurance/statestore"
+	"github.com/gocrane/crane/pkg/log"
 	"github.com/gocrane/crane/pkg/utils"
-	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 type AnalyzerManager struct {
-	nodeName          string
-	podInformer       cache.SharedIndexInformer
-	nodeInformer      cache.SharedIndexInformer
-	nepInformer       cache.SharedIndexInformer
+	nodeName string
+
+	podLister corelisters.PodLister
+	podSynced cache.InformerSynced
+
+	nodeLister corelisters.NodeLister
+	nodeSynced cache.InformerSynced
+
+	nodeQOSLister ensurancelisters.NodeQOSEnsurancePolicyLister
+	nodeOOSSynced cache.InformerSynced
+
 	avoidanceInformer cache.SharedIndexInformer
 	statestore        statestore.StateStore
 	recorder          record.EventRecorder
@@ -41,9 +54,10 @@ type AnalyzerManager struct {
 	lastTriggeredTime time.Time
 }
 
-// AnalyzerManager create analyzer manager
-func NewAnalyzerManager(nodeName string, podInformer cache.SharedIndexInformer, nodeInformer cache.SharedIndexInformer, nepInformer cache.SharedIndexInformer,
-	avoidanceInformer cache.SharedIndexInformer, statestore statestore.StateStore, record record.EventRecorder, noticeCh chan<- executor.AvoidanceExecutor) Analyzer {
+// NewAnalyzerManager create an analyzer manager
+func NewAnalyzerManager(nodeName string, podInformer coreinformers.PodInformer, nodeInformer coreinformers.NodeInformer,
+	craneInformerFactory craneinformerfactory.SharedInformerFactory, statestore statestore.StateStore,
+	record record.EventRecorder, noticeCh chan<- executor.AvoidanceExecutor) Analyzer {
 
 	basicLogic := logic.NewBasicLogic()
 
@@ -52,10 +66,12 @@ func NewAnalyzerManager(nodeName string, podInformer cache.SharedIndexInformer, 
 		logic:             basicLogic,
 		noticeCh:          noticeCh,
 		recorder:          record,
-		podInformer:       podInformer,
-		nodeInformer:      nodeInformer,
-		nepInformer:       nepInformer,
-		avoidanceInformer: avoidanceInformer,
+		podLister:         podInformer.Lister(),
+		podSynced:         podInformer.Informer().HasSynced,
+		nodeLister:        nodeInformer.Lister(),
+		nodeSynced:        nodeInformer.Informer().HasSynced,
+		nodeQOSLister:     craneInformerFactory.Ensurance().V1alpha1().NodeQOSEnsurancePolicies().Lister(),
+		nodeOOSSynced:     craneInformerFactory.Ensurance().V1alpha1().NodeQOSEnsurancePolicies().Informer().HasSynced,
 		statestore:        statestore,
 		reached:           make(map[string]uint64),
 		restored:          make(map[string]uint64),
@@ -68,6 +84,18 @@ func (s *AnalyzerManager) Name() string {
 }
 
 func (s *AnalyzerManager) Run(stop <-chan struct{}) {
+	klog.Infof("Starting analyser manager.")
+
+	// Wait for the caches to be synced before starting workers
+	if !cache.WaitForNamedCacheSync("analyser-manager",
+		stop,
+		s.podSynced,
+		s.nodeSynced,
+		s.nodeOOSSynced,
+	) {
+		return
+	}
+
 	go func() {
 		updateTicker := time.NewTicker(10 * time.Second)
 		defer updateTicker.Stop()
@@ -76,7 +104,7 @@ func (s *AnalyzerManager) Run(stop <-chan struct{}) {
 			case <-updateTicker.C:
 				s.Analyze()
 			case <-stop:
-				log.Logger().V(2).Info("Analyzer exit")
+				log.Logger().Info("Analyzer exit")
 				return
 			}
 		}
@@ -87,22 +115,22 @@ func (s *AnalyzerManager) Run(stop <-chan struct{}) {
 
 func (s *AnalyzerManager) Analyze() {
 	// step1 copy neps
-	node, err := einformer.GetNodeFromInformer(s.nodeInformer, s.nodeName)
+	node, err := s.nodeLister.Get(s.nodeName)
 	if err != nil {
-		log.Logger().V(2).Info("Warning: get node name failed, not to do analyze")
+		klog.Errorf("Failed to get Node: %v", err)
 		return
 	}
 
 	var neps []*ensuranceapi.NodeQOSEnsurancePolicy
-	allNeps := s.nepInformer.GetStore().List()
-	for _, n := range allNeps {
-		nep := n.(*ensuranceapi.NodeQOSEnsurancePolicy)
+	allNeps, err := s.nodeQOSLister.List(labels.Everything())
+	if err != nil {
+		klog.Errorf("Failed to list NodeQOS: %v", err)
+		return
+	}
 
-		//check the node is selected by the
-		if matched, err := utils.LabelSelectorMatched(node.Labels, &nep.Spec.LabelSelector); err != nil {
-			log.Logger().V(2).Info(fmt.Sprintf("Warning: the nep label selector error,err: %s", err.Error()))
-			continue
-		} else if !matched {
+	for _, nep := range allNeps {
+		//check the node is selected
+		if matched, err := utils.LabelSelectorMatched(node.Labels, &nep.Spec.LabelSelector); err != nil || !matched {
 			continue
 		}
 
@@ -125,7 +153,7 @@ func (s *AnalyzerManager) Analyze() {
 			var key = strings.Join([]string{n.Name, v.Name}, ".")
 			detection, err := s.doAnalyze(key, v)
 			if err != nil {
-				log.Logger().V(4).Info(fmt.Sprintf("Warning: doAnalyze failed %s", err.Error()))
+				log.Logger().Error(err, "Failed to doAnalyze.")
 			}
 			detection.Nep = n
 			dcs = append(dcs, detection)
@@ -137,7 +165,7 @@ func (s *AnalyzerManager) Analyze() {
 	//step 3 : doMerge
 	avoidanceAction := s.doMerge(avoidanceMaps, dcs)
 	if err != nil {
-		log.Logger().Error(err, "Analyze doMerge failed")
+		log.Logger().Error(err, "Failed to doMerge.")
 		return
 	}
 
@@ -148,7 +176,6 @@ func (s *AnalyzerManager) Analyze() {
 }
 
 func (s *AnalyzerManager) doAnalyze(key string, object ensuranceapi.ObjectiveEnsurance) (ecache.DetectionCondition, error) {
-
 	var dc = ecache.DetectionCondition{DryRun: object.DryRun, ObjectiveEnsuranceName: object.Name, ActionName: object.AvoidanceActionName}
 
 	//step1: get metric value
@@ -253,7 +280,12 @@ func (s *AnalyzerManager) doMerge(avoidanceMaps map[string]*ensuranceapi.Avoidan
 
 			if action.Spec.Eviction != nil {
 				var deletionGracePeriodSeconds = utils.GetInt32withDefault(action.Spec.Eviction.DeletionGracePeriodSeconds, executor.DefaultDeletionGracePeriodSeconds)
-				var allPods = einformer.GetAllPodFromInformer(s.podInformer)
+				allPods, err := s.podLister.List(labels.Everything())
+				if err != nil {
+					klog.Errorf("Failed to list all pods: %v", err)
+					continue
+				}
+
 				for _, v := range allPods {
 					var qosPriority = executor.ScheduledQOSPriority{PodQOSClass: v.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(v.Spec.Priority, 0)}
 					if !qosPriority.Greater(basicEvictQosPriority) {
@@ -285,7 +317,6 @@ func (s *AnalyzerManager) doMerge(avoidanceMaps map[string]*ensuranceapi.Avoidan
 }
 
 func (s *AnalyzerManager) doLogEvent(dc ecache.DetectionCondition, now time.Time) {
-
 	var key = strings.Join([]string{dc.Nep.Name, dc.ObjectiveEnsuranceName}, "/")
 
 	if !(dc.Triggered || dc.Restored) {
@@ -297,7 +328,7 @@ func (s *AnalyzerManager) doLogEvent(dc ecache.DetectionCondition, now time.Time
 	//step1 print log if the detection state is changed
 	//step2 produce event
 	if dc.Triggered {
-		log.Logger().V(2).Info(fmt.Sprintf("%s triggered action %s", key, dc.ActionName))
+		log.Logger().Info(fmt.Sprintf("%s triggered action %s", key, dc.ActionName))
 
 		// record an event about the objective ensurance triggered
 		s.recorder.Event(nodeRef, v1.EventTypeWarning, "ObjectiveEnsuranceTriggered", fmt.Sprintf("%s triggered action %s", key, dc.ActionName))
@@ -306,7 +337,7 @@ func (s *AnalyzerManager) doLogEvent(dc ecache.DetectionCondition, now time.Time
 
 	if dc.Restored {
 		if s.needSendEventForRestore(dc) {
-			log.Logger().V(2).Info(fmt.Sprintf("%s restored action %s", key, dc.ActionName))
+			log.Logger().Info(fmt.Sprintf("%s restored action %s", key, dc.ActionName))
 			// record an event about the objective ensurance restored
 			s.recorder.Event(nodeRef, v1.EventTypeNormal, "ObjectiveEnsuranceRestored", fmt.Sprintf("%s restored action %s", key, dc.ActionName))
 			s.actionEventStatus[key] = ecache.DetectionStatus{IsTriggered: false, LastTime: now}
@@ -321,7 +352,7 @@ func (s *AnalyzerManager) getMetricFromMap(metricName string, selector *metav1.L
 	if v, ok := s.status[metricName]; ok {
 		for _, vv := range v {
 			if matched, err := utils.LabelSelectorMatched(common.Labels2Maps(vv.Labels), selector); err != nil {
-				return 0.0, err
+				return 0, err
 			} else if !matched {
 				continue
 			} else {
@@ -330,7 +361,7 @@ func (s *AnalyzerManager) getMetricFromMap(metricName string, selector *metav1.L
 		}
 	}
 
-	return 0.0, fmt.Errorf("metricName %s not found value", metricName)
+	return 0, fmt.Errorf("metricName %s not found value", metricName)
 }
 
 func (s *AnalyzerManager) noticeAvoidanceManager(as executor.AvoidanceExecutor) {

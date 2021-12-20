@@ -2,187 +2,260 @@ package statestore
 
 import (
 	"fmt"
-	"sync"
+	"reflect"
 	"time"
 
-	"github.com/gocrane/crane/pkg/common"
-
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog/v2"
 
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
-	"github.com/gocrane/crane/pkg/ensurance/statestore/nodelocal"
-	"github.com/gocrane/crane/pkg/ensurance/statestore/types"
-	"github.com/gocrane/crane/pkg/utils/log"
+	craneclientset "github.com/gocrane/api/pkg/generated/clientset/versioned"
+	craneinformerfactory "github.com/gocrane/api/pkg/generated/informers/externalversions"
+	craneinformers "github.com/gocrane/api/pkg/generated/informers/externalversions/ensurance/v1alpha1"
+	ensurancelisters "github.com/gocrane/api/pkg/generated/listers/ensurance/v1alpha1"
+
+	"github.com/gocrane/crane/pkg/common"
 )
 
-type stateStoreManager struct {
-	nepInformer cache.SharedIndexInformer
+// Controller is the controller implementation for NodeQosEnsurance resources
+type Controller struct {
+	// kubeclientset is a standard kubernetes clientset
+	kubeclientset kubernetes.Interface
+	// sampleclientset is a clientset for crane API group
+	craneClient craneclientset.Interface
 
-	eventChannel chan types.UpdateEvent
-	index        uint64
-	configCache  sync.Map
+	nodeQOSLister ensurancelisters.NodeQOSEnsurancePolicyLister
+	nodeOOSSynced cache.InformerSynced
 
-	collectors  []collector
-	StatusCache sync.Map
+	// workqueue is a rate limited work queue. This is used to queue work to be
+	// processed instead of performing it as soon as a change happens. This
+	// means we can ensure we only process a fixed amount of resources at a
+	// time, and makes it easy to ensure we are never processing the same item
+	// simultaneously in two different workers.
+	workqueue workqueue.RateLimitingInterface
+	// recorder is an event recorder for recording Event resources to the
+	// Kubernetes API.
+	recorder record.EventRecorder
 }
 
-func NewStateStoreManager(nepInformer cache.SharedIndexInformer) StateStore {
-	var eventChan = make(chan types.UpdateEvent)
-	return &stateStoreManager{nepInformer: nepInformer, eventChannel: eventChan}
-}
+// NewController returns a new sample controller
+func NewController(
+	kubeclientset kubernetes.Interface,
+	craneClient craneclientset.Interface,
+	craneInformerFactory craneinformerfactory.SharedInformerFactory,
+	nodeQOSInformer craneinformers.NodeQOSEnsurancePolicyInformer,
+	recorder record.EventRecorder,
+) *Controller {
 
-func (s *stateStoreManager) Name() string {
-	return "StateStoreManager"
-}
+	controller := &Controller{
+		kubeclientset: kubeclientset,
+		craneClient:   craneClient,
+		nodeQOSLister: craneInformerFactory.Ensurance().V1alpha1().NodeQOSEnsurancePolicies().Lister(),
+		nodeOOSSynced: craneInformerFactory.Ensurance().V1alpha1().NodeQOSEnsurancePolicies().Informer().HasSynced,
+		workqueue:     workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "NodeOOS"),
+		recorder:      recorder,
+	}
 
-func (s *stateStoreManager) Run(stop <-chan struct{}) {
+	klog.Info("Setting up event handlers")
+	// Set up an event handler for when NodeQOS resources change
+	nodeQOSInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: controller.enqueueNodeQOS,
+		UpdateFunc: func(old, new interface{}) {
+			oldQOS := old.(*ensuranceapi.NodeQOSEnsurancePolicy)
+			newQOS := new.(*ensuranceapi.NodeQOSEnsurancePolicy)
 
-	// check need to update config
-	go func() {
-		updateTicker := time.NewTicker(10 * time.Second)
-		defer updateTicker.Stop()
-		for {
-			select {
-			case <-updateTicker.C:
-				log.Logger().V(4).Info("StateStore config check run periodically")
-				if s.checkConfig() {
-					s.index++
-					log.Logger().V(4).Info("StateStore update event", "index", s.index)
-					s.eventChannel <- types.UpdateEvent{Index: s.index}
-				} else {
-					log.Logger().V(4).Info("StateStore config false, not to update")
-				}
-				continue
-			case <-stop:
-				log.Logger().Info("StateStore config check exit")
+			if newQOS.DeletionTimestamp != nil {
+				controller.enqueueNodeQOS(newQOS)
 				return
 			}
-		}
-	}()
 
-	// do collect periodically
-	go func() {
-		updateTicker := time.NewTicker(10 * time.Second)
-		defer updateTicker.Stop()
-		for {
-			select {
-			case <-updateTicker.C:
-				log.Logger().V(2).Info("StateStore run periodically")
-				for _, c := range s.collectors {
-					if data, err := c.Collect(); err == nil {
-						for key, v := range data {
-							s.StatusCache.Store(key, v)
-						}
-					} else {
-						log.Logger().Error(err, "StateStore collect failed", c.GetType())
-					}
-				}
-				continue
-			case v := <-s.eventChannel:
-				log.Logger().V(3).Info("StateStore update config index", "Index", v.Index)
-				s.updateConfig()
-			case <-stop:
-				log.Logger().V(2).Info("StateStore exit")
+			if reflect.DeepEqual(oldQOS.Spec, newQOS.Spec) {
+				klog.V(4).Infof("No changes happens for spec, skip updating", klog.KObj(oldQOS))
 				return
 			}
-		}
-	}()
 
-	return
-}
-
-func (s *stateStoreManager) List() map[string][]common.TimeSeries {
-	var maps = make(map[string][]common.TimeSeries)
-
-	s.StatusCache.Range(func(key, value interface{}) bool {
-		var name = key.(string)
-		var series = value.([]common.TimeSeries)
-		maps[name] = series
-		return true
+			klog.V(4).Infof("updating NodeQOSEnsurance %q", klog.KObj(oldQOS))
+			controller.enqueueNodeQOS(new)
+		},
+		DeleteFunc: controller.handleObject,
 	})
 
+	return controller
+}
+
+// Run will set up the event handlers for types we are interested in, as well
+// as syncing informer caches and starting workers. It will block until stopCh
+// is closed, at which point it will shutdown the workqueue and wait for
+// workers to finish processing their current work items.
+func (c *Controller) Run(workers int, stopCh <-chan struct{}) {
+	defer utilruntime.HandleCrash()
+	defer c.workqueue.ShutDown()
+
+	// Start the informer factories to begin populating the informer caches
+	klog.Info("Starting NodeQOS controller")
+
+	// Wait for the caches to be synced before starting workers
+	klog.Info("Waiting for informer caches to sync")
+	if ok := cache.WaitForCacheSync(stopCh, c.nodeOOSSynced); !ok {
+		return
+	}
+
+	klog.Info("Starting workers")
+	// Launch two workers to process NodeQOS resources
+	for i := 0; i < workers; i++ {
+		go wait.Until(c.runWorker, time.Second, stopCh)
+	}
+
+	klog.Info("Started workers")
+	<-stopCh
+	klog.Info("Shutting down workers")
+}
+
+// runWorker is a long-running function that will continually call the
+// processNextWorkItem function in order to read and process a message on the
+// workqueue.
+func (c *Controller) runWorker() {
+	for c.processNextWorkItem() {
+	}
+}
+
+// processNextWorkItem will read a single work item off the workqueue and
+// attempt to process it, by calling the syncHandler.
+func (c *Controller) processNextWorkItem() bool {
+	obj, shutdown := c.workqueue.Get()
+
+	if shutdown {
+		return false
+	}
+
+	// We wrap this block in a func so we can defer c.workqueue.Done.
+	err := func(obj interface{}) error {
+		// We call Done here so the workqueue knows we have finished
+		// processing this item. We also must remember to call Forget if we
+		// do not want this work item being re-queued. For example, we do
+		// not call Forget if a transient error occurs, instead the item is
+		// put back on the workqueue and attempted again after a back-off
+		// period.
+		defer c.workqueue.Done(obj)
+		var key string
+		var ok bool
+		// We expect strings to come off the workqueue. These are of the
+		// form namespace/name. We do this as the delayed nature of the
+		// workqueue means the items in the informer cache may actually be
+		// more up to date that when the item was initially put onto the
+		// workqueue.
+		if key, ok = obj.(string); !ok {
+			// As the item in the workqueue is actually invalid, we call
+			// Forget here else we'd go into a loop of attempting to
+			// process a work item that is invalid.
+			c.workqueue.Forget(obj)
+			utilruntime.HandleError(fmt.Errorf("expected string in workqueue but got %#v", obj))
+			return nil
+		}
+		// Run the syncHandler, passing it the namespace/name string of the
+		// NodeQOS resource to be synced.
+		if err := c.syncHandler(key); err != nil {
+			// Put the item back on the workqueue to handle any transient errors.
+			c.workqueue.AddRateLimited(key)
+			return fmt.Errorf("error syncing '%s': %s, requeuing", key, err.Error())
+		}
+		// Finally, if no error occurs we Forget this item so it does not
+		// get queued again until another change happens.
+		c.workqueue.Forget(obj)
+		klog.Infof("Successfully synced '%s'", key)
+		return nil
+	}(obj)
+
+	if err != nil {
+		utilruntime.HandleError(err)
+		return true
+	}
+
+	return true
+}
+
+// syncHandler compares the actual state with the desired, and attempts to
+// converge the two. It then updates the Status block of the NodeQOS resource
+// with the current status of the resource.
+func (c *Controller) syncHandler(key string) error {
+	// Convert the namespace/name string into a distinct namespace and name
+	namespace, name, err := cache.SplitMetaNamespaceKey(key)
+	if err != nil {
+		utilruntime.HandleError(fmt.Errorf("invalid resource key: %s", key))
+		return nil
+	}
+
+	// Get the NodeQOS resource with this namespace/name
+	nodeQOS, err := c.nodeQOSLister.NodeQOSEnsurancePolicies(namespace).Get(name)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			utilruntime.HandleError(fmt.Errorf("NodeQOSEnsurance '%s' in work queue no longer exists", key))
+			return nil
+		}
+
+		return err
+	}
+
+	klog.Infof("Reconcile NodeQOSEnsurance %s", klog.KObj(nodeQOS))
+
+	// todo: your logic here
+
+	return nil
+}
+
+// enqueueNodeQOS takes a NodeQOS resource and converts it into a namespace/name
+// string which is then put onto the work queue. This method should *not* be
+// passed resources of any type other than NodeQOS.
+func (c *Controller) enqueueNodeQOS(obj interface{}) {
+	var key string
+	var err error
+	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
+		utilruntime.HandleError(err)
+		return
+	}
+
+	nodeQOS := obj.(*ensuranceapi.NodeQOSEnsurancePolicy)
+
+	klog.V(4).Infof("adding NodeQOSEnsurance %q", klog.KObj(nodeQOS))
+	c.workqueue.Add(key)
+}
+
+// handleObject will take any resource implementing metav1.Object and attempt
+// to find the NodeQOS resource that 'owns' it. It does this by looking at the
+// objects metadata.ownerReferences field for an appropriate OwnerReference.
+// It then enqueues that NodeQOS resource to be processed. If the object does not
+// have an appropriate OwnerReference, it will simply be skipped.
+func (c *Controller) handleObject(obj interface{}) {
+	var object metav1.Object
+	var ok bool
+	if object, ok = obj.(metav1.Object); !ok {
+		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+		if !ok {
+			utilruntime.HandleError(fmt.Errorf("error decoding object, invalid type"))
+			return
+		}
+		object, ok = tombstone.Obj.(metav1.Object)
+		if !ok {
+			utilruntime.HandleError(fmt.Errorf("error decoding object tombstone, invalid type"))
+			return
+		}
+		klog.V(4).Infof("Recovered deleted object '%s' from tombstone", object.GetName())
+	}
+	klog.V(4).Infof("Deleting object: %s", object.GetName())
+	c.enqueueNodeQOS(obj)
+}
+
+func (s *Controller) List() map[string][]common.TimeSeries {
+	var maps = make(map[string][]common.TimeSeries)
+
+	// todo: your logic here
+
 	return maps
-}
-
-func (s *stateStoreManager) checkConfig() bool {
-	log.Logger().V(4).Info("StateStore checkConfig")
-
-	// step1 copy neps
-	var neps []*ensuranceapi.NodeQOSEnsurancePolicy
-	allNeps := s.nepInformer.GetStore().List()
-
-	for _, n := range allNeps {
-		nep := n.(*ensuranceapi.NodeQOSEnsurancePolicy).DeepCopy()
-		if nep.Spec.NodeQualityProbe.NodeLocalGet == nil {
-			log.Logger().V(4).Info("Warning: skip the config not node-local, it will support other kind of config in the future")
-			continue
-		}
-		neps = append(neps, nep)
-	}
-
-	// step2 check it needs to update
-	var nodeLocal bool
-	for _, n := range neps {
-		if n.Spec.NodeQualityProbe.NodeLocalGet != nil {
-			nodeLocal = true
-			if _, ok := s.configCache.Load(string(types.NodeLocalCollectorType)); !ok {
-				return true
-			}
-		}
-	}
-
-	log.Logger().V(4).Info("checkConfig", "nodeLocal", nodeLocal)
-
-	if !nodeLocal {
-		if _, ok := s.configCache.Load(string(types.NodeLocalCollectorType)); ok {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (s *stateStoreManager) updateConfig() {
-	// step1 copy neps
-	var neps []*ensuranceapi.NodeQOSEnsurancePolicy
-	allNeps := s.nepInformer.GetStore().List()
-	for _, n := range allNeps {
-		nep := n.(*ensuranceapi.NodeQOSEnsurancePolicy).DeepCopy()
-		log.Logger().V(4).Info(fmt.Sprintf("nep: %#v", nep))
-		if nep.Spec.NodeQualityProbe.NodeLocalGet == nil {
-			log.Logger().V(4).Info("Warning: skip the config not node-local, it will support other kind of config in the future")
-			continue
-		}
-
-		neps = append(neps, nep)
-	}
-
-	// step2 update the config
-	var nodeLocal bool
-	for _, n := range neps {
-		if n.Spec.NodeQualityProbe.NodeLocalGet != nil {
-			nodeLocal = true
-			if _, ok := s.configCache.Load(string(types.NodeLocalCollectorType)); !ok {
-				nc := nodelocal.NewNodeLocal()
-				s.collectors = append(s.collectors, nc)
-				s.configCache.Store(string(types.NodeLocalCollectorType), types.MetricNameConfigs{})
-			}
-		}
-	}
-
-	if !nodeLocal {
-		if _, ok := s.configCache.Load(string(types.NodeLocalCollectorType)); ok {
-			s.configCache.Delete(string(types.NodeLocalCollectorType))
-			var collectors []collector
-			for _, c := range s.collectors {
-				if c.GetType() != types.NodeLocalCollectorType {
-					collectors = append(collectors, c)
-				}
-			}
-			s.collectors = collectors
-		}
-	}
-
-	return
-
 }

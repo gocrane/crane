@@ -9,7 +9,7 @@ import (
 	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 
-	"github.com/gocrane/crane/pkg/utils/log"
+	"github.com/gocrane/crane/pkg/log"
 )
 
 type UpdateOptions struct {

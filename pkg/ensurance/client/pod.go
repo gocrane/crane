@@ -1,4 +1,4 @@
-package informer
+package client
 
 import (
 	"context"
@@ -7,11 +7,12 @@ import (
 	v1 "k8s.io/api/core/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	coreinformers "k8s.io/client-go/informers/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 
-	"github.com/gocrane/crane/pkg/utils/log"
+	"github.com/gocrane/crane/pkg/log"
 )
 
 //EvictPodWithGracePeriod evict pod with grace period
@@ -47,16 +48,6 @@ func GetAllPodFromInformer(podInformer cache.SharedIndexInformer) []*v1.Pod {
 	return podList
 }
 
-func GetPodFromInformer(podInformer cache.SharedIndexInformer, key string) (*v1.Pod, error) {
-	obj, exited, err := podInformer.GetStore().GetByKey(key)
-	if err != nil {
-		return nil, err
-	}
-
-	if !exited {
-		return nil, fmt.Errorf("pod(%s) not found", key)
-	}
-
-	// re-assign new pod info
-	return obj.(*v1.Pod), nil
+func GetPod(podInformer coreinformers.PodInformer, namespace string, name string) (*v1.Pod, error) {
+	return podInformer.Lister().Pods(namespace).Get(name)
 }

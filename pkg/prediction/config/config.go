@@ -8,7 +8,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/gocrane/api/prediction/v1alpha1"
-	"github.com/gocrane/crane/pkg/utils/log"
+
+	"github.com/gocrane/crane/pkg/log"
 )
 
 const (

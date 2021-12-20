@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 
-	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/component-base/logs"
+	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/gocrane/crane/cmd/craned/app"
-	"github.com/gocrane/crane/pkg/utils/log"
+	"github.com/gocrane/crane/pkg/log"
 )
 
 // craned main.
@@ -18,7 +18,7 @@ func main() {
 
 	log.Init("craned")
 
-	ctx := genericapiserver.SetupSignalContext()
+	ctx := signals.SetupSignalHandler()
 
 	if err := app.NewManagerCommand(ctx).Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
