@@ -7,25 +7,13 @@ import (
 	"os"
 	"strings"
 
-	"github.com/gocrane/crane/pkg/controller/recommendation"
-
-	"github.com/gocrane/crane/pkg/controller/analytics"
-
-	"github.com/spf13/cobra"
-	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/dynamic"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/scale"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/healthz"
-
 	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 	"github.com/gocrane/crane/cmd/craned/app/options"
+	"github.com/gocrane/crane/pkg/controller/analytics"
 	"github.com/gocrane/crane/pkg/controller/ehpa"
+	"github.com/gocrane/crane/pkg/controller/recommendation"
 	"github.com/gocrane/crane/pkg/controller/tsp"
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/prediction"
@@ -35,6 +23,16 @@ import (
 	"github.com/gocrane/crane/pkg/providers/mock"
 	"github.com/gocrane/crane/pkg/providers/prom"
 	"github.com/gocrane/crane/pkg/utils/log"
+	webhooks "github.com/gocrane/crane/pkg/webhooks"
+	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/dynamic"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/scale"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 )
 
 var (
@@ -114,16 +112,16 @@ func Run(ctx context.Context, opts *options.Options) error {
 }
 
 func initializationWebhooks(mgr ctrl.Manager, opts *options.Options) {
-	//log.Logger().Info(fmt.Sprintf("opts %v", opts))
-	//
-	//if certDir := os.Getenv("WEBHOOK_CERT_DIR"); len(certDir) > 0 {
-	//	mgr.GetWebhookServer().CertDir = certDir
-	//}
-	//
-	//if err := webhooks.SetupWebhookWithManager(mgr); err != nil {
-	//	log.Logger().Error(err, "unable to create webhook", "webhook", "TimeSeriesPrediction")
-	//	os.Exit(1)
-	//}
+	log.Logger().Info(fmt.Sprintf("opts %v", opts))
+
+	if certDir := os.Getenv("WEBHOOK_CERT_DIR"); len(certDir) > 0 {
+		mgr.GetWebhookServer().CertDir = certDir
+	}
+
+	if err := webhooks.SetupWebhookWithManager(mgr); err != nil {
+		log.Logger().Error(err, "unable to create webhook", "webhook", "TimeSeriesPrediction")
+		os.Exit(1)
+	}
 }
 
 // initializationControllers setup controllers with manager

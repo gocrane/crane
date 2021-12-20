@@ -3,8 +3,6 @@ package recommendation
 import (
 	"context"
 
-	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
-
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -18,6 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
+	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 	"github.com/gocrane/crane/pkg/prediction"
 	"github.com/gocrane/crane/pkg/recommend"
 )
