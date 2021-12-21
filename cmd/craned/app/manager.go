@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/gocrane/crane/pkg/controller/noderesource"
+
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -99,8 +101,9 @@ func Run(ctx context.Context, opts *options.Options) error {
 		log.Logger().Error(err, "failed to add health check endpoint")
 		return err
 	}
-
-	initializationWebhooks(mgr, opts)
+	if opts.WebhookConfig.Enabled {
+		initializationWebhooks(mgr, opts)
+	}
 	initializationControllers(ctx, mgr, opts)
 	log.Logger().Info("Starting crane manager")
 
@@ -252,4 +255,14 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 		log.Logger().Error(err, "unable to create controller", "controller", "RecommendationController")
 		os.Exit(1)
 	}
+	// NodeResourceController
+	if err := (&noderesource.NodeResourceReconciler{
+		Client:   mgr.GetClient(),
+		Log:      log.Logger().WithName("node-resource-controller"),
+		Recorder: mgr.GetEventRecorderFor("node-resource-controller"),
+	}).SetupWithManager(mgr); err != nil {
+		log.Logger().Error(err, "unable to create controller", "controller", "NodeResourceController")
+		os.Exit(1)
+	}
+
 }
