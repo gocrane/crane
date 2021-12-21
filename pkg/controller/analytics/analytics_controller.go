@@ -3,7 +3,6 @@ package analytics
 import (
 	"context"
 	"fmt"
-	"github.com/gocrane/crane/pkg/known"
 	"strings"
 	"time"
 
@@ -29,6 +28,7 @@ import (
 	craneclient "github.com/gocrane/api/pkg/generated/clientset/versioned"
 	analysisinformer "github.com/gocrane/api/pkg/generated/informers/externalversions"
 	analysislister "github.com/gocrane/api/pkg/generated/listers/analysis/v1alpha1"
+	"github.com/gocrane/crane/pkg/known"
 )
 
 type Controller struct {
