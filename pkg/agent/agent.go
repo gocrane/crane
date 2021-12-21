@@ -104,8 +104,11 @@ func NewAgent(ctx context.Context, opts *options.Options) (*Agent, error) {
 
 	var noticeCh = make(chan executor.AvoidanceExecutor)
 
+	stateStoreManager := statestore.NewStateStoreManager(craneInformerFactory.Ensurance().V1alpha1().NodeQOSEnsurancePolicies().Informer())
+	managers = append(managers, stateStoreManager)
+
 	// init analyzer manager
-	analyzerManager := analyzer.NewAnalyzerManager(nodeName, podInformerFactory.Core().V1().Pods(), nodeInformerFactory.Core().V1().Nodes(), craneInformerFactory, nodeQOSController, recorder, noticeCh)
+	analyzerManager := analyzer.NewAnalyzerManager(nodeName, podInformerFactory.Core().V1().Pods(), nodeInformerFactory.Core().V1().Nodes(), craneInformerFactory, stateStoreManager, recorder, noticeCh)
 	managers = append(managers, analyzerManager)
 
 	// init avoidance manager
