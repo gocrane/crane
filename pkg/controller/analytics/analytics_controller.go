@@ -30,6 +30,8 @@ import (
 	analysislister "github.com/gocrane/api/pkg/generated/listers/analysis/v1alpha1"
 )
 
+const CraneSystemNamespace = "crane-system"
+
 type Controller struct {
 	client.Client
 	Logger          logr.Logger
@@ -106,10 +108,18 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			us = append(us, *u)
 			ownerNames = append(ownerNames, rs.Name)
 		} else {
-			ul, err := c.dynamicClient.Resource(gvr).Namespace(req.Namespace).List(ctx, metav1.ListOptions{})
+			var ul *unstructured.UnstructuredList
+			var err error
+
+			if req.Namespace == CraneSystemNamespace {
+				ul, err = c.dynamicClient.Resource(gvr).List(ctx, metav1.ListOptions{})
+			} else {
+				ul, err = c.dynamicClient.Resource(gvr).Namespace(req.Namespace).List(ctx, metav1.ListOptions{})
+			}
 			if err != nil {
 				return ctrl.Result{}, err
 			}
+
 			for _, u := range ul.Items {
 				m, ok, err := unstructured.NestedStringMap(u.Object, "spec", "selector", "matchLabels")
 				if !ok || err != nil {
@@ -127,10 +137,10 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 
 		for i := range us {
-			k := objRefKey(rs.Kind, rs.APIVersion, ownerNames[i])
+			k := objRefKey(rs.Kind, rs.APIVersion, us[i].GetNamespace(), ownerNames[i])
 			if _, exists := identities[k]; !exists {
 				identities[k] = ObjectIdentity{
-					Namespace:  req.Namespace,
+					Namespace:  us[i].GetNamespace(),
 					Name:       ownerNames[i],
 					Kind:       rs.Kind,
 					APIVersion: rs.APIVersion,
@@ -139,14 +149,19 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 	}
 
-	rs, err := c.recommLister.Recommendations(req.Namespace).List(labels.Everything())
+	var rs []*analysisv1alph1.Recommendation
+	if req.Namespace == CraneSystemNamespace {
+		rs, err = c.recommLister.List(labels.Everything())
+	} else {
+		rs, err = c.recommLister.Recommendations(req.Namespace).List(labels.Everything())
+	}
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	rm := map[string]*analysisv1alph1.Recommendation{}
 	for _, r := range rs {
-		k := objRefKey(r.Spec.TargetRef.Kind, r.Spec.TargetRef.APIVersion, r.Spec.TargetRef.Name)
+		k := objRefKey(r.Spec.TargetRef.Kind, r.Spec.TargetRef.APIVersion, r.Spec.TargetRef.Namespace, r.Spec.TargetRef.Name)
 		rm[k] = r.DeepCopy()
 	}
 
@@ -157,6 +172,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			refs = append(refs, corev1.ObjectReference{
 				Kind:       rm[k].Kind,
 				Name:       rm[k].Name,
+				Namespace:  rm[k].Namespace,
 				APIVersion: rm[k].APIVersion,
 				UID:        rm[k].UID,
 			})
@@ -214,7 +230,7 @@ func (ac *Controller) createRecommendation(ctx context.Context, a *analysisv1alp
 			},
 		},
 		Spec: analysisv1alph1.RecommendationSpec{
-			TargetRef:          corev1.ObjectReference{Kind: id.Kind, APIVersion: id.APIVersion, Name: id.Name},
+			TargetRef:          corev1.ObjectReference{Kind: id.Kind, APIVersion: id.APIVersion, Namespace: id.Namespace, Name: id.Name},
 			Type:               a.Spec.Type,
 			CompletionStrategy: a.Spec.CompletionStrategy,
 		},
@@ -232,6 +248,7 @@ func (ac *Controller) createRecommendation(ctx context.Context, a *analysisv1alp
 	*refs = append(*refs, corev1.ObjectReference{
 		Kind:       r.Kind,
 		Name:       r.Name,
+		Namespace:  r.Namespace,
 		APIVersion: r.APIVersion,
 		UID:        r.UID,
 	})
@@ -239,8 +256,8 @@ func (ac *Controller) createRecommendation(ctx context.Context, a *analysisv1alp
 	return nil
 }
 
-func objRefKey(kind, apiVersion, name string) string {
-	return fmt.Sprintf("%s#%s#%s", kind, apiVersion, name)
+func objRefKey(kind, apiVersion, namespace, name string) string {
+	return fmt.Sprintf("%s#%s#%s#%s", kind, apiVersion, namespace, name)
 }
 
 func match(labelSelector metav1.LabelSelector, matchLabels map[string]string) bool {
