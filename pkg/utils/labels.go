@@ -10,14 +10,10 @@ func LabelSelectorMatched(maps map[string]string, selector *metav1.LabelSelector
 		return true, nil
 	}
 
-	var ls, err = metav1.LabelSelectorAsSelector(selector)
+	ls, err := metav1.LabelSelectorAsSelector(selector)
 	if err != nil {
 		return false, err
 	}
 
-	if ls.Matches(labels.Set(maps)) {
-		return true, nil
-	}
-
-	return false, nil
+	return ls.Matches(labels.Set(maps)), nil
 }

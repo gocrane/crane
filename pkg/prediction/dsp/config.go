@@ -6,9 +6,10 @@ import (
 	"time"
 
 	"github.com/gocrane/api/prediction/v1alpha1"
+
+	"github.com/gocrane/crane/pkg/log"
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/utils"
-	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 var mu = sync.Mutex{}

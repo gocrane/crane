@@ -1,4 +1,4 @@
-package informer
+package client
 
 import (
 	"fmt"
@@ -8,15 +8,15 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/cache"
 
+	"github.com/gocrane/crane/pkg/log"
 	"github.com/gocrane/crane/pkg/utils"
-	"github.com/gocrane/crane/pkg/utils/log"
 )
+
+const defaultRetryTimes = 3
 
 // UpdateNodeConditions be used to update node condition with check whether it needs to update
 func UpdateNodeConditions(node *v1.Node, condition v1.NodeCondition) (*v1.Node, bool) {
-
 	updatedNode := node.DeepCopy()
 
 	// loop and found the condition type
@@ -38,7 +38,6 @@ func UpdateNodeConditions(node *v1.Node, condition v1.NodeCondition) (*v1.Node, 
 
 // UpdateNodeTaints be used to update node taint
 func UpdateNodeTaints(node *v1.Node, taint v1.Taint) (*v1.Node, bool) {
-
 	updatedNode := node.DeepCopy()
 
 	for i, t := range updatedNode.Spec.Taints {
@@ -96,7 +95,6 @@ func FilterNodeConditionByType(conditions []v1.NodeCondition, conditionType stri
 
 // UpdateNodeStatus be used to update node status by communication with api-server
 func UpdateNodeStatus(client clientset.Interface, updateNode *v1.Node, retry *uint64) error {
-
 	for i := uint64(0); i < utils.GetUint64withDefault(retry, defaultRetryTimes); i++ {
 		_, err := client.CoreV1().Nodes().UpdateStatus(context.Background(), updateNode, metav1.UpdateOptions{})
 		if err != nil {
@@ -130,18 +128,4 @@ func UpdateNode(client clientset.Interface, updateNode *v1.Node, retry *uint64) 
 	}
 
 	return fmt.Errorf("update node failed, conflict too more times")
-}
-
-func GetNodeFromInformer(nodeInformer cache.SharedIndexInformer, nodeName string) (*v1.Node, error) {
-	obj, exited, err := nodeInformer.GetStore().GetByKey(nodeName)
-	if err != nil {
-		return nil, err
-	}
-
-	if !exited {
-		return nil, fmt.Errorf("node(%s) not found", nodeName)
-	}
-
-	// re-assign new node info
-	return obj.(*v1.Node), nil
 }

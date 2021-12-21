@@ -7,23 +7,6 @@ import (
 	"os"
 	"strings"
 
-	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
-	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
-	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
-	"github.com/gocrane/crane/cmd/craned/app/options"
-	"github.com/gocrane/crane/pkg/controller/analytics"
-	"github.com/gocrane/crane/pkg/controller/ehpa"
-	"github.com/gocrane/crane/pkg/controller/recommendation"
-	"github.com/gocrane/crane/pkg/controller/tsp"
-	"github.com/gocrane/crane/pkg/known"
-	"github.com/gocrane/crane/pkg/prediction"
-	"github.com/gocrane/crane/pkg/prediction/dsp"
-	"github.com/gocrane/crane/pkg/prediction/percentile"
-	"github.com/gocrane/crane/pkg/providers"
-	"github.com/gocrane/crane/pkg/providers/mock"
-	"github.com/gocrane/crane/pkg/providers/prom"
-	"github.com/gocrane/crane/pkg/utils/log"
-	webhooks "github.com/gocrane/crane/pkg/webhooks"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -33,6 +16,25 @@ import (
 	"k8s.io/client-go/scale"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+
+	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
+	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
+	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
+
+	"github.com/gocrane/crane/cmd/craned/app/options"
+	"github.com/gocrane/crane/pkg/controller/analytics"
+	"github.com/gocrane/crane/pkg/controller/ehpa"
+	"github.com/gocrane/crane/pkg/controller/recommendation"
+	"github.com/gocrane/crane/pkg/controller/tsp"
+	"github.com/gocrane/crane/pkg/known"
+	"github.com/gocrane/crane/pkg/log"
+	"github.com/gocrane/crane/pkg/prediction"
+	"github.com/gocrane/crane/pkg/prediction/dsp"
+	"github.com/gocrane/crane/pkg/prediction/percentile"
+	"github.com/gocrane/crane/pkg/providers"
+	"github.com/gocrane/crane/pkg/providers/mock"
+	"github.com/gocrane/crane/pkg/providers/prom"
+	webhooks "github.com/gocrane/crane/pkg/webhooks"
 )
 
 var (
@@ -63,7 +65,6 @@ func NewManagerCommand(ctx context.Context) *cobra.Command {
 			if err := opts.Validate(); err != nil {
 				log.Logger().Error(err, "opts validate failed,exit")
 				os.Exit(255)
-
 			}
 
 			if err := Run(ctx, opts); err != nil {

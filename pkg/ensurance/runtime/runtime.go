@@ -6,8 +6,8 @@ import (
 	"google.golang.org/grpc"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 
-	"github.com/gocrane/crane/pkg/ensurance/grpcc"
-	"github.com/gocrane/crane/pkg/utils/log"
+	gprcconnection "github.com/gocrane/crane/pkg/ensurance/grpc"
+	"github.com/gocrane/crane/pkg/log"
 )
 
 // runtimeEndpointIsSet is true when RuntimeEndpoint is configured
@@ -22,10 +22,10 @@ func getRuntimeClientConnection(runtimeEndpoint string, runtimeEndpointIsSet boo
 	if !runtimeEndpointIsSet {
 		log.Logger().V(2).Info(fmt.Sprintf("Runtime connect using default endpoints: %v. "+"As the default settings are now deprecated, you should set the "+
 			"endpoint instead.", defaultRuntimeEndpoints))
-		return grpcc.InitGrpcConnection(defaultRuntimeEndpoints)
+		return gprcconnection.InitGrpcConnection(defaultRuntimeEndpoints)
 	}
 
-	return grpcc.InitGrpcConnection([]string{runtimeEndpoint})
+	return gprcconnection.InitGrpcConnection([]string{runtimeEndpoint})
 }
 
 // imageEndpoint is CRI server image endpoint, default same as runtime endpoint
@@ -42,9 +42,9 @@ func getImageClientConnection(imageEndpoint string, imageEndpointIsSet bool) (*g
 	if !imageEndpointIsSet {
 		log.Logger().V(2).Info(fmt.Sprintf("Image connect using default endpoints: %v. "+"As the default settings are now deprecated, you should set the "+
 			"endpoint instead.", defaultRuntimeEndpoints))
-		return grpcc.InitGrpcConnection(defaultRuntimeEndpoints)
+		return gprcconnection.InitGrpcConnection(defaultRuntimeEndpoints)
 	}
-	return grpcc.InitGrpcConnection([]string{imageEndpoint})
+	return gprcconnection.InitGrpcConnection([]string{imageEndpoint})
 }
 
 //GetRuntimeClient get the runtime client
