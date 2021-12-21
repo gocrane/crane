@@ -13,8 +13,9 @@ type PromConfig struct {
 	InsecureSkipVerify bool
 	Auth               ClientAuth
 
-	QueryConcurrency int
-	BRateLimit       bool
+	QueryConcurrency            int
+	BRateLimit                  bool
+	MaxPointsLimitPerTimeSeries int
 }
 
 // ClientAuth holds the HTTP client identity info.

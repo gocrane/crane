@@ -14,25 +14,19 @@ import (
 	"github.com/gocrane/crane/pkg/providers"
 )
 
-const (
-	ClusterContextName = "cluster"
-)
-
 type prom struct {
 	ctx *context
 }
 
 // NewProvider return a prometheus data provider
 func NewProvider(config *providers.PromConfig) (providers.Interface, error) {
-	//klog.Infof("NewDataPromSource")
 
-	client, err := NewPrometheusClient(config.Address, config.Timeout, config.KeepAlive,
-		config.QueryConcurrency, config.InsecureSkipVerify, config.BRateLimit, config.Auth)
+	client, err := NewPrometheusClient(config)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx := NewNamedContext(client, ClusterContextName)
+	ctx := NewContext(client, config.MaxPointsLimitPerTimeSeries)
 
 	return &prom{ctx: ctx}, nil
 }
@@ -74,7 +68,7 @@ func (p *prom) GetLatestTimeSeries(metricName string, conditions []common.QueryC
 func (p *prom) QueryTimeSeries(queryExpr string, startTime time.Time, endTime time.Time, step time.Duration) ([]*common.TimeSeries, error) {
 	timeSeries, err := p.ctx.QueryRangeSync(gocontext.TODO(), queryExpr, startTime, endTime, step)
 	if err != nil {
-		klog.Error(err, "Failed to QueryTimeSeries")
+		klog.Errorf("Failed to QueryTimeSeries: %v", err)
 		return nil, err
 	}
 
