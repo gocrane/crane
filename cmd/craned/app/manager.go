@@ -101,8 +101,9 @@ func Run(ctx context.Context, opts *options.Options) error {
 		log.Logger().Error(err, "failed to add health check endpoint")
 		return err
 	}
-
-	initializationWebhooks(mgr, opts)
+	if opts.WebhookConfig.Enabled {
+		initializationWebhooks(mgr, opts)
+	}
 	initializationControllers(ctx, mgr, opts)
 	log.Logger().Info("Starting crane manager")
 

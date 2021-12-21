@@ -3,12 +3,12 @@ package options
 import (
 	"time"
 
-	componentbaseconfig "k8s.io/component-base/config"
-
 	"github.com/spf13/pflag"
+	componentbaseconfig "k8s.io/component-base/config"
 
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/providers"
+	"github.com/gocrane/crane/pkg/webhooks"
 )
 
 // Options hold the command-line options about crane manager
@@ -30,6 +30,9 @@ type Options struct {
 
 	// AlgorithmModelConfig
 	AlgorithmModelConfig config.AlgorithmModelConfig
+
+	// WebhookConfig
+	WebhookConfig webhooks.WebhookConfig
 }
 
 // NewOptions builds an empty options.
@@ -75,4 +78,5 @@ func (o *Options) AddFlags(flags *pflag.FlagSet) {
 
 	flags.DurationVar(&o.AlgorithmModelConfig.UpdateInterval, "model-update-interval", 12*time.Hour, "algorithm model update interval, now used for dsp model update interval")
 
+	flags.BoolVar(&o.WebhookConfig.Enabled, "webhook-enabled", true, "whether enable webhook or not, default to true")
 }
