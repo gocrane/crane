@@ -68,7 +68,6 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	newStatus.ResourceRequest = proposed.ResourceRequest
 	newStatus.EffectiveHPA = proposed.EffectiveHPA
-	c.Log.Info("XXXXXX", "status", newStatus, "proposed", proposed)
 
 	setCondition(newStatus, "Ready", metav1.ConditionTrue, "RecommendationReady", "Recommendation is ready")
 	c.UpdateStatus(ctx, recommendation, newStatus)
@@ -100,16 +99,15 @@ func (c *Controller) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func setCondition(status *analysisv1alph1.RecommendationStatus, conditionType string, conditionStatus metav1.ConditionStatus, reason string, message string) {
-	for _, cond := range status.Conditions {
-		if cond.Type == conditionType {
-			cond.Status = conditionStatus
-			cond.Reason = reason
-			cond.Message = message
-			cond.LastTransitionTime = metav1.Now()
+	for i := range status.Conditions {
+		if status.Conditions[i].Type == conditionType {
+			status.Conditions[i].Status = conditionStatus
+			status.Conditions[i].Reason = reason
+			status.Conditions[i].Message = message
+			status.Conditions[i].LastTransitionTime = metav1.Now()
 			return
 		}
 	}
-
 	status.Conditions = append(status.Conditions, metav1.Condition{
 		Type:               conditionType,
 		Status:             conditionStatus,

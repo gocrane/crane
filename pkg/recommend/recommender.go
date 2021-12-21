@@ -83,7 +83,7 @@ func GetContext(kubeClient client.Client, restMapper meta.RESTMapper, scaleClien
 		Name:       recommendation.Spec.TargetRef.Name,
 	}
 
-	scale, mapping, err := utils.GetScale(context.TODO(), restMapper, scaleClient, recommendation.Namespace, targetRef)
+	scale, mapping, err := utils.GetScale(context.TODO(), restMapper, scaleClient, recommendation.Spec.TargetRef.Namespace, targetRef)
 
 	if err != nil {
 		return nil, err
@@ -95,7 +95,7 @@ func GetContext(kubeClient client.Client, restMapper meta.RESTMapper, scaleClien
 	unstructured := &unstructured.Unstructured{}
 	unstructured.SetKind(recommendation.Spec.TargetRef.Kind)
 	unstructured.SetAPIVersion(recommendation.Spec.TargetRef.APIVersion)
-	if err = kubeClient.Get(context.TODO(), client.ObjectKey{Namespace: recommendation.Namespace, Name: recommendation.Spec.TargetRef.Name}, unstructured); err != nil {
+	if err = kubeClient.Get(context.TODO(), client.ObjectKey{Namespace: recommendation.Spec.TargetRef.Namespace, Name: recommendation.Spec.TargetRef.Name}, unstructured); err != nil {
 		return nil, err
 	}
 
