@@ -3,6 +3,7 @@ package analytics
 import (
 	"context"
 	"fmt"
+	"github.com/gocrane/crane/pkg/known"
 	"strings"
 	"time"
 
@@ -29,8 +30,6 @@ import (
 	analysisinformer "github.com/gocrane/api/pkg/generated/informers/externalversions"
 	analysislister "github.com/gocrane/api/pkg/generated/listers/analysis/v1alpha1"
 )
-
-const CraneSystemNamespace = "crane-system"
 
 type Controller struct {
 	client.Client
@@ -111,7 +110,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			var ul *unstructured.UnstructuredList
 			var err error
 
-			if req.Namespace == CraneSystemNamespace {
+			if req.Namespace == known.CraneSystemNamespace {
 				ul, err = c.dynamicClient.Resource(gvr).List(ctx, metav1.ListOptions{})
 			} else {
 				ul, err = c.dynamicClient.Resource(gvr).Namespace(req.Namespace).List(ctx, metav1.ListOptions{})
@@ -150,7 +149,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	var rs []*analysisv1alph1.Recommendation
-	if req.Namespace == CraneSystemNamespace {
+	if req.Namespace == known.CraneSystemNamespace {
 		rs, err = c.recommLister.List(labels.Everything())
 	} else {
 		rs, err = c.recommLister.Recommendations(req.Namespace).List(labels.Everything())
