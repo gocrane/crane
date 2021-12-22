@@ -8,10 +8,9 @@ import (
 	"strings"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
-
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
+	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
@@ -115,11 +114,7 @@ func (c *TspMetricCollector) computePredictionMetric(tsp *predictionapi.TimeSeri
 		}
 		samples := data.Samples
 		sort.Slice(samples, func(i, j int) bool {
-			if samples[i].Timestamp < samples[j].Timestamp {
-				return true
-			} else {
-				return false
-			}
+			return samples[i].Timestamp < samples[j].Timestamp
 		})
 
 		// just one timestamp point, because prometheus collector will hash the label values, same label values is not valid

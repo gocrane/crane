@@ -108,7 +108,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 	log.Logger().Info("Starting crane manager")
 
 	// initialization custom collector metrics
-	initializationMetrics(mgr)
+	initializationMetricCollector(mgr)
 
 	if err := mgr.Start(ctx); err != nil {
 		log.Logger().Error(err, "problem running crane manager")
@@ -118,7 +118,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 	return nil
 }
 
-func initializationMetrics(mgr ctrl.Manager) {
+func initializationMetricCollector(mgr ctrl.Manager) {
 	// register as prometheus metric collector
 	metrics.CustomCollectorRegister(metrics.NewTspMetricCollector(mgr.GetClient()))
 }
