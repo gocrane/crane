@@ -1,14 +1,17 @@
-package recommend
+package advisor
 
 import (
 	"fmt"
 
-	"github.com/gocrane/crane/pkg/prediction/config"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/klog/v2"
 
 	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
+
+	"github.com/gocrane/crane/pkg/prediction/config"
+	"github.com/gocrane/crane/pkg/recommend/types"
 )
 
 const (
@@ -16,43 +19,12 @@ const (
 	memQueryExprTemplate = `container_memory_working_set_bytes{container="%s",namespace="%s",pod=~"^%s.*$"}`
 )
 
-type MinMaxReplicasAdvisor struct {
-	Context *Context
-}
+const (
+	DefaultNamespace = "default"
+)
 
 type ResourceRequestAdvisor struct {
-	*Context
-}
-
-func (a *ResourceRequestAdvisor) Init() error {
-	p := a.Predictors[predictionapi.AlgorithmTypePercentile]
-
-	if len(a.Pods) == 0 {
-		return fmt.Errorf("pod not found")
-	}
-	pod := a.Pods[0]
-	namespace := pod.Namespace
-	podNamePrefix := pod.OwnerReferences[0].Name + "-"
-
-	var expr string
-	mc := &config.MetricContext{}
-	for _, c := range pod.Spec.Containers {
-		expr = fmt.Sprintf(cpuQueryExprTemplate, c.Name, namespace, podNamePrefix)
-		a.V(5).Info("CPU query:", "expr", expr)
-		if err := p.WithQuery(expr); err != nil {
-			return err
-		}
-		mc.WithConfig(makeCpuConfig(expr, a.ConfigProperties))
-
-		expr = fmt.Sprintf(memQueryExprTemplate, c.Name, namespace, podNamePrefix)
-		a.V(5).Info("Memory query:", "expr", expr)
-		if err := p.WithQuery(expr); err != nil {
-			return err
-		}
-		mc.WithConfig(makeMemConfig(expr, a.ConfigProperties))
-	}
-
-	return nil
+	*types.Context
 }
 
 func makeCpuConfig(expr string, props map[string]string) *config.Config {
@@ -113,17 +85,36 @@ func makeMemConfig(expr string, props map[string]string) *config.Config {
 	}
 }
 
-func (a *ResourceRequestAdvisor) Advise(proposed *ProposedRecommendation) error {
+func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 	r := &analysisapi.ResourceRequestRecommendation{}
 
 	p := a.Predictors[predictionapi.AlgorithmTypePercentile]
 
+	if len(a.Pods) == 0 {
+		return fmt.Errorf("pod not found")
+	}
+
+	mc := &config.MetricContext{}
 	pod := a.Pods[0]
 	namespace := pod.Namespace
 	podNamePrefix := pod.OwnerReferences[0].Name + "-"
 
 	var expr string
 	for _, c := range pod.Spec.Containers {
+		expr = fmt.Sprintf(cpuQueryExprTemplate, c.Name, namespace, podNamePrefix)
+		klog.V(4).Infof("CPU query: %s", expr)
+		if err := p.WithQuery(expr); err != nil {
+			return err
+		}
+		mc.WithConfig(makeCpuConfig(expr, a.ConfigProperties))
+
+		expr = fmt.Sprintf(memQueryExprTemplate, c.Name, namespace, podNamePrefix)
+		klog.V(4).Infof("Memory query: %s", expr)
+		if err := p.WithQuery(expr); err != nil {
+			return err
+		}
+		mc.WithConfig(makeMemConfig(expr, a.ConfigProperties))
+
 		cr := analysisapi.ContainerRecommendation{
 			ContainerName: c.Name,
 			Target:        map[corev1.ResourceName]resource.Quantity{},
@@ -158,36 +149,6 @@ func (a *ResourceRequestAdvisor) Advise(proposed *ProposedRecommendation) error 
 	return nil
 }
 
-func (a *MinMaxReplicasAdvisor) Advise(proposed *ProposedRecommendation) error {
-	return nil
-}
-
-type PredictionAdvisor struct {
-	Context *Context
-}
-
-func (a *PredictionAdvisor) Advise(proposed *ProposedRecommendation) error {
-	return nil
-}
-
-func NewAdvisors(ctx *Context) (advisors []Advisor) {
-	switch ctx.Recommendation.Spec.Type {
-	case analysisapi.AnalysisTypeResource:
-		a := &ResourceRequestAdvisor{Context: ctx}
-		if err := a.Init(); err != nil {
-			return
-		}
-		advisors = []Advisor{a}
-	case analysisapi.AnalysisTypeHPA:
-		advisors = []Advisor{
-			&MinMaxReplicasAdvisor{
-				Context: ctx,
-			},
-			&PredictionAdvisor{
-				Context: ctx,
-			},
-		}
-	}
-
-	return
+func (a *ResourceRequestAdvisor) Name() string {
+	return "ResourceRequestAdvisor"
 }

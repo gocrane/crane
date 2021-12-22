@@ -256,13 +256,13 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 	}
 	if err := (&recommendation.Controller{
 		Client:      mgr.GetClient(),
-		Log:         log.Logger().WithName("recommendation-controller"),
 		ConfigSet:   configSet,
 		Scheme:      mgr.GetScheme(),
 		RestMapper:  mgr.GetRESTMapper(),
 		Recorder:    mgr.GetEventRecorderFor("recommendation-controller"),
 		ScaleClient: scaleClient,
 		Predictors:  predictors,
+		Provider:    dataSource,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Exit(err, "unable to create controller", "controller", "RecommendationController")
 	}

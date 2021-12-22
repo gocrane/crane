@@ -201,7 +201,11 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 						return nil, err
 					}
 
-					requests, err := calculatePodRequests(pods, metric.Resource.Name)
+					if len(pods) == 0 {
+						return nil, fmt.Errorf("No pods returns from scale object. ")
+					}
+
+					requests, err := utils.CalculatePodRequests(pods, metric.Resource.Name)
 					if err != nil {
 						return nil, err
 					}
@@ -233,21 +237,6 @@ func GetPredictionMetricName(Name v1.ResourceName) (string, error) {
 	default:
 		return "", fmt.Errorf("resource name not predictable")
 	}
-}
-
-// calculatePodRequests sum request total from pods
-func calculatePodRequests(pods []v1.Pod, resource v1.ResourceName) (int64, error) {
-	var requests int64
-	for _, pod := range pods {
-		for _, c := range pod.Spec.Containers {
-			if containerRequest, ok := c.Resources.Requests[resource]; ok {
-				requests += containerRequest.MilliValue()
-			} else {
-				return 0, fmt.Errorf("missing request for %s", resource)
-			}
-		}
-	}
-	return requests, nil
 }
 
 func setHPACondition(status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus, conditions []autoscalingv2.HorizontalPodAutoscalerCondition) {
