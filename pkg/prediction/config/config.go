@@ -18,9 +18,9 @@ const (
 	// WorkloadMemUsagePromQLFmtStr is used to query workload mem usage by promql, param is namespace, workload-name
 	WorkloadMemUsagePromQLFmtStr = `sum(container_memory_working_set_bytes{container!="",image!="", name=~"^k8s_.*",container!="POD",namespace="%s",pod=~"^%s-.*$"})`
 
-	// following is node exporter and cadvisor metric for node cpu/memory usage
+	// following is node exporter metric for node cpu/memory usage
 	// NodeCpuUsagePromQLFmtStr is used to query node cpu usage by promql,  param is node name which prometheus scrape, duration str
-	NodeCpuUsagePromQLFmtStr = `sum(machine_cpu_cores{instance=~"%s.*"}) - sum(irate(node_cpu_seconds_total{mode="idle",instance=~"%s.*"}[%s]))`
+	NodeCpuUsagePromQLFmtStr = `sum(count(node_cpu_seconds_total{mode="idle",instance=~"%s.*"}) by (mode, cpu)) - sum(irate(node_cpu_seconds_total{mode="idle",instance=~"%s.*"}[%s]))`
 	// NodeMemUsagePromQLFmtStr is used to query node cpu memory by promql,  param is node name, node name which prometheus scrape
 	NodeMemUsagePromQLFmtStr = `sum(node_memory_MemTotal_bytes{instance=~"^%s.*"} - node_memory_MemAvailable_bytes{instance=~"^%s.*"})`
 )
