@@ -121,7 +121,7 @@ func GetContext(kubeClient client.Client, restMapper meta.RESTMapper, scaleClien
 	if recommendation.Spec.TargetRef.Kind != "DaemonSet" {
 		pods, err = utils.GetPodsFromScale(kubeClient, scale)
 	} else {
-		pods, err = getStatefulSetPods(kubeClient, recommendation.Spec.TargetRef.Namespace, recommendation.Spec.TargetRef.Name)
+		pods, err = getDaemonSetPods(kubeClient, recommendation.Spec.TargetRef.Namespace, recommendation.Spec.TargetRef.Name)
 	}
 	if err != nil {
 		return nil, err
@@ -134,16 +134,16 @@ func GetContext(kubeClient client.Client, restMapper meta.RESTMapper, scaleClien
 	return c, nil
 }
 
-func getStatefulSetPods(kubeClient client.Client, namespace string, name string) ([]corev1.Pod, error) {
-	sts := appsv1.StatefulSet{}
-	err := kubeClient.Get(context.TODO(), client.ObjectKey{Namespace: namespace, Name: name}, &sts)
+func getDaemonSetPods(kubeClient client.Client, namespace string, name string) ([]corev1.Pod, error) {
+	ds := appsv1.DaemonSet{}
+	err := kubeClient.Get(context.TODO(), client.ObjectKey{Namespace: namespace, Name: name}, &ds)
 	if err != nil {
 		return nil, err
 	}
 
 	opts := []client.ListOption{
 		client.InNamespace(namespace),
-		client.MatchingLabels(sts.Spec.Selector.MatchLabels),
+		client.MatchingLabels(ds.Spec.Selector.MatchLabels),
 	}
 
 	podList := &corev1.PodList{}
