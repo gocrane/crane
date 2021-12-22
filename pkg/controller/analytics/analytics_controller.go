@@ -184,8 +184,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			}
 			if !found {
 				nr := r.DeepCopy()
-				nr.OwnerReferences = append(nr.OwnerReferences,
-					*metav1.NewControllerRef(a, schema.GroupVersionKind{Version: a.APIVersion, Kind: a.Kind}))
+				nr.OwnerReferences = append(nr.OwnerReferences, *newOwnerRef(a))
 				if err = c.Update(ctx, nr); err != nil {
 					return ctrl.Result{}, err
 				}
@@ -217,6 +216,18 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{}, nil
 }
 
+func newOwnerRef(a *analysisv1alph1.Analytics) *metav1.OwnerReference {
+	blockOwnerDeletion, isController := false, false
+	return &metav1.OwnerReference{
+		APIVersion:         a.APIVersion,
+		Kind:               a.Kind,
+		Name:               a.GetName(),
+		UID:                a.GetUID(),
+		BlockOwnerDeletion: &blockOwnerDeletion,
+		Controller:         &isController,
+	}
+}
+
 func (ac *Controller) createRecommendation(ctx context.Context, a *analysisv1alph1.Analytics,
 	id ObjectIdentity, refs *[]corev1.ObjectReference) error {
 
@@ -225,7 +236,7 @@ func (ac *Controller) createRecommendation(ctx context.Context, a *analysisv1alp
 			GenerateName: fmt.Sprintf("%s-%s-", a.Name, strings.ToLower(string(a.Spec.Type))),
 			Namespace:    a.Namespace,
 			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(a, schema.GroupVersionKind{Version: a.APIVersion, Kind: a.Kind}),
+				*newOwnerRef(a),
 			},
 		},
 		Spec: analysisv1alph1.RecommendationSpec{
