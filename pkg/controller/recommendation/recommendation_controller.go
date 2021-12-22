@@ -66,8 +66,10 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	newStatus.ResourceRequest = proposed.ResourceRequest
-	newStatus.EffectiveHPA = proposed.EffectiveHPA
+	if proposed != nil {
+		newStatus.ResourceRequest = proposed.ResourceRequest
+		newStatus.EffectiveHPA = proposed.EffectiveHPA
+	}
 
 	setCondition(newStatus, "Ready", metav1.ConditionTrue, "RecommendationReady", "Recommendation is ready")
 	c.UpdateStatus(ctx, recommendation, newStatus)
