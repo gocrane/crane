@@ -4,13 +4,11 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
-
-	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
-	"github.com/gocrane/crane/pkg/prediction"
-
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	corev1 "k8s.io/api/core/v1"
 
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -19,7 +17,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
-
+	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
+	"github.com/gocrane/crane/pkg/prediction"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
@@ -83,25 +82,28 @@ func GetContext(kubeClient client.Client, restMapper meta.RESTMapper, scaleClien
 		Name:       recommendation.Spec.TargetRef.Name,
 	}
 
-	scale, mapping, err := utils.GetScale(context.TODO(), restMapper, scaleClient, recommendation.Spec.TargetRef.Namespace, targetRef)
-
-	if err != nil {
-		return nil, err
+	var scale *autoscalingv1.Scale
+	var mapping *meta.RESTMapping
+	var err error
+	if recommendation.Spec.TargetRef.Kind != "DaemonSet" {
+		scale, mapping, err = utils.GetScale(context.TODO(), restMapper, scaleClient, recommendation.Spec.TargetRef.Namespace, targetRef)
+		if err != nil {
+			return nil, err
+		}
+		c.Scale = scale
+		c.RestMapping = mapping
 	}
-
-	c.Scale = scale
-	c.RestMapping = mapping
 
 	unstructured := &unstructured.Unstructured{}
 	unstructured.SetKind(recommendation.Spec.TargetRef.Kind)
 	unstructured.SetAPIVersion(recommendation.Spec.TargetRef.APIVersion)
-	if err = kubeClient.Get(context.TODO(), client.ObjectKey{Namespace: recommendation.Spec.TargetRef.Namespace, Name: recommendation.Spec.TargetRef.Name}, unstructured); err != nil {
+	if err := kubeClient.Get(context.TODO(), client.ObjectKey{Namespace: recommendation.Spec.TargetRef.Namespace, Name: recommendation.Spec.TargetRef.Name}, unstructured); err != nil {
 		return nil, err
 	}
 
 	if recommendation.Spec.TargetRef.Kind == "Deployment" && mapping.GroupVersionKind.Group == "apps" {
 		var deployment appsv1.Deployment
-		if err = runtime.DefaultUnstructuredConverter.FromUnstructured(unstructured.UnstructuredContent(), &deployment); err != nil {
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructured.UnstructuredContent(), &deployment); err != nil {
 			return nil, err
 		}
 		c.Deployment = &deployment
@@ -109,13 +111,18 @@ func GetContext(kubeClient client.Client, restMapper meta.RESTMapper, scaleClien
 
 	if recommendation.Spec.TargetRef.Kind == "StatefulSet" && mapping.GroupVersionKind.Group == "apps" {
 		var statefulSet appsv1.StatefulSet
-		if err = runtime.DefaultUnstructuredConverter.FromUnstructured(unstructured.UnstructuredContent(), &statefulSet); err != nil {
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructured.UnstructuredContent(), &statefulSet); err != nil {
 			return nil, err
 		}
 		c.StatefulSet = &statefulSet
 	}
 
-	pods, err := utils.GetPodsFromScale(kubeClient, scale)
+	var pods []corev1.Pod
+	if recommendation.Spec.TargetRef.Kind != "DaemonSet" {
+		pods, err = utils.GetPodsFromScale(kubeClient, scale)
+	} else {
+		pods, err = getStatefulSetPods(kubeClient, recommendation.Spec.TargetRef.Namespace, recommendation.Spec.TargetRef.Name)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -125,4 +132,25 @@ func GetContext(kubeClient client.Client, restMapper meta.RESTMapper, scaleClien
 	c.Recommendation = *recommendation
 
 	return c, nil
+}
+
+func getStatefulSetPods(kubeClient client.Client, namespace string, name string) ([]corev1.Pod, error) {
+	sts := appsv1.StatefulSet{}
+	err := kubeClient.Get(context.TODO(), client.ObjectKey{Namespace: namespace, Name: name}, &sts)
+	if err != nil {
+		return nil, err
+	}
+
+	opts := []client.ListOption{
+		client.InNamespace(namespace),
+		client.MatchingLabels(sts.Spec.Selector.MatchLabels),
+	}
+
+	podList := &corev1.PodList{}
+	err = kubeClient.List(context.TODO(), podList, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	return podList.Items, nil
 }

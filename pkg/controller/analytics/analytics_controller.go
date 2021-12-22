@@ -3,9 +3,10 @@ package analytics
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"strings"
 	"time"
+
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
