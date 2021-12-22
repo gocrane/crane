@@ -19,6 +19,7 @@ package noderesource
 import (
 	"context"
 	"fmt"
+	"math"
 	"strconv"
 	"time"
 
@@ -154,11 +155,22 @@ func (r *NodeResourceReconciler) BuildNodeStatus(tsp *predictionapi.TimeSeriesPr
 			default:
 				continue
 			}
-			extResourceName := fmt.Sprintf(ExtResourcePrefix, string(*resourceName))
-			resValue, exists := node.Status.Capacity[v1.ResourceName(extResourceName)]
-			if exists && float64(resValue.Value())/float64(nextRecommendation) <= 1+MinDeltaRatio {
+			// todo: maybe use float and milli value for cpu maxUsage
+			if nextRecommendation < 0 {
+				r.Log.Info("unexpected recommendation", "nodeName", node.Name, "maxUsage", maxUsage, "nextRecommendation", nextRecommendation)
 				continue
 			}
+			extResourceName := fmt.Sprintf(ExtResourcePrefix, string(*resourceName))
+			resValue, exists := node.Status.Capacity[v1.ResourceName(extResourceName)]
+			if !exists {
+				continue
+			}
+
+			// todo: should consider nextRecommendation increase or decrease, maybe we need slow increase by delta, and quick decrease
+			if resValue.Value() != 0 && math.Abs(float64(resValue.Value())-float64(nextRecommendation))/float64(resValue.Value()) <= MinDeltaRatio {
+				continue
+			}
+
 			node.Status.Capacity[v1.ResourceName(extResourceName)] =
 				*resource.NewQuantity(nextRecommendation, resource.DecimalSI)
 			node.Status.Allocatable[v1.ResourceName(extResourceName)] =
