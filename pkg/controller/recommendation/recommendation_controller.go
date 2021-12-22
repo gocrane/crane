@@ -2,6 +2,7 @@ package recommendation
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
@@ -38,6 +39,9 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	recommendation := &analysisv1alph1.Recommendation{}
 	err := c.Client.Get(ctx, req.NamespacedName, recommendation)
 	if err != nil {
+		if errors.IsNotFound(err) {
+			return ctrl.Result{}, err
+		}
 		return ctrl.Result{}, err
 	}
 

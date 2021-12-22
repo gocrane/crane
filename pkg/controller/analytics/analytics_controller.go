@@ -168,14 +168,14 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if c.Logger.V(6).Enabled() {
 		// Print recommendations
 		for k, r := range rm {
-			c.Logger.V(6).Info("", "key", k, "namespace", r.Namespace, "name", r.Name)
+			c.Logger.V(6).Info("recommendations", "key", k, "namespace", r.Namespace, "name", r.Name)
 		}
 	}
 
 	if c.Logger.V(6).Enabled() {
 		// Print identities
 		for k, id := range identities {
-			c.Logger.V(6).Info("", "key", k, "apiVersion", id.APIVersion, "kind", id.Kind, "namespace", id.Namespace, "name", id.Name)
+			c.Logger.V(6).Info("identities", "key", k, "apiVersion", id.APIVersion, "kind", id.Kind, "namespace", id.Namespace, "name", id.Name)
 		}
 	}
 
