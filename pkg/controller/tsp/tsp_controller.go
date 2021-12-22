@@ -7,8 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/client-go/tools/record"
@@ -32,8 +30,6 @@ type Controller struct {
 	lock sync.Mutex
 	// predictors used to do predict and config, maybe the predictor should running as a independent system not as a built-in goroutines logic
 	predictors map[predictionv1alph1.AlgorithmType]prediction.Interface
-
-	metric *prometheus.Desc
 }
 
 func NewController(
@@ -49,12 +45,6 @@ func NewController(
 		Recorder:     recorder,
 		UpdatePeriod: updatePeriod,
 		predictors:   predictors,
-		metric: prometheus.NewDesc(
-			prometheus.BuildFQName("crane", "prediction", "time_series_prediction_metric"),
-			"prediction value for TimeSeriesPrediction",
-			[]string{"targetKind", "targetName", "targetNamespace", "resourceIdentifier", "type", "resourceQuery", "expressionQuery", "rawQuery", "algorithm", "aggregateKey"},
-			nil,
-		),
 	}
 }
 

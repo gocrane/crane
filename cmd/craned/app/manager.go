@@ -7,8 +7,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/gocrane/crane/pkg/controller/noderesource"
-
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -26,10 +24,12 @@ import (
 	"github.com/gocrane/crane/cmd/craned/app/options"
 	"github.com/gocrane/crane/pkg/controller/analytics"
 	"github.com/gocrane/crane/pkg/controller/ehpa"
+	"github.com/gocrane/crane/pkg/controller/noderesource"
 	"github.com/gocrane/crane/pkg/controller/recommendation"
 	"github.com/gocrane/crane/pkg/controller/tsp"
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/log"
+	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/prediction"
 	"github.com/gocrane/crane/pkg/prediction/dsp"
 	"github.com/gocrane/crane/pkg/prediction/percentile"
@@ -107,12 +107,20 @@ func Run(ctx context.Context, opts *options.Options) error {
 	initializationControllers(ctx, mgr, opts)
 	log.Logger().Info("Starting crane manager")
 
+	// initialization custom collector metrics
+	initializationMetrics(mgr)
+
 	if err := mgr.Start(ctx); err != nil {
 		log.Logger().Error(err, "problem running crane manager")
 		return err
 	}
 
 	return nil
+}
+
+func initializationMetrics(mgr ctrl.Manager) {
+	// register as prometheus metric collector
+	metrics.CustomCollectorRegister(metrics.NewTspMetricCollector(mgr.GetClient()))
 }
 
 func initializationWebhooks(mgr ctrl.Manager, opts *options.Options) {
@@ -227,8 +235,6 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 		opts.PredictionUpdateFrequency,
 		predictors,
 	)
-	// register as prometheus metric collector
-	tspController.RegisterMetric()
 	if err := tspController.SetupWithManager(mgr); err != nil {
 		log.Logger().Error(err, "unable to create controller", "controller", "TspController")
 		os.Exit(1)
