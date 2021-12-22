@@ -97,7 +97,6 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		gvr := gv.WithResource(resName)
 
 		var us []unstructured.Unstructured
-		var ownerNames []string
 
 		if rs.Name != "" {
 			u, err := c.dynamicClient.Resource(gvr).Namespace(req.Namespace).Get(ctx, rs.Name, metav1.GetOptions{})
@@ -105,7 +104,6 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				return ctrl.Result{}, err
 			}
 			us = append(us, *u)
-			ownerNames = append(ownerNames, rs.Name)
 		} else {
 			var ul *unstructured.UnstructuredList
 			var err error
@@ -119,7 +117,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				return ctrl.Result{}, err
 			}
 
-			for _, u := range ul.Items {
+			for _, u := range ul.Items { // u is statefulset plus
 				m, ok, err := unstructured.NestedStringMap(u.Object, "spec", "selector", "matchLabels")
 				if !ok || err != nil {
 					return ctrl.Result{}, fmt.Errorf("%s not supported", gvr.String())
@@ -130,17 +128,16 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				}
 				if match(rs.LabelSelector, matchLabels) {
 					us = append(us, u)
-					ownerNames = append(ownerNames, u.GetName())
 				}
 			}
 		}
 
 		for i := range us {
-			k := objRefKey(rs.Kind, rs.APIVersion, us[i].GetNamespace(), ownerNames[i])
+			k := objRefKey(rs.Kind, rs.APIVersion, us[i].GetNamespace(), us[i].GetName())
 			if _, exists := identities[k]; !exists {
 				identities[k] = ObjectIdentity{
 					Namespace:  us[i].GetNamespace(),
-					Name:       ownerNames[i],
+					Name:       us[i].GetName(),
 					Kind:       rs.Kind,
 					APIVersion: rs.APIVersion,
 				}
@@ -164,6 +161,20 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		rm[k] = r.DeepCopy()
 	}
 
+	if c.Logger.V(6).Enabled() {
+		// Print recommendations
+		for k, r := range rm {
+			c.Logger.V(6).Info("", "key", k, "namespace", r.Namespace, "name", r.Name)
+		}
+	}
+
+	if c.Logger.V(6).Enabled() {
+		// Print identities
+		for k, id := range identities {
+			c.Logger.V(6).Info("", "key", k, "apiVersion", id.APIVersion, "kind", id.Kind, "namespace", id.Namespace, "name", id.Name)
+		}
+	}
+
 	var refs []corev1.ObjectReference
 
 	for k, id := range identities {
@@ -177,7 +188,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			})
 			found := false
 			for _, or := range r.OwnerReferences {
-				if or.Name == id.Name && or.Kind == id.Kind && or.APIVersion == id.APIVersion {
+				if or.Name == a.Name && or.Kind == a.Kind && a.APIVersion == a.APIVersion {
 					found = true
 					break
 				}
