@@ -149,7 +149,7 @@ func NewAdvisors(ctx *Context) (advisors []Advisor) {
 	case analysisapi.AnalysisTypeResource:
 		a := &ResourceRequestAdvisor{Context: ctx}
 		if err := a.Init(); err != nil {
-			panic(err)
+			return
 		}
 		advisors = []Advisor{a}
 	case analysisapi.AnalysisTypeHPA:
