@@ -22,6 +22,7 @@ import (
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 	"github.com/gocrane/crane/cmd/craned/app/options"
+	"github.com/gocrane/crane/pkg/controller/cnp"
 	"github.com/gocrane/crane/pkg/controller/ehpa"
 	"github.com/gocrane/crane/pkg/controller/recommendation"
 	"github.com/gocrane/crane/pkg/controller/tsp"
@@ -230,6 +231,17 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 	)
 	if err := tspController.SetupWithManager(mgr); err != nil {
 		log.Logger().Error(err, "unable to create controller", "controller", "TspController")
+		os.Exit(1)
+	}
+
+	if err := (&cnp.ClusterNodePredictionController{
+		Client:      mgr.GetClient(),
+		Logger:      log.Logger().WithName("cnp-controller"),
+		Scheme:      mgr.GetScheme(),
+		RestMapper:  mgr.GetRESTMapper(),
+		Recorder:    mgr.GetEventRecorderFor("cnp-controller"),
+	}).SetupWithManager(mgr); err != nil {
+		log.Logger().Error(err, "unable to create controller", "controller", "CnpController")
 		os.Exit(1)
 	}
 

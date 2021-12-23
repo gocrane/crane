@@ -2,12 +2,12 @@ package cnp
 
 import (
 	"context"
+
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/version"
-	"k8s.io/client-go/scale"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -18,17 +18,16 @@ import (
 
 type ClusterNodePredictionController struct {
 	client.Client
-	Log         logr.Logger
-	Scheme      *runtime.Scheme
-	RestMapper  meta.RESTMapper
-	Recorder    record.EventRecorder
-	scaleClient scale.ScalesGetter
-	K8SVersion  *version.Version
+	Logger     logr.Logger
+	Scheme     *runtime.Scheme
+	RestMapper meta.RESTMapper
+	Recorder   record.EventRecorder
+	K8SVersion *version.Version
 }
 
 func (c *ClusterNodePredictionController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Log for controller information
-	c.Log.Info("got", "cnp", req.NamespacedName)
+	c.Logger.V(4).Info("Got an cnp resource", "cnp", req.NamespacedName)
 
 	// Get cnp object, Ignore object not found event
 	var cnp predictionapi.ClusterNodePrediction
@@ -52,7 +51,7 @@ func (c *ClusterNodePredictionController) Reconcile(ctx context.Context, req ctr
 		status := predictionapi.ClusterNodePredictionStatus{
 			CurrentNumberCreated: 0,
 			DesiredNumberCreated: 0,
-			Conditions: nil,
+			Conditions:           nil,
 		}
 		if err := c.updateStatus(ctx, &cnp, status); err != nil {
 			return ctrl.Result{}, err
@@ -77,9 +76,9 @@ func (c *ClusterNodePredictionController) Reconcile(ctx context.Context, req ctr
 
 	// Set the status, Then reconcile func end
 	status := predictionapi.ClusterNodePredictionStatus{
-		CurrentNumberCreated:successCount,
+		CurrentNumberCreated: successCount,
 		DesiredNumberCreated: len(nodeList.Items),
-	 }
+	}
 	if err := c.updateStatus(ctx, &cnp, status); err != nil {
 		return ctrl.Result{}, err
 	}
