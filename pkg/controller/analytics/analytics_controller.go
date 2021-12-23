@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -51,6 +52,9 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	err := c.Client.Get(ctx, req.NamespacedName, a)
 	if err != nil {
+		if errors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
 		return ctrl.Result{}, err
 	}
 
@@ -97,7 +101,6 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		gvr := gv.WithResource(resName)
 
 		var us []unstructured.Unstructured
-		var ownerNames []string
 
 		if rs.Name != "" {
 			u, err := c.dynamicClient.Resource(gvr).Namespace(req.Namespace).Get(ctx, rs.Name, metav1.GetOptions{})
@@ -105,7 +108,6 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				return ctrl.Result{}, err
 			}
 			us = append(us, *u)
-			ownerNames = append(ownerNames, rs.Name)
 		} else {
 			var ul *unstructured.UnstructuredList
 			var err error
@@ -130,17 +132,16 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				}
 				if match(rs.LabelSelector, matchLabels) {
 					us = append(us, u)
-					ownerNames = append(ownerNames, u.GetName())
 				}
 			}
 		}
 
 		for i := range us {
-			k := objRefKey(rs.Kind, rs.APIVersion, us[i].GetNamespace(), ownerNames[i])
+			k := objRefKey(rs.Kind, rs.APIVersion, us[i].GetNamespace(), us[i].GetName())
 			if _, exists := identities[k]; !exists {
 				identities[k] = ObjectIdentity{
 					Namespace:  us[i].GetNamespace(),
-					Name:       ownerNames[i],
+					Name:       us[i].GetName(),
 					Kind:       rs.Kind,
 					APIVersion: rs.APIVersion,
 				}
@@ -164,6 +165,20 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		rm[k] = r.DeepCopy()
 	}
 
+	if c.Logger.V(6).Enabled() {
+		// Print recommendations
+		for k, r := range rm {
+			c.Logger.V(6).Info("recommendations", "key", k, "namespace", r.Namespace, "name", r.Name)
+		}
+	}
+
+	if c.Logger.V(6).Enabled() {
+		// Print identities
+		for k, id := range identities {
+			c.Logger.V(6).Info("identities", "key", k, "apiVersion", id.APIVersion, "kind", id.Kind, "namespace", id.Namespace, "name", id.Name)
+		}
+	}
+
 	var refs []corev1.ObjectReference
 
 	for k, id := range identities {
@@ -177,15 +192,14 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			})
 			found := false
 			for _, or := range r.OwnerReferences {
-				if or.Name == id.Name && or.Kind == id.Kind && or.APIVersion == id.APIVersion {
+				if or.Name == a.Name && or.Kind == a.Kind && a.APIVersion == a.APIVersion {
 					found = true
 					break
 				}
 			}
 			if !found {
 				nr := r.DeepCopy()
-				nr.OwnerReferences = append(nr.OwnerReferences,
-					*metav1.NewControllerRef(a, schema.GroupVersionKind{Version: a.APIVersion, Kind: a.Kind}))
+				nr.OwnerReferences = append(nr.OwnerReferences, *newOwnerRef(a))
 				if err = c.Update(ctx, nr); err != nil {
 					return ctrl.Result{}, err
 				}
@@ -217,6 +231,18 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{}, nil
 }
 
+func newOwnerRef(a *analysisv1alph1.Analytics) *metav1.OwnerReference {
+	blockOwnerDeletion, isController := false, false
+	return &metav1.OwnerReference{
+		APIVersion:         a.APIVersion,
+		Kind:               a.Kind,
+		Name:               a.GetName(),
+		UID:                a.GetUID(),
+		BlockOwnerDeletion: &blockOwnerDeletion,
+		Controller:         &isController,
+	}
+}
+
 func (ac *Controller) createRecommendation(ctx context.Context, a *analysisv1alph1.Analytics,
 	id ObjectIdentity, refs *[]corev1.ObjectReference) error {
 
@@ -225,7 +251,7 @@ func (ac *Controller) createRecommendation(ctx context.Context, a *analysisv1alp
 			GenerateName: fmt.Sprintf("%s-%s-", a.Name, strings.ToLower(string(a.Spec.Type))),
 			Namespace:    a.Namespace,
 			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(a, schema.GroupVersionKind{Version: a.APIVersion, Kind: a.Kind}),
+				*newOwnerRef(a),
 			},
 		},
 		Spec: analysisv1alph1.RecommendationSpec{

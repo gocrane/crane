@@ -15,4 +15,3 @@ type collector interface {
 	GetType() types.CollectType
 	Collect() (map[string][]common.TimeSeries, error)
 }
-

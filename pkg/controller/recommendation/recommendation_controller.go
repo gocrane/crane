@@ -3,6 +3,8 @@ package recommendation
 import (
 	"context"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -38,6 +40,9 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	recommendation := &analysisv1alph1.Recommendation{}
 	err := c.Client.Get(ctx, req.NamespacedName, recommendation)
 	if err != nil {
+		if errors.IsNotFound(err) {
+			return ctrl.Result{}, err
+		}
 		return ctrl.Result{}, err
 	}
 
@@ -66,8 +71,10 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	newStatus.ResourceRequest = proposed.ResourceRequest
-	newStatus.EffectiveHPA = proposed.EffectiveHPA
+	if proposed != nil {
+		newStatus.ResourceRequest = proposed.ResourceRequest
+		newStatus.EffectiveHPA = proposed.EffectiveHPA
+	}
 
 	setCondition(newStatus, "Ready", metav1.ConditionTrue, "RecommendationReady", "Recommendation is ready")
 	c.UpdateStatus(ctx, recommendation, newStatus)
