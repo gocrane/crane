@@ -3,7 +3,7 @@ package ebpf
 import (
 	"sync"
 
-	"github.com/gocrane/crane/pkg/utils/log"
+	"github.com/gocrane/crane/pkg/log"
 )
 
 type EBPF struct {

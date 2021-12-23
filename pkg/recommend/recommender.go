@@ -4,11 +4,10 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
-	corev1 "k8s.io/api/core/v1"
-
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -97,6 +96,7 @@ func GetContext(kubeClient client.Client, restMapper meta.RESTMapper, scaleClien
 	unstructured := &unstructured.Unstructured{}
 	unstructured.SetKind(recommendation.Spec.TargetRef.Kind)
 	unstructured.SetAPIVersion(recommendation.Spec.TargetRef.APIVersion)
+
 	if err := kubeClient.Get(context.TODO(), client.ObjectKey{Namespace: recommendation.Spec.TargetRef.Namespace, Name: recommendation.Spec.TargetRef.Name}, unstructured); err != nil {
 		return nil, err
 	}

@@ -5,14 +5,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gocrane/crane/pkg/common"
-
 	"k8s.io/client-go/tools/cache"
 
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
+
+	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/ensurance/statestore/nodelocal"
 	"github.com/gocrane/crane/pkg/ensurance/statestore/types"
-	"github.com/gocrane/crane/pkg/utils/log"
+	"github.com/gocrane/crane/pkg/log"
 )
 
 type stateStoreManager struct {
@@ -36,7 +36,6 @@ func (s *stateStoreManager) Name() string {
 }
 
 func (s *stateStoreManager) Run(stop <-chan struct{}) {
-
 	// check need to update config
 	go func() {
 		updateTicker := time.NewTicker(10 * time.Second)
@@ -44,7 +43,6 @@ func (s *stateStoreManager) Run(stop <-chan struct{}) {
 		for {
 			select {
 			case <-updateTicker.C:
-				log.Logger().V(4).Info("StateStore config check run periodically")
 				if s.checkConfig() {
 					s.index++
 					log.Logger().V(4).Info("StateStore update event", "index", s.index)
@@ -67,7 +65,6 @@ func (s *stateStoreManager) Run(stop <-chan struct{}) {
 		for {
 			select {
 			case <-updateTicker.C:
-				log.Logger().V(2).Info("StateStore run periodically")
 				for _, c := range s.collectors {
 					if data, err := c.Collect(); err == nil {
 						for key, v := range data {
@@ -79,10 +76,10 @@ func (s *stateStoreManager) Run(stop <-chan struct{}) {
 				}
 				continue
 			case v := <-s.eventChannel:
-				log.Logger().V(3).Info("StateStore update config index", "Index", v.Index)
+				log.Logger().V(4).Info("StateStore update config index", "Index", v.Index)
 				s.updateConfig()
 			case <-stop:
-				log.Logger().V(2).Info("StateStore exit")
+				log.Logger().Info("StateStore exit")
 				return
 			}
 		}
@@ -105,8 +102,6 @@ func (s *stateStoreManager) List() map[string][]common.TimeSeries {
 }
 
 func (s *stateStoreManager) checkConfig() bool {
-	log.Logger().V(4).Info("StateStore checkConfig")
-
 	// step1 copy neps
 	var neps []*ensuranceapi.NodeQOSEnsurancePolicy
 	allNeps := s.nepInformer.GetStore().List()
@@ -130,8 +125,6 @@ func (s *stateStoreManager) checkConfig() bool {
 			}
 		}
 	}
-
-	log.Logger().V(4).Info("checkConfig", "nodeLocal", nodeLocal)
 
 	if !nodeLocal {
 		if _, ok := s.configCache.Load(string(types.NodeLocalCollectorType)); ok {

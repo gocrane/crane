@@ -6,10 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/errors"
-
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -122,7 +121,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				return ctrl.Result{}, err
 			}
 
-			for _, u := range ul.Items { // u is statefulset plus
+			for _, u := range ul.Items {
 				m, ok, err := unstructured.NestedStringMap(u.Object, "spec", "selector", "matchLabels")
 				if !ok || err != nil {
 					return ctrl.Result{}, fmt.Errorf("%s not supported", gvr.String())

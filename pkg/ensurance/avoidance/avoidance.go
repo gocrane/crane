@@ -1,32 +1,39 @@
 package avoidance
 
 import (
+	coreinformers "k8s.io/client-go/informers/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
+	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog/v2"
 
 	"github.com/gocrane/crane/pkg/ensurance/executor"
-	"github.com/gocrane/crane/pkg/utils/log"
+	"github.com/gocrane/crane/pkg/log"
 )
 
 type AvoidanceManager struct {
-	nodeName          string
-	client            clientset.Interface
-	noticeCh          <-chan executor.AvoidanceExecutor
-	podInformer       cache.SharedIndexInformer
-	nodeInformer      cache.SharedIndexInformer
-	avoidanceInformer cache.SharedIndexInformer
+	nodeName string
+	client   clientset.Interface
+	noticeCh <-chan executor.AvoidanceExecutor
+
+	podLister corelisters.PodLister
+	podSynced cache.InformerSynced
+
+	nodeLister corelisters.NodeLister
+	nodeSynced cache.InformerSynced
 }
 
-// AvoidanceManager create avoidance manager
-func NewAvoidanceManager(client clientset.Interface, nodeName string, podInformer cache.SharedIndexInformer, nodeInformer cache.SharedIndexInformer,
-	avoidanceInformer cache.SharedIndexInformer, noticeCh <-chan executor.AvoidanceExecutor) *AvoidanceManager {
+// NewAvoidanceManager create avoidance manager
+func NewAvoidanceManager(client clientset.Interface, nodeName string, podInformer coreinformers.PodInformer, nodeInformer coreinformers.NodeInformer,
+	noticeCh <-chan executor.AvoidanceExecutor) *AvoidanceManager {
 	return &AvoidanceManager{
-		nodeName:          nodeName,
-		client:            client,
-		noticeCh:          noticeCh,
-		podInformer:       podInformer,
-		nodeInformer:      nodeInformer,
-		avoidanceInformer: avoidanceInformer,
+		nodeName:   nodeName,
+		client:     client,
+		noticeCh:   noticeCh,
+		podLister:  podInformer.Lister(),
+		podSynced:  podInformer.Informer().HasSynced,
+		nodeLister: nodeInformer.Lister(),
+		nodeSynced: nodeInformer.Informer().HasSynced,
 	}
 }
 
@@ -36,7 +43,16 @@ func (a *AvoidanceManager) Name() string {
 
 // Run does nothing
 func (a *AvoidanceManager) Run(stop <-chan struct{}) {
-	log.Logger().V(2).Info("Avoidance manager starts running")
+	klog.Infof("Starting avoid manager.")
+
+	// Wait for the caches to be synced before starting workers
+	if !cache.WaitForNamedCacheSync("avoid-manager",
+		stop,
+		a.podSynced,
+		a.nodeSynced,
+	) {
+		return
+	}
 
 	go func() {
 		for {
@@ -59,12 +75,11 @@ func (a *AvoidanceManager) Run(stop <-chan struct{}) {
 }
 
 func (a *AvoidanceManager) doAction(ae executor.AvoidanceExecutor, _ <-chan struct{}) error {
-
 	var ctx = &executor.ExecuteContext{
-		NodeName:     a.nodeName,
-		Client:       a.client,
-		PodInformer:  a.podInformer,
-		NodeInformer: a.nodeInformer,
+		NodeName:   a.nodeName,
+		Client:     a.client,
+		PodLister:  a.podLister,
+		NodeLister: a.nodeLister,
 	}
 
 	//step1 do avoidance actions
@@ -101,7 +116,6 @@ func doAvoidance(ctx *executor.ExecuteContext, ae executor.AvoidanceExecutor) er
 }
 
 func doRestoration(ctx *executor.ExecuteContext, ae executor.AvoidanceExecutor) error {
-
 	//step1 do DisableScheduled action
 	if err := ae.ScheduledExecutor.Restore(ctx); err != nil {
 		return err

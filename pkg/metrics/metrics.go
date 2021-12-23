@@ -30,3 +30,7 @@ func init() {
 	// Register custom metrics with the global prometheus registry
 	metrics.Registry.MustRegister(HPAReplicas, EHPAReplicas)
 }
+
+func CustomCollectorRegister(collector ...prometheus.Collector) {
+	metrics.Registry.MustRegister(collector...)
+}

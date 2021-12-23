@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/gocrane/crane/pkg/common"
+	"github.com/gocrane/crane/pkg/log"
 	"github.com/gocrane/crane/pkg/providers"
-	"github.com/gocrane/crane/pkg/utils/log"
 )
 
 const (

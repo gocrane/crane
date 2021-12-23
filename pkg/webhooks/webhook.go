@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package webhooks
 
 import (
 	"context"
@@ -24,7 +24,7 @@ import (
 
 	"github.com/gocrane/api/prediction/v1alpha1"
 
-	"github.com/gocrane/crane/pkg/utils/log"
+	"github.com/gocrane/crane/pkg/log"
 )
 
 func SetupWebhookWithManager(mgr ctrl.Manager) error {
