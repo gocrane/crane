@@ -88,6 +88,18 @@ func (c *Controller) UpdateStatus(ctx context.Context, recommendation *analysisv
 
 		recommendation.Status = *newStatus
 		recommendation.Status.LastUpdateTime = metav1.Now()
+
+		var ready = false
+		for _, cond := range newStatus.Conditions {
+			if cond.Reason == "RecommendationReady" && (newStatus.ResourceRequest != nil || newStatus.EffectiveHPA != nil) {
+				ready = true
+				break
+			}
+		}
+		if ready {
+			recommendation.Status.LastSuccessfulTime = &recommendation.Status.LastUpdateTime
+		}
+
 		err := c.Update(ctx, recommendation)
 		if err != nil {
 			c.Recorder.Event(recommendation, v1.EventTypeNormal, "FailedUpdateStatus", err.Error())
