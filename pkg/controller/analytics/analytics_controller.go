@@ -144,6 +144,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 					Name:       us[i].GetName(),
 					Kind:       rs.Kind,
 					APIVersion: rs.APIVersion,
+					Labels:     us[i].GetLabels(),
 				}
 			}
 		}
@@ -253,6 +254,7 @@ func (ac *Controller) createRecommendation(ctx context.Context, a *analysisv1alp
 			OwnerReferences: []metav1.OwnerReference{
 				*newOwnerRef(a),
 			},
+			Labels: id.Labels,
 		},
 		Spec: analysisv1alph1.RecommendationSpec{
 			TargetRef:          corev1.ObjectReference{Kind: id.Kind, APIVersion: id.APIVersion, Namespace: id.Namespace, Name: id.Name},
@@ -363,4 +365,5 @@ type ObjectIdentity struct {
 	APIVersion string
 	Kind       string
 	Name       string
+	Labels     map[string]string
 }
