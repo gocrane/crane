@@ -68,6 +68,11 @@ func NewManagerCommand(ctx context.Context) *cobra.Command {
 // Run runs the crane-agent with options. This should never exit.
 func Run(ctx context.Context, opts *options.Options) error {
 
+	// use NODE_NAME as the default value of HostnameOverride
+	if os.Getenv("NODE_NAME") != "" {
+		opts.HostnameOverride = os.Getenv("NODE_NAME")
+	}
+
 	if opts.HostnameOverride == "" {
 		log.Logger().Error(nil, "HostnameOverride must be set as the k8s node name")
 		os.Exit(1)
