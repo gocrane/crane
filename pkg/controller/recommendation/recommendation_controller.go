@@ -2,6 +2,7 @@ package recommendation
 
 import (
 	"context"
+	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 
@@ -37,8 +38,8 @@ type Controller struct {
 func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	c.Log.Info("got", "Recommendation", req.NamespacedName)
 
-	recommendation := &analysisv1alph1.Recommendation{}
-	err := c.Client.Get(ctx, req.NamespacedName, recommendation)
+	r := &analysisv1alph1.Recommendation{}
+	err := c.Client.Get(ctx, req.NamespacedName, r)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return ctrl.Result{}, err
@@ -46,28 +47,36 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	if recommendation.DeletionTimestamp != nil {
+	if r.DeletionTimestamp != nil {
 		// todo stop prediction
 		return ctrl.Result{}, nil
 	}
 
-	newStatus := recommendation.Status.DeepCopy()
+	if r.Spec.CompletionStrategy.CompletionStrategyType == analysisv1alph1.CompletionStrategyPeriodical &&
+		r.Spec.CompletionStrategy.PeriodSeconds != nil && r.Status.LastSuccessfulTime != nil {
+		d := time.Second * time.Duration(*r.Spec.CompletionStrategy.PeriodSeconds)
+		if r.Status.LastSuccessfulTime.Add(d).After(time.Now()) {
+			return ctrl.Result{}, nil
+		}
+	}
 
-	recommender, err := recommend.NewRecommender(c.Client, c.RestMapper, c.ScaleClient, recommendation, c.Predictors, c.Log)
+	newStatus := r.Status.DeepCopy()
+
+	recommender, err := recommend.NewRecommender(c.Client, c.RestMapper, c.ScaleClient, r, c.Predictors, c.Log)
 	if err != nil {
-		c.Recorder.Event(recommendation, v1.EventTypeNormal, "FailedCreateRecommender", err.Error())
-		c.Log.Error(err, "Failed to create recommender", "recommendation", klog.KObj(recommendation))
+		c.Recorder.Event(r, v1.EventTypeNormal, "FailedCreateRecommender", err.Error())
+		c.Log.Error(err, "Failed to create recommender", "recommendation", klog.KObj(r))
 		setCondition(newStatus, "Ready", metav1.ConditionFalse, "FailedCreateRecommender", "Failed to create recommender")
-		c.UpdateStatus(ctx, recommendation, newStatus)
+		c.UpdateStatus(ctx, r, newStatus)
 		return ctrl.Result{}, err
 	}
 
 	proposed, err := recommender.Offer()
 	if err != nil {
-		c.Recorder.Event(recommendation, v1.EventTypeNormal, "FailedOfferRecommendation", err.Error())
-		c.Log.Error(err, "Failed to offer recommend", "recommendation", klog.KObj(recommendation))
+		c.Recorder.Event(r, v1.EventTypeNormal, "FailedOfferRecommendation", err.Error())
+		c.Log.Error(err, "Failed to offer recommend", "recommendation", klog.KObj(r))
 		setCondition(newStatus, "Ready", metav1.ConditionFalse, "FailedOfferRecommend", "Failed to offer recommend")
-		c.UpdateStatus(ctx, recommendation, newStatus)
+		c.UpdateStatus(ctx, r, newStatus)
 		return ctrl.Result{}, err
 	}
 
@@ -77,7 +86,17 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	setCondition(newStatus, "Ready", metav1.ConditionTrue, "RecommendationReady", "Recommendation is ready")
-	c.UpdateStatus(ctx, recommendation, newStatus)
+	c.UpdateStatus(ctx, r, newStatus)
+
+	if r.Spec.CompletionStrategy.CompletionStrategyType == analysisv1alph1.CompletionStrategyPeriodical {
+		if r.Spec.CompletionStrategy.PeriodSeconds != nil {
+			d := time.Second * time.Duration(*r.Spec.CompletionStrategy.PeriodSeconds)
+			c.Log.V(5).Info("Will re-sync", "after", d)
+			return ctrl.Result{
+				RequeueAfter: d,
+			}, nil
+		}
+	}
 
 	return ctrl.Result{}, nil
 }
