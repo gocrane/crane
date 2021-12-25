@@ -23,6 +23,7 @@ import (
 
 	"github.com/gocrane/crane/cmd/craned/app/options"
 	"github.com/gocrane/crane/pkg/controller/analytics"
+	"github.com/gocrane/crane/pkg/controller/cnp"
 	"github.com/gocrane/crane/pkg/controller/ehpa"
 	"github.com/gocrane/crane/pkg/controller/noderesource"
 	"github.com/gocrane/crane/pkg/controller/recommendation"
@@ -273,4 +274,15 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 		os.Exit(1)
 	}
 
+	// CnpController
+	if err := (&cnp.ClusterNodePredictionController{
+		Client:     mgr.GetClient(),
+		Logger:     log.Logger().WithName("cnp-controller"),
+		Scheme:     mgr.GetScheme(),
+		RestMapper: mgr.GetRESTMapper(),
+		Recorder:   mgr.GetEventRecorderFor("cnp-controller"),
+	}).SetupWithManager(mgr); err != nil {
+		log.Logger().Error(err, "unable to create controller", "controller", "CnpController")
+		os.Exit(1)
+	}
 }
