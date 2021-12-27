@@ -19,6 +19,7 @@ package noderesource
 import (
 	"context"
 	"fmt"
+	"math"
 	"strconv"
 	"time"
 
@@ -85,7 +86,7 @@ func (r *NodeResourceReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		// TODO fix: strategic merge patch kubernetes
 		if err := r.Client.Status().Update(context.TODO(), nodeCopy); err != nil {
 			r.Recorder.Event(tsp, v1.EventTypeNormal, "FailedUpdateNodeExtendResource", err.Error())
-			r.Log.Error(err, "update Node status extend-resource error: %v", err)
+			r.Log.Error(err, "update Node status extend-resource error: %v", "node", nodeCopy.Name)
 			return ctrl.Result{}, err
 		}
 		r.Recorder.Event(tsp, v1.EventTypeNormal, "UpdateNode", "Update Node Extend Resource Success")
@@ -132,37 +133,45 @@ func (r *NodeResourceReconciler) BuildNodeStatus(tsp *predictionapi.TimeSeriesPr
 			continue
 		}
 		for _, timeSeries := range metrics.Prediction {
-			var maxUsage, nextUsage int64
+			var maxUsage, nextUsage float64
 			var nextUsageFloat float64
 			var err error
 			for _, sample := range timeSeries.Samples {
 				if nextUsageFloat, err = strconv.ParseFloat(sample.Value, 64); err != nil {
-					r.Log.Error(err, "parse extend resource value error, resource value: %s", sample.Value)
+					r.Log.Error(err, "parse extend resource value error", "value", sample.Value)
 					continue
 				}
-				nextUsage = int64(nextUsageFloat)
+				nextUsage = nextUsageFloat
 				if maxUsage < nextUsage {
 					maxUsage = nextUsage
 				}
 			}
-			var nextRecommendation int64
+			var nextRecommendation float64
 			switch *resourceName {
 			case v1.ResourceCPU:
-				nextRecommendation = node.Status.Allocatable.Cpu().Value() - maxUsage
+				// cpu need to be scaled to m as ext resource cannot be decimal
+				nextRecommendation = (float64(node.Status.Allocatable.Cpu().Value()) - maxUsage) * 1000
 			case v1.ResourceMemory:
-				nextRecommendation = node.Status.Allocatable.Memory().Value() - maxUsage
+				// unit of memory in prometheus is in Ki, need to be converted to byte
+				nextRecommendation = float64(node.Status.Allocatable.Memory().Value()) - (maxUsage * 1000)
 			default:
+				continue
+			}
+			if nextRecommendation <= 0 {
+				r.Log.Info("Unexpected recommendation", "nodeName", node.Name, "maxUsage", maxUsage, "nextRecommendation", nextRecommendation)
 				continue
 			}
 			extResourceName := fmt.Sprintf(ExtResourcePrefix, string(*resourceName))
 			resValue, exists := node.Status.Capacity[v1.ResourceName(extResourceName)]
-			if exists && float64(resValue.Value())/float64(nextRecommendation) <= 1+MinDeltaRatio {
+			if exists && resValue.Value() != 0 &&
+				math.Abs(float64(resValue.Value())-
+					nextRecommendation)/float64(resValue.Value()) <= MinDeltaRatio {
 				continue
 			}
 			node.Status.Capacity[v1.ResourceName(extResourceName)] =
-				*resource.NewQuantity(nextRecommendation, resource.DecimalSI)
+				*resource.NewQuantity(int64(nextRecommendation), resource.DecimalSI)
 			node.Status.Allocatable[v1.ResourceName(extResourceName)] =
-				*resource.NewQuantity(nextRecommendation, resource.DecimalSI)
+				*resource.NewQuantity(int64(nextRecommendation), resource.DecimalSI)
 		}
 	}
 }
