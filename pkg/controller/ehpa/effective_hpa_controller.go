@@ -88,7 +88,7 @@ func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 	newStatus.ExpectReplicas = &hpa.Status.DesiredReplicas
 	newStatus.CurrentReplicas = &hpa.Status.CurrentReplicas
 
-	if hpa.Status.LastScaleTime.After(newStatus.LastScaleTime.Time) {
+	if hpa.Status.LastScaleTime != nil && newStatus.LastScaleTime != nil && hpa.Status.LastScaleTime.After(newStatus.LastScaleTime.Time) {
 		newStatus.LastScaleTime = hpa.Status.LastScaleTime
 	}
 
