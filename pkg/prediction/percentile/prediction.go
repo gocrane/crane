@@ -80,13 +80,6 @@ func (p *percentilePrediction) QueryRealtimePredictedValues(queryExpr string) ([
 	estimator := NewPercentileEstimator(cfg.percentile)
 	estimator = WithMargin(cfg.marginFraction, estimator)
 
-	latestTimeSeries, err := p.GetRealtimeProvider().QueryLatestTimeSeries(queryExpr)
-	if err != nil {
-		logger.Error(err, "Failed to query latest time series.")
-		return nil, err
-	}
-	logger.V(5).Info("Percentile query latest time series", "latestTimeSeries", latestTimeSeries)
-
 	now := time.Now().Unix()
 
 	estimatedTimeSeries := make([]*common.TimeSeries, 0)
@@ -109,6 +102,13 @@ func (p *percentilePrediction) QueryRealtimePredictedValues(queryExpr string) ([
 			Samples: []common.Sample{sample},
 		})
 	} else {
+		latestTimeSeries, err := p.GetRealtimeProvider().QueryLatestTimeSeries(queryExpr)
+		if err != nil {
+			logger.Error(err, "Failed to query latest time series.")
+			return nil, err
+		}
+		logger.V(5).Info("Percentile query latest time series", "latestTimeSeries", latestTimeSeries)
+
 		for _, ts := range latestTimeSeries {
 			key := prediction.AggregateSignalKey(queryExpr, ts.Labels)
 			s, exists := p.a.Load(key)
@@ -292,6 +292,7 @@ func (p *percentilePrediction) addSamples(queryExpr string) {
 			sampleTime := time.Unix(sample.Timestamp, 0)
 			a, _ := p.a.Load(key)
 			a.addSample(sampleTime, sample.Value)
+			logger.V(6).Info("Sample added.", "sampleValue", sample.Value, "sampleTime", sampleTime, "queryExpr", queryExpr)
 		}
 	} else {
 		labelsToTimeSeriesMap := map[string]*common.TimeSeries{}
