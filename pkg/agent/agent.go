@@ -53,6 +53,11 @@ type Agent struct {
 
 func NewAgent(ctx context.Context, opts *options.Options) (*Agent, error) {
 	nodeName, _ := os.Hostname()
+
+	if os.Getenv("NODE_NAME") != "" {
+		nodeName = os.Getenv("NODE_NAME")
+	}
+
 	if len(opts.HostnameOverride) != 0 {
 		nodeName = opts.HostnameOverride
 	}
