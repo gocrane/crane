@@ -24,6 +24,7 @@ import (
 	"github.com/gocrane/crane/pkg/ensurance/executor"
 	"github.com/gocrane/crane/pkg/ensurance/logic"
 	"github.com/gocrane/crane/pkg/ensurance/statestore"
+	stypes "github.com/gocrane/crane/pkg/ensurance/statestore/types"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
@@ -152,6 +153,7 @@ func (s *AnalyzerManager) Analyze() {
 	}
 
 	s.status = s.statestore.List()
+	klog.Infof("statestore status %#v", s.status)
 
 	// step 2: do analyze for neps
 	var dcs []ecache.DetectionCondition
@@ -273,6 +275,57 @@ func (s *AnalyzerManager) doMerge(avoidanceMaps map[string]*ensuranceapi.Avoidan
 	}
 
 	//step3 do Throttle merge FilterAndSortThrottlePods
+	var basicThrottleQosPriority = executor.ScheduledQOSPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
+	var throttlePods executor.ThrottlePods
+	for _, dc := range dcsFiltered {
+		if dc.Triggered {
+			action, ok := avoidanceMaps[dc.ActionName]
+			if !ok {
+				klog.Warningf("The action %s not found.", dc.ActionName)
+				continue
+			}
+
+			if action.Spec.Throttle != nil {
+				allPods, err := s.podLister.List(labels.Everything())
+				if err != nil {
+					klog.Errorf("Failed to list all pods: %v", err)
+					continue
+				}
+
+				for _, v := range allPods {
+					var qosPriority = executor.ScheduledQOSPriority{PodQOSClass: v.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(v.Spec.Priority, 0)}
+					if !qosPriority.Greater(basicThrottleQosPriority) {
+						var throttlePod executor.ThrottlePod
+						throttlePod.PodTypes = types.NamespacedName{Namespace: v.Namespace, Name: v.Name}
+						throttlePod.CPUThrottle.CPUDownAction.MinCPURatio = action.Spec.Throttle.CPUThrottle.MinCPURatio
+						throttlePod.CPUThrottle.CPUDownAction.StepCPURatio = action.Spec.Throttle.CPUThrottle.StepCPURatio
+						throttlePod.PodCPUUsage, throttlePod.ContainerCPUUsages = s.getPodUsage(string(stypes.MetricNameContainerCpuTotalUsage), v)
+						throttlePod.PodQOSPriority = qosPriority
+						throttlePods = append(throttlePods, throttlePod)
+					}
+				}
+			}
+		}
+	}
+
+	// combine the replicated pod
+	for _, t := range throttlePods {
+		if i := ae.ThrottleExecutor.ThrottlePods.Find(t.PodTypes); i == -1 {
+			ae.ThrottleExecutor.ThrottlePods = append(ae.ThrottleExecutor.ThrottlePods, t)
+		} else {
+			if t.CPUThrottle.CPUDownAction.MinCPURatio > ae.ThrottleExecutor.ThrottlePods[i].CPUThrottle.CPUUpAction.MinCPURatio {
+				ae.ThrottleExecutor.ThrottlePods[i].CPUThrottle.CPUUpAction.MinCPURatio = t.CPUThrottle.CPUDownAction.MinCPURatio
+			}
+
+			if t.CPUThrottle.CPUDownAction.StepCPURatio > ae.ThrottleExecutor.ThrottlePods[i].CPUThrottle.CPUUpAction.StepCPURatio {
+				ae.ThrottleExecutor.ThrottlePods[i].CPUThrottle.CPUUpAction.StepCPURatio = t.CPUThrottle.CPUDownAction.StepCPURatio
+			}
+		}
+	}
+
+	// sort the throttle executor by pod qos priority
+	sort.Sort(ae.ThrottleExecutor.ThrottlePods)
+
 	//step4 do Evict merge  FilterAndSortEvictPods
 	var basicEvictQosPriority = executor.ScheduledQOSPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
 	var evictPods executor.EvictPods
@@ -390,4 +443,28 @@ func (s *AnalyzerManager) needSendEventForRestore(dc ecache.DetectionCondition) 
 	}
 
 	return false
+}
+
+func (s *AnalyzerManager) getPodUsage(metricName string, pod *v1.Pod) (float64, []executor.ContainerUsage) {
+	var podUsage = 0.0
+	var containerUsages []executor.ContainerUsage
+
+	var podMaps = map[string]string{"PodName": pod.Name, "PodNamespace": pod.Namespace, "PodUid": string(pod.UID)}
+	if v, ok := s.status[metricName]; ok {
+		for _, vv := range v {
+			var labelMaps = common.Labels2Maps(vv.Labels)
+			if utils.ContainMaps(labelMaps, podMaps) {
+				if labelMaps["ContainerId"] == "" {
+					podUsage = vv.Samples[0].Value
+				} else {
+					containerUsages = append(containerUsages, executor.ContainerUsage{ContainerId: labelMaps["ContainerId"],
+						ContainerName: labelMaps["ContainerName"], Value: vv.Samples[0].Value})
+				}
+			}
+		}
+	} else {
+		klog.Errorf("getPodUsage %s is not found in the status", metricName)
+	}
+
+	return podUsage, containerUsages
 }

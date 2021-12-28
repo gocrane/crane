@@ -132,7 +132,7 @@ image-craned: ## Build docker image with the crane manager.
 	docker build --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=craned -t ${MANAGER_IMG} .
 
 .PHONY: image-crane-agent
-image-crane-agent: test ## Build docker image with the crane manager.
+image-crane-agent: ## Build docker image with the crane manager.
 	docker build --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=crane-agent -t ${AGENT_IMG} .
 
 .PHONY: image-metric-adapter
