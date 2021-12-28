@@ -115,7 +115,7 @@ func (c *MetricContext) ResourceToPromQueryExpr(resourceName *corev1.ResourceNam
 	if strings.ToLower(c.TargetKind) == strings.ToLower(TargetKindNode) {
 		switch *resourceName {
 		case corev1.ResourceCPU:
-			return fmt.Sprintf(NodeCpuUsagePromQLFmtStr, c.Name, c.Name, "1m")
+			return fmt.Sprintf(NodeCpuUsagePromQLFmtStr, c.Name, c.Name, "5m")
 		case corev1.ResourceMemory:
 			return fmt.Sprintf(NodeMemUsagePromQLFmtStr, c.Name, c.Name)
 		}
