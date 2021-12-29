@@ -1,0 +1,269 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.5
+  creationTimestamp: null
+  name: podqosensurancepolicies.ensurance.crane.io
+spec:
+  group: ensurance.crane.io
+  names:
+    kind: PodQOSEnsurancePolicy
+    listKind: PodQOSEnsurancePolicyList
+    plural: podqosensurancepolicies
+    singular: podqosensurancepolicy
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      description: PodQOSEnsurancePolicy is the Schema for the podqosensurancepolicies
+        API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: PodQOSEnsurancePolicySpec defines the desired status of PodQOSEnsurancePolicy
+          properties:
+            objectiveEnsurance:
+              description: ObjectiveEnsurances is an array of ObjectiveEnsurance
+              items:
+                description: ObjectiveEnsurance defines the policy that
+                properties:
+                  actionName:
+                    description: Avoidance action when be triggered
+                    type: string
+                  dryRun:
+                    description: Action only dry run,not to do the real action
+                    type: boolean
+                  metricRule:
+                    description: Metric rule define the metric identifier and target
+                    properties:
+                      metric:
+                        description: Metric identifies the target metric by name and
+                          selector
+                        properties:
+                          name:
+                            description: Name is the name of the given metric
+                            type: string
+                          selector:
+                            description: Selector is the selector for the given metric
+                              it is the string-encoded form of a standard kubernetes
+                              label selector
+                            properties:
+                              matchExpressions:
+                                description: matchExpressions is a list of label selector
+                                  requirements. The requirements are ANDed.
+                                items:
+                                  description: A label selector requirement is a selector
+                                    that contains values, a key, and an operator that
+                                    relates the key and values.
+                                  properties:
+                                    key:
+                                      description: key is the label key that the selector
+                                        applies to.
+                                      type: string
+                                    operator:
+                                      description: operator represents a key's relationship
+                                        to a set of values. Valid operators are In,
+                                        NotIn, Exists and DoesNotExist.
+                                      type: string
+                                    values:
+                                      description: values is an array of string values.
+                                        If the operator is In or NotIn, the values
+                                        array must be non-empty. If the operator is
+                                        Exists or DoesNotExist, the values array must
+                                        be empty. This array is replaced during a
+                                        strategic merge patch.
+                                      items:
+                                        type: string
+                                      type: array
+                                  required:
+                                  - key
+                                  - operator
+                                  type: object
+                                type: array
+                              matchLabels:
+                                additionalProperties:
+                                  type: string
+                                description: matchLabels is a map of {key,value} pairs.
+                                  A single {key,value} in the matchLabels map is equivalent
+                                  to an element of matchExpressions, whose key field
+                                  is "key", the operator is "In", and the values array
+                                  contains only "value". The requirements are ANDed.
+                                type: object
+                            type: object
+                        required:
+                        - name
+                        type: object
+                      target:
+                        description: Target specifies the target value for the given
+                          metric
+                        properties:
+                          type:
+                            description: Type represents whether the metric type is
+                              Value and Utilization
+                            type: string
+                          utilization:
+                            description: Utilization is the target value of a percentage
+                              of the resource for pods.
+                            format: int32
+                            type: integer
+                          value:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: Value is the target value of the metric (as
+                              a quantity).
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                        required:
+                        - type
+                        type: object
+                    required:
+                    - metric
+                    - target
+                    type: object
+                  name:
+                    description: Name of the objective ensurance
+                    type: string
+                  reachedThreshold:
+                    description: How many times the rule is reach, to trigger action,
+                      default is 1
+                    format: int32
+                    type: integer
+                  restoredThreshold:
+                    description: How many times the rule can restore, default is 1
+                    format: int32
+                    type: integer
+                required:
+                - actionName
+                type: object
+              type: array
+            qualityProbe:
+              description: QualityProbe defines the way to probe a pod
+              properties:
+                httpGet:
+                  description: HTTPGet specifies the http request to perform.
+                  properties:
+                    host:
+                      description: Host name to connect to, defaults to the pod IP.
+                        You probably want to set "Host" in httpHeaders instead.
+                      type: string
+                    httpHeaders:
+                      description: Custom headers to set in the request. HTTP allows
+                        repeated headers.
+                      items:
+                        description: HTTPHeader describes a custom header to be used
+                          in HTTP probes
+                        properties:
+                          name:
+                            description: The header field name
+                            type: string
+                          value:
+                            description: The header field value
+                            type: string
+                        required:
+                        - name
+                        - value
+                        type: object
+                      type: array
+                    path:
+                      description: Path to access on the HTTP server.
+                      type: string
+                    port:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      description: Name or number of the port to access on the container.
+                        Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.
+                      x-kubernetes-int-or-string: true
+                    scheme:
+                      description: Scheme to use for connecting to the host. Defaults
+                        to HTTP.
+                      type: string
+                  required:
+                  - port
+                  type: object
+                initialDelaySeconds:
+                  description: Init delay time for handler, default is 5s
+                  format: int32
+                  type: integer
+                timeoutSeconds:
+                  description: Timeout for request, default is 0, instead not timeout
+                  format: int32
+                  type: integer
+              type: object
+            selector:
+              description: Selector is a label query over pods that should match the
+                policy
+              properties:
+                matchExpressions:
+                  description: matchExpressions is a list of label selector requirements.
+                    The requirements are ANDed.
+                  items:
+                    description: A label selector requirement is a selector that contains
+                      values, a key, and an operator that relates the key and values.
+                    properties:
+                      key:
+                        description: key is the label key that the selector applies
+                          to.
+                        type: string
+                      operator:
+                        description: operator represents a key's relationship to a
+                          set of values. Valid operators are In, NotIn, Exists and
+                          DoesNotExist.
+                        type: string
+                      values:
+                        description: values is an array of string values. If the operator
+                          is In or NotIn, the values array must be non-empty. If the
+                          operator is Exists or DoesNotExist, the values array must
+                          be empty. This array is replaced during a strategic merge
+                          patch.
+                        items:
+                          type: string
+                        type: array
+                    required:
+                    - key
+                    - operator
+                    type: object
+                  type: array
+                matchLabels:
+                  additionalProperties:
+                    type: string
+                  description: matchLabels is a map of {key,value} pairs. A single
+                    {key,value} in the matchLabels map is equivalent to an element
+                    of matchExpressions, whose key field is "key", the operator is
+                    "In", and the values array contains only "value". The requirements
+                    are ANDed.
+                  type: object
+              type: object
+          type: object
+        status:
+          description: PodQOSEnsurancePolicyStatus defines the observed status of
+            PodQOSEnsurancePolicy
+          type: object
+      required:
+      - spec
+      type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
