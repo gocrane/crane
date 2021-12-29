@@ -29,7 +29,7 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: spec.nodeName
-          image: docker.io/gocrane/crane-agent:0b506ba
+          image: docker.io/gocrane/crane-agent
           imagePullPolicy: Always
           command:
             - /crane-agent
