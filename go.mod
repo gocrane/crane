@@ -6,7 +6,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/go-echarts/go-echarts/v2 v2.2.4
 	github.com/go-logr/logr v0.4.0
-	github.com/gocrane/api v0.0.0-20211216114839-839801a939cb
+	github.com/gocrane/api v0.0.0-20211229121516-050eaba7d04d
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/mjibson/go-dsp v0.0.0-20180508042940-11479a337f12
 	github.com/prometheus/client_golang v1.11.0

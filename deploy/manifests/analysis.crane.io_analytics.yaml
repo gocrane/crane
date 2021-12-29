@@ -13,6 +13,8 @@ spec:
     kind: Analytics
     listKind: AnalyticsList
     plural: analytics
+    shortNames:
+    - analytics
     singular: analytics
   scope: Namespaced
   versions:

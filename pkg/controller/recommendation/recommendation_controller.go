@@ -56,6 +56,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		r.Spec.CompletionStrategy.PeriodSeconds != nil && r.Status.LastSuccessfulTime != nil {
 		d := time.Second * time.Duration(*r.Spec.CompletionStrategy.PeriodSeconds)
 		if r.Status.LastSuccessfulTime.Add(d).After(time.Now()) {
+			c.Log.V(5).Info("Retry recommendation", "after", d, "Recommendation", req.NamespacedName)
 			return ctrl.Result{}, nil
 		}
 	}
@@ -87,17 +88,6 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	setCondition(newStatus, "Ready", metav1.ConditionTrue, "RecommendationReady", "Recommendation is ready")
 	c.UpdateStatus(ctx, r, newStatus)
-
-	if r.Spec.CompletionStrategy.CompletionStrategyType == analysisv1alph1.CompletionStrategyPeriodical {
-		if r.Spec.CompletionStrategy.PeriodSeconds != nil {
-			d := time.Second * time.Duration(*r.Spec.CompletionStrategy.PeriodSeconds)
-			c.Log.V(5).Info("Will re-sync", "after", d)
-			return ctrl.Result{
-				RequeueAfter: d,
-			}, nil
-		}
-	}
-
 	return ctrl.Result{}, nil
 }
 
@@ -110,7 +100,7 @@ func (c *Controller) UpdateStatus(ctx context.Context, recommendation *analysisv
 
 		var ready = false
 		for _, cond := range newStatus.Conditions {
-			if cond.Reason == "RecommendationReady" && (newStatus.ResourceRequest != nil || newStatus.EffectiveHPA != nil) {
+			if cond.Reason == "RecommendationReady" && cond.Status == metav1.ConditionTrue {
 				ready = true
 				break
 			}
