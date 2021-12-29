@@ -1,0 +1,104 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.7.0
+  creationTimestamp: null
+  name: avoidanceactions.ensurance.crane.io
+spec:
+  group: ensurance.crane.io
+  names:
+    kind: AvoidanceAction
+    listKind: AvoidanceActionList
+    plural: avoidanceactions
+    singular: avoidanceaction
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: AvoidanceAction defines Avoidance action
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              Throttle:
+                description: Action to Throttle resource
+                properties:
+                  cpuThrottle:
+                    properties:
+                      intervalSeconds:
+                        description: how long it waits for each compress step default
+                          is 10s
+                        format: int32
+                        type: integer
+                      minCPURatio:
+                        description: 'the min of cpu ratio for low level pods example:
+                          the pod limit is 4096, ratio is 10, the min is 409'
+                        format: int64
+                        type: integer
+                      stepCPURatio:
+                        description: the step of cpu share and limit for once down-size
+                          (1-100)
+                        format: int64
+                        type: integer
+                    type: object
+                  memoryThrottle:
+                    properties:
+                      forceGC:
+                        description: to force gc the page cache of low level pods
+                        type: boolean
+                      intervalSeconds:
+                        description: how long it waits for each compress step default
+                          is 10s
+                        format: int32
+                        type: integer
+                    type: object
+                type: object
+              coolDownSeconds:
+                description: how long it should wait between triggered scheduling
+                  default is 300s
+                format: int64
+                type: integer
+              description:
+                description: Description is an arbitrary string that usually provides
+                  guidelines on when this action should be used.
+                type: string
+              eviction:
+                description: Action to evict low level pods
+                properties:
+                  deletionGracePeriodSeconds:
+                    description: duration in seconds the pod needs to terminate gracefully.
+                      May be decreased in delete request. Value must be non-negative
+                      integer. The value zero indicates delete immediately.
+                    format: int32
+                    type: integer
+                type: object
+            type: object
+          status:
+            description: AvoidanceActionStatus defines the desired status of AvoidanceAction
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
