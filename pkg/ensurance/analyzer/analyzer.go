@@ -39,12 +39,14 @@ type AnalyzerManager struct {
 	nodeSynced cache.InformerSynced
 
 	nodeQOSLister ensurancelisters.NodeQOSEnsurancePolicyLister
-	nodeOOSSynced cache.InformerSynced
+	nodeQOSSynced cache.InformerSynced
 
-	avoidanceInformer cache.SharedIndexInformer
-	statestore        statestore.StateStore
-	recorder          record.EventRecorder
-	noticeCh          chan<- executor.AvoidanceExecutor
+	avoidanceActionLister ensurancelisters.AvoidanceActionLister
+	avoidanceActionSynced cache.InformerSynced
+
+	statestore statestore.StateStore
+	recorder   record.EventRecorder
+	noticeCh   chan<- executor.AvoidanceExecutor
 
 	logic             logic.Logic
 	status            map[string][]common.TimeSeries
@@ -62,20 +64,22 @@ func NewAnalyzerManager(nodeName string, podInformer coreinformers.PodInformer, 
 	basicLogic := logic.NewBasicLogic()
 
 	return &AnalyzerManager{
-		nodeName:          nodeName,
-		logic:             basicLogic,
-		noticeCh:          noticeCh,
-		recorder:          record,
-		podLister:         podInformer.Lister(),
-		podSynced:         podInformer.Informer().HasSynced,
-		nodeLister:        nodeInformer.Lister(),
-		nodeSynced:        nodeInformer.Informer().HasSynced,
-		nodeQOSLister:     craneInformerFactory.Ensurance().V1alpha1().NodeQOSEnsurancePolicies().Lister(),
-		nodeOOSSynced:     craneInformerFactory.Ensurance().V1alpha1().NodeQOSEnsurancePolicies().Informer().HasSynced,
-		statestore:        statestore,
-		reached:           make(map[string]uint64),
-		restored:          make(map[string]uint64),
-		actionEventStatus: make(map[string]ecache.DetectionStatus),
+		nodeName:              nodeName,
+		logic:                 basicLogic,
+		noticeCh:              noticeCh,
+		recorder:              record,
+		podLister:             podInformer.Lister(),
+		podSynced:             podInformer.Informer().HasSynced,
+		nodeLister:            nodeInformer.Lister(),
+		nodeSynced:            nodeInformer.Informer().HasSynced,
+		nodeQOSLister:         craneInformerFactory.Ensurance().V1alpha1().NodeQOSEnsurancePolicies().Lister(),
+		nodeQOSSynced:         craneInformerFactory.Ensurance().V1alpha1().NodeQOSEnsurancePolicies().Informer().HasSynced,
+		avoidanceActionLister: craneInformerFactory.Ensurance().V1alpha1().AvoidanceActions().Lister(),
+		avoidanceActionSynced: craneInformerFactory.Ensurance().V1alpha1().AvoidanceActions().Informer().HasSynced,
+		statestore:            statestore,
+		reached:               make(map[string]uint64),
+		restored:              make(map[string]uint64),
+		actionEventStatus:     make(map[string]ecache.DetectionStatus),
 	}
 }
 
@@ -91,7 +95,8 @@ func (s *AnalyzerManager) Run(stop <-chan struct{}) {
 		stop,
 		s.podSynced,
 		s.nodeSynced,
-		s.nodeOOSSynced,
+		s.nodeQOSSynced,
+		s.avoidanceActionSynced,
 	) {
 		return
 	}
@@ -138,10 +143,14 @@ func (s *AnalyzerManager) Analyze() {
 	}
 
 	var avoidanceMaps = make(map[string]*ensuranceapi.AvoidanceAction)
-	allAvoidance := s.avoidanceInformer.GetStore().List()
+	allAvoidance, err := s.avoidanceActionLister.List(labels.Everything())
+	if err != nil {
+		klog.Errorf("Failed to list AvoidanceActions: %v", err)
+		return
+	}
+
 	for _, n := range allAvoidance {
-		avoidance := n.(*ensuranceapi.AvoidanceAction)
-		avoidanceMaps[avoidance.Name] = avoidance
+		avoidanceMaps[n.Name] = n
 	}
 
 	s.status = s.statestore.List()

@@ -15,9 +15,10 @@ spec:
     reachedThreshold: 2
     restoredThreshold: 2
     actionName: "evict"
+    dryRun: true
     metricRule:
       metric:
         name: "cpu_total_usage"
       target:
         type: "Value"
-        value: 12000
+        value: 6000
