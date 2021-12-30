@@ -36,7 +36,7 @@ type EffectiveHPAController struct {
 }
 
 func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	c.Log.Info("got", "ehpa", req.NamespacedName)
+	klog.V(4).Infof("Got ehpa %s", req.NamespacedName)
 
 	ehpa := &autoscalingapi.EffectiveHorizontalPodAutoscaler{}
 	err := c.Client.Get(ctx, req.NamespacedName, ehpa)
@@ -51,7 +51,7 @@ func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 	scale, mapping, err := utils.GetScale(ctx, c.RestMapper, c.ScaleClient, ehpa.Namespace, ehpa.Spec.ScaleTargetRef)
 	if err != nil {
 		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedGetScale", err.Error())
-		c.Log.Error(err, "Failed to get scale", "ehpa", klog.KObj(ehpa))
+		klog.Errorf("Failed to get scale, ehpa %s", klog.KObj(ehpa))
 		setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedGetScale", "Failed to get scale")
 		c.UpdateStatus(ctx, ehpa, newStatus)
 		return ctrl.Result{}, err
@@ -119,7 +119,7 @@ func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 
 func (c *EffectiveHPAController) UpdateStatus(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, newStatus *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus) {
 	if !equality.Semantic.DeepEqual(&ehpa.Status, newStatus) {
-		c.Log.V(4).Info("EffectiveHorizontalPodAutoscaler status should be updated", "currentStatus", &ehpa.Status, "newStatus", newStatus)
+		klog.V(4).Info("EffectiveHorizontalPodAutoscaler status should be updated", "currentStatus", &ehpa.Status, "newStatus", newStatus)
 
 		ehpa.Status = *newStatus
 		err := c.Status().Update(ctx, ehpa)
