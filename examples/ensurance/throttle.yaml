@@ -1,0 +1,13 @@
+apiVersion: ensurance.crane.io/v1alpha1
+kind: AvoidanceAction
+metadata:
+  name: throttle
+  labels:
+    app: system
+spec:
+  coolDownSeconds: 300
+  Throttle:
+    cpuThrottle:
+      minCPURatio: 10
+      stepCPURatio: 10
+  description: "throttle the pod"

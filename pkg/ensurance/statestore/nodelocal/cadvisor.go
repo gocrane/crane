@@ -9,6 +9,7 @@ import (
 	"github.com/gocrane/crane/pkg/common"
 	cmemory "github.com/google/cadvisor/cache/memory"
 	cadvisorcontainer "github.com/google/cadvisor/container"
+	info "github.com/google/cadvisor/info/v1"
 	cadvisorapiv2 "github.com/google/cadvisor/info/v2"
 	cmanager "github.com/google/cadvisor/manager"
 	csysfs "github.com/google/cadvisor/utils/sysfs"
@@ -60,7 +61,7 @@ func NewCadvisorManager(podLister corelisters.PodLister) (*CadvisorCollector, er
 	var sysfs = csysfs.NewRealSysFs()
 	var maxHousekeepingConfig = cmanager.HouskeepingConfig{Interval: &maxHousekeepingInterval, AllowDynamic: &allowDynamic}
 
-	m, err := cmanager.New(memCache, sysfs, maxHousekeepingConfig, includedMetrics, http.DefaultClient, []string{"/kubepods"}, "")
+	m, err := cmanager.New(memCache, sysfs, maxHousekeepingConfig, includedMetrics, http.DefaultClient, []string{""}, "")
 	if err != nil {
 		return nil, fmt.Errorf("cadvisor manager start err: %s", err.Error())
 	}
@@ -137,10 +138,17 @@ func (c *CadvisorCollector) collect() (map[string][]common.TimeSeries, error) {
 
 	var cpuUsageTimeSeries []common.TimeSeries
 	var schedRunQueueTimeSeries []common.TimeSeries
+	var cpuLimitTimeSeries []common.TimeSeries
+	var cpuQuotaTimeSeries []common.TimeSeries
+	var cpuPeriodTimeSeries []common.TimeSeries
 
 	for _, pod := range allPods {
 		var ref = GetCgroupRefFromPod(pod)
 		var now = time.Now()
+
+		if pod.Name != "middle" {
+			continue
+		}
 
 		containerInfo, err := c.Manager.GetContainerInfoV2(ref.GetCgroupPath(), cadvisorapiv2.RequestOptions{
 			IdType:    cadvisorapiv2.TypeName,
@@ -157,11 +165,23 @@ func (c *CadvisorCollector) collect() (map[string][]common.TimeSeries, error) {
 			var containerId = GetContainerIdFromKey(key)
 			var containerName = GetContainerNameFromPod(pod, containerId)
 			var refCopy = ref
+
 			refCopy.ContainerId = containerId
 			refCopy.ContainerName = containerName
 
+			// In the GetContainerInfoV2 not collect the cpu quota and period
+			// We used GetContainerInfo instead
+			// issue https://github.com/google/cadvisor/issues/3040
+			var query = info.ContainerInfoRequest{NumStats: 60}
+			containerInfoV1, err := c.Manager.GetContainerInfo(key, &query)
+			if err != nil {
+				klog.Errorf("ContainerInfoRequest failed: %v", err)
+				continue
+			}
+
 			if state, ok := c.cgroupState[key]; ok {
-				var label = GetLabelFromRef(&ref)
+				var label = GetLabelFromRef(&refCopy)
+
 				cpuUsageIncrease := v.Stats[0].Cpu.Usage.Total - state.stat.Stats[0].Cpu.Usage.Total
 				schedRunqueueTimeIncrease := v.Stats[0].Cpu.Schedstat.RunqueueTime - state.stat.Stats[0].Cpu.Schedstat.RunqueueTime
 				timeIncrease := v.Stats[0].Timestamp.UnixNano() - state.stat.Stats[0].Timestamp.UnixNano()
@@ -170,6 +190,11 @@ func (c *CadvisorCollector) collect() (map[string][]common.TimeSeries, error) {
 
 				cpuUsageTimeSeries = append(cpuUsageTimeSeries, common.TimeSeries{Labels: label, Samples: []common.Sample{{Value: cpuUsage, Timestamp: now.Unix()}}})
 				schedRunQueueTimeSeries = append(schedRunQueueTimeSeries, common.TimeSeries{Labels: label, Samples: []common.Sample{{Value: schedRunqueueTime, Timestamp: now.Unix()}}})
+				cpuLimitTimeSeries = append(cpuLimitTimeSeries, common.TimeSeries{Labels: label, Samples: []common.Sample{{Value: float64(state.stat.Spec.Cpu.Limit), Timestamp: now.Unix()}}})
+				cpuQuotaTimeSeries = append(cpuQuotaTimeSeries, common.TimeSeries{Labels: label, Samples: []common.Sample{{Value: float64(containerInfoV1.Spec.Cpu.Quota), Timestamp: now.Unix()}}})
+				cpuPeriodTimeSeries = append(cpuPeriodTimeSeries, common.TimeSeries{Labels: label, Samples: []common.Sample{{Value: float64(containerInfoV1.Spec.Cpu.Period), Timestamp: now.Unix()}}})
+
+				klog.Infof("key1 %s, schedRunqueueTime %v", key, schedRunqueueTime)
 			}
 
 			cgroupState[key] = CgroupState{stat: v, timestamp: now}
@@ -181,6 +206,9 @@ func (c *CadvisorCollector) collect() (map[string][]common.TimeSeries, error) {
 	var storeMaps = make(map[string][]common.TimeSeries, 0)
 	storeMaps[string(types.MetricNameContainerCpuTotalUsage)] = cpuUsageTimeSeries
 	storeMaps[string(types.MetricNameContainerSchedRunQueueTime)] = schedRunQueueTimeSeries
+	storeMaps[string(types.MetricNameContainerCpuLimit)] = cpuLimitTimeSeries
+	storeMaps[string(types.MetricNameContainerCpuQuota)] = cpuQuotaTimeSeries
+	storeMaps[string(types.MetricNameContainerCpuPeriod)] = cpuPeriodTimeSeries
 
 	return storeMaps, nil
 }

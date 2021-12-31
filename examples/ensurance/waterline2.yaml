@@ -5,20 +5,20 @@ metadata:
   labels:
     app: "system"
 spec:
-  nodeQualityProbe: 
+  nodeQualityProbe:
     initialDelaySeconds: 10
     timeoutSeconds: 10
     nodeLocalGet:
       localCacheTTLSeconds: 60
   objectiveEnsurances:
-  - name: "cpu_usage"
-    reachedThreshold: 2
-    restoredThreshold: 2
-    actionName: "evict"
-    dryRun: true
-    metricRule:
-      metric:
-        name: "cpu_total_usage"
-      target:
-        type: "Value"
-        value: 6000
+    - name: "cpu_usage"
+      reachedThreshold: 2
+      restoredThreshold: 2
+      actionName: "throttle"
+      dryRun: false
+      metricRule:
+        metric:
+          name: "cpu_total_usage"
+        target:
+          type: "Value"
+          value: 6000

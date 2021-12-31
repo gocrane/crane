@@ -35,6 +35,15 @@ spec:
             - /crane-agent
             - -v=4
           name: crane-agent
+          volumeMounts:
+            - mountPath: /sys
+              name: sys
+              readOnly: true
       restartPolicy: Always
       priorityClassName: system-node-critical
       serviceAccount: crane-agent
+      volumes:
+        - hostPath:
+            path: /sys
+            type: ""
+          name: sys

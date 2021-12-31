@@ -293,13 +293,23 @@ func (s *AnalyzerManager) doMerge(avoidanceMaps map[string]*ensuranceapi.Avoidan
 				}
 
 				for _, v := range allPods {
+					if v.Name != "low" {
+						continue
+					}
+
 					var qosPriority = executor.ScheduledQOSPriority{PodQOSClass: v.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(v.Spec.Priority, 0)}
 					if !qosPriority.Greater(basicThrottleQosPriority) {
 						var throttlePod executor.ThrottlePod
 						throttlePod.PodTypes = types.NamespacedName{Namespace: v.Namespace, Name: v.Name}
-						throttlePod.CPUThrottle.CPUDownAction.MinCPURatio = action.Spec.Throttle.CPUThrottle.MinCPURatio
-						throttlePod.CPUThrottle.CPUDownAction.StepCPURatio = action.Spec.Throttle.CPUThrottle.StepCPURatio
+						throttlePod.CPUThrottle.MinCPURatio = action.Spec.Throttle.CPUThrottle.MinCPURatio
+						throttlePod.CPUThrottle.StepCPURatio = action.Spec.Throttle.CPUThrottle.StepCPURatio
+
 						throttlePod.PodCPUUsage, throttlePod.ContainerCPUUsages = s.getPodUsage(string(stypes.MetricNameContainerCpuTotalUsage), v)
+						klog.Infof("PodCPUUsage : %+v, ContainerCPUUsages: %+v", throttlePod.PodCPUUsage, throttlePod.ContainerCPUUsages)
+
+						throttlePod.PodCPUShare, throttlePod.ContainerCPUShares = s.getPodUsage(string(stypes.MetricNameContainerCpuLimit), v)
+						throttlePod.PodCPUQuota, throttlePod.ContainerCPUQuotas = s.getPodUsage(string(stypes.MetricNameContainerCpuQuota), v)
+						throttlePod.PodCPUPeriod, throttlePod.ContainerCPUPeriods = s.getPodUsage(string(stypes.MetricNameContainerCpuPeriod), v)
 						throttlePod.PodQOSPriority = qosPriority
 						throttlePods = append(throttlePods, throttlePod)
 					}
@@ -310,21 +320,79 @@ func (s *AnalyzerManager) doMerge(avoidanceMaps map[string]*ensuranceapi.Avoidan
 
 	// combine the replicated pod
 	for _, t := range throttlePods {
-		if i := ae.ThrottleExecutor.ThrottlePods.Find(t.PodTypes); i == -1 {
-			ae.ThrottleExecutor.ThrottlePods = append(ae.ThrottleExecutor.ThrottlePods, t)
+		if i := ae.ThrottleExecutor.ThrottleDownPods.Find(t.PodTypes); i == -1 {
+			ae.ThrottleExecutor.ThrottleDownPods = append(ae.ThrottleExecutor.ThrottleDownPods, t)
 		} else {
-			if t.CPUThrottle.CPUDownAction.MinCPURatio > ae.ThrottleExecutor.ThrottlePods[i].CPUThrottle.CPUUpAction.MinCPURatio {
-				ae.ThrottleExecutor.ThrottlePods[i].CPUThrottle.CPUUpAction.MinCPURatio = t.CPUThrottle.CPUDownAction.MinCPURatio
+			if t.CPUThrottle.MinCPURatio > ae.ThrottleExecutor.ThrottleDownPods[i].CPUThrottle.MinCPURatio {
+				ae.ThrottleExecutor.ThrottleDownPods[i].CPUThrottle.MinCPURatio = t.CPUThrottle.MinCPURatio
 			}
 
-			if t.CPUThrottle.CPUDownAction.StepCPURatio > ae.ThrottleExecutor.ThrottlePods[i].CPUThrottle.CPUUpAction.StepCPURatio {
-				ae.ThrottleExecutor.ThrottlePods[i].CPUThrottle.CPUUpAction.StepCPURatio = t.CPUThrottle.CPUDownAction.StepCPURatio
+			if t.CPUThrottle.StepCPURatio > ae.ThrottleExecutor.ThrottleDownPods[i].CPUThrottle.StepCPURatio {
+				ae.ThrottleExecutor.ThrottleDownPods[i].CPUThrottle.StepCPURatio = t.CPUThrottle.StepCPURatio
 			}
 		}
 	}
 
 	// sort the throttle executor by pod qos priority
-	sort.Sort(ae.ThrottleExecutor.ThrottlePods)
+	sort.Sort(ae.ThrottleExecutor.ThrottleDownPods)
+
+	klog.Infof("ae.ThrottleExecutor.ThrottleDownPods: %+v", ae.ThrottleExecutor.ThrottleDownPods)
+
+	if restoreScheduled {
+		var throttleUpPods executor.ThrottlePods
+
+		for _, dc := range dcsFiltered {
+			if dc.Restored {
+				action, ok := avoidanceMaps[dc.ActionName]
+				if !ok {
+					log.Logger().V(4).Info("Waring: doMerge for detection the action ", dc.ActionName, " not found")
+					continue
+				}
+
+				if action.Spec.Throttle != nil {
+					allPods, err := s.podLister.List(labels.Everything())
+					if err != nil {
+						klog.Errorf("Failed to list all pods: %v", err)
+						continue
+					}
+
+					for _, v := range allPods {
+						var qosPriority = executor.ScheduledQOSPriority{PodQOSClass: v.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(v.Spec.Priority, 0)}
+						if !qosPriority.Greater(basicThrottleQosPriority) {
+							var throttlePod executor.ThrottlePod
+							throttlePod.PodTypes = types.NamespacedName{Namespace: v.Namespace, Name: v.Name}
+							throttlePod.CPUThrottle.MinCPURatio = action.Spec.Throttle.CPUThrottle.MinCPURatio
+							throttlePod.CPUThrottle.StepCPURatio = action.Spec.Throttle.CPUThrottle.StepCPURatio
+							throttlePod.PodCPUUsage, throttlePod.ContainerCPUUsages = s.getPodUsage(string(stypes.MetricNameContainerCpuTotalUsage), v)
+							throttlePod.PodCPUShare, throttlePod.ContainerCPUShares = s.getPodUsage(string(stypes.MetricNameContainerCpuLimit), v)
+							throttlePod.PodCPUQuota, throttlePod.ContainerCPUQuotas = s.getPodUsage(string(stypes.MetricNameContainerCpuQuota), v)
+							throttlePod.PodCPUPeriod, throttlePod.ContainerCPUPeriods = s.getPodUsage(string(stypes.MetricNameContainerCpuPeriod), v)
+							throttlePod.PodQOSPriority = qosPriority
+							throttleUpPods = append(throttleUpPods, throttlePod)
+						}
+					}
+				}
+			}
+		}
+
+		// combine the replicated pod
+		for _, t := range throttleUpPods {
+			if i := ae.ThrottleExecutor.ThrottleUpPods.Find(t.PodTypes); i == -1 {
+				ae.ThrottleExecutor.ThrottleUpPods = append(ae.ThrottleExecutor.ThrottleDownPods, t)
+			} else {
+				if t.CPUThrottle.MinCPURatio > ae.ThrottleExecutor.ThrottleUpPods[i].CPUThrottle.MinCPURatio {
+					ae.ThrottleExecutor.ThrottleUpPods[i].CPUThrottle.MinCPURatio = t.CPUThrottle.MinCPURatio
+				}
+
+				if t.CPUThrottle.StepCPURatio > ae.ThrottleExecutor.ThrottleUpPods[i].CPUThrottle.StepCPURatio {
+					ae.ThrottleExecutor.ThrottleUpPods[i].CPUThrottle.StepCPURatio = t.CPUThrottle.StepCPURatio
+				}
+			}
+		}
+
+		// sort the throttle executor by pod qos priority()
+		sort.Sort(sort.Reverse(ae.ThrottleExecutor.ThrottleDownPods))
+	}
 
 	//step4 do Evict merge  FilterAndSortEvictPods
 	var basicEvictQosPriority = executor.ScheduledQOSPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}

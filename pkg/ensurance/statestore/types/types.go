@@ -14,6 +14,9 @@ const (
 	MetricNameCpuTotalUsage              MetricName = "cpu_total_usage"
 	MetricNameCpuTotalUtilization        MetricName = "cpu_total_utilization"
 	MetricNameContainerCpuTotalUsage     MetricName = "container_cpu_total_usage"
+	MetricNameContainerCpuLimit          MetricName = "container_cpu_limit"
+	MetricNameContainerCpuQuota          MetricName = "container_cpu_quota"
+	MetricNameContainerCpuPeriod         MetricName = "container_cpu_period"
 	MetricNameContainerSchedRunQueueTime MetricName = "container_sched_run_queue_time"
 )
 
