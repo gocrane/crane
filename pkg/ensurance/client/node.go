@@ -112,7 +112,7 @@ func UpdateNodeStatus(client clientset.Interface, updateNode *v1.Node, retry *ui
 	return fmt.Errorf("update node status failed, conflict too more times")
 }
 
-// updateNode be used to update node  by communication with api-server
+// UpdateNode be used to update node  by communication with api-server
 func UpdateNode(client clientset.Interface, updateNode *v1.Node, retry *uint64) error {
 	for i := uint64(0); i < utils.GetUint64withDefault(retry, defaultRetryTimes); i++ {
 		_, err := client.CoreV1().Nodes().Update(context.Background(), updateNode, metav1.UpdateOptions{})

@@ -12,6 +12,7 @@ import (
 	"github.com/gocrane/crane/pkg/log"
 )
 
+// copied from kubernetes-sigs/cri-tools/cmd/crictl/container.go
 type UpdateOptions struct {
 	// (Windows only) Number of CPUs available to the container.
 	CPUCount int64
@@ -33,6 +34,7 @@ type UpdateOptions struct {
 	CpusetMems string
 }
 
+// copied from kubernetes-sigs/cri-tools/cmd/crictl/container.go
 type ListOptions struct {
 	// id of container or sandbox
 	id string
@@ -61,6 +63,7 @@ func (a containerByCreated) Less(i, j int) bool {
 }
 
 // UpdateContainerResources sends an UpdateContainerResourcesRequest to the server, and parses the returned UpdateContainerResourcesResponse.
+// copied from kubernetes-sigs/cri-tools/cmd/crictl/container.go
 func UpdateContainerResources(client pb.RuntimeServiceClient, containerId string, opts UpdateOptions) error {
 	if containerId == "" {
 		return fmt.Errorf("containerId cannot be empty")
@@ -91,6 +94,7 @@ func UpdateContainerResources(client pb.RuntimeServiceClient, containerId string
 
 // RemoveContainer sends a RemoveContainerRequest to the server, and parses
 // the returned RemoveContainerResponse.
+// copied from kubernetes-sigs/cri-tools/cmd/crictl/container.go
 func RemoveContainer(client pb.RuntimeServiceClient, ContainerId string) error {
 	if ContainerId == "" {
 		return fmt.Errorf("ID cannot be empty")
@@ -112,6 +116,7 @@ func RemoveContainer(client pb.RuntimeServiceClient, ContainerId string) error {
 }
 
 // ListContainers sends a ListContainerRequest to the server, and parses the returned ListContainerResponse.
+// copied from kubernetes-sigs/cri-tools/cmd/crictl/container.go
 func ListContainers(runtimeClient pb.RuntimeServiceClient, opts ListOptions) ([]*pb.Container, error) {
 	filter := &pb.ContainerFilter{}
 	if opts.id != "" {
