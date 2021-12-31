@@ -8,7 +8,6 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/gocrane/crane/pkg/ensurance/executor"
-	"github.com/gocrane/crane/pkg/log"
 )
 
 type AvoidanceManager struct {
@@ -46,7 +45,7 @@ func (a *AvoidanceManager) Run(stop <-chan struct{}) {
 	klog.Infof("Starting avoid manager.")
 
 	// Wait for the caches to be synced before starting workers
-	if !cache.WaitForNamedCacheSync("avoid-manager",
+	if !cache.WaitForNamedCacheSync("avoidance-manager",
 		stop,
 		a.podSynced,
 		a.nodeSynced,
@@ -60,11 +59,11 @@ func (a *AvoidanceManager) Run(stop <-chan struct{}) {
 			case as := <-a.noticeCh:
 				if err := a.doAction(as, stop); err != nil {
 					// TODO: if it failed in action, how to retry
-					log.Logger().Error(err, "doAction failed")
+					klog.Errorf("Failed to doAction: %v", err)
 				}
 			case <-stop:
 				{
-					log.Logger().V(2).Info("Avoidance exit")
+					klog.Infof("Avoidance exit")
 					return
 				}
 			}

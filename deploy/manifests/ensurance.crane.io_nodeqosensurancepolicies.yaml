@@ -38,56 +38,11 @@ spec:
             description: NodeQOSEnsurancePolicySpec defines the desired status of
               NodeQOSEnsurancePolicy
             properties:
-              labelSelector:
-                description: select nodes use labels
-                properties:
-                  matchExpressions:
-                    description: matchExpressions is a list of label selector requirements.
-                      The requirements are ANDed.
-                    items:
-                      description: A label selector requirement is a selector that
-                        contains values, a key, and an operator that relates the key
-                        and values.
-                      properties:
-                        key:
-                          description: key is the label key that the selector applies
-                            to.
-                          type: string
-                        operator:
-                          description: operator represents a key's relationship to
-                            a set of values. Valid operators are In, NotIn, Exists
-                            and DoesNotExist.
-                          type: string
-                        values:
-                          description: values is an array of string values. If the
-                            operator is In or NotIn, the values array must be non-empty.
-                            If the operator is Exists or DoesNotExist, the values
-                            array must be empty. This array is replaced during a strategic
-                            merge patch.
-                          items:
-                            type: string
-                          type: array
-                      required:
-                      - key
-                      - operator
-                      type: object
-                    type: array
-                  matchLabels:
-                    additionalProperties:
-                      type: string
-                    description: matchLabels is a map of {key,value} pairs. A single
-                      {key,value} in the matchLabels map is equivalent to an element
-                      of matchExpressions, whose key field is "key", the operator
-                      is "In", and the values array contains only "value". The requirements
-                      are ANDed.
-                    type: object
-                type: object
               nodeQualityProbe:
-                description: node quality probe
+                description: NodeQualityProbe defines the way to probe a node
                 properties:
                   httpGet:
-                    description: currently supported CPU usage, CPU load, Memory Usage,
-                      DiskIO
+                    description: HTTPGet specifies the http request to perform.
                     properties:
                       host:
                         description: Host name to connect to, defaults to the pod
@@ -115,10 +70,13 @@ spec:
                         description: Path to access on the HTTP server.
                         type: string
                       port:
+                        anyOf:
+                        - type: integer
+                        - type: string
                         description: Name or number of the port to access on the container.
                           Number must be in the range 1 to 65535. Name must be an
                           IANA_SVC_NAME.
-                        type: integer
+                        x-kubernetes-int-or-string: true
                       scheme:
                         description: Scheme to use for connecting to the host. Defaults
                           to HTTP.
@@ -127,14 +85,15 @@ spec:
                     - port
                     type: object
                   initialDelaySeconds:
-                    description: Init delay time for handler, default is 5s
+                    description: InitialDelaySeconds is the init delay time for handler,
+                      the default InitialDelaySeconds is 5s
                     format: int32
                     type: integer
                   nodeLocalGet:
-                    description: Get node metric from local
+                    description: NodeLocalGet specifies how to request node local
                     properties:
                       localCacheTTLSeconds:
-                        description: default is 60s
+                        description: the default LocalCacheTTLSeconds is 60s
                         format: int32
                         type: integer
                       maxHousekeepingIntervalSeconds:
@@ -143,15 +102,15 @@ spec:
                         type: integer
                     type: object
                   timeoutSeconds:
-                    description: Timeout for request, default is 0, instead not timeout
+                    description: TimeoutSeconds is the timeout for request The default
+                      value is 1 seconds
                     format: int32
                     type: integer
                 type: object
               objectiveEnsurances:
-                description: node objective ensurance check and action
+                description: ObjectiveEnsurances is an array of ObjectiveEnsurance
                 items:
-                  description: ObjectiveEnsurance defines the rule if anomaly reached
-                    and if the rule reached, do what action
+                  description: ObjectiveEnsurance defines the policy that
                   properties:
                     actionName:
                       description: Avoidance action when be triggered
@@ -265,6 +224,51 @@ spec:
                   - actionName
                   type: object
                 type: array
+              selector:
+                description: Selector is a label query over pods that should match
+                  the policy
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: A label selector requirement is a selector that
+                        contains values, a key, and an operator that relates the key
+                        and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: operator represents a key's relationship to
+                            a set of values. Valid operators are In, NotIn, Exists
+                            and DoesNotExist.
+                          type: string
+                        values:
+                          description: values is an array of string values. If the
+                            operator is In or NotIn, the values array must be non-empty.
+                            If the operator is Exists or DoesNotExist, the values
+                            array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: matchLabels is a map of {key,value} pairs. A single
+                      {key,value} in the matchLabels map is equivalent to an element
+                      of matchExpressions, whose key field is "key", the operator
+                      is "In", and the values array contains only "value". The requirements
+                      are ANDed.
+                    type: object
+                type: object
             type: object
           status:
             description: NodeQOSEnsurancePolicyStatus defines the observed status

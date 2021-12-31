@@ -2,10 +2,10 @@ package executor
 
 import (
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/klog/v2"
 
 	client "github.com/gocrane/crane/pkg/ensurance/client"
 	"github.com/gocrane/crane/pkg/known"
-	"github.com/gocrane/crane/pkg/log"
 )
 
 const (
@@ -23,7 +23,7 @@ type ScheduledQOSPriority struct {
 }
 
 func (b *ScheduledExecutor) Avoid(ctx *ExecuteContext) error {
-	log.Logger().V(4).Info("Avoid", "DisableScheduledExecutor", *b)
+	klog.V(10).Info("DisableScheduledExecutor avoid, %v", *b)
 
 	if b.DisableScheduledQOSPriority == nil {
 		return nil
@@ -52,7 +52,7 @@ func (b *ScheduledExecutor) Avoid(ctx *ExecuteContext) error {
 }
 
 func (b *ScheduledExecutor) Restore(ctx *ExecuteContext) error {
-	log.Logger().V(4).Info("Restore", "DisableScheduledExecutor", *b)
+	klog.V(10).Info("DisableScheduledExecutor restore, %v", *b)
 
 	if b.RestoreScheduledQOSPriority == nil {
 		return nil
@@ -72,12 +72,9 @@ func (b *ScheduledExecutor) Restore(ctx *ExecuteContext) error {
 
 	// update node taint for restored scheduled
 	if updateNode, needUpdate := client.RemoveNodeTaints(node, v1.Taint{Key: known.EnsuranceAnalyzedPressureTaintKey, Effect: v1.TaintEffectPreferNoSchedule}); needUpdate {
-		log.Logger().V(4).Info("RemoveNodeTaints update true")
 		if err := client.UpdateNode(ctx.Client, updateNode, nil); err != nil {
 			return err
 		}
-	} else {
-		log.Logger().V(4).Info("RemoveNodeTaints update false")
 	}
 
 	return nil

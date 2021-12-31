@@ -1,12 +1,12 @@
 package nodelocal
 
 import (
-	"fmt"
 	"strings"
+
+	"k8s.io/klog/v2"
 
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/ensurance/statestore/types"
-	"github.com/gocrane/crane/pkg/log"
 )
 
 type newCollectorFunc func() (nodeLocalCollector, error)
@@ -16,8 +16,7 @@ var nodeLocalFunc = make(map[string]newCollectorFunc, 10)
 
 func registerMetrics(collectorName string, metricsNames []types.MetricName, newCollector newCollectorFunc) {
 	if _, ok := nodeLocalMetric[collectorName]; ok {
-		log.Logger().V(2).Info(
-			fmt.Sprintf("Warning: node local metrics collectorName %s is registered, not to register again", collectorName))
+		klog.Infof("Warning: node local metrics collectorName %s is registered, not to register again", collectorName)
 		return
 	}
 
@@ -31,7 +30,7 @@ type NodeLocal struct {
 }
 
 func NewNodeLocal() *NodeLocal {
-	log.Logger().V(1).Info("NewNodeLocal")
+	klog.V(2).Infof("NewNodeLocal")
 
 	n := NodeLocal{
 		Name: types.NodeLocalCollectorType,
@@ -43,7 +42,7 @@ func NewNodeLocal() *NodeLocal {
 		if c, err := f(); err == nil {
 			n.nlcs = append(n.nlcs, c)
 		} else {
-			log.Logger().Error(err, "NewNodeLocal init failed")
+			klog.Errorf("Failed to now node local collector: %v", err)
 		}
 	}
 
@@ -55,7 +54,7 @@ func (n *NodeLocal) GetType() types.CollectType {
 }
 
 func (n *NodeLocal) Collect() (map[string][]common.TimeSeries, error) {
-	log.Logger().V(5).Info("Node local collecting")
+	klog.V(6).Infof("Node local collecting")
 
 	var status = make(map[string][]common.TimeSeries)
 	for _, c := range n.nlcs {
@@ -65,12 +64,12 @@ func (n *NodeLocal) Collect() (map[string][]common.TimeSeries, error) {
 			}
 		} else {
 			if !strings.Contains(err.Error(), "collect_init") {
-				log.Logger().Error(err, fmt.Sprintf("NodeLocal collect %s", c.name()))
+				klog.Errorf("Failed to collect node local metrics: %v", c.name(), err)
 			}
 		}
 	}
 
-	log.Logger().V(5).Info("Node local collecting", "status", status)
+	klog.V(10).Info("Node local collecting, status: %v", status)
 
 	return status, nil
 }

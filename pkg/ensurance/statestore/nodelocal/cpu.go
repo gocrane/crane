@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/shirou/gopsutil/cpu"
+	"k8s.io/klog/v2"
 
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/ensurance/statestore/types"
-	"github.com/gocrane/crane/pkg/log"
 )
 
 const (
@@ -42,7 +42,7 @@ func NewCPUCollector() (nodeLocalCollector, error) {
 		cpuCoreNumbers = uint64(len(cpuInfos))
 	}
 
-	log.Logger().V(2).Info("NewCPUCollector", "cpuCoreNumbers", cpuCoreNumbers)
+	klog.V(2).Infof("NewCPUCollector, cpuCoreNumbers: %v", cpuCoreNumbers)
 
 	var data = make(map[string][]common.TimeSeries)
 
@@ -71,8 +71,9 @@ func (c *CpuCollector) collect() (map[string][]common.TimeSeries, error) {
 	}
 
 	usagePercent := calculateBusy(c.cpuState.stat, nowCpuState.stat)
-	log.Logger().V(4).Info("CpuCollector collect", "usagePercent", usagePercent)
 	usageCore := usagePercent * float64(c.cpuCoreNumbers) * 1000 / 100
+
+	klog.V(6).Infof("CpuCollector collected,usagePercent %v, usageCore %v", usagePercent, usageCore)
 
 	c.cpuState = nowCpuState
 
