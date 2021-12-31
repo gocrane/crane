@@ -5,10 +5,9 @@ import (
 	"strings"
 	"sync"
 
-	"k8s.io/apimachinery/pkg/types"
-
-	client "github.com/gocrane/crane/pkg/ensurance/client"
 	"github.com/gocrane/crane/pkg/log"
+	"github.com/gocrane/crane/pkg/utils"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -65,7 +64,7 @@ func (e *EvictExecutor) Avoid(ctx *ExecuteContext) error {
 			}
 
 			log.Logger().V(4).Info(fmt.Sprintf("Pod %s", log.GenerateObj(pod)))
-			err = client.EvictPodWithGracePeriod(ctx.Client, pod, evictPod.DeletionGracePeriodSeconds)
+			err = utils.EvictPodWithGracePeriod(ctx.Client, pod, evictPod.DeletionGracePeriodSeconds)
 			if err != nil {
 				bSucceed = false
 				errPodKeys = append(errPodKeys, "evict failed ", evictPod.PodTypes.String())

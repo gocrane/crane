@@ -1,3 +1,6 @@
+// This file is copied from
+// k8s.io/kubernetes/pkg/kubelet/util/util_unix.go
+
 //go:build freebsd || linux || darwin
 // +build freebsd linux darwin
 
