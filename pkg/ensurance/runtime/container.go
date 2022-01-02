@@ -1,15 +1,14 @@
 package runtime
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"sort"
 	"strings"
 
-	"golang.org/x/net/context"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
-
-	"github.com/gocrane/crane/pkg/log"
+	"k8s.io/klog/v2"
 )
 
 // copied from kubernetes-sigs/cri-tools/cmd/crictl/container.go
@@ -81,14 +80,14 @@ func UpdateContainerResources(client pb.RuntimeServiceClient, containerId string
 		},
 	}
 
-	log.Logger().V(5).Info("UpdateContainerResourcesRequest: %v", request)
+	klog.V(6).Infof("UpdateContainerResourcesRequest: %v", request)
+
 	r, err := client.UpdateContainerResources(context.Background(), request)
 	if err != nil {
 		return err
 	}
 
-	log.Logger().V(5).Info("UpdateContainerResourcesResponse: %v", r)
-
+	klog.V(10).Infof("UpdateContainerResourcesResponse: %v", r)
 	return nil
 }
 
@@ -104,14 +103,14 @@ func RemoveContainer(client pb.RuntimeServiceClient, ContainerId string) error {
 		ContainerId: ContainerId,
 	}
 
-	log.Logger().V(5).Info("RemoveContainerRequest: %v", request)
+	klog.V(6).Infof("RemoveContainerRequest: %v", request)
 
 	r, err := client.RemoveContainer(context.Background(), request)
 	if err != nil {
 		return err
 	}
 
-	log.Logger().V(5).Info("RemoveContainerResponse: %v", r)
+	klog.V(10).Infof("RemoveContainerResponse: %v", r)
 	return nil
 }
 
@@ -149,7 +148,7 @@ func ListContainers(runtimeClient pb.RuntimeServiceClient, opts ListOptions) ([]
 			st.State = pb.ContainerState_CONTAINER_UNKNOWN
 			filter.State = st
 		default:
-			log.Logger().Error(fmt.Errorf("state should be one of created, running, exited or unknown"), "")
+			klog.Errorf("state should be one of created, running, exited or unknown")
 			return []*pb.Container{}, fmt.Errorf("state should be one of created, running, exited or unknown")
 		}
 	}
@@ -167,14 +166,14 @@ func ListContainers(runtimeClient pb.RuntimeServiceClient, opts ListOptions) ([]
 		Filter: filter,
 	}
 
-	log.Logger().V(5).Info("ListContainerRequest: %v", request)
+	klog.V(6).Info("ListContainerRequest: %v", request)
 
 	r, err := runtimeClient.ListContainers(context.Background(), request)
 	if err != nil {
 		return []*pb.Container{}, err
 	}
 
-	log.Logger().V(5).Info("ListContainerResponse: %v", r)
+	klog.V(10).Info("ListContainerResponse: %v", r)
 
 	r.Containers = filterContainersList(r.GetContainers(), opts)
 

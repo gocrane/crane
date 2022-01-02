@@ -66,19 +66,19 @@ func NewAgent(ctx context.Context, opts *options.Options) (*Agent, error) {
 
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		klog.Error(err, "Failed to get InClusterConfig.")
+		klog.Errorf("Failed to get InClusterConfig, %v.", err)
 		return nil, err
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		klog.Error(err, "Failed to new kubernetes client.")
+		klog.Errorf("Failed to new kubernetes client, %v.", err)
 		return nil, err
 	}
 
 	craneClient, err := craneclientset.NewForConfig(config)
 	if err != nil {
-		klog.Error(err, "Failed to new crane client.")
+		klog.Errorf("Failed to new crane client, %v.", err)
 		return nil, err
 	}
 

@@ -20,7 +20,6 @@ import (
 	craneinformerfactory "github.com/gocrane/api/pkg/generated/informers/externalversions"
 	craneinformers "github.com/gocrane/api/pkg/generated/informers/externalversions/ensurance/v1alpha1"
 	ensurancelisters "github.com/gocrane/api/pkg/generated/listers/ensurance/v1alpha1"
-
 	"github.com/gocrane/crane/pkg/common"
 )
 
@@ -63,7 +62,7 @@ func NewController(
 		recorder:      recorder,
 	}
 
-	klog.Info("Setting up event handlers")
+	klog.Infof("Setting up event handlers")
 	// Set up an event handler for when NodeQOS resources change
 	nodeQOSInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: controller.enqueueNodeQOS,
@@ -81,7 +80,7 @@ func NewController(
 				return
 			}
 
-			klog.V(4).Infof("updating NodeQOSEnsurance %q", klog.KObj(oldQOS))
+			klog.V(6).Infof("Updating NodeQOSEnsurance %q", klog.KObj(oldQOS))
 			controller.enqueueNodeQOS(new)
 		},
 		DeleteFunc: controller.handleObject,
@@ -99,23 +98,23 @@ func (c *Controller) Run(workers int, stopCh <-chan struct{}) {
 	defer c.workqueue.ShutDown()
 
 	// Start the informer factories to begin populating the informer caches
-	klog.Info("Starting NodeQOS controller")
+	klog.Infof("Starting NodeQOS controller")
 
 	// Wait for the caches to be synced before starting workers
-	klog.Info("Waiting for informer caches to sync")
+	klog.Infof("Waiting for informer caches to sync")
 	if ok := cache.WaitForCacheSync(stopCh, c.nodeOOSSynced); !ok {
 		return
 	}
 
-	klog.Info("Starting workers")
+	klog.Infof("Starting workers")
 	// Launch two workers to process NodeQOS resources
 	for i := 0; i < workers; i++ {
 		go wait.Until(c.runWorker, time.Second, stopCh)
 	}
 
-	klog.Info("Started workers")
+	klog.Infof("Started workers")
 	<-stopCh
-	klog.Info("Shutting down workers")
+	klog.Infof("Shutting down workers")
 }
 
 // runWorker is a long-running function that will continually call the
@@ -223,7 +222,7 @@ func (c *Controller) enqueueNodeQOS(obj interface{}) {
 
 	nodeQOS := obj.(*ensuranceapi.NodeQOSEnsurancePolicy)
 
-	klog.V(4).Infof("adding NodeQOSEnsurance %q", klog.KObj(nodeQOS))
+	klog.V(4).Infof("Adding NodeQOSEnsurance %q", klog.KObj(nodeQOS))
 	c.workqueue.Add(key)
 }
 

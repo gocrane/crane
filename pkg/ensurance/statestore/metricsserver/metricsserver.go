@@ -3,7 +3,7 @@ package metricsserver
 import (
 	"sync"
 
-	"github.com/gocrane/crane/pkg/log"
+	"k8s.io/klog/v2"
 )
 
 type MetricsServer struct {
@@ -24,6 +24,6 @@ func (m *MetricsServer) GetName() string {
 }
 
 func (m *MetricsServer) Collect() {
-	log.Logger().V(4).Info("Metrics server collecting")
+	klog.V(4).Infof("Metrics server collecting")
 	return
 }

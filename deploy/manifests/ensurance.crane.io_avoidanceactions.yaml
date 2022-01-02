@@ -36,41 +36,43 @@ spec:
           spec:
             properties:
               Throttle:
-                description: Action to Throttle resource
+                description: Throttle describes the throttling action
                 properties:
                   cpuThrottle:
                     properties:
-                      intervalSeconds:
-                        description: how long it waits for each compress step default
-                          is 10s
-                        format: int32
-                        type: integer
                       minCPURatio:
-                        description: 'the min of cpu ratio for low level pods example:
-                          the pod limit is 4096, ratio is 10, the min is 409'
+                        description: 'MinCPURatio is the min of cpu ratio for low
+                          level pods example: the pod limit is 4096, ratio is 10,
+                          the min is 409'
                         format: int64
                         type: integer
+                      periodSeconds:
+                        description: PeriodSeconds is the interval seconds for each
+                          throttle action the default PeriodSeconds is 10s
+                        format: int32
+                        type: integer
                       stepCPURatio:
-                        description: the step of cpu share and limit for once down-size
-                          (1-100)
+                        description: StepCPURatio is the step of cpu share and limit
+                          for once down-size (1-100)
                         format: int64
                         type: integer
                     type: object
                   memoryThrottle:
                     properties:
                       forceGC:
-                        description: to force gc the page cache of low level pods
+                        description: ForceGC means force gc page cache for pods with
+                          low priority
                         type: boolean
-                      intervalSeconds:
-                        description: how long it waits for each compress step default
-                          is 10s
+                      periodSeconds:
+                        description: PeriodSeconds is the interval seconds for each
+                          throttle action the default PeriodSeconds is 10s
                         format: int32
                         type: integer
                     type: object
                 type: object
               coolDownSeconds:
-                description: how long it should wait between triggered scheduling
-                  default is 300s
+                description: CoolDownSeconds is the seconds for cool down when do
+                  avoidance default is 300s
                 format: int64
                 type: integer
               description:
@@ -78,12 +80,13 @@ spec:
                   guidelines on when this action should be used.
                 type: string
               eviction:
-                description: Action to evict low level pods
+                description: Eviction describes the eviction action
                 properties:
-                  deletionGracePeriodSeconds:
-                    description: duration in seconds the pod needs to terminate gracefully.
-                      May be decreased in delete request. Value must be non-negative
-                      integer. The value zero indicates delete immediately.
+                  terminationGracePeriodSeconds:
+                    description: TerminationGracePeriodSeconds is the duration in
+                      seconds the pod needs to terminate gracefully. May be decreased
+                      in delete request. Value must be non-negative integer. The value
+                      zero indicates delete immediately.
                     format: int32
                     type: integer
                 type: object
