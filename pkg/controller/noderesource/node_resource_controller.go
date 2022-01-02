@@ -23,11 +23,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -44,7 +44,6 @@ const (
 // NodeResourceReconciler reconciles a NodeResource object
 type NodeResourceReconciler struct {
 	client.Client
-	Log      logr.Logger
 	Recorder record.EventRecorder
 }
 
@@ -53,14 +52,14 @@ type NodeResourceReconciler struct {
 //+kubebuilder:rbac:groups=node-resource.crane.io,resources=noderesources/finalizers,verbs=update
 
 func (r *NodeResourceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	r.Log.Info("node resource reconcile", "node-resource", req.NamespacedName, req.Name)
+	klog.V(4).Infof("Node resource reconcile: %s/%s", req.NamespacedName, req.Name)
 
 	tsp := &predictionapi.TimeSeriesPrediction{}
 	// get TimeSeriesPrediction result
 	err := r.Client.Get(ctx, req.NamespacedName, tsp)
 	if err != nil {
 		r.Recorder.Event(tsp, v1.EventTypeNormal, "FailedGetTimeSeriesPrediction", err.Error())
-		r.Log.Error(err, "get TimeSeriesPrediction error", "TimeSeriesPrediction", req.NamespacedName, req.Name)
+		klog.Errorf("Failed to get timeSeriesPrediction(%s/%s), %v", req.NamespacedName, req.Name, err)
 		return ctrl.Result{}, err
 	}
 
@@ -86,7 +85,7 @@ func (r *NodeResourceReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		// TODO fix: strategic merge patch kubernetes
 		if err := r.Client.Status().Update(context.TODO(), nodeCopy); err != nil {
 			r.Recorder.Event(tsp, v1.EventTypeNormal, "FailedUpdateNodeExtendResource", err.Error())
-			r.Log.Error(err, "update Node status extend-resource error: %v", "node", nodeCopy.Name)
+			klog.Errorf("Failed to update node %s's status extend-resource, %v", nodeCopy.Name, err)
 			return ctrl.Result{}, err
 		}
 		r.Recorder.Event(tsp, v1.EventTypeNormal, "UpdateNode", "Update Node Extend Resource Success")
@@ -101,7 +100,7 @@ func (r *NodeResourceReconciler) FindTargetNode(ctx context.Context, tsp *predic
 	}
 	nodeList := &v1.NodeList{}
 	if err := r.Client.List(ctx, nodeList); err != nil {
-		r.Log.Error(err, "list node error")
+		klog.Errorf("Failed to list node: %v", err)
 		return nil, err, true
 	}
 	// the reason we use node ip instead of node name as the target name is
@@ -109,7 +108,6 @@ func (r *NodeResourceReconciler) FindTargetNode(ctx context.Context, tsp *predic
 	for _, n := range nodeList.Items {
 		for _, addr := range n.Status.Addresses {
 			if addr.Address == address {
-				r.Log.Info("Found target node", "nodeName", n.Name)
 				return &n, nil, false
 			}
 		}
@@ -138,7 +136,7 @@ func (r *NodeResourceReconciler) BuildNodeStatus(tsp *predictionapi.TimeSeriesPr
 			var err error
 			for _, sample := range timeSeries.Samples {
 				if nextUsageFloat, err = strconv.ParseFloat(sample.Value, 64); err != nil {
-					r.Log.Error(err, "parse extend resource value error", "value", sample.Value)
+					klog.Errorf("Failed to parse extend resource value %v: %v", sample.Value, err)
 					continue
 				}
 				nextUsage = nextUsageFloat
@@ -158,7 +156,7 @@ func (r *NodeResourceReconciler) BuildNodeStatus(tsp *predictionapi.TimeSeriesPr
 				continue
 			}
 			if nextRecommendation <= 0 {
-				r.Log.Info("Unexpected recommendation", "nodeName", node.Name, "maxUsage", maxUsage, "nextRecommendation", nextRecommendation)
+				klog.V(4).Infof("Unexpected recommendation,nodeName %s, maxUsage %v, nextRecommendation %v", node.Name, maxUsage, nextRecommendation)
 				continue
 			}
 			extResourceName := fmt.Sprintf(ExtResourcePrefix, string(*resourceName))

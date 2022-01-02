@@ -267,7 +267,6 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 	// NodeResourceController
 	if err := (&noderesource.NodeResourceReconciler{
 		Client:   mgr.GetClient(),
-		Log:      log.Logger().WithName("node-resource-controller"),
 		Recorder: mgr.GetEventRecorderFor("node-resource-controller"),
 	}).SetupWithManager(mgr); err != nil {
 		log.Logger().Error(err, "unable to create controller", "controller", "NodeResourceController")
@@ -277,7 +276,6 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 	// CnpController
 	if err := (&cnp.ClusterNodePredictionController{
 		Client:     mgr.GetClient(),
-		Logger:     log.Logger().WithName("cnp-controller"),
 		Scheme:     mgr.GetScheme(),
 		RestMapper: mgr.GetRESTMapper(),
 		Recorder:   mgr.GetEventRecorderFor("cnp-controller"),
