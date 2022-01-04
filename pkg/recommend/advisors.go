@@ -42,26 +42,39 @@ func (a *ResourceRequestAdvisor) Init() error {
 		if err := p.WithQuery(expr); err != nil {
 			return err
 		}
-		mc.WithConfig(makeCpuConfig(expr))
+		mc.WithConfig(makeCpuConfig(expr, a.ConfigProperties))
 
 		expr = fmt.Sprintf(memQueryExprTemplate, c.Name, namespace, podNamePrefix)
 		a.V(5).Info("Memory query:", "expr", expr)
 		if err := p.WithQuery(expr); err != nil {
 			return err
 		}
-		mc.WithConfig(makeMemConfig(expr))
+		mc.WithConfig(makeMemConfig(expr, a.ConfigProperties))
 	}
 
 	return nil
 }
 
-func makeCpuConfig(expr string) *config.Config {
+func makeCpuConfig(expr string, props map[string]string) *config.Config {
+	sampleInterval, exists := props["cpu-sample-interval"]
+	if !exists {
+		sampleInterval = "1m"
+	}
+	percentile, exists := props["cpu-request-percentile"]
+	if !exists {
+		percentile = "0.99"
+	}
+	marginFraction, exists := props["cpu-request-margin-fraction"]
+	if !exists {
+		marginFraction = "0.15"
+	}
+
 	return &config.Config{
 		Expression: &predictionapi.ExpressionQuery{Expression: expr},
 		Percentile: &predictionapi.Percentile{
-			SampleInterval: "1m",
-			MarginFraction: "0.15",
-			Percentile:     "0.99",
+			SampleInterval: sampleInterval,
+			MarginFraction: marginFraction,
+			Percentile:     percentile,
 			Histogram: predictionapi.HistogramConfig{
 				HalfLife:   "24h",
 				BucketSize: "0.1",
@@ -71,13 +84,26 @@ func makeCpuConfig(expr string) *config.Config {
 	}
 }
 
-func makeMemConfig(expr string) *config.Config {
+func makeMemConfig(expr string, props map[string]string) *config.Config {
+	sampleInterval, exists := props["mem-sample-interval"]
+	if !exists {
+		sampleInterval = "1m"
+	}
+	percentile, exists := props["mem-request-percentile"]
+	if !exists {
+		percentile = "0.99"
+	}
+	marginFraction, exists := props["mem-request-margin-fraction"]
+	if !exists {
+		marginFraction = "0.15"
+	}
+
 	return &config.Config{
 		Expression: &predictionapi.ExpressionQuery{Expression: expr},
 		Percentile: &predictionapi.Percentile{
-			SampleInterval: "1m",
-			MarginFraction: "0.15",
-			Percentile:     "0.99",
+			SampleInterval: sampleInterval,
+			MarginFraction: marginFraction,
+			Percentile:     percentile,
 			Histogram: predictionapi.HistogramConfig{
 				HalfLife:   "48h",
 				BucketSize: "104857600",

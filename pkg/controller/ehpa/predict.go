@@ -91,7 +91,7 @@ func (c *EffectiveHPAController) UpdatePredictionIfNeed(ctx context.Context, ehp
 		err := c.Update(ctx, predictionExist)
 		if err != nil {
 			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedUpdatePrediction", err.Error())
-			klog.Errorf( "Failed to update TimeSeriesPrediction %s", klog.KObj(predictionExist))
+			klog.Errorf("Failed to update TimeSeriesPrediction %s", klog.KObj(predictionExist))
 			return nil, err
 		}
 

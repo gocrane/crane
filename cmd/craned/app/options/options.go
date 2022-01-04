@@ -33,6 +33,10 @@ type Options struct {
 
 	// WebhookConfig
 	WebhookConfig webhooks.WebhookConfig
+
+	// RecommendationConfigFile is the configuration file for resource/HPA recommendations.
+	// If unspecified, a default is provided.
+	RecommendationConfigFile string
 }
 
 // NewOptions builds an empty options.
@@ -79,4 +83,6 @@ func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.DurationVar(&o.AlgorithmModelConfig.UpdateInterval, "model-update-interval", 12*time.Hour, "algorithm model update interval, now used for dsp model update interval")
 
 	flags.BoolVar(&o.WebhookConfig.Enabled, "webhook-enabled", true, "whether enable webhook or not, default to true")
+
+	flags.StringVar(&o.RecommendationConfigFile, "recommendation-config-file", "", "recommendation configuration file")
 }

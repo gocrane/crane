@@ -141,6 +141,8 @@ spec:
                       type: string
                     percentile:
                       properties:
+                        aggregated:
+                          type: boolean
                         histogram:
                           properties:
                             bucketSize:
@@ -156,6 +158,8 @@ spec:
                             maxValue:
                               type: string
                           type: object
+                        historyLength:
+                          type: string
                         marginFraction:
                           type: string
                         minSampleWeight:

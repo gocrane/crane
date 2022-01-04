@@ -106,7 +106,7 @@ func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 			return ctrl.Result{}, err
 		}
 
-		klog.Infof("Manual scale target to specific replicas, ehpa %s replicas %d",  klog.KObj(ehpa), ehpa.Spec.SpecificReplicas)
+		klog.Infof("Manual scale target to specific replicas, ehpa %s replicas %d", klog.KObj(ehpa), ehpa.Spec.SpecificReplicas)
 		now := metav1.Now()
 		newStatus.LastScaleTime = &now
 		newStatus.CurrentReplicas = &updatedScale.Status.Replicas

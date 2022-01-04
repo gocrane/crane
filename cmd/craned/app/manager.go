@@ -7,6 +7,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/gocrane/crane/pkg/recommend"
+	"k8s.io/klog/v2"
+
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -15,7 +18,6 @@ import (
 	"k8s.io/client-go/dynamic"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/scale"
-	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
@@ -245,9 +247,15 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 		klog.Exit(err, "unable to create controller", "controller", "AnalyticsController")
 	}
 
+	configSet, err := recommend.LoadConfigSetFromFile(opts.RecommendationConfigFile)
+	if err != nil {
+		klog.Errorf("Failed to load recommendation config file: %v", err)
+		os.Exit(1)
+	}
 	if err := (&recommendation.Controller{
 		Client:      mgr.GetClient(),
 		Log:         log.Logger().WithName("recommendation-controller"),
+		ConfigSet:   configSet,
 		Scheme:      mgr.GetScheme(),
 		RestMapper:  mgr.GetRESTMapper(),
 		Recorder:    mgr.GetEventRecorderFor("recommendation-controller"),
