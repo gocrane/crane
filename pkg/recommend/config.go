@@ -50,11 +50,12 @@ func GetProperties(configSet *analysisv1alpha1.ConfigSet, dst analysisv1alpha1.T
 		for i, src := range config.Targets {
 			matchLevel := targetsMatchLevel(src, dst)
 			if matchLevel > maxMatchLevel {
+				maxMatchLevel = matchLevel
 				selectedProps = configSet.Configs[i].Properties
 			}
 		}
 	}
-	bytes, _ := json.Marshal(configSet)
+	bytes, _ := json.Marshal(dst)
 	klog.Infof("Got properties %v for target %s", selectedProps, string(bytes))
 	return selectedProps
 }
