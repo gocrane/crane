@@ -5,7 +5,7 @@ metadata:
   labels:
     app: system
 spec:
-  schedulingCoolDown: 300
+  coolDownSeconds: 300
   eviction:
     deletionGracePeriodSeconds: 30
   description: "evict the pod"

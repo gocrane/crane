@@ -8,15 +8,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/gocrane/crane/cmd/craned/app"
-	"github.com/gocrane/crane/pkg/log"
 )
 
 // craned main.
 func main() {
 	logs.InitLogs()
 	defer logs.FlushLogs()
-
-	log.Init("craned")
 
 	ctx := signals.SetupSignalHandler()
 

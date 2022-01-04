@@ -29,7 +29,7 @@ func (c *EffectiveHPAController) ReconcileSubstitute(ctx context.Context, ehpa *
 			return c.CreateSubstitute(ctx, ehpa, scale)
 		} else {
 			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedGetSubstitute", err.Error())
-			c.Log.Error(err, "Failed to get Substitute", "ehpa", klog.KObj(ehpa))
+			klog.Errorf("Failed to get Substitute, ehpa %s error %v", klog.KObj(ehpa), err)
 			return nil, err
 		}
 	} else if len(subsList.Items) == 0 {
@@ -43,18 +43,18 @@ func (c *EffectiveHPAController) CreateSubstitute(ctx context.Context, ehpa *aut
 	substitute, err := c.NewSubstituteObject(ehpa, scale)
 	if err != nil {
 		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreateSubstituteObject", err.Error())
-		c.Log.Error(err, "Failed to create object", "Substitute", substitute)
+		klog.Errorf("Failed to create object, Substitute %s error %v", klog.KObj(substitute), err)
 		return nil, err
 	}
 
 	err = c.Client.Create(ctx, substitute)
 	if err != nil {
 		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreateSubstitute", err.Error())
-		c.Log.Error(err, "Failed to create", "Substitute", substitute)
+		klog.Errorf("Failed to create Substitute %s error %v", klog.KObj(substitute), err)
 		return nil, err
 	}
 
-	c.Log.Info("Create Substitute successfully", "Substitute", substitute)
+	klog.Infof("Create Substitute successfully, Substitute %s", klog.KObj(substitute))
 	c.Recorder.Event(ehpa, v1.EventTypeNormal, "SubstituteCreated", "Create Substitute successfully")
 
 	return substitute, nil
@@ -89,17 +89,17 @@ func (c *EffectiveHPAController) NewSubstituteObject(ehpa *autoscalingapi.Effect
 
 func (c *EffectiveHPAController) UpdateSubstituteIfNeed(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, substituteExist *autoscalingapi.Substitute, scale *autoscalingapiv1.Scale) (*autoscalingapi.Substitute, error) {
 	if !equality.Semantic.DeepEqual(&substituteExist.Spec.SubstituteTargetRef, &ehpa.Spec.ScaleTargetRef) {
-		c.Log.V(4).Info("Substitute is unsynced according to EffectiveHorizontalPodAutoscaler, should be updated", "currentTarget", substituteExist.Spec.SubstituteTargetRef, "expectTarget", ehpa.Spec.ScaleTargetRef)
+		klog.V(4).Infof("Substitute is unsynced according to EffectiveHorizontalPodAutoscaler, should be updated, currentTarget %v expectTarget %v", substituteExist.Spec.SubstituteTargetRef, ehpa.Spec.ScaleTargetRef)
 
 		substituteExist.Spec.SubstituteTargetRef = ehpa.Spec.ScaleTargetRef
 		err := c.Update(ctx, substituteExist)
 		if err != nil {
 			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedUpdateSubstitute", err.Error())
-			c.Log.Error(err, "Failed to update", "Substitute", substituteExist)
+			klog.Errorf("Failed to update Substitute %s, error %v", klog.KObj(substituteExist), err)
 			return nil, err
 		}
 
-		c.Log.Info("Update Substitute successful", "Substitute", klog.KObj(substituteExist))
+		klog.Infof("Update Substitute successful, Substitute %s", klog.KObj(substituteExist))
 	}
 
 	return substituteExist, nil

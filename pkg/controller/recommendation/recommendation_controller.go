@@ -57,6 +57,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		r.Spec.CompletionStrategy.PeriodSeconds != nil && r.Status.LastSuccessfulTime != nil {
 		d := time.Second * time.Duration(*r.Spec.CompletionStrategy.PeriodSeconds)
 		if r.Status.LastSuccessfulTime.Add(d).After(time.Now()) {
+			c.Log.V(5).Info("Retry recommendation", "after", d, "Recommendation", req.NamespacedName)
 			return ctrl.Result{}, nil
 		}
 	}
@@ -64,6 +65,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	newStatus := r.Status.DeepCopy()
 
 	recommender, err := recommend.NewRecommender(c.Client, c.RestMapper, c.ScaleClient, r, c.Predictors, c.Log, c.ConfigSet)
+
 	if err != nil {
 		c.Recorder.Event(r, v1.EventTypeNormal, "FailedCreateRecommender", err.Error())
 		c.Log.Error(err, "Failed to create recommender", "recommendation", klog.KObj(r))
@@ -111,7 +113,7 @@ func (c *Controller) UpdateStatus(ctx context.Context, recommendation *analysisv
 
 		var ready = false
 		for _, cond := range newStatus.Conditions {
-			if cond.Reason == "RecommendationReady" && (newStatus.ResourceRequest != nil || newStatus.EffectiveHPA != nil) {
+			if cond.Reason == "RecommendationReady" && cond.Status == metav1.ConditionTrue {
 				ready = true
 				break
 			}

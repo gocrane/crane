@@ -1,0 +1,9 @@
+apiVersion: ensurance.crane.io/v1alpha1
+kind: AvoidanceAction
+metadata:
+  labels:
+    app: system
+  name: disablescheduled
+spec:
+  description: disable scheduled
+  coolDownSeconds: 300

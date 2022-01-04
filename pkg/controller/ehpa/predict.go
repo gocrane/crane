@@ -30,7 +30,7 @@ func (c *EffectiveHPAController) ReconcilePredication(ctx context.Context, ehpa 
 			return c.CreatePrediction(ctx, ehpa)
 		} else {
 			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedGetPrediction", err.Error())
-			c.Log.Error(err, "Failed to get TimeSeriesPrediction", "ehpa", klog.KObj(ehpa))
+			klog.Errorf("Failed to get TimeSeriesPrediction, ehpa %s error %v", klog.KObj(ehpa), err)
 			return nil, err
 		}
 	} else if len(predictionList.Items) == 0 {
@@ -59,18 +59,18 @@ func (c *EffectiveHPAController) CreatePrediction(ctx context.Context, ehpa *aut
 	prediction, err := c.NewPredictionObject(ehpa)
 	if err != nil {
 		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreatePredictionObject", err.Error())
-		c.Log.Error(err, "Failed to create object", "TimeSeriesPrediction", prediction)
+		klog.Errorf("Failed to create object, TimeSeriesPrediction %s error %v", klog.KObj(prediction), err)
 		return nil, err
 	}
 
 	err = c.Client.Create(ctx, prediction)
 	if err != nil {
 		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreatePrediction", err.Error())
-		c.Log.Error(err, "Failed to create", "TimeSeriesPrediction", prediction)
+		klog.Errorf("Failed to create TimeSeriesPrediction %s error %v", klog.KObj(prediction), err)
 		return nil, err
 	}
 
-	c.Log.Info("Create successfully", "TimeSeriesPrediction", klog.KObj(prediction))
+	klog.Infof("Creation TimeSeriesPrediction %s successfully", klog.KObj(prediction))
 	c.Recorder.Event(ehpa, v1.EventTypeNormal, "PredictionCreated", "Create TimeSeriesPrediction successfully")
 
 	return prediction, nil
@@ -80,22 +80,22 @@ func (c *EffectiveHPAController) UpdatePredictionIfNeed(ctx context.Context, ehp
 	prediction, err := c.NewPredictionObject(ehpa)
 	if err != nil {
 		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreatePredictionObject", err.Error())
-		c.Log.Error(err, "Failed to create object", "TimeSeriesPrediction", prediction)
+		klog.Errorf("Failed to create object, TimeSeriesPrediction %s error %v", prediction, err)
 		return nil, err
 	}
 
 	if !equality.Semantic.DeepEqual(&predictionExist.Spec, &prediction.Spec) {
-		c.Log.V(4).Info("TimeSeriesPrediction is unsynced according to EffectiveHorizontalPodAutoscaler, should be updated", "currentTimeSeriesPrediction", predictionExist.Spec, "expectTimeSeriesPrediction", prediction.Spec)
+		klog.V(4).Infof("TimeSeriesPrediction is unsynced according to EffectiveHorizontalPodAutoscaler, should be updated, currentTimeSeriesPrediction %v expectTimeSeriesPrediction %v", predictionExist.Spec, prediction.Spec)
 
 		predictionExist.Spec = prediction.Spec
 		err := c.Update(ctx, predictionExist)
 		if err != nil {
 			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedUpdatePrediction", err.Error())
-			c.Log.Error(err, "Failed to update", "TimeSeriesPrediction", predictionExist)
+			klog.Errorf("Failed to update TimeSeriesPrediction %s", klog.KObj(predictionExist))
 			return nil, err
 		}
 
-		c.Log.Info("Update TimeSeriesPrediction successful", "TimeSeriesPrediction", klog.KObj(predictionExist))
+		klog.Infof("Update TimeSeriesPrediction successful, TimeSeriesPrediction %s", klog.KObj(predictionExist))
 	}
 
 	return predictionExist, nil

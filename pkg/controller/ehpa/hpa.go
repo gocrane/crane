@@ -31,7 +31,7 @@ func (c *EffectiveHPAController) ReconcileHPA(ctx context.Context, ehpa *autosca
 			return c.CreateHPA(ctx, ehpa, substitute)
 		} else {
 			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedGetHPA", err.Error())
-			c.Log.Error(err, "Failed to get HPA", "ehpa", klog.KObj(ehpa))
+			klog.Error("Failed to get HPA, ehpa %s error %v", klog.KObj(ehpa), err)
 			return nil, err
 		}
 	} else if len(hpaList.Items) == 0 {
@@ -60,18 +60,18 @@ func (c *EffectiveHPAController) CreateHPA(ctx context.Context, ehpa *autoscalin
 	hpa, err := c.NewHPAObject(ctx, ehpa, substitute)
 	if err != nil {
 		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreateHPAObject", err.Error())
-		c.Log.Error(err, "Failed to create object", "HorizontalPodAutoscaler", hpa)
+		klog.Errorf("Failed to create object, HorizontalPodAutoscaler %s error %v", hpa, err)
 		return nil, err
 	}
 
 	err = c.Client.Create(ctx, hpa)
 	if err != nil {
 		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreateHPA", err.Error())
-		c.Log.Error(err, "Failed to create", "HorizontalPodAutoscaler", hpa)
+		klog.Errorf("Failed to create HorizontalPodAutoscaler, error %v", hpa, err)
 		return nil, err
 	}
 
-	c.Log.Info("Create HorizontalPodAutoscaler successfully", "HorizontalPodAutoscaler", hpa)
+	klog.Infof("Create HorizontalPodAutoscaler successfully, HorizontalPodAutoscaler %s", klog.KObj(hpa))
 	c.Recorder.Event(ehpa, v1.EventTypeNormal, "HPACreated", "Create HorizontalPodAutoscaler successfully")
 
 	return hpa, nil
@@ -133,22 +133,22 @@ func (c *EffectiveHPAController) UpdateHPAIfNeed(ctx context.Context, ehpa *auto
 	hpa, err := c.NewHPAObject(ctx, ehpa, substitute)
 	if err != nil {
 		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreateHPAObject", err.Error())
-		c.Log.Error(err, "Failed to create object", "HorizontalPodAutoscaler", hpa)
+		klog.Errorf("Failed to create object, HorizontalPodAutoscaler %s error %v", klog.KObj(hpa), err)
 		return nil, err
 	}
 
 	if !equality.Semantic.DeepEqual(&hpaExist.Spec, &hpa.Spec) {
-		c.Log.V(4).Info("HorizontalPodAutoscaler is unsynced according to EffectiveHorizontalPodAutoscaler, should be updated", "currentHPA", hpaExist.Spec, "expectHPA", hpa.Spec)
+		klog.V(4).Infof("HorizontalPodAutoscaler is unsynced according to EffectiveHorizontalPodAutoscaler, should be updated, currentHPA %v expectHPA %v", hpaExist.Spec, hpa.Spec)
 
 		hpaExist.Spec = hpa.Spec
 		err := c.Update(ctx, hpaExist)
 		if err != nil {
 			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedUpdateHPA", err.Error())
-			c.Log.Error(err, "Failed to update", "HorizontalPodAutoscaler", hpaExist)
+			klog.Errorf("Failed to update HorizontalPodAutoscaler %s error %v", klog.KObj(hpaExist), err)
 			return nil, err
 		}
 
-		c.Log.Info("Update HorizontalPodAutoscaler successful", "HorizontalPodAutoscaler", klog.KObj(hpaExist))
+		klog.Infof("Update HorizontalPodAutoscaler successful, HorizontalPodAutoscaler %s", klog.KObj(hpaExist))
 	}
 
 	return hpaExist, nil

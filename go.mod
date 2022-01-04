@@ -3,7 +3,7 @@ module github.com/gocrane/crane
 go 1.17
 
 require (
-	github.com/davecgh/go-spew v1.1.1
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-echarts/go-echarts/v2 v2.2.4
 	github.com/go-logr/logr v0.4.0
 	github.com/gocrane/api v0.0.0-20220101093604-2129a9ce85e3

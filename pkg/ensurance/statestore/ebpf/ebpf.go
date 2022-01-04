@@ -3,7 +3,7 @@ package ebpf
 import (
 	"sync"
 
-	"github.com/gocrane/crane/pkg/log"
+	"k8s.io/klog/v2"
 )
 
 type EBPF struct {
@@ -24,6 +24,6 @@ func NewEBPF() *EBPF {
 }
 
 func (e *EBPF) Collect() {
-	log.Logger().V(4).Info("Ebpf collecting")
+	klog.V(4).Infof("Ebpf collecting")
 	return
 }

@@ -8,8 +8,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
 
-	"github.com/gocrane/crane/pkg/log"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
@@ -58,7 +58,7 @@ func UpdateNodeTaints(node *v1.Node, taint v1.Taint) (*v1.Node, bool) {
 
 // RemoveNodeTaints be used to update node taint
 func RemoveNodeTaints(node *v1.Node, taint v1.Taint) (*v1.Node, bool) {
-	log.Logger().Info(fmt.Sprintf("RemoveNodeTaints %v", taint))
+	klog.V(4).Infof("RemoveNodeTaints %v", taint)
 
 	updatedNode := node.DeepCopy()
 
@@ -66,7 +66,6 @@ func RemoveNodeTaints(node *v1.Node, taint v1.Taint) (*v1.Node, bool) {
 	var taints []v1.Taint
 
 	for _, t := range updatedNode.Spec.Taints {
-		log.Logger().V(4).Info(fmt.Sprintf("taint %s", t.Key))
 		if t.Key == taint.Key {
 			bFound = true
 		} else {
@@ -112,7 +111,7 @@ func UpdateNodeStatus(client clientset.Interface, updateNode *v1.Node, retry *ui
 	return fmt.Errorf("update node status failed, conflict too more times")
 }
 
-// updateNode be used to update node  by communication with api-server
+// UpdateNode be used to update node  by communication with api-server
 func UpdateNode(client clientset.Interface, updateNode *v1.Node, retry *uint64) error {
 	for i := uint64(0); i < utils.GetUint64withDefault(retry, defaultRetryTimes); i++ {
 		_, err := client.CoreV1().Nodes().Update(context.Background(), updateNode, metav1.UpdateOptions{})
