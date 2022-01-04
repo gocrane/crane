@@ -2,8 +2,8 @@ package ehpa
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/go-logr/logr"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -27,7 +27,6 @@ import (
 // EffectiveHPAController is responsible for scaling workload's replica based on EffectiveHorizontalPodAutoscaler spec
 type EffectiveHPAController struct {
 	client.Client
-	Log         logr.Logger
 	Scheme      *runtime.Scheme
 	RestMapper  meta.RESTMapper
 	Recorder    record.EventRecorder
@@ -100,13 +99,14 @@ func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 		updatedScale, err := c.ScaleClient.Scales(scale.Namespace).Update(ctx, mapping.Resource.GroupResource(), scale, metav1.UpdateOptions{})
 		if err != nil {
 			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedManualScale", err.Error())
-			c.Log.Error(err, "Failed to manual scale target to specific replicas", "ehpa", klog.KObj(ehpa), "replicas", ehpa.Spec.SpecificReplicas)
-			setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedScale", "Failed to scale target manually")
+			msg := fmt.Sprintf("Failed to manual scale target to specific replicas, ehpa %s replicas %d", klog.KObj(ehpa), ehpa.Spec.SpecificReplicas)
+			klog.Error(err, msg)
+			setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedScale", msg)
 			c.UpdateStatus(ctx, ehpa, newStatus)
 			return ctrl.Result{}, err
 		}
 
-		c.Log.Info("Manual scale target to specific replicas", "ehpa", klog.KObj(ehpa), "replicas", ehpa.Spec.SpecificReplicas)
+		klog.Infof("Manual scale target to specific replicas, ehpa %s replicas %d",  klog.KObj(ehpa), ehpa.Spec.SpecificReplicas)
 		now := metav1.Now()
 		newStatus.LastScaleTime = &now
 		newStatus.CurrentReplicas = &updatedScale.Status.Replicas
@@ -119,17 +119,17 @@ func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 
 func (c *EffectiveHPAController) UpdateStatus(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, newStatus *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus) {
 	if !equality.Semantic.DeepEqual(&ehpa.Status, newStatus) {
-		klog.V(4).Info("EffectiveHorizontalPodAutoscaler status should be updated", "currentStatus", &ehpa.Status, "newStatus", newStatus)
+		klog.V(4).Infof("EffectiveHorizontalPodAutoscaler status should be updated, currentStatus %v newStatus %v", &ehpa.Status, newStatus)
 
 		ehpa.Status = *newStatus
 		err := c.Status().Update(ctx, ehpa)
 		if err != nil {
 			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedUpdateStatus", err.Error())
-			c.Log.Error(err, "Failed to update status", "ehpa", klog.KObj(ehpa))
+			klog.Errorf("Failed to update status, ehpa %s error %v", klog.KObj(ehpa), err)
 			return
 		}
 
-		c.Log.Info("Update EffectiveHorizontalPodAutoscaler status successful", "ehpa", klog.KObj(ehpa))
+		klog.Infof("Update EffectiveHorizontalPodAutoscaler status successful, ehpa %s", klog.KObj(ehpa))
 	}
 }
 
