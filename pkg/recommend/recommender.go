@@ -22,8 +22,8 @@ import (
 )
 
 func NewRecommender(kubeClient client.Client, restMapper meta.RESTMapper, scaleClient scale.ScalesGetter,
-	recommendation *analysisapi.Recommendation, predictors map[predictionapi.AlgorithmType]prediction.Interface, logger logr.Logger) (*Recommender, error) {
-	c, err := GetContext(kubeClient, restMapper, scaleClient, recommendation, predictors, logger)
+	recommendation *analysisapi.Recommendation, predictors map[predictionapi.AlgorithmType]prediction.Interface, logger logr.Logger, configSet *analysisapi.ConfigSet) (*Recommender, error) {
+	c, err := GetContext(kubeClient, restMapper, scaleClient, recommendation, predictors, logger, configSet)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func toInspectorCondition(err error) metav1.Condition {
 }
 
 func GetContext(kubeClient client.Client, restMapper meta.RESTMapper, scaleClient scale.ScalesGetter,
-	recommendation *analysisapi.Recommendation, predictors map[predictionapi.AlgorithmType]prediction.Interface, logger logr.Logger) (*Context, error) {
+	recommendation *analysisapi.Recommendation, predictors map[predictionapi.AlgorithmType]prediction.Interface, logger logr.Logger, configSet *analysisapi.ConfigSet) (*Context, error) {
 	c := &Context{Logger: logger}
 
 	targetRef := autoscalingv2.CrossVersionObjectReference{
@@ -80,6 +80,13 @@ func GetContext(kubeClient client.Client, restMapper meta.RESTMapper, scaleClien
 		Kind:       recommendation.Spec.TargetRef.Kind,
 		Name:       recommendation.Spec.TargetRef.Name,
 	}
+
+	target := analysisapi.Target{
+		Kind:      recommendation.Spec.TargetRef.Kind,
+		Namespace: recommendation.Spec.TargetRef.Namespace,
+		Name:      recommendation.Spec.TargetRef.Name,
+	}
+	c.ConfigProperties = GetProperties(configSet, target)
 
 	var scale *autoscalingv1.Scale
 	var mapping *meta.RESTMapping

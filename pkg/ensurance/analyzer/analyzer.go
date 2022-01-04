@@ -130,7 +130,7 @@ func (s *AnalyzerManager) Analyze() {
 
 	for _, nep := range allNeps {
 		//check the node is selected
-		if matched, err := utils.LabelSelectorMatched(node.Labels, &nep.Spec.LabelSelector); err != nil || !matched {
+		if matched, err := utils.LabelSelectorMatched(node.Labels, &nep.Spec.Selector); err != nil || !matched {
 			continue
 		}
 
@@ -279,7 +279,7 @@ func (s *AnalyzerManager) doMerge(avoidanceMaps map[string]*ensuranceapi.Avoidan
 			}
 
 			if action.Spec.Eviction != nil {
-				var deletionGracePeriodSeconds = utils.GetInt32withDefault(action.Spec.Eviction.DeletionGracePeriodSeconds, executor.DefaultDeletionGracePeriodSeconds)
+				var deletionGracePeriodSeconds = utils.GetInt32withDefault(action.Spec.Eviction.TerminationGracePeriodSeconds, executor.DefaultDeletionGracePeriodSeconds)
 				allPods, err := s.podLister.List(labels.Everything())
 				if err != nil {
 					klog.Errorf("Failed to list all pods: %v", err)

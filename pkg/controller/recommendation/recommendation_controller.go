@@ -27,6 +27,7 @@ import (
 // Controller is responsible for reconcile Recommendation
 type Controller struct {
 	client.Client
+	ConfigSet   *analysisv1alph1.ConfigSet
 	Log         logr.Logger
 	Scheme      *runtime.Scheme
 	Recorder    record.EventRecorder
@@ -62,7 +63,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	newStatus := r.Status.DeepCopy()
 
-	recommender, err := recommend.NewRecommender(c.Client, c.RestMapper, c.ScaleClient, r, c.Predictors, c.Log)
+	recommender, err := recommend.NewRecommender(c.Client, c.RestMapper, c.ScaleClient, r, c.Predictors, c.Log, c.ConfigSet)
 	if err != nil {
 		c.Recorder.Event(r, v1.EventTypeNormal, "FailedCreateRecommender", err.Error())
 		c.Log.Error(err, "Failed to create recommender", "recommendation", klog.KObj(r))

@@ -7,6 +7,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/gocrane/crane/pkg/recommend"
+	"k8s.io/klog/v2"
+
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -252,9 +255,15 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 		os.Exit(1)
 	}
 
+	configSet, err := recommend.LoadConfigSetFromFile(opts.RecommendationConfigFile)
+	if err != nil {
+		klog.Errorf("Failed to load recommendation config file: %v", err)
+		os.Exit(1)
+	}
 	if err := (&recommendation.Controller{
 		Client:      mgr.GetClient(),
 		Log:         log.Logger().WithName("recommendation-controller"),
+		ConfigSet:   configSet,
 		Scheme:      mgr.GetScheme(),
 		RestMapper:  mgr.GetRESTMapper(),
 		Recorder:    mgr.GetEventRecorderFor("recommendation-controller"),
