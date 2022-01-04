@@ -15,12 +15,16 @@ const (
 
 	// CraneClusterNodePrediction enables the cluster node prediction features.
 	CraneClusterNodePrediction featuregate.Feature = "ClusterNodePrediction"
+
+	// CraneTimeSeriesPrediction enables the time series prediction features.
+	CraneTimeSeriesPrediction featuregate.Feature = "CraneTimeSeriesPrediction"
 )
 
 var defaultFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	CraneAutoscaling:           {Default: true, PreRelease: featuregate.Alpha},
 	CraneNodeResource:          {Default: false, PreRelease: featuregate.Alpha},
 	CraneClusterNodePrediction: {Default: false, PreRelease: featuregate.Alpha},
+	CraneTimeSeriesPrediction:  {Default: true, PreRelease: featuregate.Alpha},
 }
 
 func init() {

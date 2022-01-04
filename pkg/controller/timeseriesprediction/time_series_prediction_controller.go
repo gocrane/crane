@@ -1,4 +1,4 @@
-package tsp
+package timeseriesprediction
 
 import (
 	"context"
@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -20,7 +20,6 @@ import (
 
 type Controller struct {
 	client.Client
-	Logger       logr.Logger
 	Recorder     record.EventRecorder
 	UpdatePeriod time.Duration
 
@@ -34,23 +33,21 @@ type Controller struct {
 
 func NewController(
 	client client.Client,
-	logger logr.Logger,
 	recorder record.EventRecorder,
 	updatePeriod time.Duration,
 	predictors map[predictionv1alph1.AlgorithmType]prediction.Interface,
 ) *Controller {
 	return &Controller{
 		Client:       client,
-		Logger:       logger,
 		Recorder:     recorder,
 		UpdatePeriod: updatePeriod,
 		predictors:   predictors,
 	}
 }
 
-// Reconcile
+// Reconcile reconcile the time series prediction
 func (tc *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	tc.Logger.V(4).Info("Got a time series prediction res", "tsp", req.NamespacedName)
+	klog.V(4).Infof("Got a time series prediction %v", req.NamespacedName)
 
 	p := &predictionv1alph1.TimeSeriesPrediction{}
 

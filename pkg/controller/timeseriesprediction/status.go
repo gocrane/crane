@@ -1,4 +1,4 @@
-package tsp
+package timeseriesprediction
 
 import (
 	"context"
@@ -29,14 +29,13 @@ import (
 // but it is a final consistent system, so the data will be in date when next update reconcile in controller runtime.
 func (tc *Controller) syncPredictionStatus(ctx context.Context, tsPrediction *v1alpha1.TimeSeriesPrediction) (ctrl.Result, error) {
 	newStatus := tsPrediction.Status.DeepCopy()
-	key := GetTimeSeriesPredictionKey(tsPrediction)
-	tc.Logger.V(3).Info("SyncPredictionsStatus check asw and dsw", "key", key)
+	key := klog.KObj(tsPrediction)
 	if err := tc.Client.Get(ctx, client.ObjectKey{Name: tsPrediction.Name, Namespace: tsPrediction.Namespace}, tsPrediction); err != nil {
 		// If the prediction does not exist any more, we delete the prediction data from the map.
 		if apierrors.IsNotFound(err) {
 			tc.tsPredictionMap.Delete(key)
 		}
-		tc.Logger.Error(err, "SyncPredictionsStatus", key, err)
+		klog.Errorf("Failed to sync PredictionsStatus for %v, err: %v", key, err)
 		// time driven
 		return ctrl.Result{RequeueAfter: tc.UpdatePeriod}, err
 	}
@@ -48,7 +47,7 @@ func (tc *Controller) syncPredictionStatus(ctx context.Context, tsPrediction *v1
 	warnings := tc.isPredictionDataOutDated(windowStart, windowEnd, tsPrediction.Status.PredictionMetrics)
 	// force predict and update the status
 	if len(warnings) > 0 {
-		tc.Logger.V(3).Info("Check status predict data is out of date", "range", fmt.Sprintf("[%v, %v]", windowStart, windowEnd), "key", key)
+		klog.V(4).Infof("Check status predict data is out of date. range: %v, key: %v", fmt.Sprintf("[%v, %v]", windowStart, windowEnd), key)
 		predictionStart := time.Now()
 		// double the time to predict so that crd consumer always see time series range [now, now + PredictionWindowSeconds] in PredictionWindowSeconds window
 		predictionEnd := predictionStart.Add(time.Duration(tsPrediction.Spec.PredictionWindowSeconds) * time.Second * 2)
@@ -56,13 +55,13 @@ func (tc *Controller) syncPredictionStatus(ctx context.Context, tsPrediction *v1
 		predictedData, err := tc.doPredict(tsPrediction, predictionStart, predictionEnd)
 		if err != nil {
 			tc.Recorder.Event(tsPrediction, v1.EventTypeWarning, "FailedPredict", err.Error())
-			tc.Logger.Error(err, "Failed to doPredict")
+			klog.Errorf("Failed to doPredict, err: %v", err)
 			return ctrl.Result{RequeueAfter: tc.UpdatePeriod}, err
 		}
 		newStatus.PredictionMetrics = predictedData
 
 		if len(tsPrediction.Spec.PredictionMetrics) != len(predictedData) {
-			tc.Logger.V(3).Info("DoPredict predict data is partial", "predictedDataLen", len(predictedData), "key", key)
+			klog.V(4).Infof("DoPredict predict data is partial, predictedDataLen: %v, key: %v", len(predictedData), key)
 			setCondition(newStatus, v1alpha1.TimeSeriesPredictionConditionReady, metav1.ConditionFalse, known.ReasonTimeSeriesPredictPartial, "not all metric predicted")
 			err = tc.UpdateStatus(ctx, tsPrediction, newStatus)
 			if err != nil {
@@ -76,7 +75,7 @@ func (tc *Controller) syncPredictionStatus(ctx context.Context, tsPrediction *v1
 		windowEnd := predictionStart.Add(time.Duration(tsPrediction.Spec.PredictionWindowSeconds) * time.Second)
 		warnings := tc.isPredictionDataOutDated(windowStart, windowEnd, predictedData)
 		if len(warnings) > 0 {
-			tc.Logger.V(3).Info("DoPredict predict data is partial", "range", fmt.Sprintf("[%v, %v]", windowStart, windowEnd), "key", key)
+			klog.V(4).Infof("DoPredict predict data is partial, range: %v, key: %v", fmt.Sprintf("[%v, %v]", windowStart, windowEnd), key)
 			setCondition(newStatus, v1alpha1.TimeSeriesPredictionConditionReady, metav1.ConditionFalse, known.ReasonTimeSeriesPredictPartial, strings.Join(warnings, ";"))
 			err = tc.UpdateStatus(ctx, tsPrediction, newStatus)
 			if err != nil {
@@ -84,7 +83,7 @@ func (tc *Controller) syncPredictionStatus(ctx context.Context, tsPrediction *v1
 				return ctrl.Result{}, err
 			}
 		} else {
-			tc.Logger.V(3).Info("DoPredict predict data is complete", "range", fmt.Sprintf("[%v, %v]", windowStart, windowEnd), "key", key)
+			klog.V(4).Infof("DoPredict predict data is complete, range: %v, key: %v", fmt.Sprintf("[%v, %v]", windowStart, windowEnd), key)
 			// status.conditions.reason in body should be at least 1 chars long
 			setCondition(newStatus, v1alpha1.TimeSeriesPredictionConditionReady, metav1.ConditionTrue, known.ReasonTimeSeriesPredictSucceed, "")
 
@@ -153,7 +152,7 @@ func (tc *Controller) doPredict(tsPrediction *v1alpha1.TimeSeriesPrediction, sta
 			return result, err
 		}
 		predictedData := CommonTimeSeries2ApiTimeSeries(data)
-		tc.Logger.V(10).Info("Predicted data details", "data", predictedData)
+		klog.V(8).Infof("Predicted data details, %+v", predictedData)
 		result = append(result, v1alpha1.PredictionMetricStatus{ResourceIdentifier: metric.ResourceIdentifier, Prediction: predictedData})
 	}
 	return result, nil
@@ -165,11 +164,11 @@ func (tc *Controller) UpdateStatus(ctx context.Context, tsPrediction *v1alpha1.T
 		err := tc.Client.Status().Update(ctx, tsPrediction)
 		if err != nil {
 			tc.Recorder.Event(tsPrediction, v1.EventTypeNormal, "FailedUpdateStatus", err.Error())
-			tc.Logger.Error(err, "Failed to update status", "TimeSeriesPrediction", klog.KObj(tsPrediction))
+			klog.Errorf("Failed to update status for %v", klog.KObj(tsPrediction))
 			return err
 		}
 
-		tc.Logger.Info("Update status successful", "TimeSeriesPrediction", klog.KObj(tsPrediction))
+		klog.V(4).Infof("Update status successful for %v", klog.KObj(tsPrediction))
 	}
 	return nil
 }

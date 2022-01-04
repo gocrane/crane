@@ -10,8 +10,8 @@ spec:
   predictionWindowSeconds: 3600
   predictionMetrics:
     - resourceIdentifier: nodes-cpu
-      type: RawQuery
-      rawQuery:
+      type: ExpressionQuery
+      expressionQuery:
         expression: '1-avg(rate(node_cpu_seconds_total{mode="idle"}[1m])) by (instance)'
       algorithm:
         algorithmType: "dsp"
@@ -26,8 +26,8 @@ spec:
                 minNumOfSpectrumItems: 10
                 maxNumOfSpectrumItems: 20
     - resourceIdentifier: nodes-mem
-      type: RawQuery
-      rawQuery:
+      type: ExpressionQuery
+      expressionQuery:
         expression: 'sum(node_memory_MemTotal_bytes{} - node_memory_MemAvailable_bytes{}) by (instance)'
       algorithm:
         algorithmType: "dsp"
