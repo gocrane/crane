@@ -1,5 +1,11 @@
 # TimeSeriesPrediction
 
+Knowing the future makes things easier for us.
+
+---
+
+Many businesses are naturally cyclical in time series, especially for those that directly or indirectly serve "people". This periodicity is determined by the regularity of people’s daily activities. For example, people are accustomed to ordering take-out at noon and in the evenings; there are always traffic peaks in the morning and evening; even for services that don't have such obvious patterns, such as searching, the amount of requests at night is much lower than that during business hours. For applications related to this kind of business, it is a natural idea to infer the next day's metrics from the historical data of the past few days, or to infer the coming Monday's access traffic from the data of last Monday. With predicted metrics or traffic patterns in the next 24 hours, we can better manage our application instances, stabilize our system, and meanwhile, reduce the cost.
+
 TimeSeriesPrediction is used to forecast the kubernetes object metric. It is based on PredictionCore to do forecast.
 
 
@@ -81,7 +87,7 @@ spec:
 
 ### MetricType
 
-There are three types of the metric query, ResourceQuery、ExpressionQuery、RawQuery
+There are three types of the metric query:
 
  - `ResourceQuery` is a kubernetes built-in resource metric such as cpu or memory. crane supports only cpu and memory  now.
  - `RawQuery` is a query by DSL, such as prometheus query language. now support prometheus.
