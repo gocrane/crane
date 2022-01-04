@@ -46,12 +46,17 @@ func loadConfigSetFromBytes(configSetBytes []byte) (*analysisv1alpha1.ConfigSet,
 func GetProperties(configSet *analysisv1alpha1.ConfigSet, dst analysisv1alpha1.Target) map[string]string {
 	var selectedProps map[string]string
 	maxMatchLevel := -1
-	for _, config := range configSet.Configs {
-		for i, src := range config.Targets {
-			matchLevel := targetsMatchLevel(src, dst)
-			if matchLevel > maxMatchLevel {
-				maxMatchLevel = matchLevel
-				selectedProps = configSet.Configs[i].Properties
+	for i, config := range configSet.Configs {
+		if len(config.Targets) == 0 && maxMatchLevel < 0 {
+			maxMatchLevel = 0
+			selectedProps = configSet.Configs[i].Properties
+		} else {
+			for _, src := range config.Targets {
+				matchLevel := targetsMatchLevel(src, dst)
+				if matchLevel > maxMatchLevel {
+					maxMatchLevel = matchLevel
+					selectedProps = configSet.Configs[i].Properties
+				}
 			}
 		}
 	}
