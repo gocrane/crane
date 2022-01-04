@@ -158,7 +158,6 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 		utilruntime.Must(autoscalingapi.AddToScheme(scheme))
 		if err := (&ehpa.EffectiveHPAController{
 			Client:      mgr.GetClient(),
-			Log:         log.Logger().WithName("effective-hpa-controller"),
 			Scheme:      mgr.GetScheme(),
 			RestMapper:  mgr.GetRESTMapper(),
 			Recorder:    mgr.GetEventRecorderFor("effective-hpa-controller"),
@@ -169,7 +168,6 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 
 		if err := (&ehpa.SubstituteController{
 			Client:      mgr.GetClient(),
-			Log:         log.Logger().WithName("substitute-controller"),
 			Scheme:      mgr.GetScheme(),
 			RestMapper:  mgr.GetRESTMapper(),
 			Recorder:    mgr.GetEventRecorderFor("substitute-controller"),
@@ -180,7 +178,6 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 
 		if err := (&ehpa.HPAReplicasController{
 			Client:     mgr.GetClient(),
-			Log:        log.Logger().WithName("hpa-replicas-controller"),
 			Scheme:     mgr.GetScheme(),
 			RestMapper: mgr.GetRESTMapper(),
 			Recorder:   mgr.GetEventRecorderFor("hpareplicas-controller"),

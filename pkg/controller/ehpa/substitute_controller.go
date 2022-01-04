@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -22,7 +21,6 @@ import (
 // SubstituteController is responsible for sync labelSelector to Substitute
 type SubstituteController struct {
 	client.Client
-	Log         logr.Logger
 	Scheme      *runtime.Scheme
 	RestMapper  meta.RESTMapper
 	Recorder    record.EventRecorder
@@ -30,7 +28,7 @@ type SubstituteController struct {
 }
 
 func (c *SubstituteController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	c.Log.Info("got", "Substitute", req.NamespacedName)
+	klog.Infof("Got Substitute %s", req.NamespacedName)
 
 	substitute := &autoscalingapi.Substitute{}
 	err := c.Client.Get(ctx, req.NamespacedName, substitute)
@@ -45,7 +43,7 @@ func (c *SubstituteController) Reconcile(ctx context.Context, req ctrl.Request) 
 	scale, _, err := utils.GetScale(ctx, c.RestMapper, c.ScaleClient, substitute.Namespace, substitute.Spec.SubstituteTargetRef)
 	if err != nil {
 		c.Recorder.Event(substitute, v1.EventTypeNormal, "FailedGetScale", err.Error())
-		c.Log.Error(err, "Failed to get scale", "Substitute", klog.KObj(substitute))
+		klog.Errorf("Failed to get scale, Substitute %s error %v", klog.KObj(substitute), err)
 		return ctrl.Result{}, err
 	}
 
@@ -55,17 +53,17 @@ func (c *SubstituteController) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	if !equality.Semantic.DeepEqual(&substitute.Status, &newStatus) {
-		c.Log.V(4).Info("Substitute status should be updated", "current", substitute.Status, "new", newStatus)
+		klog.V(4).Infof("Substitute status should be updated", "current %v new %v", substitute.Status, newStatus)
 
 		substitute.Status = newStatus
 		err := c.Status().Update(ctx, substitute)
 		if err != nil {
 			c.Recorder.Event(substitute, v1.EventTypeNormal, "FailedUpdateStatus", err.Error())
-			c.Log.Error(err, "Failed to update status", "Substitute", klog.KObj(substitute))
+			klog.Errorf("Failed to update status, Substitute %s error %v", klog.KObj(substitute), err)
 			return ctrl.Result{}, err
 		}
 
-		c.Log.Info("Update Substitute status successful", "Substitute", klog.KObj(substitute))
+		klog.Infof("Update Substitute status successful, Substitute %s", klog.KObj(substitute))
 	}
 
 	// Rsync every 15 seconds
