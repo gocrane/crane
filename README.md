@@ -1,66 +1,77 @@
 # Crane: Cloud Resource Analytics and Economics
 
-<img src="docs/images/crane.png" width="100">
+[![Go Report Card](https://goreportcard.com/badge/github.com/gocrane/crane)](https://goreportcard.com/report/github.com/gocrane/crane)
+[![GoDoc](https://godoc.org/github.com/gocrane/crane?status.svg)](https://godoc.org/github.com/gocrane/crane)
+[![License](https://img.shields.io/github/license/gocrane/crane)](https://www.apache.org/licenses/LICENSE-2.0.html)
+![GoVersion](https://img.shields.io/github/go-mod/go-version/gocrane/crane)
+
+<img alt="Crane logo" height="100" src="docs/images/crane.svg" title="Crane" width="200"/>
 
 ---
 
+Crane (FinOps Crane) is a cloud native open source project which manages cloud resources on Kubernetes stack, it is inspired by FinOps concepts.
+
 - [Crane: Cloud Resource Analytics and Economics](#crane-cloud-resource-analytics-and-economics)
-  - [Architecture](#architecture)
+  - [Introduction](#introduction)
   - [Features](#features)
-    - [TimeSeriesPrediction](#time-series-prediction)
+    - [TimeSeriesPrediction](#Time-series-prediction)
     - [Effective HorizontalPodAutoscaler](#effective-horizontalpodautoscaler)
-    - [Analysis as a Service](#analysis-as-a-service)
-    - [Application Ensurance](#application-ensurance)
+    - [Analytics](#analytics)
+    - [QoS Ensurance](#qos-ensurance)
+  - [Repositories](#repositories)
+  - [Getting Started](#getting-started)
 
-## Architecture
+## Introduction
 
-Crane (FinOps Crane) is an open-source project which manages cloud resources on Kubernetes stack, it is inspired by FinOps concepts.
 The goal of Crane is to provide a one-stop-shop project to help Kubernetes users to save cloud resource usage with a rich set of functionalities:
 
-- Resource Metrics Prediction based on monitoring data
-- Cost visibility including:
-  - Cost allocation, cost and usage virtualization
-  - Waste identification
-  - Idle resource collection and reallocation
-- Usage & Cost Optimization including:
-  - Enhanced scheduling which optimized for better resource utilization
-  - Intelligent Scaling based on the prediction result
-  - Cost Optimization based on better billing rate
-- QoS Ensurance based on Pod PriorityClass
+- **Time Series Prediction** based on monitoring data
+- **Usage and Cost visibility**
+- **Usage & Cost Optimization** including:
+  - R2 (Resource Re-allocation)
+  - R3 (Request & Replicas Recommendation)
+  - Effective Pod Autoscaling (Effective Horizontal & Vertical Pod Autoscaling)
+  - Cost Optimization
+- **Enhanced QoS** based on Pod PriorityClass
 
-![crane-architecture](docs/images/crane-architecture.png)
+<img alt="Crane Overview" height="400" src="docs/images/crane-overview.png" width="700"/>
 
 ## Features
 ### Time Series Prediction
----
 
-Knowing the future makes things easier for us.
-
----
-
-Many businesses are naturally cyclical in time series, especially for those that directly or indirectly serve "people". This periodicity is determined by the regularity of people’s daily activities. For example, people are accustomed to ordering take-out at noon and in the evenings; there are always traffic peaks in the morning and evening; even for services that don't have such obvious patterns, such as searching, the amount of requests at night is much lower than that during business hours. For applications related to this kind of business, it is a natural idea to infer the next day's metrics from the historical data of the past few days, or to infer the coming Monday's access traffic from the data of last Monday. With predicted metrics or traffic patterns in the next 24 hours, we can better manage our application instances, stabilize our system, and meanwhile, reduce the cost.
-
-Crane predictor fetches historical metric data for the monitoring system, such as Prometheus, and identifies the time series that are predictable, for example, system CPU load, memory footprint, application's user traffic, etc. Then it outputs the prediction results, which can be consumed by other crane components, like [Effective HorizontalPodAutoscaler](#effective-horizontalpodautoscaler) and [Analysis as a Service](#analysis-as-a-service). It's also straightforward to apply the prediction results in user applications.
+Crane predictor fetches metric data, and then outputs the prediction results.
+The prediction result can be consumed by other crane components, like [EHPA](#effective-horizontalpodautoscaler) and [Analytics](#analytics).
 
 Please see [this document](./docs/tutorials/using-time-series-prediction.md) to learn more.
 
 ### Effective HorizontalPodAutoscaler
 
 EffectiveHorizontalPodAutoscaler helps you manage application scaling in an easy way. It is compatible with native [HorizontalPodAutoscaler](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/) but extends more features.
-EffectiveHorizontalPodAutoscaler supports prediction-driven autoscaling that supported by [TimeSeriesPrediction](#time-series-prediction). Users can forecast the incoming peak flow and scale up their application ahead, also users can know when the peak flow will end and scale down their application gracefully. Besides, EffectiveHorizontalPodAutoscaler also defines several scale strategies to support different scaling scenarios.
-
-- **Reliability**: Guarantee both scalability and availability
-- **Responsiveness**: Scale-up fast enough to successfully handle the increase in workload
-- **Observability**: Support Preview mod and automatic observe replicas 
 
 Please see [this document](./docs/tutorials/using-effective-hpa-to-scaling-with-effectiveness.md) to learn more.
 
-### Analysis as a Service
+### Analytics
 
-Analysis Service gives you recommendations about cost optimize. It scans your cluster resources such as Deployment, StatefulSet and provides a variety of strategies to analyze the resource then recommend how to optimize it. Analysis and Recommendation are CustomResourceDefinition that can integrate with your own systems.
+Analytics model analyzes the workload and provide recommendations about resource optimize.
 
-Here we provide two Analysis Services:
+Two Recommendations are currently supported:
 - **ResourceRecommend**: Recommend container requests & limit resources based on historic metrics.
 - **Effective HPARecommend**: Recommend which workloads are suitable for autoscaling and provide optimized configurations such as minReplicas, maxReplicas.
 
-### Application Ensurance
+### QoS Ensurance
+
+## Repositories
+
+Crane is composed of the following components:
+- [craned](cmd/craned). - main crane control plane.
+  - **Predictor** - Predicts resources metrics trends based on historical data.
+  - **AnalyticsController** - Analyzes resources and generate related recommendations.
+  - **RecommendationController** - Recommend Pod resource requests and autoscaler.
+  - **NodeResourceController** - Re-allocate node resource based on prediction result.
+  - **EffectiveHPAController** - Effective HPA based on prediction result.
+- [metric-adaptor](cmd/metric-adapter). - Metric server for driving the scaling.
+- [crane-agent](cmd/crane-agent). - Ensure critical workloads SLO based on abnormally detection.
+- [gocrane/api](https://github.com/gocrane/api). This repository defines component-level APIs for the Crane platform.
+- [gocrane/fadvisor](https://github.com/gocrane/fadvisor) Financial advisor which collect resource prices from cloud API. 
+
+## Getting Started
