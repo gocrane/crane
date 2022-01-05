@@ -7,6 +7,6 @@ metadata:
 spec:
   coolDownSeconds: 300
   eviction:
-    deletionGracePeriodSeconds: 30
+    terminationGracePeriodSeconds: 30
   description: "evict the pod"
   

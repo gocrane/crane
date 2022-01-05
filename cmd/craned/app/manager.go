@@ -142,6 +142,8 @@ func initializationWebhooks(mgr ctrl.Manager, opts *options.Options) {
 // initializationControllers setup controllers with manager
 func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *options.Options) {
 	autoscaling := utilfeature.DefaultFeatureGate.Enabled(features.CraneAutoscaling)
+	nodeResource := utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResource)
+	clusterNodePrediction := utilfeature.DefaultFeatureGate.Enabled(features.CraneClusterNodePrediction)
 	// todo: add more features
 
 	discoveryClientSet, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
@@ -264,21 +266,26 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 	}).SetupWithManager(mgr); err != nil {
 		klog.Exit(err, "unable to create controller", "controller", "RecommendationController")
 	}
+
 	// NodeResourceController
-	if err := (&noderesource.NodeResourceReconciler{
-		Client:   mgr.GetClient(),
-		Recorder: mgr.GetEventRecorderFor("node-resource-controller"),
-	}).SetupWithManager(mgr); err != nil {
-		klog.Exit(err, "unable to create controller", "controller", "NodeResourceController")
+	if nodeResource {
+		if err := (&noderesource.NodeResourceReconciler{
+			Client:   mgr.GetClient(),
+			Recorder: mgr.GetEventRecorderFor("node-resource-controller"),
+		}).SetupWithManager(mgr); err != nil {
+			klog.Exit(err, "unable to create controller", "controller", "NodeResourceController")
+		}
 	}
 
 	// CnpController
-	if err := (&cnp.ClusterNodePredictionController{
-		Client:     mgr.GetClient(),
-		Scheme:     mgr.GetScheme(),
-		RestMapper: mgr.GetRESTMapper(),
-		Recorder:   mgr.GetEventRecorderFor("cnp-controller"),
-	}).SetupWithManager(mgr); err != nil {
-		klog.Exit(err, "unable to create controller", "controller", "CnpController")
+	if clusterNodePrediction {
+		if err := (&cnp.ClusterNodePredictionController{
+			Client:     mgr.GetClient(),
+			Scheme:     mgr.GetScheme(),
+			RestMapper: mgr.GetRESTMapper(),
+			Recorder:   mgr.GetEventRecorderFor("cnp-controller"),
+		}).SetupWithManager(mgr); err != nil {
+			klog.Exit(err, "unable to create controller", "controller", "CnpController")
+		}
 	}
 }
