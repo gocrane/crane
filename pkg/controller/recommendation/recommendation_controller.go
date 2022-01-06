@@ -57,8 +57,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	if recommendation.DeletionTimestamp != nil {
 		// todo stop prediction
-		return ctrl.Result{
-		}, nil
+		return ctrl.Result{}, nil
 	}
 
 	needRecommend, needResync := c.NeedRecommend(recommendation)
