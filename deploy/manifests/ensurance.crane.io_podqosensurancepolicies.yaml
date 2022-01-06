@@ -45,111 +45,93 @@ spec:
                     actionName:
                       description: Avoidance action when be triggered
                       type: string
-                    dryRun:
-                      description: Action only dry run,not to do the real action
-                      type: boolean
+                    avoidanceThreshold:
+                      default: 1
+                      description: How many times the rule is reach, to trigger avoidance
+                        action, default is 1
+                      format: int32
+                      type: integer
                     metricRule:
                       description: Metric rule define the metric identifier and target
                       properties:
-                        metric:
-                          description: Metric identifies the target metric by name
-                            and selector
+                        name:
+                          description: Name is the name of the given metric
+                          type: string
+                        selector:
+                          description: Selector is the selector for the given metric
+                            it is the string-encoded form of a standard kubernetes
+                            label selector
                           properties:
-                            name:
-                              description: Name is the name of the given metric
-                              type: string
-                            selector:
-                              description: Selector is the selector for the given
-                                metric it is the string-encoded form of a standard
-                                kubernetes label selector
-                              properties:
-                                matchExpressions:
-                                  description: matchExpressions is a list of label
-                                    selector requirements. The requirements are ANDed.
-                                  items:
-                                    description: A label selector requirement is a
-                                      selector that contains values, a key, and an
-                                      operator that relates the key and values.
-                                    properties:
-                                      key:
-                                        description: key is the label key that the
-                                          selector applies to.
-                                        type: string
-                                      operator:
-                                        description: operator represents a key's relationship
-                                          to a set of values. Valid operators are
-                                          In, NotIn, Exists and DoesNotExist.
-                                        type: string
-                                      values:
-                                        description: values is an array of string
-                                          values. If the operator is In or NotIn,
-                                          the values array must be non-empty. If the
-                                          operator is Exists or DoesNotExist, the
-                                          values array must be empty. This array is
-                                          replaced during a strategic merge patch.
-                                        items:
-                                          type: string
-                                        type: array
-                                    required:
-                                    - key
-                                    - operator
-                                    type: object
-                                  type: array
-                                matchLabels:
-                                  additionalProperties:
+                            matchExpressions:
+                              description: matchExpressions is a list of label selector
+                                requirements. The requirements are ANDed.
+                              items:
+                                description: A label selector requirement is a selector
+                                  that contains values, a key, and an operator that
+                                  relates the key and values.
+                                properties:
+                                  key:
+                                    description: key is the label key that the selector
+                                      applies to.
                                     type: string
-                                  description: matchLabels is a map of {key,value}
-                                    pairs. A single {key,value} in the matchLabels
-                                    map is equivalent to an element of matchExpressions,
-                                    whose key field is "key", the operator is "In",
-                                    and the values array contains only "value". The
-                                    requirements are ANDed.
-                                  type: object
+                                  operator:
+                                    description: operator represents a key's relationship
+                                      to a set of values. Valid operators are In,
+                                      NotIn, Exists and DoesNotExist.
+                                    type: string
+                                  values:
+                                    description: values is an array of string values.
+                                      If the operator is In or NotIn, the values array
+                                      must be non-empty. If the operator is Exists
+                                      or DoesNotExist, the values array must be empty.
+                                      This array is replaced during a strategic merge
+                                      patch.
+                                    items:
+                                      type: string
+                                    type: array
+                                required:
+                                - key
+                                - operator
+                                type: object
+                              type: array
+                            matchLabels:
+                              additionalProperties:
+                                type: string
+                              description: matchLabels is a map of {key,value} pairs.
+                                A single {key,value} in the matchLabels map is equivalent
+                                to an element of matchExpressions, whose key field
+                                is "key", the operator is "In", and the values array
+                                contains only "value". The requirements are ANDed.
                               type: object
-                          required:
-                          - name
                           type: object
-                        target:
-                          description: Target specifies the target value for the given
-                            metric
-                          properties:
-                            type:
-                              description: Type represents whether the metric type
-                                is Value and Utilization
-                              type: string
-                            utilization:
-                              description: Utilization is the target value of a percentage
-                                of the resource for pods.
-                              format: int32
-                              type: integer
-                            value:
-                              anyOf:
-                              - type: integer
-                              - type: string
-                              description: Value is the target value of the metric
-                                (as a quantity).
-                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                              x-kubernetes-int-or-string: true
-                          required:
-                          - type
-                          type: object
+                        value:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          description: Value is the target value of the metric (as
+                            a quantity).
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
                       required:
-                      - metric
-                      - target
+                      - name
                       type: object
                     name:
                       description: Name of the objective ensurance
                       type: string
-                    reachedThreshold:
-                      description: How many times the rule is reach, to trigger action,
-                        default is 1
-                      format: int32
-                      type: integer
-                    restoredThreshold:
+                    restoreThreshold:
+                      default: 1
                       description: How many times the rule can restore, default is
                         1
                       format: int32
                       type: integer
+                    strategy:
+                      default: None
+                      description: Action only preview, not to do the real action
+                        the default AvoidanceActionStrategy is None.
+                      enum:
+                      - None
+                      - Preview
+                      type: string
                   required:
                   - actionName
                   type: object

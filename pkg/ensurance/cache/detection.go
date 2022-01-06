@@ -13,8 +13,8 @@ import (
 type DetectionCondition struct {
 	// the Objective Ensurance name
 	ObjectiveEnsuranceName string
-	// only dryRun
-	DryRun bool
+	// strategy for the action
+	Strategy ensuranceapi.AvoidanceActionStrategy
 	// if the policy triggered action
 	Triggered bool
 	// if the policy triggered restored action

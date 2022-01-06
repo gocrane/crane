@@ -4,6 +4,8 @@ import (
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
+
+	"github.com/gocrane/crane/pkg/utils"
 )
 
 type CollectType string
@@ -21,13 +23,7 @@ const (
 )
 
 const (
-	CgroupKubePods  = "/kubepods"
-	CgroupPodPrefix = "pod"
-)
-
-const (
 	NodeLocalCollectorType CollectType = "node-local"
-	CadvisorCollectorType  CollectType = "cadvisor"
 )
 
 type MetricNameConfig struct {
@@ -52,15 +48,15 @@ type CgroupRef struct {
 }
 
 func (c *CgroupRef) GetCgroupPath() string {
-	var pathArrays = []string{CgroupKubePods}
+	var pathArrays = []string{utils.CgroupKubePods}
 
 	switch c.PodQOSClass {
 	case v1.PodQOSGuaranteed:
-		pathArrays = append(pathArrays, CgroupPodPrefix+c.PodUid)
+		pathArrays = append(pathArrays, utils.CgroupPodPrefix+c.PodUid)
 	case v1.PodQOSBurstable:
-		pathArrays = append(pathArrays, strings.ToLower(string(v1.PodQOSBurstable)), CgroupPodPrefix+c.PodUid)
+		pathArrays = append(pathArrays, strings.ToLower(string(v1.PodQOSBurstable)), utils.CgroupPodPrefix+c.PodUid)
 	case v1.PodQOSBestEffort:
-		pathArrays = append(pathArrays, strings.ToLower(string(v1.PodQOSBestEffort)), CgroupPodPrefix+c.PodUid)
+		pathArrays = append(pathArrays, strings.ToLower(string(v1.PodQOSBestEffort)), utils.CgroupPodPrefix+c.PodUid)
 	default:
 		return ""
 	}

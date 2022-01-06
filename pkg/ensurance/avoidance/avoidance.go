@@ -80,7 +80,9 @@ func (a *AvoidanceManager) Run(stop <-chan struct{}) {
 			case <-stop:
 				{
 					klog.Infof("Avoidance exit")
-					cgrpc.CloseGrpcConnection(a.runtimeConn)
+					if err := cgrpc.CloseGrpcConnection(a.runtimeConn); err != nil {
+						klog.Errorf("Failed to close grpc connection: %v", err)
+					}
 					return
 				}
 			}

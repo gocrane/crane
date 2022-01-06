@@ -9,7 +9,6 @@ import (
 	"k8s.io/klog/v2"
 
 	cruntime "github.com/gocrane/crane/pkg/ensurance/runtime"
-	"github.com/gocrane/crane/pkg/log"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
@@ -91,16 +90,12 @@ func (t *ThrottleExecutor) Avoid(ctx *ExecuteContext) error {
 
 	for _, throttlePod := range t.ThrottleDownPods {
 
-		log.Logger().V(2).Info(fmt.Sprintf("throttlePod %+v", throttlePod))
-
 		pod, err := ctx.PodLister.Pods(throttlePod.PodTypes.Namespace).Get(throttlePod.PodTypes.Name)
 		if err != nil {
 			bSucceed = false
-			errPodKeys = append(errPodKeys, "not found ", throttlePod.PodTypes.String())
+			errPodKeys = append(errPodKeys, fmt.Sprintf("pod %s not found", throttlePod.PodTypes.String()))
 			continue
 		}
-
-		log.Logger().V(2).Info(fmt.Sprintf("ThrottleExecutor1 avoid pod %s", log.GenerateObj(pod)))
 
 		for _, v := range throttlePod.ContainerCPUUsages {
 			// pause container to skip
@@ -108,17 +103,14 @@ func (t *ThrottleExecutor) Avoid(ctx *ExecuteContext) error {
 				continue
 			}
 
-			log.Logger().V(2).Info(fmt.Sprintf("ThrottleExecutor avoid pod %s, container %s.", log.GenerateObj(pod), v.ContainerName))
+			klog.V(4).Infof("ThrottleExecutor1 avoid container %s/%s", klog.KObj(pod), v.ContainerName)
 
-			log.Logger().Info("aaaaaa")
 			containerCPUQuota, err := GetUsageById(throttlePod.ContainerCPUQuotas, v.ContainerId)
 			if err != nil {
 				bSucceed = false
 				errPodKeys = append(errPodKeys, err.Error(), throttlePod.PodTypes.String())
 				continue
 			}
-
-			log.Logger().Info("bbbbbbb")
 
 			containerCPUPeriod, err := GetUsageById(throttlePod.ContainerCPUPeriods, v.ContainerId)
 			if err != nil {
@@ -127,17 +119,12 @@ func (t *ThrottleExecutor) Avoid(ctx *ExecuteContext) error {
 				continue
 			}
 
-			log.Logger().Info("ccccccc")
-
 			container, err := utils.GetPodContainerByName(pod, v.ContainerName)
 			if err != nil {
 				bSucceed = false
 				errPodKeys = append(errPodKeys, err.Error(), throttlePod.PodTypes.String())
 				continue
 			}
-
-			log.Logger().Info(fmt.Sprintf("ddddddd Value: %f, containerCPUPeriod.Value: %f, containerCPUQuota %f", v.Value, containerCPUPeriod.Value,
-				containerCPUQuota.Value))
 
 			var containerCPUQuotaNew float64
 			if utils.AlmostEqual(containerCPUQuota.Value, -1.0) || utils.AlmostEqual(containerCPUQuota.Value, 0.0) {
@@ -146,40 +133,32 @@ func (t *ThrottleExecutor) Avoid(ctx *ExecuteContext) error {
 				containerCPUQuotaNew = containerCPUQuota.Value / containerCPUPeriod.Value * (1.0 - float64(throttlePod.CPUThrottle.StepCPURatio)/100.0)
 			}
 
-			log.Logger().Info(fmt.Sprintf("eeeee1 containerCPUQuotaNew %f",
-				containerCPUQuotaNew))
-
 			if requestCPU, ok := container.Resources.Requests[v1.ResourceCPU]; ok {
-				if float64(requestCPU.Value())/1000.0 > containerCPUQuotaNew {
-					containerCPUQuotaNew = float64(requestCPU.Value()) / 1000.0
+				if float64(requestCPU.MilliValue())/1000.0 > containerCPUQuotaNew {
+					containerCPUQuotaNew = float64(requestCPU.MilliValue()) / 1000.0
 				}
 			}
-
-			log.Logger().Info(fmt.Sprintf("eeeee2 containerCPUQuotaNew %f",
-				containerCPUQuotaNew))
 
 			if limitCPU, ok := container.Resources.Limits[v1.ResourceCPU]; ok {
-				if float64(limitCPU.Value())/1000.0*float64(throttlePod.CPUThrottle.MinCPURatio) > containerCPUQuotaNew {
-					containerCPUQuotaNew = float64(limitCPU.Value()) * float64(throttlePod.CPUThrottle.MinCPURatio) / 1000.0
+				if float64(limitCPU.MilliValue())/1000.0*float64(throttlePod.CPUThrottle.MinCPURatio) > containerCPUQuotaNew {
+					containerCPUQuotaNew = float64(limitCPU.MilliValue()) * float64(throttlePod.CPUThrottle.MinCPURatio) / 1000.0
 				}
 			}
 
-			log.Logger().Info(fmt.Sprintf("ffffffff containerCPUQuotaNew %f, containerCPUQuota.Value %f",
-				containerCPUQuotaNew, containerCPUQuota.Value))
+			klog.V(6).Infof("Prior update container resources containerCPUQuotaNew %.2f, containerCPUQuota.Value %.2f,containerCPUPeriod %.2f",
+				containerCPUQuotaNew, containerCPUQuota.Value, containerCPUPeriod.Value)
 
 			if !utils.AlmostEqual(containerCPUQuotaNew*containerCPUPeriod.Value, containerCPUQuota.Value) {
 				err = cruntime.UpdateContainerResources(ctx.RuntimeClient, v.ContainerId, cruntime.UpdateOptions{CPUQuota: int64(containerCPUQuotaNew * containerCPUPeriod.Value)})
 				if err != nil {
-					klog.Errorf("Failed to updateResource, err %s", err.Error())
-					errPodKeys = append(errPodKeys, fmt.Sprintf("Failed to updateResource, err %s", err.Error()), throttlePod.PodTypes.String())
+					errPodKeys = append(errPodKeys, fmt.Sprintf("failed to updateResource for %s/%s, error: %v", throttlePod.PodTypes.String(), v.ContainerName, err))
 					bSucceed = false
 					continue
 				} else {
-					log.Logger().V(2).Info(fmt.Sprintf("ThrottleExecutor avoid pod %s, container %s, set cpu quota %.2f.",
-						log.GenerateObj(pod), v.ContainerName, containerCPUQuotaNew))
+					klog.V(4).Infof("ThrottleExecutor avoid pod %s, container %s, set cpu quota %.2f.",
+						klog.KObj(pod), v.ContainerName, containerCPUQuotaNew)
 				}
 			}
-
 		}
 	}
 
@@ -203,14 +182,14 @@ func (t *ThrottleExecutor) Restore(ctx *ExecuteContext) error {
 			continue
 		}
 
-		log.Logger().V(4).Info(fmt.Sprintf("ThrottleExecutor restore pod %s", log.GenerateObj(pod)))
-
 		for _, v := range throttlePod.ContainerCPUUsages {
 
 			// pause container to skip
 			if v.ContainerName == "" {
 				continue
 			}
+
+			klog.V(6).Infof("ThrottleExecutor1 restore container %s/%s", klog.KObj(pod), v.ContainerName)
 
 			containerCPUQuota, err := GetUsageById(throttlePod.ContainerCPUQuotas, v.ContainerId)
 			if err != nil {
@@ -241,8 +220,8 @@ func (t *ThrottleExecutor) Restore(ctx *ExecuteContext) error {
 			}
 
 			if limitCPU, ok := container.Resources.Limits[v1.ResourceCPU]; ok {
-				if float64(limitCPU.Value())/1000.0 < containerCPUQuotaNew {
-					containerCPUQuotaNew = float64(limitCPU.Value()) / 1000.0
+				if float64(limitCPU.MilliValue())/1000.0 < containerCPUQuotaNew {
+					containerCPUQuotaNew = float64(limitCPU.MilliValue()) / 1000.0
 				}
 			} else {
 				if containerCPUQuotaNew > MAX_UP_QUOTA*containerCPUPeriod.Value/1000.0 {
@@ -250,12 +229,14 @@ func (t *ThrottleExecutor) Restore(ctx *ExecuteContext) error {
 				}
 			}
 
+			klog.V(6).Infof("Prior update container resources containerCPUQuotaNew %.2f,containerCPUQuota %.2f,containerCPUPeriod %.2f",
+				klog.KObj(pod), containerCPUQuotaNew, containerCPUQuota.Value, containerCPUPeriod.Value)
+
 			if !utils.AlmostEqual(containerCPUQuotaNew*containerCPUPeriod.Value, containerCPUQuota.Value) {
 
 				if utils.AlmostEqual(containerCPUQuotaNew, -1) {
 					err = cruntime.UpdateContainerResources(ctx.RuntimeClient, v.ContainerId, cruntime.UpdateOptions{CPUQuota: int64(-1)})
 					if err != nil {
-						klog.Errorf("Failed to updateResource to no limited, err %s", err.Error())
 						errPodKeys = append(errPodKeys, fmt.Sprintf("Failed to updateResource, err %s", err.Error()), throttlePod.PodTypes.String())
 						bSucceed = false
 						continue
@@ -268,13 +249,14 @@ func (t *ThrottleExecutor) Restore(ctx *ExecuteContext) error {
 						bSucceed = false
 						continue
 					}
+					klog.V(2).Infof("restore kkkkkkkk")
 				}
 			}
 		}
 	}
 
 	if !bSucceed {
-		return fmt.Errorf("some pod throttle failed,err: %s", strings.Join(errPodKeys, ";"))
+		return fmt.Errorf("some pod throttle restore failed,err: %s", strings.Join(errPodKeys, ";"))
 	}
 
 	return nil

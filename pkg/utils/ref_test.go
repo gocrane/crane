@@ -1,8 +1,6 @@
-package nodelocal
+package utils
 
-import (
-	"testing"
-)
+import "testing"
 
 type KeyTest struct {
 	input  string

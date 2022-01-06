@@ -1,3 +1,6 @@
+//go:build linux
+// +build linux
+
 package nodelocal
 
 import (
@@ -6,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gocrane/crane/pkg/common"
 	cmemory "github.com/google/cadvisor/cache/memory"
 	cadvisorcontainer "github.com/google/cadvisor/container"
 	info "github.com/google/cadvisor/info/v1"
@@ -18,8 +20,9 @@ import (
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog/v2"
 
+	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/ensurance/statestore/types"
-	"github.com/gocrane/crane/pkg/log"
+	"github.com/gocrane/crane/pkg/utils"
 )
 
 const (
@@ -47,38 +50,8 @@ type CadvisorCollector struct {
 	MaxHousekeepingConfig cmanager.HouskeepingConfig
 }
 
-func NewCadvisorManager(podLister corelisters.PodLister) (*CadvisorCollector, error) {
-	log.Logger().V(1).Info("NewCadvisorManager")
-
-	var includedMetrics = cadvisorcontainer.MetricSet{
-		cadvisorcontainer.CpuUsageMetrics:         struct{}{},
-		cadvisorcontainer.ProcessSchedulerMetrics: struct{}{},
-	}
-
-	var allowDynamic bool = true
-	var maxHousekeepingInterval time.Duration = 10 * time.Second
-	var memCache = cmemory.New(10*time.Minute, nil)
-	var sysfs = csysfs.NewRealSysFs()
-	var maxHousekeepingConfig = cmanager.HouskeepingConfig{Interval: &maxHousekeepingInterval, AllowDynamic: &allowDynamic}
-
-	m, err := cmanager.New(memCache, sysfs, maxHousekeepingConfig, includedMetrics, http.DefaultClient, []string{""}, "")
-	if err != nil {
-		return nil, fmt.Errorf("cadvisor manager start err: %s", err.Error())
-	}
-
-	c := CadvisorCollector{
-		Manager:     m,
-		podLister:   podLister,
-		cgroupState: make(map[string]CgroupState, 0),
-	}
-
-	c.Manager.Start()
-
-	return &c, nil
-}
-
 func NewCadvisor(podLister corelisters.PodLister) (nodeLocalCollector, error) {
-	log.Logger().V(1).Info("NewCadvisor")
+	klog.V(2).Info("NewCadvisor")
 
 	var includedMetrics = cadvisorcontainer.MetricSet{
 		cadvisorcontainer.CpuUsageMetrics:         struct{}{},
@@ -91,7 +64,7 @@ func NewCadvisor(podLister corelisters.PodLister) (nodeLocalCollector, error) {
 	var sysfs = csysfs.NewRealSysFs()
 	var maxHousekeepingConfig = cmanager.HouskeepingConfig{Interval: &maxHousekeepingInterval, AllowDynamic: &allowDynamic}
 
-	m, err := cmanager.New(memCache, sysfs, maxHousekeepingConfig, includedMetrics, http.DefaultClient, []string{types.CgroupKubePods}, "")
+	m, err := cmanager.New(memCache, sysfs, maxHousekeepingConfig, includedMetrics, http.DefaultClient, []string{utils.CgroupKubePods}, "")
 	if err != nil {
 		return nil, fmt.Errorf("cadvisor manager start err: %s", err.Error())
 	}
@@ -101,7 +74,9 @@ func NewCadvisor(podLister corelisters.PodLister) (nodeLocalCollector, error) {
 		podLister: podLister,
 	}
 
-	c.Manager.Start()
+	if err := c.Manager.Start(); err != nil {
+		return nil, err
+	}
 
 	return &c, nil
 }
@@ -146,10 +121,6 @@ func (c *CadvisorCollector) collect() (map[string][]common.TimeSeries, error) {
 		var ref = GetCgroupRefFromPod(pod)
 		var now = time.Now()
 
-		if pod.Name != "middle" {
-			continue
-		}
-
 		containerInfo, err := c.Manager.GetContainerInfoV2(ref.GetCgroupPath(), cadvisorapiv2.RequestOptions{
 			IdType:    cadvisorapiv2.TypeName,
 			Count:     1,
@@ -162,9 +133,14 @@ func (c *CadvisorCollector) collect() (map[string][]common.TimeSeries, error) {
 		}
 
 		for key, v := range containerInfo {
-			var containerId = GetContainerIdFromKey(key)
+			var containerId = utils.GetContainerIdFromKey(key)
 			var containerName = GetContainerNameFromPod(pod, containerId)
 			var refCopy = ref
+
+			// Filter the pause container
+			if (containerId != "") && (containerName == "") {
+				continue
+			}
 
 			refCopy.ContainerId = containerId
 			refCopy.ContainerName = containerName
@@ -194,7 +170,7 @@ func (c *CadvisorCollector) collect() (map[string][]common.TimeSeries, error) {
 				cpuQuotaTimeSeries = append(cpuQuotaTimeSeries, common.TimeSeries{Labels: label, Samples: []common.Sample{{Value: float64(containerInfoV1.Spec.Cpu.Quota), Timestamp: now.Unix()}}})
 				cpuPeriodTimeSeries = append(cpuPeriodTimeSeries, common.TimeSeries{Labels: label, Samples: []common.Sample{{Value: float64(containerInfoV1.Spec.Cpu.Period), Timestamp: now.Unix()}}})
 
-				klog.Infof("key1 %s, schedRunqueueTime %v", key, schedRunqueueTime)
+				klog.V(4).Infof("Pod: %s, containerName: %s, key %s, scheduler run queue time %.2f", klog.KObj(pod), containerName, key, schedRunqueueTime)
 			}
 
 			cgroupState[key] = CgroupState{stat: v, timestamp: now}
@@ -224,22 +200,6 @@ func GetCgroupRefFromPod(pod *v1.Pod) types.CgroupRef {
 	return ref
 }
 
-func GetContainerIdFromKey(key string) string {
-	subPaths := strings.Split(key, "/")
-
-	if len(subPaths) > 0 {
-		// if the latest sub path is pod-xxx-xxx, we regard as it od path
-		// if not we used the latest sub path as the containerId
-		if strings.HasPrefix(subPaths[len(subPaths)-1], types.CgroupPodPrefix) {
-			return ""
-		} else {
-			return subPaths[len(subPaths)-1]
-		}
-	}
-
-	return ""
-}
-
 func GetContainerNameFromPod(pod *v1.Pod, containerId string) string {
 	if containerId == "" {
 		return ""
@@ -259,10 +219,10 @@ func GetContainerNameFromPod(pod *v1.Pod, containerId string) string {
 
 func GetLabelFromRef(ref *types.CgroupRef) []common.Label {
 	return []common.Label{
-		{Name: "PodName", Value: ref.PodName},
-		{Name: "PodNamespace", Value: ref.PodNamespace},
-		{Name: "PodUid", Value: ref.PodUid},
-		{Name: "ContainerName", Value: ref.ContainerName},
-		{Name: "ContainerId", Value: ref.ContainerId},
+		{Name: common.LabelNamePodName, Value: ref.PodName},
+		{Name: common.LabelNamePodNamespace, Value: ref.PodNamespace},
+		{Name: common.LabelNamePodUid, Value: ref.PodUid},
+		{Name: common.LabelNameContainerName, Value: ref.ContainerName},
+		{Name: common.LabelNameContainerId, Value: ref.ContainerId},
 	}
 }

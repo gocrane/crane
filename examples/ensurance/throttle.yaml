@@ -6,7 +6,7 @@ metadata:
     app: system
 spec:
   coolDownSeconds: 300
-  Throttle:
+  throttle:
     cpuThrottle:
       minCPURatio: 10
       stepCPURatio: 10

@@ -30,5 +30,5 @@ func (o *Options) Validate() error {
 // AddFlags adds flags to the specified FlagSet.
 func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&o.HostnameOverride, "hostname-override", "", "Which is the name of k8s node be used to filtered.")
-	flags.StringVar(&o.RuntimeEndpoint, "runtimeEndpoint", "unix:///var/run/dockershim.sock", "The runtime endpoint, default: unix:///var/run/dockershim.sock.")
+	flags.StringVar(&o.RuntimeEndpoint, "runtime-endpoint", "unix:///var/run/dockershim.sock", "The runtime endpoint, default: unix:///var/run/dockershim.sock.")
 }

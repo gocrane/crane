@@ -5,9 +5,8 @@ import (
 	"math"
 	"time"
 
-	corelisters "k8s.io/client-go/listers/core/v1"
-
 	"github.com/shirou/gopsutil/cpu"
+	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog/v2"
 
 	"github.com/gocrane/crane/pkg/common"

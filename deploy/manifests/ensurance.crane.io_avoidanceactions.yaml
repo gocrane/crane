@@ -35,42 +35,8 @@ spec:
             type: object
           spec:
             properties:
-              Throttle:
-                description: Throttle describes the throttling action
-                properties:
-                  cpuThrottle:
-                    properties:
-                      minCPURatio:
-                        description: 'MinCPURatio is the min of cpu ratio for low
-                          level pods example: the pod limit is 4096, ratio is 10,
-                          the min is 409'
-                        format: int64
-                        type: integer
-                      periodSeconds:
-                        description: PeriodSeconds is the interval seconds for each
-                          throttle action the default PeriodSeconds is 10s
-                        format: int32
-                        type: integer
-                      stepCPURatio:
-                        description: StepCPURatio is the step of cpu share and limit
-                          for once down-size (1-100)
-                        format: int64
-                        type: integer
-                    type: object
-                  memoryThrottle:
-                    properties:
-                      forceGC:
-                        description: ForceGC means force gc page cache for pods with
-                          low priority
-                        type: boolean
-                      periodSeconds:
-                        description: PeriodSeconds is the interval seconds for each
-                          throttle action the default PeriodSeconds is 10s
-                        format: int32
-                        type: integer
-                    type: object
-                type: object
               coolDownSeconds:
+                default: 300
                 description: CoolDownSeconds is the seconds for cool down when do
                   avoidance default is 300s
                 format: int64
@@ -89,6 +55,43 @@ spec:
                       zero indicates delete immediately.
                     format: int32
                     type: integer
+                type: object
+              throttle:
+                description: Throttle describes the throttling action
+                properties:
+                  cpuThrottle:
+                    properties:
+                      minCPURatio:
+                        description: 'MinCPURatio is the min of cpu ratio for low
+                          level pods example: the pod limit is 4096, ratio is 10,
+                          the min is 409'
+                        format: int64
+                        type: integer
+                      periodSeconds:
+                        default: 10
+                        description: PeriodSeconds is the interval seconds for each
+                          throttle action the default PeriodSeconds is 10s
+                        format: int32
+                        type: integer
+                      stepCPURatio:
+                        description: StepCPURatio is the step of cpu share and limit
+                          for once down-size (1-100)
+                        format: int64
+                        type: integer
+                    type: object
+                  memoryThrottle:
+                    properties:
+                      forceGC:
+                        description: ForceGC means force gc page cache for pods with
+                          low priority
+                        type: boolean
+                      periodSeconds:
+                        default: 10
+                        description: PeriodSeconds is the interval seconds for each
+                          throttle action the default PeriodSeconds is 10s
+                        format: int32
+                        type: integer
+                    type: object
                 type: object
             type: object
           status:

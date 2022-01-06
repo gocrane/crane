@@ -12,13 +12,10 @@ spec:
       localCacheTTLSeconds: 60
   objectiveEnsurances:
   - name: "cpu_usage"
-    reachedThreshold: 2
-    restoredThreshold: 2
+    avoidanceThreshold: 2
+    restoreThreshold: 2
     actionName: "evict"
-    dryRun: true
+    strategy: "Preview"
     metricRule:
-      metric:
-        name: "cpu_total_usage"
-      target:
-        type: "Value"
-        value: 6000
+      name: "cpu_total_usage"
+      value: 6000

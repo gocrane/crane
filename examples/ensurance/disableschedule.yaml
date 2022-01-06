@@ -6,4 +6,4 @@ metadata:
   name: disablescheduled
 spec:
   description: disable scheduled
-  coolDownSeconds: 300
+  ##coolDownSeconds: 300

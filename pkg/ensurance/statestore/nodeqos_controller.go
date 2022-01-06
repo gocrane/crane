@@ -76,7 +76,7 @@ func NewController(
 			}
 
 			if reflect.DeepEqual(oldQOS.Spec, newQOS.Spec) {
-				klog.V(4).Infof("No changes happens for spec, skip updating", klog.KObj(oldQOS))
+				klog.V(4).Infof("No changes for %s happens for spec, skip updating", klog.KObj(oldQOS))
 				return
 			}
 
@@ -184,15 +184,9 @@ func (c *Controller) processNextWorkItem() bool {
 // converge the two. It then updates the Status block of the NodeQOS resource
 // with the current status of the resource.
 func (c *Controller) syncHandler(key string) error {
-	// Convert the namespace/name string into a distinct namespace and name
-	namespace, name, err := cache.SplitMetaNamespaceKey(key)
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("invalid resource key: %s", key))
-		return nil
-	}
 
-	// Get the NodeQOS resource with this namespace/name
-	nodeQOS, err := c.nodeQOSLister.NodeQOSEnsurancePolicies(namespace).Get(name)
+	// Get the NodeQOS resource with this key
+	nodeQOS, err := c.nodeQOSLister.Get(key)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			utilruntime.HandleError(fmt.Errorf("NodeQOSEnsurance '%s' in work queue no longer exists", key))

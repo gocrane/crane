@@ -2,6 +2,14 @@ package common
 
 import "fmt"
 
+const (
+	LabelNamePodName       = "PodName"
+	LabelNamePodNamespace  = "PodNamespace"
+	LabelNamePodUid        = "PodUid"
+	LabelNameContainerName = "ContainerName"
+	LabelNameContainerId   = "ContainerId"
+)
+
 // TimeSeries is a stream of samples that belong to a metric with a set of labels
 type TimeSeries struct {
 	// A collection of Labels that are attached by monitoring system as metadata
@@ -89,4 +97,14 @@ func Labels2Maps(labels []Label) map[string]string {
 	}
 
 	return maps
+}
+
+func GetValueByName(labels []Label, name string) string {
+	for _, v := range labels {
+		if v.Name == name {
+			return v.Value
+		}
+	}
+
+	return ""
 }
