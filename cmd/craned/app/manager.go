@@ -249,24 +249,24 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 		}).SetupWithManager(mgr); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "AnalyticsController")
 		}
-	}
 
-	configSet, err := recommend.LoadConfigSetFromFile(opts.RecommendationConfigFile)
-	if err != nil {
-		klog.Errorf("Failed to load recommendation config file: %v", err)
-		os.Exit(1)
-	}
-	if err := (&recommendation.Controller{
-		Client:      mgr.GetClient(),
-		ConfigSet:   configSet,
-		Scheme:      mgr.GetScheme(),
-		RestMapper:  mgr.GetRESTMapper(),
-		Recorder:    mgr.GetEventRecorderFor("recommendation-controller"),
-		ScaleClient: scaleClient,
-		Predictors:  predictors,
-		Provider:    dataSource,
-	}).SetupWithManager(mgr); err != nil {
-		klog.Exit(err, "unable to create controller", "controller", "RecommendationController")
+		configSet, err := recommend.LoadConfigSetFromFile(opts.RecommendationConfigFile)
+		if err != nil {
+			klog.Errorf("Failed to load recommendation config file: %v", err)
+			os.Exit(1)
+		}
+		if err := (&recommendation.Controller{
+			Client:      mgr.GetClient(),
+			ConfigSet:   configSet,
+			Scheme:      mgr.GetScheme(),
+			RestMapper:  mgr.GetRESTMapper(),
+			Recorder:    mgr.GetEventRecorderFor("recommendation-controller"),
+			ScaleClient: scaleClient,
+			Predictors:  predictors,
+			Provider:    dataSource,
+		}).SetupWithManager(mgr); err != nil {
+			klog.Exit(err, "unable to create controller", "controller", "RecommendationController")
+		}
 	}
 
 	// NodeResourceController
