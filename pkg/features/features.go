@@ -10,6 +10,9 @@ const (
 	// CraneAutoscaling enables the autoscaling features for workloads.
 	CraneAutoscaling featuregate.Feature = "Autoscaling"
 
+	// CraneAnalysis enables analysis features, including analytics and recommendation.
+	CraneAnalysis featuregate.Feature = "Analysis"
+
 	// CraneNodeResource enables the node resource features.
 	CraneNodeResource featuregate.Feature = "NodeResource"
 
@@ -19,6 +22,7 @@ const (
 
 var defaultFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	CraneAutoscaling:           {Default: true, PreRelease: featuregate.Alpha},
+	CraneAnalysis:              {Default: true, PreRelease: featuregate.Alpha},
 	CraneNodeResource:          {Default: false, PreRelease: featuregate.Alpha},
 	CraneClusterNodePrediction: {Default: false, PreRelease: featuregate.Alpha},
 }

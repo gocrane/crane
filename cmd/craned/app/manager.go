@@ -8,8 +8,6 @@ import (
 	"strings"
 
 	"github.com/gocrane/crane/pkg/recommend"
-	"k8s.io/klog/v2"
-
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -18,6 +16,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/scale"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
@@ -144,6 +143,7 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 	autoscaling := utilfeature.DefaultFeatureGate.Enabled(features.CraneAutoscaling)
 	nodeResource := utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResource)
 	clusterNodePrediction := utilfeature.DefaultFeatureGate.Enabled(features.CraneClusterNodePrediction)
+	analysis := utilfeature.DefaultMutableFeatureGate.Enabled(features.CraneAnalysis)
 	// todo: add more features
 
 	discoveryClientSet, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
@@ -239,32 +239,34 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 		klog.Exit(err, "unable to create controller", "controller", "TspController")
 	}
 
-	if err := (&analytics.Controller{
-		Client:     mgr.GetClient(),
-		Logger:     log.Logger().WithName("analytics-controller"),
-		Scheme:     mgr.GetScheme(),
-		RestMapper: mgr.GetRESTMapper(),
-		Recorder:   mgr.GetEventRecorderFor("analytics-controller"),
-	}).SetupWithManager(mgr); err != nil {
-		klog.Exit(err, "unable to create controller", "controller", "AnalyticsController")
-	}
+	if analysis {
+		if err := (&analytics.Controller{
+			Client:     mgr.GetClient(),
+			Logger:     log.Logger().WithName("analytics-controller"),
+			Scheme:     mgr.GetScheme(),
+			RestMapper: mgr.GetRESTMapper(),
+			Recorder:   mgr.GetEventRecorderFor("analytics-controller"),
+		}).SetupWithManager(mgr); err != nil {
+			klog.Exit(err, "unable to create controller", "controller", "AnalyticsController")
+		}
 
-	configSet, err := recommend.LoadConfigSetFromFile(opts.RecommendationConfigFile)
-	if err != nil {
-		klog.Errorf("Failed to load recommendation config file: %v", err)
-		os.Exit(1)
-	}
-	if err := (&recommendation.Controller{
-		Client:      mgr.GetClient(),
-		ConfigSet:   configSet,
-		Scheme:      mgr.GetScheme(),
-		RestMapper:  mgr.GetRESTMapper(),
-		Recorder:    mgr.GetEventRecorderFor("recommendation-controller"),
-		ScaleClient: scaleClient,
-		Predictors:  predictors,
-		Provider:    dataSource,
-	}).SetupWithManager(mgr); err != nil {
-		klog.Exit(err, "unable to create controller", "controller", "RecommendationController")
+		configSet, err := recommend.LoadConfigSetFromFile(opts.RecommendationConfigFile)
+		if err != nil {
+			klog.Errorf("Failed to load recommendation config file: %v", err)
+			os.Exit(1)
+		}
+		if err := (&recommendation.Controller{
+			Client:      mgr.GetClient(),
+			ConfigSet:   configSet,
+			Scheme:      mgr.GetScheme(),
+			RestMapper:  mgr.GetRESTMapper(),
+			Recorder:    mgr.GetEventRecorderFor("recommendation-controller"),
+			ScaleClient: scaleClient,
+			Predictors:  predictors,
+			Provider:    dataSource,
+		}).SetupWithManager(mgr); err != nil {
+			klog.Exit(err, "unable to create controller", "controller", "RecommendationController")
+		}
 	}
 
 	// NodeResourceController
