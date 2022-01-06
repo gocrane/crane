@@ -50,7 +50,7 @@ func NewController(
 
 // Reconcile
 func (tc *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	tc.Logger.Info("Got a time series prediction res", "tsp", req.NamespacedName)
+	tc.Logger.V(4).Info("Got a time series prediction res", "tsp", req.NamespacedName)
 
 	p := &predictionv1alph1.TimeSeriesPrediction{}
 

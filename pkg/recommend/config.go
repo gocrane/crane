@@ -37,7 +37,7 @@ func loadConfigSetFromBytes(configSetBytes []byte) (*analysisv1alpha1.ConfigSet,
 	if err != nil {
 		return nil, fmt.Errorf("failed decoding: %v", err)
 	}
-	klog.Info("Loaded gvk :%s", gvk)
+	klog.V(4).Infof("Loaded gvk :%s", gvk)
 
 	klog.V(4).Info("Load recommendation config set successfully.")
 	return configSet, nil
@@ -61,7 +61,7 @@ func GetProperties(configSet *analysisv1alpha1.ConfigSet, dst analysisv1alpha1.T
 		}
 	}
 	bytes, _ := json.Marshal(dst)
-	klog.Infof("Got properties %v for target %s", selectedProps, string(bytes))
+	klog.V(4).Infof("Got properties %v for target %s", selectedProps, string(bytes))
 	return selectedProps
 }
 

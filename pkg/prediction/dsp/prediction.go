@@ -174,6 +174,8 @@ func (p *periodicSignalPrediction) updateAggregateSignalsWithQuery(queryExpr str
 		return err
 	}
 
+	logger.V(4).Info(fmt.Sprintf("Dsp update aggregate signals with query %s, result list length %d", queryExpr, len(tsList)))
+
 	cfg := getInternalConfig(queryExpr)
 
 	p.updateAggregateSignals(queryExpr, tsList, cfg)
@@ -206,22 +208,22 @@ func (p *periodicSignalPrediction) updateAggregateSignals(id string, tsList []*c
 	var predictedTimeSeriesList []*common.TimeSeries
 
 	for _, ts := range tsList {
-		logger.V(9).Info("Dsp get time series.", "queryExpr", id, "tsSamples", ts.Samples, "tsLabels", ts.Labels)
+		logger.V(4).Info("Dsp get time series.", "queryExpr", id, "tsSamples", ts.Samples, "tsLabels", ts.Labels)
 		var chosenEstimator Estimator
 		var signal *Signal
 		var nCycles int
 		var cycleDuration time.Duration = 0
 		if isPeriodicTimeSeries(ts, config.historyResolution, Hour) {
 			cycleDuration = Hour
-			logger.Info("dsp time series is periodic.", "labels", ts.Labels, "cycleDuration", cycleDuration)
+			logger.V(4).Info("Dsp time series is periodic.", "queryExpr", id, "labels", ts.Labels, "cycleDuration", cycleDuration)
 		} else if isPeriodicTimeSeries(ts, config.historyResolution, Day) {
 			cycleDuration = Day
-			logger.Info("dsp time series is periodic.", "labels", ts.Labels, "cycleDuration", cycleDuration)
+			logger.V(4).Info("Dsp time series is periodic.", "queryExpr", id, "labels", ts.Labels, "cycleDuration", cycleDuration)
 		} else if isPeriodicTimeSeries(ts, config.historyResolution, Week) {
 			cycleDuration = Week
-			logger.Info("dsp time series is periodic.", "labels", ts.Labels, "cycleDuration", cycleDuration)
+			logger.V(4).Info("Dsp time series is periodic.", "queryExpr", id, "labels", ts.Labels, "cycleDuration", cycleDuration)
 		} else {
-			logger.Info("dsp time series is not periodic", "labels", ts.Labels)
+			logger.V(4).Info("Dsp time series is not periodic", "queryExpr", id, "labels", ts.Labels)
 		}
 
 		if cycleDuration > 0 {

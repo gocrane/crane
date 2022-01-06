@@ -17,54 +17,34 @@ limitations under the License.
 package webhooks
 
 import (
-	"context"
-
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/gocrane/api/prediction/v1alpha1"
+	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
+	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/log"
+	"github.com/gocrane/crane/pkg/webhooks/prediction"
+	"github.com/gocrane/crane/pkg/webhooks/recommendation"
 )
 
 func SetupWebhookWithManager(mgr ctrl.Manager) error {
-	predAdmission := PredictionAdmission{}
+	tspValidationAdmission := prediction.ValidationAdmission{}
 	err := ctrl.NewWebhookManagedBy(mgr).
-		For(&v1alpha1.TimeSeriesPrediction{}).
-		WithDefaulter(&predAdmission).
-		WithValidator(&predAdmission).
+		For(&predictionapi.TimeSeriesPrediction{}).
+		WithValidator(&tspValidationAdmission).
 		Complete()
 	if err != nil {
-		log.Logger().V(2).Info("Failed to setup webhook", err)
+		log.Logger().Info("Failed to setup tsp webhook", err)
 	}
+
+	recomendValidationAdmission := recommendation.ValidationAdmission{}
+	err = ctrl.NewWebhookManagedBy(mgr).
+		For(&analysisapi.Recommendation{}).
+		WithValidator(&recomendValidationAdmission).
+		Complete()
+	if err != nil {
+		log.Logger().Info("Failed to setup recommendation webhook", err)
+	}
+
 	return err
-}
-
-type PredictionAdmission struct {
-}
-
-// Default implements webhook.Defaulter so a webhook will be registered for the type
-func (p *PredictionAdmission) Default(ctx context.Context, req runtime.Object) error {
-	log.Logger().Info("default", "name", req)
-	return nil
-}
-
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (p *PredictionAdmission) ValidateCreate(ctx context.Context, req runtime.Object) error {
-	log.Logger().Info("validate create", "name", req)
-	return nil
-}
-
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (p *PredictionAdmission) ValidateUpdate(ctx context.Context, old, new runtime.Object) error {
-	log.Logger().Info("validate update", "name", new)
-
-	return nil
-}
-
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (p *PredictionAdmission) ValidateDelete(ctx context.Context, req runtime.Object) error {
-	log.Logger().Info("validate delete", "name", req)
-
-	return nil
 }

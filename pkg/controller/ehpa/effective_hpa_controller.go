@@ -20,6 +20,7 @@ import (
 
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
+
 	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/utils"
 )
@@ -52,6 +53,13 @@ func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedGetScale", err.Error())
 		klog.Errorf("Failed to get scale, ehpa %s", klog.KObj(ehpa))
 		setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedGetScale", "Failed to get scale")
+		c.UpdateStatus(ctx, ehpa, newStatus)
+		return ctrl.Result{}, err
+	}
+
+	if scale.Spec.Replicas == 0 && *ehpa.Spec.MinReplicas != 0 {
+		newStatus.CurrentReplicas = &scale.Spec.Replicas
+		setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "ScalingDisabled", "scaling is disabled since the replica count of the target is zero")
 		c.UpdateStatus(ctx, ehpa, newStatus)
 		return ctrl.Result{}, err
 	}
@@ -121,8 +129,10 @@ func (c *EffectiveHPAController) UpdateStatus(ctx context.Context, ehpa *autosca
 	if !equality.Semantic.DeepEqual(&ehpa.Status, newStatus) {
 		klog.V(4).Infof("EffectiveHorizontalPodAutoscaler status should be updated, currentStatus %v newStatus %v", &ehpa.Status, newStatus)
 
+		// use patch to avoid conflict errors
+		patch := client.MergeFrom(ehpa)
 		ehpa.Status = *newStatus
-		err := c.Status().Update(ctx, ehpa)
+		err := c.Patch(ctx, ehpa, patch)
 		if err != nil {
 			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedUpdateStatus", err.Error())
 			klog.Errorf("Failed to update status, ehpa %s error %v", klog.KObj(ehpa), err)

@@ -18,6 +18,10 @@ import (
 	"github.com/gocrane/crane/pkg/utils"
 )
 
+const (
+	RsyncPeriod = 15 * time.Second
+)
+
 // SubstituteController is responsible for sync labelSelector to Substitute
 type SubstituteController struct {
 	client.Client
@@ -68,7 +72,7 @@ func (c *SubstituteController) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Rsync every 15 seconds
 	return ctrl.Result{
-		RequeueAfter: time.Second * 15,
+		RequeueAfter: RsyncPeriod,
 	}, nil
 }
 

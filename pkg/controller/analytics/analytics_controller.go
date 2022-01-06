@@ -71,6 +71,10 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 	}
 
+	if a.Spec.CompletionStrategy.CompletionStrategyType == analysisv1alph1.CompletionStrategyOnce && a.Status.LastSuccessfulTime != nil {
+		return ctrl.Result{}, err
+	}
+
 	identities := map[string]ObjectIdentity{}
 
 	for _, rs := range a.Spec.ResourceSelectors {
@@ -260,6 +264,9 @@ func (ac *Controller) createRecommendation(ctx context.Context, a *analysisv1alp
 			TargetRef:          corev1.ObjectReference{Kind: id.Kind, APIVersion: id.APIVersion, Namespace: id.Namespace, Name: id.Name},
 			Type:               a.Spec.Type,
 			CompletionStrategy: a.Spec.CompletionStrategy,
+		},
+		Status: analysisv1alph1.RecommendationStatus{
+			LastUpdateTime: metav1.Now(),
 		},
 	}
 
