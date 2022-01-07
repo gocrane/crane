@@ -30,7 +30,7 @@ import (
 	"github.com/gocrane/crane/pkg/controller/ehpa"
 	"github.com/gocrane/crane/pkg/controller/noderesource"
 	"github.com/gocrane/crane/pkg/controller/recommendation"
-	"github.com/gocrane/crane/pkg/controller/tsp"
+	"github.com/gocrane/crane/pkg/controller/timeseriesprediction"
 	"github.com/gocrane/crane/pkg/features"
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/log"
@@ -145,6 +145,7 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 	clusterNodePrediction := utilfeature.DefaultFeatureGate.Enabled(features.CraneClusterNodePrediction)
 	analysis := utilfeature.DefaultMutableFeatureGate.Enabled(features.CraneAnalysis)
 	// todo: add more features
+	timeseriespredict := utilfeature.DefaultFeatureGate.Enabled(features.CraneTimeSeriesPrediction)
 
 	discoveryClientSet, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
 	if err != nil {
@@ -190,7 +191,6 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 		}
 	}
 
-	// TspController
 	var dataSource providers.Interface
 	switch strings.ToLower(opts.DataSource) {
 	case "prometheus", "prom":
@@ -228,15 +228,18 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 		predictionapi.AlgorithmTypeDSP:        dspPredictor,
 	}
 
-	tspController := tsp.NewController(
-		mgr.GetClient(),
-		log.Logger().WithName("time-series-prediction-controller"),
-		mgr.GetEventRecorderFor("time-series-prediction-controller"),
-		opts.PredictionUpdateFrequency,
-		predictors,
-	)
-	if err := tspController.SetupWithManager(mgr); err != nil {
-		klog.Exit(err, "unable to create controller", "controller", "TspController")
+	// TspController
+	if timeseriespredict {
+		tspController := timeseriesprediction.NewController(
+			mgr.GetClient(),
+			mgr.GetEventRecorderFor("time-series-prediction-controller"),
+			opts.PredictionUpdateFrequency,
+			predictors,
+		)
+		if err := tspController.SetupWithManager(mgr); err != nil {
+			klog.Exit(err, "unable to create controller", "controller", "TspController")
+		}
+
 	}
 
 	if analysis {

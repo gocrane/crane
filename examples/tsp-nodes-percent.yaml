@@ -10,8 +10,8 @@ spec:
   predictionWindowSeconds: 600
   predictionMetrics:
     - resourceIdentifier: nodes-cpu
-      type: RawQuery
-      rawQuery:
+      type: ExpressionQuery
+      expressionQuery:
         expression: '1-avg(rate(node_cpu_seconds_total{mode="idle"}[1m])) by (instance)'
       algorithm:
         algorithmType: "percentile"
@@ -26,8 +26,8 @@ spec:
             firstBucketSize: "40"
             bucketSizeGrowthRatio: "1.5"
     - resourceIdentifier: nodes-mem
-      type: RawQuery
-      rawQuery:
+      type: ExpressionQuery
+      expressionQuery:
         expression: 'sum(node_memory_MemTotal_bytes{} - node_memory_MemAvailable_bytes{}) by (instance)'
       algorithm:
         algorithmType: "percentile"
