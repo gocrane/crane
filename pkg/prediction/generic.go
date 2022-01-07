@@ -80,6 +80,4 @@ func AggregateSignalKey(id string, labels []common.Label) string {
 	}
 	sort.Strings(labelSet)
 	return id + "#" + strings.Join(labelSet, ",")
-	// todo: because input query expression no labels, But the prom query will return all the labels of the metric when it is an, then store key and get key is not consistent.
-	//return id
 }

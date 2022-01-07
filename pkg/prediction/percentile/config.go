@@ -7,8 +7,10 @@ import (
 	"time"
 
 	vpa "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/recommender/util"
+	"k8s.io/klog/v2"
 
 	"github.com/gocrane/api/prediction/v1alpha1"
+
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/utils"
 )
@@ -137,7 +139,7 @@ func makeInternalConfig(p *v1alpha1.Percentile) (*internalConfig, error) {
 		marginFraction:         marginFraction,
 		percentile:             percentile,
 	}
-	logger.Info("Made an internal config", "internalConfig", c)
+	klog.InfoS("Made an internal config.", "internalConfig", c)
 
 	return c, nil
 }
@@ -148,7 +150,7 @@ func getInternalConfig(queryExpr string) *internalConfig {
 
 	config, exits := queryToInternalConfigMap[queryExpr]
 	if !exits {
-		logger.Info("Percentile internal config not found, using the default one.", "queryExpr", queryExpr)
+		klog.InfoS("Percentile internal config not found, using the default one.", "queryExpr", queryExpr)
 		queryToInternalConfigMap[queryExpr] = &defaultInternalConfig
 		return queryToInternalConfigMap[queryExpr]
 	}
@@ -172,7 +174,7 @@ func init() {
 
 			internalCfg, err := makeInternalConfig(cfg.Percentile)
 			if err != nil {
-				logger.Error(err, "Failed to create interval config.")
+				klog.ErrorS(err, "Failed to create interval config.")
 				continue
 			}
 
