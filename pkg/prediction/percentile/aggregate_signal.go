@@ -5,11 +5,7 @@ import (
 	"time"
 
 	vpa "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/recommender/util"
-
-	"github.com/gocrane/crane/pkg/log"
 )
-
-var logger = log.NewLogger("percentile-predictor")
 
 type aggregateSignal struct {
 	histogram         vpa.Histogram
