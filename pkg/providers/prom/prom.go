@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"time"
 
+	"k8s.io/klog/v2"
+
 	"github.com/gocrane/crane/pkg/providers"
 
 	prometheus "github.com/prometheus/client_golang/api"
@@ -52,12 +54,12 @@ func (c *context) QueryRangeSync(ctx gocontext.Context, query string, start, end
 	}
 	results, warnings, err := c.api.QueryRange(ctx, query, r)
 	if len(warnings) != 0 {
-		logger.Info("prom query range warnings", "warnings", warnings)
+		klog.InfoS("prom query range warnings", "warnings", warnings)
 	}
 	if err != nil {
 		return ts, err
 	}
-	logger.V(10).Info("prom query range result", "result", results.String(), "resultsType", results.Type())
+	klog.V(10).InfoS("prom query range result", "result", results.String(), "resultsType", results.Type())
 	return c.convertPromResultsToTimeSeries(results)
 }
 
@@ -66,12 +68,12 @@ func (c *context) QuerySync(ctx gocontext.Context, query string) ([]*common.Time
 	var ts []*common.TimeSeries
 	results, warnings, err := c.api.Query(ctx, query, time.Now())
 	if len(warnings) != 0 {
-		logger.Info("prom query warnings", "warnings", warnings)
+		klog.InfoS("prom query warnings", "warnings", warnings)
 	}
 	if err != nil {
 		return ts, err
 	}
-	logger.V(10).Info("prom query result", "result", results.String(), "resultsType", results.Type())
+	klog.V(10).InfoS("prom query result", "result", results.String(), "resultsType", results.Type())
 	return c.convertPromResultsToTimeSeries(results)
 
 }
