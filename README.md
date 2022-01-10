@@ -59,6 +59,17 @@ Two Recommendations are currently supported:
 - **Effective HPARecommend**: Recommend which workloads are suitable for autoscaling and provide optimized configurations such as minReplicas, maxReplicas.
 
 ### QoS Ensurance
+Qos ensurance was used to protect the  high level service's quality not be effected. It detects the load of the node and the service metrics in real time.
+When found the high level service be effected, we will throttle or evict low level service's pods to ensurance the high level service as far as possible.
+
+Supported detected source:
+- **NodeLocal**: node resource metrics
+- **ApplicationMetrics**: application metrics (planning)
+
+Supported actions:
+- **Disable Schedule**: disable schedule by set taint and condition
+- **Throttle**: throttle the low level service's pods
+- **Evict**: evict the low level service' pods
 
 ## Repositories
 
