@@ -17,12 +17,12 @@ limitations under the License.
 package webhooks
 
 import (
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
-	"github.com/gocrane/crane/pkg/log"
 	"github.com/gocrane/crane/pkg/webhooks/prediction"
 	"github.com/gocrane/crane/pkg/webhooks/recommendation"
 )
@@ -34,7 +34,7 @@ func SetupWebhookWithManager(mgr ctrl.Manager) error {
 		WithValidator(&tspValidationAdmission).
 		Complete()
 	if err != nil {
-		log.Logger().Info("Failed to setup tsp webhook", err)
+		klog.Errorf("Failed to setup tsp webhook: %v", err)
 	}
 
 	recomendValidationAdmission := recommendation.ValidationAdmission{}
@@ -43,7 +43,7 @@ func SetupWebhookWithManager(mgr ctrl.Manager) error {
 		WithValidator(&recomendValidationAdmission).
 		Complete()
 	if err != nil {
-		log.Logger().Info("Failed to setup recommendation webhook", err)
+		klog.Errorf("Failed to setup recommendation webhook: %v", err)
 	}
 
 	return err

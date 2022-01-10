@@ -20,7 +20,7 @@ spec:
     name: php-apache
   minReplicas: 1        # MinReplicas is the lower limit replicas to the scale target which the autoscaler can scale down to.
   maxReplicas: 10       # MaxReplicas is the upper limit replicas to the scale target which the autoscaler can scale up to.
-  scaleStrategy: Auto   # ScaleStrategy indicate the strategy to scaling target, value can be "Auto" and "Manual".
+  scaleStrategy: Auto   # ScaleStrategy indicate the strategy to scaling target, value can be "Auto" and "Preview".
   # Metrics contains the specifications for which to use to calculate the desired replica count.
   metrics:
   - type: Resource
@@ -45,7 +45,7 @@ spec:
 * spec.scaleTargetRef defines the reference to the workload that should be scaled.
 * spec.minReplicas is the lower limit replicas to the scale target which the autoscaler can scale down to.
 * spec.maxReplicas is the upper limit replicas to the scale target which the autoscaler can scale up to.
-* spec.metrics indicate the strategy to scaling target, value can be "Auto" and "Manual".
+* spec.metrics indicate the strategy to scaling target, value can be "Auto" and "Preview".
 * spec.metrics contains the specifications for which to use to calculate the desired replica count. Please refer to the details:
 * spec.prediction defines configurations for predict resources.If unspecified, defaults don't enable prediction.
 
@@ -138,22 +138,24 @@ We can see significant improvement with EffectiveHorizontalPodAutoscaler:
 * Fewer replicas changes than HorizontalPodAutoscaler
 
 ### ScaleStrategy
-EffectiveHorizontalPodAutoscaler provides two strategies for scaling: `Auto` and `Manual`. User can change the strategy at runtime, and it will take effect on the fly.
+EffectiveHorizontalPodAutoscaler provides two strategies for scaling: `Auto` and `Preview`. User can change the strategy at runtime, and it will take effect on the fly.
 
 #### Auto
 Auto strategy achieves automatic scaling based on metrics. It is the default strategy. With this strategy, EffectiveHorizontalPodAutoscaler will create and control a HorizontalPodAutoscaler instance in backend. We don't recommend explicit configuration on the underlying HorizontalPodAutoscaler because it will be overridden by EffectiveHPAController. If user delete EffectiveHorizontalPodAutoscaler, HorizontalPodAutoscaler will be cleaned up too.
 
-#### Manual
-Manual strategy means user can specify replicas of target. User can switch from default strategy to this one by applying `spec.scaleStrategy` to `Manual`. It will take effect immediately, During the switch, EffectiveHPAController will disable HorizontalPodAutoscaler if exists and scale the target to the value `spec.specificReplicas`, if user not set `spec.specificReplicas`, when ScaleStrategy is change to Manual, it will just stop scaling.
+#### Preview
+Preview strategy means EffectiveHorizontalPodAutoscaler won't change target's replicas automatically, so you can preview the calculated replicas and control target's replicas by themselves. User can switch from default strategy to this one by applying `spec.scaleStrategy` to `Preview`. It will take effect immediately, During the switch, EffectiveHPAController will disable HorizontalPodAutoscaler if exists and scale the target to the value `spec.specificReplicas`, if user not set `spec.specificReplicas`, when ScaleStrategy is change to Preview, it will just stop scaling.
 
-A sample manual configuration looks like following:
+A sample preview configuration looks like following:
 ```yaml
 apiVersion: autoscaling.crane.io/v1alpha1
 kind: EffectiveHorizontalPodAutoscaler
 spec:
-  scaleStrategy: Auto   # ScaleStrategy indicate the strategy to scaling target, value can be "Auto" and "Manual".
-  specificReplicas: 5   # SpecificReplicas specify the target replicas.
-
+  scaleStrategy: Preview   # ScaleStrategy indicate the strategy to scaling target, value can be "Auto" and "Preview".
+  specificReplicas: 5      # SpecificReplicas specify the target replicas.
+status:
+  expectReplicas: 4        # expectReplicas is the calculated replicas that based on prediction metrics or spec.specificReplicas.
+  currentReplicas: 4       # currentReplicas is actual replicas from target
 ```
 
 ### HorizontalPodAutoscaler compatible

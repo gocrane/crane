@@ -27,7 +27,7 @@ spec:
       serviceAccountName: metric-adapter
       containers:
         - name: metric-adapter
-          image: docker.io/gocrane/metric-adapter
+          image: docker.io/gocrane/metric-adapter:v0.1.0
           imagePullPolicy: IfNotPresent
           args:
             - /metric-adapter

@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"flag"
-	"fmt"
 	"os"
 	"strings"
 
@@ -33,7 +32,6 @@ import (
 	"github.com/gocrane/crane/pkg/controller/timeseriesprediction"
 	"github.com/gocrane/crane/pkg/features"
 	"github.com/gocrane/crane/pkg/known"
-	"github.com/gocrane/crane/pkg/log"
 	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/prediction"
 	"github.com/gocrane/crane/pkg/prediction/dsp"
@@ -105,7 +103,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 	}
 
 	if opts.WebhookConfig.Enabled {
-		initializationWebhooks(mgr, opts)
+		initializationWebhooks(mgr)
 	}
 	initializationControllers(ctx, mgr, opts)
 	klog.Info("Starting crane manager")
@@ -126,9 +124,7 @@ func initializationMetricCollector(mgr ctrl.Manager) {
 	metrics.CustomCollectorRegister(metrics.NewTspMetricCollector(mgr.GetClient()))
 }
 
-func initializationWebhooks(mgr ctrl.Manager, opts *options.Options) {
-	log.Logger().Info(fmt.Sprintf("opts %v", opts))
-
+func initializationWebhooks(mgr ctrl.Manager) {
 	if certDir := os.Getenv("WEBHOOK_CERT_DIR"); len(certDir) > 0 {
 		mgr.GetWebhookServer().CertDir = certDir
 	}
@@ -144,7 +140,6 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 	nodeResource := utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResource)
 	clusterNodePrediction := utilfeature.DefaultFeatureGate.Enabled(features.CraneClusterNodePrediction)
 	analysis := utilfeature.DefaultMutableFeatureGate.Enabled(features.CraneAnalysis)
-	// todo: add more features
 	timeseriespredict := utilfeature.DefaultFeatureGate.Enabled(features.CraneTimeSeriesPrediction)
 
 	discoveryClientSet, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
@@ -245,7 +240,6 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 	if analysis {
 		if err := (&analytics.Controller{
 			Client:     mgr.GetClient(),
-			Logger:     log.Logger().WithName("analytics-controller"),
 			Scheme:     mgr.GetScheme(),
 			RestMapper: mgr.GetRESTMapper(),
 			Recorder:   mgr.GetEventRecorderFor("analytics-controller"),

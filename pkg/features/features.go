@@ -20,7 +20,7 @@ const (
 	CraneClusterNodePrediction featuregate.Feature = "ClusterNodePrediction"
 
 	// CraneTimeSeriesPrediction enables the time series prediction features.
-	CraneTimeSeriesPrediction featuregate.Feature = "CraneTimeSeriesPrediction"
+	CraneTimeSeriesPrediction featuregate.Feature = "TimeSeriesPrediction"
 )
 
 var defaultFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{

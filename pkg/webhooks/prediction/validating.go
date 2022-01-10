@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 )

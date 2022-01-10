@@ -8,16 +8,15 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/klog/v2"
+
 	"github.com/gocrane/crane/pkg/common"
-	"github.com/gocrane/crane/pkg/log"
 	"github.com/gocrane/crane/pkg/providers"
 )
 
 const (
 	ClusterContextName = "cluster"
 )
-
-var logger = log.Logger()
 
 type prom struct {
 	ctx *context
@@ -44,11 +43,11 @@ func (p *prom) GetTimeSeries(metricName string, conditions []common.QueryConditi
 	}
 
 	queryExpr := fmt.Sprintf("%s{%s}", metricName, getQueryConditionStr(conditions))
-	logger.V(5).Info("GetLatestTimeSeries", "queryExpr", queryExpr)
+	klog.V(6).InfoS("GetLatestTimeSeries", "queryExpr", queryExpr)
 
 	timeSeries, err := p.ctx.QueryRangeSync(gocontext.TODO(), queryExpr, startTime, endTime, step)
 	if err != nil {
-		logger.Error(err, "Failed to QueryTimeSeries")
+		klog.Error(err, "Failed to QueryTimeSeries")
 		return []*common.TimeSeries{}, err
 	}
 
@@ -61,11 +60,11 @@ func (p *prom) GetLatestTimeSeries(metricName string, conditions []common.QueryC
 	}
 
 	queryExpr := fmt.Sprintf("%s{%s}", metricName, getQueryConditionStr(conditions))
-	logger.V(5).Info("GetLatestTimeSeries", "queryExpr", queryExpr)
+	klog.V(6).InfoS("GetLatestTimeSeries", "queryExpr", queryExpr)
 
 	timeSeries, err := p.ctx.QuerySync(gocontext.TODO(), queryExpr)
 	if err != nil {
-		logger.Error(err, "Failed to QueryTimeSeries")
+		klog.Error(err, "Failed to QueryTimeSeries")
 		return []*common.TimeSeries{}, err
 	}
 
@@ -75,7 +74,7 @@ func (p *prom) GetLatestTimeSeries(metricName string, conditions []common.QueryC
 func (p *prom) QueryTimeSeries(queryExpr string, startTime time.Time, endTime time.Time, step time.Duration) ([]*common.TimeSeries, error) {
 	timeSeries, err := p.ctx.QueryRangeSync(gocontext.TODO(), queryExpr, startTime, endTime, step)
 	if err != nil {
-		logger.Error(err, "Failed to QueryTimeSeries")
+		klog.Error(err, "Failed to QueryTimeSeries")
 		return nil, err
 	}
 
@@ -89,7 +88,7 @@ func (p *prom) QueryLatestTimeSeries(queryExpr string) ([]*common.TimeSeries, er
 	//start := end.Add(-step * 2)
 	timeSeries, err := p.ctx.QuerySync(gocontext.TODO(), queryExpr)
 	if err != nil {
-		logger.Error(err, "Failed to QueryLatestTimeSeries")
+		klog.Error(err, "Failed to QueryLatestTimeSeries")
 		return nil, err
 	}
 
