@@ -86,28 +86,31 @@ Crane is composed of the following components:
 #### Installing prometheus components with helm chart
 
 > Note:
-> If you already deployed prometheus, kube-state-metric, prometheus-node-exporter, then you can skip this step.
+> If you already deployed prometheus, prometheus-node-exporter, then you can skip this step.
 
-Crane use prometheus to be the default metric provider. Using following command to install prometheus with the release name `[RELEASE_NAME]`. It will also install dependent chart: kube-state-metric.
+Export the following env if you want to use default settings, or specify customized value if you want to customize the installation.
+
+```console
+export NAMESPACE=monitoring
+export RELEASE_NAME=myprometheus
+```
+
+Crane use prometheus to be the default metric provider. Using following command to install prometheus components.
 
 ```console
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
-helm install [RELEASE_NAME] -n [NAMESPACE] --create-namespace  prometheus-community/prometheus
-```
 
-Using following command to install prometheus-node-exporter with another release name `[NODE_EXPORTER_RELEASE_NAME]`.
-
-```console
-helm install [NODE_EXPORTER_RELEASE_NAME] -n [NAMESPACE] --create-namespace  prometheus-community/prometheus-node-exporter
+helm install $RELEASE_NAME -n $NAMESPACE --set kubeStateMetrics.enabled=false --set pushgateway.enabled=false --set alertmanager.enabled=false --set server.persistentVolume.enabled=false --create-namespace  prometheus-community/prometheus
 ```
 
 #### Configure Prometheus Address
 
-The following command will configure your prometheus http address for crane, please change `YOUR_PROMETHEUS` to actual Prometheus address. If you're following above guide to install prometheus with helm chart then **YOUR_PROMETHEUS** would be: `http:\/\/[RELEASE_NAME]-prometheus-server.[NAMESPACE].svc.cluster.local`
+The following command will configure prometheus http address for crane. Specify `CUSTOMIZE_PROMETHEUS` if you have existing prometheus server.
 
 ```console
-PROMETHEUS_ADDRESS="YOUR_PROMETHEUS" && sed -i '' "s/PROMETHEUS_ADDRESS/${YOUR_ADDRESS}/" deploy/craned/deployment.yaml
+export CUSTOMIZE_PROMETHEUS=
+if [ ! $CUSTOMIZE_PROMETHEUS ]; then sed -i '' "s/PROMETHEUS_ADDRESS/http:\/\/${RELEASE_NAME}-prometheus-server.${NAMESPACE}.svc.cluster.local/" deploy/craned/deployment.yaml ; else sed -i '' "s/PROMETHEUS_ADDRESS/${CUSTOMIZE_PROMETHEUS}/" deploy/craned/deployment.yaml ; fi
 ```
 
 #### Deploying Crane
@@ -118,12 +121,4 @@ You can deploy `Crane` by apply YAML declaration.
 kubectl apply -f deploy/manifests 
 kubectl apply -f deploy/craned 
 kubectl apply -f deploy/metric-adapter
-```
-
-#### Deploying Crane-agent
-
-If you want to try `QoS Ensurance`, then deploy `Crane-agent` by apply YAML declaration which will create a DaemonSet in your cluster.
-
-```console
-kubectl apply -f deploy/crane-agent 
 ```

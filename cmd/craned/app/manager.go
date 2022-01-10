@@ -140,7 +140,6 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 	nodeResource := utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResource)
 	clusterNodePrediction := utilfeature.DefaultFeatureGate.Enabled(features.CraneClusterNodePrediction)
 	analysis := utilfeature.DefaultMutableFeatureGate.Enabled(features.CraneAnalysis)
-	// todo: add more features
 	timeseriespredict := utilfeature.DefaultFeatureGate.Enabled(features.CraneTimeSeriesPrediction)
 
 	discoveryClientSet, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())

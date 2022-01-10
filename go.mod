@@ -5,7 +5,6 @@ go 1.17
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-echarts/go-echarts/v2 v2.2.4
-	github.com/go-logr/logr v0.4.0
 	github.com/gocrane/api v0.0.0-20220101093604-2129a9ce85e3
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/mjibson/go-dsp v0.0.0-20180508042940-11479a337f12
@@ -47,6 +46,7 @@ require (
 	github.com/evanphx/json-patch v4.11.0+incompatible // indirect
 	github.com/felixge/httpsnoop v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
+	github.com/go-logr/logr v0.4.0 // indirect
 	github.com/go-ole/go-ole v1.2.5 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.19.5 // indirect
