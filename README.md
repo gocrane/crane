@@ -110,7 +110,7 @@ The following command will configure prometheus http address for crane. Specify 
 
 ```console
 export CUSTOMIZE_PROMETHEUS=
-if [ ! $CUSTOMIZE_PROMETHEUS ]; then sed -i '' "s/PROMETHEUS_ADDRESS/http:\/\/${RELEASE_NAME}-prometheus-server.${NAMESPACE}.svc.cluster.local/" deploy/craned/deployment.yaml ; else sed -i '' "s/PROMETHEUS_ADDRESS/${CUSTOMIZE_PROMETHEUS}/" deploy/craned/deployment.yaml ; fi
+if [ ! $CUSTOMIZE_PROMETHEUS ]; then sed -i '' "s/PROMETHEUS_ADDRESS/http:\/\/${RELEASE_NAME}-server.${NAMESPACE}.svc.cluster.local/" deploy/craned/deployment.yaml ; else sed -i '' "s/PROMETHEUS_ADDRESS/${CUSTOMIZE_PROMETHEUS}/" deploy/craned/deployment.yaml ; fi
 ```
 
 #### Deploying Crane
