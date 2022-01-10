@@ -59,6 +59,17 @@ Two Recommendations are currently supported:
 - **Effective HPARecommend**: Recommend which workloads are suitable for autoscaling and provide optimized configurations such as minReplicas, maxReplicas.
 
 ### QoS Ensurance
+QoS Ensurance gaurantees the stability of the pods running on Kubernetes.
+Users can define PrioirtyClass for the pods and QoSEnsurancePolicy, and then crane detects disruption and ensure the high priority pods not being impacted by resource competition。
+
+Metrics Sources:
+- **NodeLocal**: node resource metrics
+- **ApplicationMetrics**: application metrics
+
+Avoidance Actions:
+- **Disable Schedule**: disable scheduling by setting node taint and condition
+- **Throttle**: throttle the low priority pods by squeezing cgroup settings
+- **Evict**: evict low priority pods
 
 ## Repositories
 
