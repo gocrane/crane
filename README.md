@@ -46,7 +46,7 @@ Please see [this document](./docs/tutorials/using-time-series-prediction.md) to 
 
 ### Effective HorizontalPodAutoscaler
 
-EffectiveHorizontalPodAutoscaler helps you manage application scaling in an easy way. It is compatible with native [HorizontalPodAutoscaler](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/) but extends more features.
+EffectiveHorizontalPodAutoscaler helps you manage application scaling in an easy way. It is compatible with native [HorizontalPodAutoscaler](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/) but extends more features like prediction-driven autoscaling.
 
 Please see [this document](./docs/tutorials/using-effective-hpa-to-scaling-with-effectiveness.md) to learn more.
 
@@ -75,3 +75,55 @@ Crane is composed of the following components:
 - [gocrane/fadvisor](https://github.com/gocrane/fadvisor) Financial advisor which collect resource prices from cloud API. 
 
 ## Getting Started
+
+### Prerequisites
+
+- Kubernetes 1.18+
+- Helm 3.1.0
+
+### Installation
+
+#### Installing prometheus components with helm chart
+
+> Note:
+> If you already deployed prometheus, kube-state-metric, prometheus-node-exporter, then you can skip this step.
+
+Crane use prometheus to be the default metric provider. Using following command to install prometheus with the release name `[RELEASE_NAME]`. It will also install dependent chart: kube-state-metric.
+
+```console
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+helm install [RELEASE_NAME] -n [NAMESPACE] --create-namespace  prometheus-community/prometheus
+```
+
+Using following command to install prometheus-node-exporter with another release name `[NODE_EXPORTER_RELEASE_NAME]`.
+
+```console
+helm install [NODE_EXPORTER_RELEASE_NAME] -n [NAMESPACE] --create-namespace  prometheus-community/prometheus-node-exporter
+```
+
+#### Configure Prometheus Address
+
+The following command will configure your prometheus http address for crane, please change `YOUR_PROMETHEUS` to actual Prometheus address. If you're following above guide to install prometheus with helm chart then **YOUR_PROMETHEUS** would be: `http:\/\/[RELEASE_NAME]-prometheus-server.[NAMESPACE].svc.cluster.local`
+
+```console
+PROMETHEUS_ADDRESS="YOUR_PROMETHEUS" && sed -i '' "s/PROMETHEUS_ADDRESS/${YOUR_ADDRESS}/" deploy/craned/deployment.yaml
+```
+
+#### Deploying Crane
+
+You can deploy `Crane` by apply YAML declaration.
+
+```console
+kubectl apply -f deploy/manifests 
+kubectl apply -f deploy/craned 
+kubectl apply -f deploy/metric-adapter
+```
+
+#### Deploying Crane-agent
+
+If you want to try `QoS Ensurance`, then deploy `Crane-agent` by apply YAML declaration which will create a DaemonSet in your cluster.
+
+```console
+kubectl apply -f deploy/crane-agent 
+```
