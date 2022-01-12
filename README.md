@@ -76,49 +76,304 @@ Crane is composed of the following components:
 
 ## Getting Started
 
-### Prerequisites
+### Installation
+
+**Prerequisites**
 
 - Kubernetes 1.18+
 - Helm 3.1.0
 
-### Installation
-
-#### Installing prometheus components with helm chart
+**All-In-One Installation**
 
 > Note:
-> If you already deployed prometheus, prometheus-node-exporter, then you can skip this step.
+> If you already deployed prometheus, grafana, or you want to customize it then you can refer to [Customize Installation](#customize-installation).
 
-Export the following env if you want to use default settings, or specify customized value if you want to customize the installation.
+**Helm Installation**
 
-```console
-export NAMESPACE=monitoring
-export RELEASE_NAME=myprometheus
-```
+Please refer to Helm's [documentation](https://helm.sh/docs/intro/install/) for installation.
 
-Crane use prometheus to be the default metric provider. Using following command to install prometheus components.
+**Installing prometheus and grafana with helm chart**
+
+Crane use prometheus to be the default metric provider. Using following command to install prometheus components: prometheus-server, node-exporter, kube-state-metrics.
 
 ```console
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo update
-
-helm install $RELEASE_NAME -n $NAMESPACE --set kubeStateMetrics.enabled=false --set pushgateway.enabled=false --set alertmanager.enabled=false --set server.persistentVolume.enabled=false --create-namespace  prometheus-community/prometheus
+helm install prometheus -n crane-system --set pushgateway.enabled=false --set alertmanager.enabled=false --set server.persistentVolume.enabled=false -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/prometheus/override_values.yaml --create-namespace  prometheus-community/prometheus
 ```
 
-#### Configure Prometheus Address
+Fadvisor use grafana to present cost estimates. Using following command to install a grafana.
+
+```console
+helm repo add grafana https://grafana.github.io/helm-charts
+helm install grafana -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/grafana/override_values.yaml -n crane-system --create-namespace grafana/grafana
+```
+
+**Deploying Crane and Fadvisor**
+
+Deploy `Crane` by apply YAML declaration.
+
+```console
+git checkout v0.1.0
+kubectl apply -f deploy/manifests 
+kubectl apply -f deploy/craned 
+kubectl apply -f deploy/metric-adapter
+```
+
+Deploy `Fadvisor` by helm chart.
+
+```console
+helm repo add crane https://gocrane.github.io/helm-charts
+helm install cost-exporter -n crane-system --create-namespace crane/cost-exporter
+```
+
+### Customize Installation
+
+**Configure Prometheus Address**
 
 The following command will configure prometheus http address for crane. Specify `CUSTOMIZE_PROMETHEUS` if you have existing prometheus server.
 
 ```console
 export CUSTOMIZE_PROMETHEUS=
-if [ ! $CUSTOMIZE_PROMETHEUS ]; then sed -i '' "s/PROMETHEUS_ADDRESS/http:\/\/${RELEASE_NAME}-server.${NAMESPACE}.svc.cluster.local/" deploy/craned/deployment.yaml ; else sed -i '' "s/PROMETHEUS_ADDRESS/${CUSTOMIZE_PROMETHEUS}/" deploy/craned/deployment.yaml ; fi
+if [ $CUSTOMIZE_PROMETHEUS ]; then sed -i '' "s/http:\/\/prometheus-server.crane-system.svc.cluster.local:8080/${CUSTOMIZE_PROMETHEUS}/" deploy/craned/deployment.yaml ; fi
 ```
 
-#### Deploying Crane
+### Uninstallation
 
-You can deploy `Crane` by apply YAML declaration.
+Uninstall helm charts will remove all the Kubernetes components associated with the chart and deletes the release.
 
 ```console
-kubectl apply -f deploy/manifests 
-kubectl apply -f deploy/craned 
-kubectl apply -f deploy/metric-adapter
+helm uninstall crane
+helm uninstall mygrafana
+helm uninstall fadvisor
 ```
+
+Delete `crane-system` will remove all resources in crane.
+
+```console
+kubectl delete ns crane-system
+```
+
+### Get your Kubernetes Cost Report
+
+Get the Grafana URL to visit by running these commands in the same shell:
+
+```console
+export POD_NAME=$(kubectl get pods --namespace crane-system -l "app.kubernetes.io/name=grafana,app.kubernetes.io/instance=grafana" -o jsonpath="{.items[0].metadata.name}")
+kubectl --namespace crane-system port-forward $POD_NAME 3000
+```
+
+visit [Cost Report](http://127.0.0.1:3000/dashboards) here with account(admin:admin).
+
+### Analytics and Recommend Pod Resources
+
+Create an **Resource** `Analytics` to give recommendation for deployment: `craned` and `metric-adapter` as a sample.
+
+```console
+kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/analytics-resource.yaml
+kubectl get analytics -n crane-system
+```
+
+The output is:
+
+```console
+NAME                      AGE
+craned-resource           15m
+metric-adapter-resource   15m
+```
+
+You can get created recommendation from analytics status:
+
+```console
+kubectl get analytics craned-resource -n crane-system -o yaml
+```
+
+The output is similar to:
+
+```console 
+apiVersion: analysis.crane.io/v1alpha1
+kind: Analytics
+metadata:
+  name: craned-resource
+  namespace: crane-system
+spec:
+  completionStrategy:
+    completionStrategyType: Periodical
+    periodSeconds: 86400
+  resourceSelectors:
+  - apiVersion: apps/v1
+    kind: Deployment
+    labelSelector: {}
+    name: craned
+  type: Resource
+status:
+  lastSuccessfulTime: "2022-01-12T08:40:59Z"
+  recommendations:
+  - name: craned-resource-resource-j7shb
+    namespace: crane-system
+    uid: 8ce2eedc-7969-4b80-8aee-fd4a98d6a8b6    
+```
+
+The recommendation name presents on `status.recommendations[0].name`. Then you can get recommendation detail by running:
+
+```console
+kubectl get recommend -n crane-system craned-resource-resource-j7shb -o yaml
+```
+
+The output is similar to:
+
+```console
+apiVersion: analysis.crane.io/v1alpha1
+kind: Recommendation
+metadata:
+  name: craned-resource-resource-j7shb
+  namespace: crane-system
+  ownerReferences:
+  - apiVersion: analysis.crane.io/v1alpha1
+    blockOwnerDeletion: false
+    controller: false
+    kind: Analytics
+    name: craned-resource
+    uid: a9e6dc0d-ab26-4f2a-84bd-4fe9e0f3e105
+spec:
+  completionStrategy:
+    completionStrategyType: Periodical
+    periodSeconds: 86400
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: craned
+    namespace: crane-system
+  type: Resource
+status:
+  conditions:
+  - lastTransitionTime: "2022-01-12T08:40:59Z"
+    message: Recommendation is ready
+    reason: RecommendationReady
+    status: "True"
+    type: Ready
+  lastSuccessfulTime: "2022-01-12T08:40:59Z"
+  lastUpdateTime: "2022-01-12T08:40:59Z"
+  resourceRequest:
+    containers:
+    - containerName: craned
+      target:
+        cpu: 114m
+        memory: 120586239m
+```
+
+The `status.resourceRequest` is recommended by crane's recommendation engine.
+ 
+Something you should know about Resource recommendation:
+* Resource Recommendation use historic prometheus metrics to calculate and propose.
+* We use **Percentile** algorithm to process metrics that also used by VPA.
+* If the workload is running for a long term like several weeks, the result will be more accurate.
+
+### Analytics and Recommend Pod Resources
+
+Create an **HPA** `Analytics` to give recommendation for deployment: `craned` and `metric-adapter` as an sample.
+
+```console
+kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/analytics-hpa.yaml
+kubectl get analytics -n crane-system 
+```
+
+The output is:
+
+```console
+NAME                      AGE
+craned-hpa                5m52s
+craned-resource           18h
+metric-adapter-hpa        5m52s
+metric-adapter-resource   18h
+
+```
+
+You can get created recommendation from analytics status:
+
+```console
+kubectl get analytics craned-hpa -n crane-system -o yaml
+```
+
+The output is similar to:
+
+```console 
+apiVersion: analysis.crane.io/v1alpha1
+kind: Analytics
+metadata:
+  name: craned-hpa
+  namespace: crane-system
+spec:
+  completionStrategy:
+    completionStrategyType: Periodical
+    periodSeconds: 86400
+  resourceSelectors:
+  - apiVersion: apps/v1
+    kind: Deployment
+    labelSelector: {}
+    name: craned
+  type: HPA
+status:
+  lastSuccessfulTime: "2022-01-13T07:26:18Z"
+  recommendations:
+  - apiVersion: analysis.crane.io/v1alpha1
+    kind: Recommendation
+    name: craned-hpa-hpa-2f22w
+    namespace: crane-system
+    uid: 397733ee-986a-4630-af75-736d2b58bfac
+```
+
+The recommendation name presents on `status.recommendations[0].name`. Then you can get recommendation detail by running:
+
+```console
+kubectl get recommend -n crane-system craned-resource-resource-j7shb -o yaml
+```
+
+The output is similar to:
+
+```console
+apiVersion: analysis.crane.io/v1alpha1
+kind: Recommendation
+metadata:
+  name: craned-hpa-hpa-2f22w
+  namespace: crane-system
+  ownerReferences:
+  - apiVersion: analysis.crane.io/v1alpha1
+    blockOwnerDeletion: false
+    controller: false
+    kind: Analytics
+    name: craned-hpa
+    uid: b216d9c3-c52e-4c9c-b9e9-9d5b45165b1d
+spec:
+  completionStrategy:
+    completionStrategyType: Periodical
+    periodSeconds: 86400
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: craned
+    namespace: crane-system
+  type: HPA
+status:
+  conditions:
+  - lastTransitionTime: "2022-01-13T07:51:18Z"
+    message: 'Failed to offer recommend, Recommendation crane-system/craned-hpa-hpa-2f22w
+      error EHPAAdvisor prediction metrics data is unexpected, List length is 0 '
+    reason: FailedOfferRecommend
+    status: "False"
+    type: Ready
+  lastUpdateTime: "2022-01-13T07:51:18Z"
+```
+
+The `status.resourceRequest` is recommended by crane's recommendation engine. The fail reason is demo workload don't have enough run time.
+
+Something you should know about HPA recommendation:
+* HPA Recommendation use historic prometheus metrics to calculate, forecast and propose.
+* We use **DSP** algorithm to process metrics.
+* We recommend using Effective HorizontalPodAutoscaler to execute autoscaling, you can see [this document](./docs/tutorials/using-time-series-prediction.md) to learn more.
+* The Workload need match following conditions:
+  * Existing at least one ready pod
+  * Ready pod ratio should larger that 50%
+  * Must provide cpu request for pod spec
+  * The workload should be running for at least **a week** to get enough metrics to forecast
+  * The workload's cpu load should be predictable, **too low** or **too unstable** workload often is unpredictable
+  

@@ -83,3 +83,8 @@ data:
       - targets: []
         properties:
           cpu-request-percentile: "0.98"
+          ehpa.deployment-min-replicas: "1"
+          ehpa.statefulset-min-replicas: "1"
+          ehpa.workload-min-replicas: "1"
+          ehpa.pod-min-ready-seconds: "30"
+          ehpa.pod-available-ratio: "0.5"
