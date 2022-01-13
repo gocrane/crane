@@ -268,7 +268,7 @@ Something you should know about Resource recommendation:
 * We use **Percentile** algorithm to process metrics that also used by VPA.
 * If the workload is running for a long term like several weeks, the result will be more accurate.
 
-### Analytics and Recommend Pod Resources
+### Analytics and Recommend HPA
 
 Create an **HPA** `Analytics` to give recommendation for deployment: `craned` and `metric-adapter` as an sample.
 
