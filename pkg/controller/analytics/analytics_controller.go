@@ -140,7 +140,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 
 		for i := range us {
-			k := objRefKey(rs.Kind, rs.APIVersion, us[i].GetNamespace(), us[i].GetName())
+			k := objRefKey(rs.Kind, rs.APIVersion, us[i].GetNamespace(), us[i].GetName(), string(a.Spec.Type))
 			if _, exists := identities[k]; !exists {
 				identities[k] = ObjectIdentity{
 					Namespace:  us[i].GetNamespace(),
@@ -165,7 +165,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	rm := map[string]*analysisv1alph1.Recommendation{}
 	for _, r := range rs {
-		k := objRefKey(r.Spec.TargetRef.Kind, r.Spec.TargetRef.APIVersion, r.Spec.TargetRef.Namespace, r.Spec.TargetRef.Name)
+		k := objRefKey(r.Spec.TargetRef.Kind, r.Spec.TargetRef.APIVersion, r.Spec.TargetRef.Namespace, r.Spec.TargetRef.Name, string(r.Spec.Type))
 		rm[k] = r.DeepCopy()
 	}
 
@@ -174,9 +174,6 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		for k, r := range rm {
 			klog.V(6).InfoS("recommendations", "key", k, "namespace", r.Namespace, "name", r.Name)
 		}
-	}
-
-	if klog.V(6).Enabled() {
 		// Print identities
 		for k, id := range identities {
 			klog.V(6).InfoS("identities", "key", k, "apiVersion", id.APIVersion, "kind", id.Kind, "namespace", id.Namespace, "name", id.Name)
@@ -196,7 +193,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			})
 			found := false
 			for _, or := range r.OwnerReferences {
-				if or.Name == a.Name && or.Kind == a.Kind && a.APIVersion == a.APIVersion {
+				if or.Name == a.Name && or.Kind == a.Kind && or.APIVersion == a.APIVersion {
 					found = true
 					break
 				}
@@ -289,8 +286,8 @@ func (ac *Controller) createRecommendation(ctx context.Context, a *analysisv1alp
 	return nil
 }
 
-func objRefKey(kind, apiVersion, namespace, name string) string {
-	return fmt.Sprintf("%s#%s#%s#%s", kind, apiVersion, namespace, name)
+func objRefKey(kind, apiVersion, namespace, name, recommendType string) string {
+	return fmt.Sprintf("%s#%s#%s#%s#%s", kind, apiVersion, namespace, name, recommendType)
 }
 
 func match(labelSelector metav1.LabelSelector, matchLabels map[string]string) bool {
