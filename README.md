@@ -142,9 +142,9 @@ if [ $CUSTOMIZE_PROMETHEUS ]; then sed -i '' "s/http:\/\/prometheus-server.crane
 Uninstall helm charts will remove all the Kubernetes components associated with the chart and deletes the release.
 
 ```console
-helm uninstall crane
-helm uninstall mygrafana
-helm uninstall fadvisor
+helm uninstall prometheus -n crane-system
+helm uninstall grafana -n crane-system
+helm uninstall cost-exporter -n crane-system
 ```
 
 Delete `crane-system` will remove all resources in crane.
