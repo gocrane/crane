@@ -25,6 +25,8 @@ REGISTRY_PASSWORD?=""
 MANAGER_IMG ?= "${REGISTRY}/${REGISTRY_NAMESPACE}/craned:${GIT_VERSION}"
 AGENT_IMG ?= "${REGISTRY}/${REGISTRY_NAMESPACE}/crane-agent:${GIT_VERSION}"
 ADAPTER_IMG ?= "${REGISTRY}/${REGISTRY_NAMESPACE}/metric-adapter:${GIT_VERSION}"
+SERVER_IMG ?= "${REGISTRY}/${REGISTRY_NAMESPACE}/crane-server:${GIT_VERSION}"
+
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -63,8 +65,12 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 	go mod vendor; \
     $(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" rbac:roleName=manager-role crd webhook paths="./vendor/github.com/gocrane/api/..." output:crd:artifacts:config=deploy/manifests
 
+.PHONY: mockgen
+mockgen: ## Run go mockgen to gen mock code.
+	go generate ./...
+
 .PHONY: generate
-generate: manifests ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+generate: manifests mockgen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
@@ -107,10 +113,10 @@ test: manifests fmt vet goimports ## Run tests.
 
 
 .PHONY: build
-build: craned crane-agent metric-adapter
+build: craned crane-agent metric-adapter crane-server
 
 .PHONY: all
-all: test lint vet craned  crane-agent metric-adapter
+all: test lint vet craned  crane-agent metric-adapter crane-server
 
 .PHONY: craned
 craned: ## Build binary with the crane manager.
@@ -124,8 +130,12 @@ crane-agent: ## Build binary with the crane agent.
 metric-adapter: ## Build binary with the metric adapter.
 	CGO_ENABLED=0 GOOS=$(GOOS) go build -ldflags $(LDFLAGS) -o bin/metric-adapter cmd/metric-adapter/main.go
 
+.PHONY: crane-server
+crane-server: ## Build binary with the crane server.
+	CGO_ENABLED=0 GOOS=$(GOOS) go build -ldflags $(LDFLAGS) -o bin/crane-server cmd/crane-server/main.go
+
 .PHONY: images
-images: image-craned image-crane-agent image-metric-adapter
+images: image-craned image-crane-agent image-metric-adapter image-crane-server
 
 .PHONY: image-craned
 image-craned: ## Build docker image with the crane manager.
@@ -139,8 +149,12 @@ image-crane-agent: ## Build docker image with the crane manager.
 image-metric-adapter: ## Build docker image with the metric adapter.
 	docker build --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=metric-adapter -t ${ADAPTER_IMG} .
 
+.PHONY: image-crane-server
+image-crane-server: test ## Build docker image with the crane server.
+	docker build --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=crane-server -t ${SERVER_IMG} .
+
 .PHONY: push-images
-push-images: push-image-craned push-image-crane-agent push-image-metric-adapter
+push-images: push-image-craned push-image-crane-agent push-image-metric-adapter push-image-crane-server
 
 .PHONY: push-image-craned
 push-image-craned: ## Push images.
@@ -162,6 +176,13 @@ ifneq ($(REGISTRY_USER_NAME), "")
 	docker login -u $(REGISTRY_USER_NAME) -p $(REGISTRY_PASSWORD) ${REGISTRY}
 endif
 	docker push ${ADAPTER_IMG}
+
+.PHONY: push-image-crane-server
+push-image-crane-server: ## Push images.
+ifneq ($(REGISTRY_USER_NAME), "")
+	docker login -u $(REGISTRY_USER_NAME) -p $(REGISTRY_PASSWORD) ${REGISTRY}
+endif
+	docker push ${SERVER_IMG}
 
 # go-get-tool will 'go get' any package $2 and install it to $1.
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
@@ -222,4 +243,21 @@ ifeq (, $(shell which goimports))
 GO_IMPORTS=$(shell go env GOPATH)/bin/goimports
 else
 GO_IMPORTS=$(shell which goimports)
+endif
+
+
+mockgen:
+ifeq (, $(shell which mockgen))
+	@{ \
+	set -e ;\
+	export GO111MODULE=on; \
+	GO_IMPORTS_TMP_DIR=$$(mktemp -d) ;\
+	cd $$GO_IMPORTS_TMP_DIR ;\
+	go mod init tmp ;\
+	go get github.com/golang/mock@v1.5.0 ;\
+	rm -rf $$GO_IMPORTS_TMP_DIR ;\
+	}
+GO_IMPORTS=$(shell go env GOPATH)/bin/mockgen
+else
+GO_IMPORTS=$(shell which mockgen)
 endif
