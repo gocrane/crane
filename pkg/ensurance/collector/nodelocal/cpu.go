@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/shirou/gopsutil/cpu"
-	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog/v2"
 
 	"github.com/gocrane/crane/pkg/common"
@@ -35,7 +34,7 @@ type CpuCollector struct {
 }
 
 // NewCPUCollector returns a new Collector exposing kernel/system statistics.
-func NewCPUCollector(_ corelisters.PodLister) (nodeLocalCollector, error) {
+func NewCPUCollector(_ *NodeLocalContext) (nodeLocalCollector, error) {
 	var cpuCoreNumbers uint64
 	if cpuInfos, err := cpu.Info(); err != nil {
 		return nil, err
@@ -54,11 +53,11 @@ func (c *CpuCollector) collect() (map[string][]common.TimeSeries, error) {
 	var now = time.Now()
 	stats, err := cpu.Times(false)
 	if err != nil {
-		return map[string][]common.TimeSeries{}, err
+		return nil, err
 	}
 
 	if len(stats) != 1 {
-		return map[string][]common.TimeSeries{}, fmt.Errorf("len stat is not 1")
+		return nil, fmt.Errorf("len stat is not 1")
 	}
 
 	nowCpuState := &CpuTimeStampState{
@@ -68,7 +67,7 @@ func (c *CpuCollector) collect() (map[string][]common.TimeSeries, error) {
 
 	if c.cpuState == nil {
 		c.cpuState = nowCpuState
-		return map[string][]common.TimeSeries{}, fmt.Errorf("collect_init")
+		return nil, fmt.Errorf("collect_init")
 	}
 
 	usagePercent := calculateBusy(c.cpuState.stat, nowCpuState.stat)

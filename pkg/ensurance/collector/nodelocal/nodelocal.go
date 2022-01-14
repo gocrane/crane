@@ -10,7 +10,7 @@ import (
 	"github.com/gocrane/crane/pkg/ensurance/collector/types"
 )
 
-type newCollectorFunc func(podLister corelisters.PodLister) (nodeLocalCollector, error)
+type newCollectorFunc func(context *NodeLocalContext) (nodeLocalCollector, error)
 
 var nodeLocalMetric = make(map[string][]types.MetricName, 10)
 var nodeLocalFunc = make(map[string]newCollectorFunc, 10)
@@ -30,17 +30,22 @@ type NodeLocal struct {
 	nlcs []nodeLocalCollector
 }
 
-func NewNodeLocal(podLister corelisters.PodLister) *NodeLocal {
+func NewNodeLocal(podLister corelisters.PodLister, ifaces []string) *NodeLocal {
 	klog.V(2).Infof("NewNodeLocal")
 
 	n := NodeLocal{
 		Name: types.NodeLocalCollectorType,
 	}
 
+	var context = NodeLocalContext{
+		Ifaces:    ifaces,
+		PodLister: podLister,
+	}
+
 	// the first version collect all metrics
 	// Open the on demand，in the future
 	for _, f := range nodeLocalFunc {
-		if c, err := f(podLister); err == nil {
+		if c, err := f(&context); err == nil {
 			n.nlcs = append(n.nlcs, c)
 		} else {
 			klog.Errorf("Failed to now node local collector: %v", err)

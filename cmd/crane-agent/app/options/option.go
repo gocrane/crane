@@ -10,6 +10,8 @@ type Options struct {
 	HostnameOverride string
 	// RuntimeEndpoint is the endpoint of runtime
 	RuntimeEndpoint string
+	// Ifaces is the network devices to collect metric
+	Ifaces []string
 }
 
 // NewOptions builds an empty options.
@@ -30,5 +32,7 @@ func (o *Options) Validate() error {
 // AddFlags adds flags to the specified FlagSet.
 func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&o.HostnameOverride, "hostname-override", "", "Which is the name of k8s node be used to filtered.")
+
 	flags.StringVar(&o.RuntimeEndpoint, "runtime-endpoint", "unix:///var/run/dockershim.sock", "The runtime endpoint, default to docker: unix:///var/run/dockershim.sock, containerd: unix:///run/containerd/containerd.sock.")
+	flags.StringArrayVar(&o.Ifaces, "ifaces", []string{"eth0"}, "The network devices to collect metric, use comma to separated, default: eth0")
 }
