@@ -8,10 +8,11 @@ import (
 
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/providers"
+	serverconfig "github.com/gocrane/crane/pkg/server/config"
 	"github.com/gocrane/crane/pkg/webhooks"
 )
 
-// Options hold the command-line options about crane manager
+// Options hold the command-line options about craned
 type Options struct {
 	// ApiQps for rest client
 	ApiQps int
@@ -41,25 +42,36 @@ type Options struct {
 	// RecommendationConfigFile is the configuration file for resource/HPA recommendations.
 	// If unspecified, a default is provided.
 	RecommendationConfigFile string
+
+	// ServerOptions hold the craned web server options
+	ServerOptions *ServerOptions
 }
 
 // NewOptions builds an empty options.
 func NewOptions() *Options {
-	return &Options{}
+	return &Options{
+		ServerOptions: NewServerOptions(),
+	}
 }
 
 // Complete completes all the required options.
 func (o *Options) Complete() error {
-	return nil
+	return o.ServerOptions.Complete()
 }
 
 // Validate all required options.
-func (o *Options) Validate() error {
-	return nil
+func (o *Options) Validate() []error {
+	return o.ServerOptions.Validate()
+}
+
+func (o *Options) ApplyTo(cfg *serverconfig.Config) error {
+	return o.ServerOptions.ApplyTo(cfg)
 }
 
 // AddFlags adds flags to the specified FlagSet.
 func (o *Options) AddFlags(flags *pflag.FlagSet) {
+	o.ServerOptions.AddFlags(flags)
+
 	flags.IntVar(&o.ApiQps, "api-qps", 300, "QPS of rest config.")
 	flags.IntVar(&o.ApiBurst, "api-burst", 400, "Burst of rest config.")
 	flags.StringVar(&o.MetricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
