@@ -13,6 +13,10 @@ import (
 
 // Options hold the command-line options about crane manager
 type Options struct {
+	// ApiQps for rest client
+	ApiQps int
+	// ApiBurst for rest  client
+	ApiBurst int
 	// LeaderElection hold the configurations for manager leader election.
 	LeaderElection componentbaseconfig.LeaderElectionConfiguration
 	// MetricsAddr is The address the metric endpoint binds to.
@@ -56,6 +60,8 @@ func (o *Options) Validate() error {
 
 // AddFlags adds flags to the specified FlagSet.
 func (o *Options) AddFlags(flags *pflag.FlagSet) {
+	flags.IntVar(&o.ApiQps, "api-qps", 300, "QPS of rest config.")
+	flags.IntVar(&o.ApiBurst, "api-burst", 400, "Burst of rest config.")
 	flags.StringVar(&o.MetricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flags.StringVar(&o.BindAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flags.BoolVar(&o.LeaderElection.LeaderElect, "leader-elect", true, "Start a leader election client and gain leadership before executing the main loop. Enable this when running replicated components for high availability.")

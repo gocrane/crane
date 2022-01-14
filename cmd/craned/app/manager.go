@@ -83,7 +83,11 @@ func NewManagerCommand(ctx context.Context) *cobra.Command {
 
 // Run runs the craned with options. This should never exit.
 func Run(ctx context.Context, opts *options.Options) error {
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	config := ctrl.GetConfigOrDie()
+	config.QPS = float32(opts.ApiQps)
+	config.Burst = opts.ApiBurst
+
+	mgr, err := ctrl.NewManager(config, ctrl.Options{
 		Scheme:                  scheme,
 		MetricsBindAddress:      opts.MetricsAddr,
 		Port:                    9443,
