@@ -134,7 +134,7 @@ The following command will configure prometheus http address for crane. Specify 
 
 ```console
 export CUSTOMIZE_PROMETHEUS=
-if [ $CUSTOMIZE_PROMETHEUS ]; then sed -i '' "s/http:\/\/prometheus-server.crane-system.svc.cluster.local:8080/${CUSTOMIZE_PROMETHEUS}/" deploy/craned/deployment.yaml ; fi
+if [ $CUSTOMIZE_PROMETHEUS ]; then sed -i "s|PROMETHEUS_ADDRESS|${CUSTOMIZE_PROMETHEUS}|" deploy/craned/deployment.yaml ; fi
 ```
 
 ### Uninstallation
@@ -262,7 +262,7 @@ status:
 ```
 
 The `status.resourceRequest` is recommended by crane's recommendation engine.
- 
+
 Something you should know about Resource recommendation:
 * Resource Recommendation use historic prometheus metrics to calculate and propose.
 * We use **Percentile** algorithm to process metrics that also used by VPA.
@@ -376,4 +376,3 @@ Something you should know about HPA recommendation:
   * Must provide cpu request for pod spec
   * The workload should be running for at least **a week** to get enough metrics to forecast
   * The workload's cpu load should be predictable, **too low** or **too unstable** workload often is unpredictable
-  
