@@ -9,12 +9,11 @@ import (
 	"strconv"
 	"time"
 
+	"k8s.io/klog/v2"
+
 	"github.com/gocrane/crane/pkg/common"
-	"github.com/gocrane/crane/pkg/log"
 	"github.com/gocrane/crane/pkg/providers"
 )
-
-var logger = log.Logger()
 
 var _ providers.Interface = &inMemory{}
 
@@ -30,12 +29,12 @@ func NewProvider(config *providers.MockConfig) (providers.Interface, error) {
 	}
 	r, err := os.Open(config.SeedFile)
 	if err != nil {
-		logger.Error(err, "Failed to open seed file", "seedFile", config.SeedFile)
+		klog.ErrorS(err, "Failed to open seed file", "seedFile", config.SeedFile)
 		return nil, err
 	}
 	buf, err := ioutil.ReadAll(r)
 	if err != nil {
-		logger.Error(err, "Failed to read seed file", "seedFile", config.SeedFile)
+		klog.ErrorS(err, "Failed to read seed file", "seedFile", config.SeedFile)
 		return nil, err
 	}
 	reader := csv.NewReader(bytes.NewBuffer(buf))
@@ -76,7 +75,7 @@ func (im inMemory) GetTimeSeries(_ string, _ []common.QueryCondition, start time
 	var samples []common.Sample
 	var i int
 
-	logger.Info("GetTimeSeries from imMemory provider", "range", fmt.Sprintf(" [%d, %d]", start.Unix(), end.Unix()))
+	klog.InfoS("GetTimeSeries from imMemory provider", "range", fmt.Sprintf(" [%d, %d]", start.Unix(), end.Unix()))
 
 	for i = range im.samples {
 		t := time.Unix(im.samples[i].Timestamp, 0)

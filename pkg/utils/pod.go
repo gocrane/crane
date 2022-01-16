@@ -1,10 +1,16 @@
 package utils
 
 import (
+	"context"
+	"fmt"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
+	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
+	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 )
 
 // IsPodAvailable returns true if a pod is available; false otherwise.
@@ -53,4 +59,36 @@ func GetPodCondition(status *v1.PodStatus, conditionType v1.PodConditionType) (i
 		}
 	}
 	return -1, nil
+}
+
+//EvictPodWithGracePeriod evict pod with grace period
+func EvictPodWithGracePeriod(client clientset.Interface, pod *v1.Pod, gracePeriodSeconds int32) error {
+	if kubelettypes.IsCriticalPod(pod) {
+		return fmt.Errorf("Eviction manager: cannot evict a critical pod(%s)", klog.KObj(pod))
+	}
+
+	e := &policyv1beta1.Eviction{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      pod.Name,
+			Namespace: pod.Namespace,
+		},
+		DeleteOptions: metav1.NewDeleteOptions(int64(gracePeriodSeconds)),
+	}
+
+	return client.CoreV1().Pods(pod.Namespace).EvictV1beta1(context.Background(), e)
+}
+
+// CalculatePodRequests sum request total from pods
+func CalculatePodRequests(pods []v1.Pod, resource v1.ResourceName) (int64, error) {
+	var requests int64
+	for _, pod := range pods {
+		for _, c := range pod.Spec.Containers {
+			if containerRequest, ok := c.Resources.Requests[resource]; ok {
+				requests += containerRequest.MilliValue()
+			} else {
+				return 0, fmt.Errorf("missing request for %s", resource)
+			}
+		}
+	}
+	return requests, nil
 }

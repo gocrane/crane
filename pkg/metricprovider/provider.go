@@ -53,7 +53,7 @@ func (p *MetricProvider) GetMetricByName(ctx context.Context, name types.Namespa
 
 // GetMetricBySelector fetches metric for pod resources, get predictive metric from giving selector
 func (p *MetricProvider) GetMetricBySelector(ctx context.Context, namespace string, selector labels.Selector, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValueList, error) {
-	klog.Info("Get metric for custom metric", "GroupResource", info.GroupResource.String(), "namespace", namespace, "metric", info.Metric, "selector", selector.String(), "metricSelector", metricSelector.String())
+	klog.Info(fmt.Sprintf("Get metric for custom metric, GroupResource %s namespace %s metric %s selector %s metricSelector %s", info.GroupResource.String(), namespace, info.Metric, selector.String(), metricSelector.String()))
 
 	var matchingMetrics []custom_metrics.MetricValue
 	prediction, err := p.GetPrediction(ctx, namespace, metricSelector)
@@ -119,7 +119,7 @@ func (p *MetricProvider) GetMetricBySelector(ctx context.Context, namespace stri
 
 	averageValue := int64(math.Round(largestMetricValue.value * 1000 / float64(len(readyPods))))
 
-	klog.Info("Provide custom metric ", "metric", info.Metric, "average value", float64(averageValue)/1000)
+	klog.Info("Provide custom metric %s average value %f.", info.Metric, float64(averageValue)/1000)
 
 	for name := range readyPods {
 		metric := custom_metrics.MetricValue{

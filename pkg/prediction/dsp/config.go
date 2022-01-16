@@ -5,16 +5,15 @@ import (
 	"sync"
 	"time"
 
+	"k8s.io/klog/v2"
+
 	"github.com/gocrane/api/prediction/v1alpha1"
 
-	"github.com/gocrane/crane/pkg/log"
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
 var mu = sync.Mutex{}
-
-var logger = log.NewLogger("dsp-predictor")
 
 var queryToInternalConfigMap map[string]*internalConfig = map[string]*internalConfig{}
 
@@ -125,7 +124,7 @@ func getInternalConfig(queryExpr string) *internalConfig {
 
 	config, exists := queryToInternalConfigMap[queryExpr]
 	if !exists {
-		logger.Info("Dsp internal config not found, using the default one.", "queryExpr", queryExpr)
+		klog.InfoS("Dsp internal config not found, using the default one.", "queryExpr", queryExpr)
 		queryToInternalConfigMap[queryExpr] = &defaultInternalConfig
 		return queryToInternalConfigMap[queryExpr]
 	}
@@ -145,7 +144,7 @@ func init() {
 			}
 			internalCfg, err := makeInternalConfig(cfg.DSP)
 			if err != nil {
-				logger.Error(err, "Failed to create internal config.")
+				klog.ErrorS(err, "Failed to create internal config.")
 				continue
 			}
 

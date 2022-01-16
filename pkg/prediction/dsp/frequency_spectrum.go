@@ -51,10 +51,7 @@ func (s *Signal) FrequencySpectrum() *FrequencySpectrum {
 func (s *Signal) Frequencies() []float64 {
 	f := s.FrequencySpectrum()
 	sort.Sort(sort.Reverse(f))
-	//for i := 0; i < 20; i++ {
-	//	klog.Infof("Cycle length: %f, Amplitude: %f", 1.0 / f.Frequencies[i], f.Amplitudes[i])
-	//}
-	//klog.Info()
+
 	return f.Frequencies
 }
 

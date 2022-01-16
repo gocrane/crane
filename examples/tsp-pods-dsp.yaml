@@ -11,9 +11,9 @@ spec:
   predictionWindowSeconds: 3600
   predictionMetrics:
     - resourceIdentifier: workload-pods-cpu
-      type: RawQuery
-      rawQuery:
-        expression: 'irate (container_cpu_usage_seconds_total{container!="",image!="",name=~"^k8s_.*",container!="POD",pod=~"^dep-1-100m-500mib-.*$"}[1m])'
+      type: ExpressionQuery
+      expressionQuery:
+        expression: 'irate (container_cpu_usage_seconds_total{container!="",image!="",container!="POD",pod=~"^dep-1-100m-500mib-.*$"}[1m])'
       algorithm:
         algorithmType: "dsp"
         dsp:
@@ -27,8 +27,8 @@ spec:
                 minNumOfSpectrumItems: 10
                 maxNumOfSpectrumItems: 20
     - resourceIdentifier: workload-pods-mem
-      type: RawQuery
-      rawQuery:
+      type: ExpressionQuery
+      expressionQuery:
         expression: 'container_memory_working_set_bytes{container!="",image!="", container!="POD",pod=~"^dep-1-100m-500mib-.*$"}'
       algorithm:
         algorithmType: "dsp"

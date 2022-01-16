@@ -3,17 +3,19 @@ package app
 import (
 	"context"
 	"flag"
-	"fmt"
 	"os"
 	"strings"
 
+	"github.com/gocrane/crane/pkg/recommend"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/scale"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
@@ -27,9 +29,9 @@ import (
 	"github.com/gocrane/crane/pkg/controller/ehpa"
 	"github.com/gocrane/crane/pkg/controller/noderesource"
 	"github.com/gocrane/crane/pkg/controller/recommendation"
-	"github.com/gocrane/crane/pkg/controller/tsp"
+	"github.com/gocrane/crane/pkg/controller/timeseriesprediction"
+	"github.com/gocrane/crane/pkg/features"
 	"github.com/gocrane/crane/pkg/known"
-	"github.com/gocrane/crane/pkg/log"
 	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/prediction"
 	"github.com/gocrane/crane/pkg/prediction/dsp"
@@ -37,7 +39,7 @@ import (
 	"github.com/gocrane/crane/pkg/providers"
 	"github.com/gocrane/crane/pkg/providers/mock"
 	"github.com/gocrane/crane/pkg/providers/prom"
-	webhooks "github.com/gocrane/crane/pkg/webhooks"
+	"github.com/gocrane/crane/pkg/webhooks"
 )
 
 var (
@@ -46,7 +48,6 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(autoscalingapi.AddToScheme(scheme))
 	utilruntime.Must(predictionapi.AddToScheme(scheme))
 	utilruntime.Must(analysisapi.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
@@ -62,23 +63,21 @@ func NewManagerCommand(ctx context.Context) *cobra.Command {
 		Long: `The crane manager is responsible for manage controllers in crane`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(); err != nil {
-				log.Logger().Error(err, "opts complete failed,exit")
-				os.Exit(255)
+				klog.Exit(err)
 			}
 			if err := opts.Validate(); err != nil {
-				log.Logger().Error(err, "opts validate failed,exit")
-				os.Exit(255)
+				klog.Exit(err)
 			}
-
 			if err := Run(ctx, opts); err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
-				os.Exit(1)
+				klog.Exit(err)
 			}
 		},
 	}
 
 	cmd.Flags().AddGoFlagSet(flag.CommandLine)
 	opts.AddFlags(cmd.Flags())
+	utilfeature.DefaultMutableFeatureGate.AddFlag(cmd.Flags())
+
 	return cmd
 }
 
@@ -94,25 +93,26 @@ func Run(ctx context.Context, opts *options.Options) error {
 		LeaderElectionNamespace: known.CraneSystemNamespace,
 	})
 	if err != nil {
-		log.Logger().Error(err, "unable to start crane manager")
-		os.Exit(1)
+		klog.Error(err, "unable to start crane manager")
+		return err
 	}
 
 	if err := mgr.AddHealthzCheck("ping", healthz.Ping); err != nil {
-		log.Logger().Error(err, "failed to add health check endpoint")
+		klog.Error(err, "failed to add health check endpoint")
 		return err
 	}
+
 	if opts.WebhookConfig.Enabled {
-		initializationWebhooks(mgr, opts)
+		initializationWebhooks(mgr)
 	}
 	initializationControllers(ctx, mgr, opts)
-	log.Logger().Info("Starting crane manager")
+	klog.Info("Starting crane manager")
 
 	// initialization custom collector metrics
 	initializationMetricCollector(mgr)
 
 	if err := mgr.Start(ctx); err != nil {
-		log.Logger().Error(err, "problem running crane manager")
+		klog.Error(err, "problem running crane manager")
 		return err
 	}
 
@@ -124,27 +124,27 @@ func initializationMetricCollector(mgr ctrl.Manager) {
 	metrics.CustomCollectorRegister(metrics.NewTspMetricCollector(mgr.GetClient()))
 }
 
-func initializationWebhooks(mgr ctrl.Manager, opts *options.Options) {
-	log.Logger().Info(fmt.Sprintf("opts %v", opts))
-
+func initializationWebhooks(mgr ctrl.Manager) {
 	if certDir := os.Getenv("WEBHOOK_CERT_DIR"); len(certDir) > 0 {
 		mgr.GetWebhookServer().CertDir = certDir
 	}
 
 	if err := webhooks.SetupWebhookWithManager(mgr); err != nil {
-		log.Logger().Error(err, "unable to create webhook", "webhook", "TimeSeriesPrediction")
-		os.Exit(1)
+		klog.Exit(err, "unable to create webhook", "webhook", "TimeSeriesPrediction")
 	}
 }
 
 // initializationControllers setup controllers with manager
 func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *options.Options) {
-	log.Logger().Info(fmt.Sprintf("opts %v", opts))
+	autoscaling := utilfeature.DefaultFeatureGate.Enabled(features.CraneAutoscaling)
+	nodeResource := utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResource)
+	clusterNodePrediction := utilfeature.DefaultFeatureGate.Enabled(features.CraneClusterNodePrediction)
+	analysis := utilfeature.DefaultMutableFeatureGate.Enabled(features.CraneAnalysis)
+	timeseriespredict := utilfeature.DefaultFeatureGate.Enabled(features.CraneTimeSeriesPrediction)
 
 	discoveryClientSet, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
 	if err != nil {
-		log.Logger().Error(err, "unable to create discover client")
-		os.Exit(1)
+		klog.Exit(err, "Unable to create discover client")
 	}
 
 	scaleKindResolver := scale.NewDiscoveryScaleKindResolver(discoveryClientSet)
@@ -154,42 +154,38 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 		scaleKindResolver,
 	)
 
-	if err := (&ehpa.EffectiveHPAController{
-		Client:      mgr.GetClient(),
-		Log:         log.Logger().WithName("effective-hpa-controller"),
-		Scheme:      mgr.GetScheme(),
-		RestMapper:  mgr.GetRESTMapper(),
-		Recorder:    mgr.GetEventRecorderFor("effective-hpa-controller"),
-		ScaleClient: scaleClient,
-	}).SetupWithManager(mgr); err != nil {
-		log.Logger().Error(err, "unable to create controller", "controller", "EffectiveHPAController")
-		os.Exit(1)
+	if autoscaling {
+		utilruntime.Must(autoscalingapi.AddToScheme(scheme))
+		if err := (&ehpa.EffectiveHPAController{
+			Client:      mgr.GetClient(),
+			Scheme:      mgr.GetScheme(),
+			RestMapper:  mgr.GetRESTMapper(),
+			Recorder:    mgr.GetEventRecorderFor("effective-hpa-controller"),
+			ScaleClient: scaleClient,
+		}).SetupWithManager(mgr); err != nil {
+			klog.Exit(err, "unable to create controller", "controller", "EffectiveHPAController")
+		}
+
+		if err := (&ehpa.SubstituteController{
+			Client:      mgr.GetClient(),
+			Scheme:      mgr.GetScheme(),
+			RestMapper:  mgr.GetRESTMapper(),
+			Recorder:    mgr.GetEventRecorderFor("substitute-controller"),
+			ScaleClient: scaleClient,
+		}).SetupWithManager(mgr); err != nil {
+			klog.Exit(err, "unable to create controller", "controller", "SubstituteController")
+		}
+
+		if err := (&ehpa.HPAReplicasController{
+			Client:     mgr.GetClient(),
+			Scheme:     mgr.GetScheme(),
+			RestMapper: mgr.GetRESTMapper(),
+			Recorder:   mgr.GetEventRecorderFor("hpareplicas-controller"),
+		}).SetupWithManager(mgr); err != nil {
+			klog.Exit(err, "unable to create controller", "controller", "HPAReplicasController")
+		}
 	}
 
-	if err := (&ehpa.SubstituteController{
-		Client:      mgr.GetClient(),
-		Log:         log.Logger().WithName("substitute-controller"),
-		Scheme:      mgr.GetScheme(),
-		RestMapper:  mgr.GetRESTMapper(),
-		Recorder:    mgr.GetEventRecorderFor("substitute-controller"),
-		ScaleClient: scaleClient,
-	}).SetupWithManager(mgr); err != nil {
-		log.Logger().Error(err, "unable to create controller", "controller", "SubstituteController")
-		os.Exit(1)
-	}
-
-	if err := (&ehpa.HPAReplicasController{
-		Client:     mgr.GetClient(),
-		Log:        log.Logger().WithName("hpa-replicas-controller"),
-		Scheme:     mgr.GetScheme(),
-		RestMapper: mgr.GetRESTMapper(),
-		Recorder:   mgr.GetEventRecorderFor("hpareplicas-controller"),
-	}).SetupWithManager(mgr); err != nil {
-		log.Logger().Error(err, "unable to create controller", "controller", "HPAReplicasController")
-		os.Exit(1)
-	}
-
-	// TspController
 	var dataSource providers.Interface
 	switch strings.ToLower(opts.DataSource) {
 	case "prometheus", "prom":
@@ -201,8 +197,7 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 		dataSource, err = prom.NewProvider(&opts.DataSourcePromConfig)
 	}
 	if err != nil {
-		log.Logger().Error(err, "unable to create controller", "controller", "TspController")
-		os.Exit(1)
+		klog.Exit(err, "unable to create controller", "controller", "TspController")
 	}
 
 	// algorithm provider inject data source
@@ -215,8 +210,7 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 
 	dspPredictor, err := dsp.NewPrediction(opts.AlgorithmModelConfig)
 	if err != nil {
-		log.Logger().Error(err, "unable to create controller", "controller", "TspController")
-		os.Exit(1)
+		klog.Exit(err, "unable to create controller", "controller", "TspController")
 	}
 	dspPredictor.WithProviders(map[string]providers.Interface{
 		prediction.RealtimeProvider: dataSource,
@@ -229,60 +223,68 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 		predictionapi.AlgorithmTypeDSP:        dspPredictor,
 	}
 
-	tspController := tsp.NewController(
-		mgr.GetClient(),
-		log.Logger().WithName("time-series-prediction-controller"),
-		mgr.GetEventRecorderFor("time-series-prediction-controller"),
-		opts.PredictionUpdateFrequency,
-		predictors,
-	)
-	if err := tspController.SetupWithManager(mgr); err != nil {
-		log.Logger().Error(err, "unable to create controller", "controller", "TspController")
-		os.Exit(1)
+	// TspController
+	if timeseriespredict {
+		tspController := timeseriesprediction.NewController(
+			mgr.GetClient(),
+			mgr.GetEventRecorderFor("time-series-prediction-controller"),
+			opts.PredictionUpdateFrequency,
+			predictors,
+		)
+		if err := tspController.SetupWithManager(mgr); err != nil {
+			klog.Exit(err, "unable to create controller", "controller", "TspController")
+		}
+
 	}
 
-	if err := (&analytics.Controller{
-		Client:     mgr.GetClient(),
-		Logger:     log.Logger().WithName("analytics-controller"),
-		Scheme:     mgr.GetScheme(),
-		RestMapper: mgr.GetRESTMapper(),
-		Recorder:   mgr.GetEventRecorderFor("analytics-controller"),
-	}).SetupWithManager(mgr); err != nil {
-		log.Logger().Error(err, "unable to create controller", "controller", "AnalyticsController")
-		os.Exit(1)
+	if analysis {
+		if err := (&analytics.Controller{
+			Client:     mgr.GetClient(),
+			Scheme:     mgr.GetScheme(),
+			RestMapper: mgr.GetRESTMapper(),
+			Recorder:   mgr.GetEventRecorderFor("analytics-controller"),
+		}).SetupWithManager(mgr); err != nil {
+			klog.Exit(err, "unable to create controller", "controller", "AnalyticsController")
+		}
+
+		configSet, err := recommend.LoadConfigSetFromFile(opts.RecommendationConfigFile)
+		if err != nil {
+			klog.Errorf("Failed to load recommendation config file: %v", err)
+			os.Exit(1)
+		}
+		if err := (&recommendation.Controller{
+			Client:      mgr.GetClient(),
+			ConfigSet:   configSet,
+			Scheme:      mgr.GetScheme(),
+			RestMapper:  mgr.GetRESTMapper(),
+			Recorder:    mgr.GetEventRecorderFor("recommendation-controller"),
+			ScaleClient: scaleClient,
+			Predictors:  predictors,
+			Provider:    dataSource,
+		}).SetupWithManager(mgr); err != nil {
+			klog.Exit(err, "unable to create controller", "controller", "RecommendationController")
+		}
 	}
 
-	if err := (&recommendation.Controller{
-		Client:      mgr.GetClient(),
-		Log:         log.Logger().WithName("recommendation-controller"),
-		Scheme:      mgr.GetScheme(),
-		RestMapper:  mgr.GetRESTMapper(),
-		Recorder:    mgr.GetEventRecorderFor("recommendation-controller"),
-		ScaleClient: scaleClient,
-		Predictors:  predictors,
-	}).SetupWithManager(mgr); err != nil {
-		log.Logger().Error(err, "unable to create controller", "controller", "RecommendationController")
-		os.Exit(1)
-	}
 	// NodeResourceController
-	if err := (&noderesource.NodeResourceReconciler{
-		Client:   mgr.GetClient(),
-		Log:      log.Logger().WithName("node-resource-controller"),
-		Recorder: mgr.GetEventRecorderFor("node-resource-controller"),
-	}).SetupWithManager(mgr); err != nil {
-		log.Logger().Error(err, "unable to create controller", "controller", "NodeResourceController")
-		os.Exit(1)
+	if nodeResource {
+		if err := (&noderesource.NodeResourceReconciler{
+			Client:   mgr.GetClient(),
+			Recorder: mgr.GetEventRecorderFor("node-resource-controller"),
+		}).SetupWithManager(mgr); err != nil {
+			klog.Exit(err, "unable to create controller", "controller", "NodeResourceController")
+		}
 	}
 
 	// CnpController
-	if err := (&cnp.ClusterNodePredictionController{
-		Client:     mgr.GetClient(),
-		Logger:     log.Logger().WithName("cnp-controller"),
-		Scheme:     mgr.GetScheme(),
-		RestMapper: mgr.GetRESTMapper(),
-		Recorder:   mgr.GetEventRecorderFor("cnp-controller"),
-	}).SetupWithManager(mgr); err != nil {
-		log.Logger().Error(err, "unable to create controller", "controller", "CnpController")
-		os.Exit(1)
+	if clusterNodePrediction {
+		if err := (&cnp.ClusterNodePredictionController{
+			Client:     mgr.GetClient(),
+			Scheme:     mgr.GetScheme(),
+			RestMapper: mgr.GetRESTMapper(),
+			Recorder:   mgr.GetEventRecorderFor("cnp-controller"),
+		}).SetupWithManager(mgr); err != nil {
+			klog.Exit(err, "unable to create controller", "controller", "CnpController")
+		}
 	}
 }

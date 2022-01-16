@@ -1,18 +1,17 @@
 package statestore
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog/v2"
 
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/ensurance/statestore/nodelocal"
 	"github.com/gocrane/crane/pkg/ensurance/statestore/types"
-	"github.com/gocrane/crane/pkg/log"
 )
 
 type stateStoreManager struct {
@@ -45,14 +44,14 @@ func (s *stateStoreManager) Run(stop <-chan struct{}) {
 			case <-updateTicker.C:
 				if s.checkConfig() {
 					s.index++
-					log.Logger().V(4).Info("StateStore update event", "index", s.index)
+					klog.V(6).Infof("StateStore update event, index: %v", s.index)
 					s.eventChannel <- types.UpdateEvent{Index: s.index}
 				} else {
-					log.Logger().V(4).Info("StateStore config false, not to update")
+					klog.V(6).Info("StateStore config false, not to update")
 				}
 				continue
 			case <-stop:
-				log.Logger().Info("StateStore config check exit")
+				klog.Infof("StateStore config check exit")
 				return
 			}
 		}
@@ -71,15 +70,15 @@ func (s *stateStoreManager) Run(stop <-chan struct{}) {
 							s.StatusCache.Store(key, v)
 						}
 					} else {
-						log.Logger().Error(err, "StateStore collect failed", c.GetType())
+						klog.Errorf("Failed to collect metrics: %v", c.GetType(), err)
 					}
 				}
 				continue
 			case v := <-s.eventChannel:
-				log.Logger().V(4).Info("StateStore update config index", "Index", v.Index)
+				klog.V(6).Infof("StateStore update config, index: %v", v.Index)
 				s.updateConfig()
 			case <-stop:
-				log.Logger().Info("StateStore exit")
+				klog.Infof("StateStore collect exit")
 				return
 			}
 		}
@@ -109,7 +108,7 @@ func (s *stateStoreManager) checkConfig() bool {
 	for _, n := range allNeps {
 		nep := n.(*ensuranceapi.NodeQOSEnsurancePolicy).DeepCopy()
 		if nep.Spec.NodeQualityProbe.NodeLocalGet == nil {
-			log.Logger().V(4).Info("Warning: skip the config not node-local, it will support other kind of config in the future")
+			klog.V(4).Infof("Warning: skip the config as it not node-local, it will support other kind of config in the future")
 			continue
 		}
 		neps = append(neps, nep)
@@ -141,9 +140,8 @@ func (s *stateStoreManager) updateConfig() {
 	allNeps := s.nepInformer.GetStore().List()
 	for _, n := range allNeps {
 		nep := n.(*ensuranceapi.NodeQOSEnsurancePolicy).DeepCopy()
-		log.Logger().V(4).Info(fmt.Sprintf("nep: %#v", nep))
 		if nep.Spec.NodeQualityProbe.NodeLocalGet == nil {
-			log.Logger().V(4).Info("Warning: skip the config not node-local, it will support other kind of config in the future")
+			klog.V(4).Infof("Warning: skip the config as it not node-local, it will support other kind of config in the future")
 			continue
 		}
 
@@ -177,5 +175,4 @@ func (s *stateStoreManager) updateConfig() {
 	}
 
 	return
-
 }

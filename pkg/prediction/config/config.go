@@ -6,17 +6,16 @@ import (
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/klog/v2"
 
 	"github.com/gocrane/api/prediction/v1alpha1"
-
-	"github.com/gocrane/crane/pkg/log"
 )
 
 const (
 	// WorkloadCpuUsagePromQLFmtStr is used to query workload cpu usage by promql,  param is namespace,workload-name,duration str
-	WorkloadCpuUsagePromQLFmtStr = `sum (irate (container_cpu_usage_seconds_total{container!="",image!="",name=~"^k8s_.*",container!="POD",namespace="%s",pod=~"^%s-.*$"}[%s]))`
+	WorkloadCpuUsagePromQLFmtStr = `sum (irate (container_cpu_usage_seconds_total{container!="",image!="",container!="POD",namespace="%s",pod=~"^%s-.*$"}[%s]))`
 	// WorkloadMemUsagePromQLFmtStr is used to query workload mem usage by promql, param is namespace, workload-name
-	WorkloadMemUsagePromQLFmtStr = `sum(container_memory_working_set_bytes{container!="",image!="", name=~"^k8s_.*",container!="POD",namespace="%s",pod=~"^%s-.*$"})`
+	WorkloadMemUsagePromQLFmtStr = `sum(container_memory_working_set_bytes{container!="",image!="",container!="POD",namespace="%s",pod=~"^%s-.*$"})`
 
 	// following is node exporter metric for node cpu/memory usage
 	// NodeCpuUsagePromQLFmtStr is used to query node cpu usage by promql,  param is node name which prometheus scrape, duration str
@@ -28,17 +27,15 @@ const (
 var UpdateEventBroadcaster Broadcaster = NewBroadcaster()
 var DeleteEventBroadcaster Broadcaster = NewBroadcaster()
 
-var logger = log.Logger()
-
 func (c *MetricContext) WithApiConfig(conf *v1alpha1.PredictionMetric) {
 	if conf.MetricQuery != nil {
-		logger.V(2).Info("WithApiConfig", "metricSelector", metricSelectorToQueryExpr(conf.MetricQuery))
+		klog.InfoS("WithApiConfig", "metricSelector", metricSelectorToQueryExpr(conf.MetricQuery))
 	}
 	if conf.ExpressionQuery != nil {
-		logger.V(2).Info("WithApiConfig", "queryExpr", conf.ExpressionQuery.Expression)
+		klog.InfoS("WithApiConfig", "queryExpr", conf.ExpressionQuery.Expression)
 	}
 	if conf.ResourceQuery != nil {
-		logger.V(2).Info("WithApiConfig", "resourceQuery", conf.ResourceQuery)
+		klog.InfoS("WithApiConfig", "resourceQuery", conf.ResourceQuery)
 	}
 
 	UpdateEventBroadcaster.Write(c.ConvertApiMetric2InternalConfig(conf))
@@ -60,9 +57,9 @@ func (c *MetricContext) WithApiConfigs(configs []v1alpha1.PredictionMetric) {
 
 func (c *MetricContext) DeleteApiConfig(conf *v1alpha1.PredictionMetric) {
 	if conf.MetricQuery != nil {
-		logger.V(2).Info("DeleteApiConfig", "metricSelector", metricSelectorToQueryExpr(conf.MetricQuery))
+		klog.InfoS("DeleteApiConfig", "metricSelector", metricSelectorToQueryExpr(conf.MetricQuery))
 	} else if conf.ExpressionQuery != nil {
-		logger.V(2).Info("DeleteApiConfig", "queryExpr", conf.ExpressionQuery.Expression)
+		klog.InfoS("DeleteApiConfig", "queryExpr", conf.ExpressionQuery.Expression)
 	}
 	DeleteEventBroadcaster.Write(c.ConvertApiMetric2InternalConfig(conf))
 }
@@ -81,18 +78,18 @@ func (c *MetricContext) WithConfigs(configs []*Config) {
 
 func (c *MetricContext) WithConfig(conf *Config) {
 	if conf.Metric != nil {
-		logger.V(2).Info("WithConfig", "metricSelector", metricSelectorToQueryExpr(conf.Metric))
+		klog.InfoS("WithConfig", "metricSelector", metricSelectorToQueryExpr(conf.Metric))
 	} else if conf.Expression != nil {
-		logger.V(2).Info("WithConfig", "queryExpr", conf.Expression)
+		klog.InfoS("WithConfig", "queryExpr", conf.Expression)
 	}
 	UpdateEventBroadcaster.Write(conf)
 }
 
 func (c *MetricContext) DeleteConfig(conf *Config) {
 	if conf.Metric != nil {
-		logger.V(2).Info("DeleteConfig", "metricSelector", metricSelectorToQueryExpr(conf.Metric))
+		klog.InfoS("DeleteConfig", "metricSelector", metricSelectorToQueryExpr(conf.Metric))
 	} else if conf.Expression != nil {
-		logger.V(2).Info("DeleteConfig", "queryExpr", conf.Expression.Expression)
+		klog.InfoS("DeleteConfig", "queryExpr", conf.Expression.Expression)
 	}
 	DeleteEventBroadcaster.Write(conf)
 }
@@ -115,7 +112,7 @@ func (c *MetricContext) ResourceToPromQueryExpr(resourceName *corev1.ResourceNam
 	if strings.ToLower(c.TargetKind) == strings.ToLower(TargetKindNode) {
 		switch *resourceName {
 		case corev1.ResourceCPU:
-			return fmt.Sprintf(NodeCpuUsagePromQLFmtStr, c.Name, c.Name, "1m")
+			return fmt.Sprintf(NodeCpuUsagePromQLFmtStr, c.Name, c.Name, "5m")
 		case corev1.ResourceMemory:
 			return fmt.Sprintf(NodeMemUsagePromQLFmtStr, c.Name, c.Name)
 		}

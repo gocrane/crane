@@ -3,83 +3,111 @@ package recommend
 import (
 	"context"
 
-	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/scale"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
+
 	"github.com/gocrane/crane/pkg/prediction"
+	"github.com/gocrane/crane/pkg/providers"
+	"github.com/gocrane/crane/pkg/recommend/advisor"
+	"github.com/gocrane/crane/pkg/recommend/inspector"
+	"github.com/gocrane/crane/pkg/recommend/types"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
-func NewRecommender(kubeClient client.Client, restMapper meta.RESTMapper, scaleClient scale.ScalesGetter,
-	recommendation *analysisapi.Recommendation, predictors map[predictionapi.AlgorithmType]prediction.Interface, logger logr.Logger) (*Recommender, error) {
-	c, err := GetContext(kubeClient, restMapper, scaleClient, recommendation, predictors, logger)
+func NewRecommender(kubeClient client.Client, restMapper meta.RESTMapper,
+	scaleClient scale.ScalesGetter, recommendation *analysisapi.Recommendation,
+	predictors map[predictionapi.AlgorithmType]prediction.Interface, dataSource providers.Interface,
+	configSet *analysisapi.ConfigSet) (*Recommender, error) {
+	c, err := GetContext(kubeClient, restMapper, scaleClient, recommendation, predictors, dataSource, configSet)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Recommender{
 		Context:    c,
-		Inspectors: NewInspectors(c),
-		Advisors:   NewAdvisors(c),
+		Inspectors: inspector.NewInspectors(c),
+		Advisors:   advisor.NewAdvisors(c),
 	}, nil
 }
 
-func (r *Recommender) Offer() (proposed *ProposedRecommendation, err error) {
-	proposed = &ProposedRecommendation{}
+// Recommender take charge of the executor for recommendation
+type Recommender struct {
+	// Context contains all contexts during the recommendation
+	Context *types.Context
+
+	// Inspectors is an array of Inspector that needed for this recommendation
+	Inspectors []inspector.Inspector
+
+	// Advisors is an array of Advisor that needed for this recommendation
+	Advisors []advisor.Advisor
+}
+
+func (r *Recommender) Offer() (proposed *types.ProposedRecommendation, err error) {
+	proposed = &types.ProposedRecommendation{}
+
 	// Run inspectors to validate target is ready to recommend
+	var errs []error
 	for _, inspector := range r.Inspectors {
+		klog.V(4).Infof("Start inspector %s", inspector.Name())
 		err := inspector.Inspect()
+		klog.V(4).Infof("Complete inspector %s", inspector.Name())
 		if err != nil {
-			proposed.Conditions = append(proposed.Conditions, toInspectorCondition(err))
+			errs = append(errs, err)
 		}
 	}
 
-	// If true means some inspectors return error
-	if len(proposed.Conditions) != 0 {
-		return nil, err
+	if len(errs) != 0 {
+		err = utilerrors.NewAggregate(errs)
+		return
 	}
 
 	// Run advisors to propose recommends
 	for _, advisor := range r.Advisors {
-		err = advisor.Advise(proposed)
+		klog.V(4).Infof("Start advisor %s", advisor.Name())
+		err := advisor.Advise(proposed)
+		klog.V(4).Infof("Complete advisor %s", advisor.Name())
 		if err != nil {
-			return nil, err
+			errs = append(errs, err)
 		}
 	}
 
-	return proposed, nil
-}
-
-func toInspectorCondition(err error) metav1.Condition {
-	return metav1.Condition{
-		Type:               "Inspection",
-		Status:             metav1.ConditionFalse,
-		Reason:             "FailedInspection",
-		Message:            err.Error(),
-		LastTransitionTime: metav1.Now(),
+	if len(errs) != 0 {
+		err = utilerrors.NewAggregate(errs)
 	}
+
+	return
 }
 
-func GetContext(kubeClient client.Client, restMapper meta.RESTMapper, scaleClient scale.ScalesGetter,
-	recommendation *analysisapi.Recommendation, predictors map[predictionapi.AlgorithmType]prediction.Interface, logger logr.Logger) (*Context, error) {
-	c := &Context{Logger: logger}
+func GetContext(kubeClient client.Client, restMapper meta.RESTMapper,
+	scaleClient scale.ScalesGetter, recommendation *analysisapi.Recommendation,
+	predictors map[predictionapi.AlgorithmType]prediction.Interface, dataSource providers.Interface,
+	configSet *analysisapi.ConfigSet) (*types.Context, error) {
+	c := &types.Context{}
 
 	targetRef := autoscalingv2.CrossVersionObjectReference{
 		APIVersion: recommendation.Spec.TargetRef.APIVersion,
 		Kind:       recommendation.Spec.TargetRef.Kind,
 		Name:       recommendation.Spec.TargetRef.Name,
 	}
+
+	target := analysisapi.Target{
+		Kind:      recommendation.Spec.TargetRef.Kind,
+		Namespace: recommendation.Spec.TargetRef.Namespace,
+		Name:      recommendation.Spec.TargetRef.Name,
+	}
+	c.ConfigProperties = GetProperties(configSet, target)
 
 	var scale *autoscalingv1.Scale
 	var mapping *meta.RESTMapping
@@ -129,7 +157,8 @@ func GetContext(kubeClient client.Client, restMapper meta.RESTMapper, scaleClien
 
 	c.Pods = pods
 	c.Predictors = predictors
-	c.Recommendation = *recommendation
+	c.DataSource = dataSource
+	c.Recommendation = recommendation
 
 	return c, nil
 }

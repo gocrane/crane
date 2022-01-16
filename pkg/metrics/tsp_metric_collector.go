@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
@@ -18,7 +18,6 @@ import (
 
 type TspMetricCollector struct {
 	client.Client
-	Logger            logr.Logger
 	resourceCpuMetric *prometheus.Desc
 	resourceMemMetric *prometheus.Desc
 }
@@ -53,7 +52,7 @@ func (c *TspMetricCollector) Collect(ch chan<- prometheus.Metric) {
 	tspList := &predictionapi.TimeSeriesPredictionList{}
 	err := c.List(context.TODO(), tspList)
 	if err != nil {
-		c.Logger.Error(err, "Collect metrics failed")
+		klog.Error(err, "Collect metrics failed")
 		return
 	}
 	for _, tsp := range tspList.Items {
@@ -123,7 +122,7 @@ func (c *TspMetricCollector) computePredictionMetric(tsp *predictionapi.TimeSeri
 				ts := time.Unix(sample.Timestamp, 0)
 				value, err := strconv.ParseFloat(sample.Value, 64)
 				if err != nil {
-					c.Logger.Error(err, "Failed to parse sample value", "value", value)
+					klog.Error(err, "Failed to parse sample value", "value", value)
 					continue
 				}
 				// only collect resource query cpu or memory now.

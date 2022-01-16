@@ -1,0 +1,90 @@
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: crane-system
+
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: craned
+  namespace: crane-system
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: craned
+  namespace: crane-system
+  labels:
+    app: craned
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: craned
+  template:
+    metadata:
+      labels:
+        app: craned
+    spec:
+      serviceAccountName: craned
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+      containers:
+        - name: craned
+          image: docker.io/gocrane/craned:v0.1.0
+          imagePullPolicy: IfNotPresent
+          command:
+            - /craned
+            - --prometheus-address=PROMETHEUS_ADDRESS
+            - --feature-gates=Analysis=true,TimeSeriesPrediction=true,Autoscaling=true
+            - --recommendation-config-file=/tmp/recommendation-config/config_set.yaml
+            - -v=4
+          volumeMounts:
+            - mountPath: /tmp/k8s-webhook-server/serving-certs
+              name: cert
+              readOnly: true
+            - name: config
+              mountPath: /tmp/recommendation-config
+      volumes:
+        - name: cert
+          secret:
+            defaultMode: 420
+            secretName: webhook-server-tls
+        - name: config
+          configMap:
+            name: recommendation-config
+---
+apiVersion: v1
+data:
+  tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURWakNDQWo2Z0F3SUJBZ0lKQU9vSDdESmN5UkM2TUEwR0NTcUdTSWIzRFFFQkJRVUFNQkF4RGpBTUJnTlYKQkFNTUJXTnlZVzVsTUI0WERUSXlNREV4TWpBNU5UYzBNbG9YRFRNeU1ERXhNREE1TlRjME1sb3dLekVwTUNjRwpBMVVFQXd3Z2QyVmlhRzl2YXkxelpYSjJhV05sTG1OeVlXNWxMWE41YzNSbGJTNXpkbU13Z2dFaU1BMEdDU3FHClNJYjNEUUVCQVFVQUE0SUJEd0F3Z2dFS0FvSUJBUUMveVJUaU9vbnp5MXRPaEtuVk96czdjTmlub1lweCtackMKWm94enRrL2I0SEQ0RUpHaEpVT2UxSGxoaHdwM0RyTFdwbmpNZG0rZjJwSGUyRENUOUdzeDBUUXhmVlQvMUdWUApvc29heGc4Q1JkcDI4RzZTbUNKU1l2VmVjTThkVDdRN0RnOGRyMGplZE00Zk1seWg2N1YwOUtHWGY2SkpkdFU1ClBLd1FIWlNrTGRmcHAwOHYrRnhFMzc0bkhlOFBrRXRGNDNoN2c1dmVLYkpRMW9oK0R2dDB5WWpNc1c4ZGlTQngKamhLb1BabjE5Z0xEZUUwUGpXWDlTcjBFRW1HNUFURmxlNEZJMzZ3TkhZMncxZGZUbjRBdy9sTlp5OGp6elBGTApVTGtvZVJ2TWR4RXpJY3ljV3pZbUNYbXNxY202VU5jU08waFJUaDdscGRaMVpOdTBHTUNEQWdNQkFBR2pnWmN3CmdaUXdDUVlEVlIwVEJBSXdBREFMQmdOVkhROEVCQU1DQmVBd0hRWURWUjBsQkJZd0ZBWUlLd1lCQlFVSEF3SUcKQ0NzR0FRVUZCd01CTUZzR0ExVWRFUVJVTUZLQ0lIZGxZbWh2YjJzdGMyVnlkbWxqWlM1amNtRnVaUzF6ZVhOMApaVzB1YzNaamdpNTNaV0pvYjI5ckxYTmxjblpwWTJVdVkzSmhibVV0YzNsemRHVnRMbk4yWXk1amJIVnpkR1Z5CkxteHZZMkZzTUEwR0NTcUdTSWIzRFFFQkJRVUFBNElCQVFCbHgxbEJXcWh2VjMwZnB5NXJ3ZnlaNjdpRmxRYUsKK0syRXE0UXhvNkJGb2JuaDZ3aGVOL2Y4cTB3YS9uYktMN1ZwS1dINjA3bHF2ejNCTEI2c2FjcjUrU29nQlVScwp3d3pHWlRQTEp4VVdiWlowaHZCanNNMHphWmRDM1JpcmEycVJpMU1ndTNBWW1maFg2OGxvVkp1ZDJ1a2RrZmJoCkZnKzlXVmhlU0lTU3M2dGdEemFybXRCVVZJWGhFOW9JWkhkeStoWDcvQkN2YjAzSnJqL04ySFBGaHpCalFtUU4KVHgzV09tWDRTSW5pd1N3RjJrMmo3ZmtoSE5NRW1zY2huaDZsUXYxelVBZFRwNDVHMldrbnQzbXdCK0p6WTRLdgpMSDBmRjQ0TGg1OVRnREpzYWlmNnJVTW4wVlphNUFsZ3JtRmFGbG1Jd1Z4L29wSEp2bis2SVJqSwotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+  tls.key: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFcEFJQkFBS0NBUUVBdjhrVTRqcUo4OHRiVG9TcDFUczdPM0RZcDZHS2NmbWF3bWFNYzdaUDIrQncrQkNSCm9TVkRudFI1WVljS2R3NnkxcVo0ekhadm45cVIzdGd3ay9Sck1kRTBNWDFVLzlSbFQ2TEtHc1lQQWtYYWR2QnUKa3BnaVVtTDFYbkRQSFUrME93NFBIYTlJM25UT0h6SmNvZXUxZFBTaGwzK2lTWGJWT1R5c0VCMlVwQzNYNmFkUApML2hjUk4rK0p4M3ZENUJMUmVONGU0T2IzaW15VU5hSWZnNzdkTW1JekxGdkhZa2djWTRTcUQyWjlmWUN3M2hOCkQ0MWwvVXE5QkJKaHVRRXhaWHVCU04rc0RSMk5zTlhYMDUrQU1QNVRXY3ZJODh6eFMxQzVLSGtiekhjUk15SE0KbkZzMkpnbDVyS25KdWxEWEVqdElVVTRlNWFYV2RXVGJ0QmpBZ3dJREFRQUJBb0lCQUJtNUNKb0hLL1dNOHVRbgpHdmhFaDM5RGRXdVdXUkZNWHh0djBhcTdheDZjamNwWHZwQ1VoT3RLcURVU2ZhN1dROXBTWGFWZXhUMzFmTmNjCnUvYzhNeHh0YU1peWZMSUxkTU1ubkYvVzdMQnJXZy9WMDU3SjFPQ2o4VEVIaEYvMERzSlU4bVlTMm4wcndYR2gKdVpibUhHSmhaVU1DbFd1eENvd3d2UXMwVEhsd2lPR2JOYXQ3aFF0NGJKdHBLSTdQRWJDNElxQWtUeU9sMmt3TgpnZ0pYRThTNE9FN1N1QUZiVXJRNkVVWS82WWFoaWQrYkNoL3RxZXNlTmxPK0J2QUU1SHpsLzJ0dThQTnRvckRkCm40MXFIRnhzaXpaU084Q2lyVXFqM0lJOHlsaU5BNnZ6WllRZU9TT3ovMjR3UisyWVhLKzROYlAvazM5UWhhVmIKZnk4Z0tVRUNnWUVBOWE3K2Q2Z3lYd1VqNlI0OHlTOVk2cnk4WjQveXVwWUdXT2M2R2hjNktyZHhFa1ludjZ2dwpnYWN0YllKWlJEZFlENFdKd21JejQ3QkpZb29yQXorYytpeDJZRzU0d1dGTnp4YUZyNVR2T0hIbHo5UElqUmRUCmd1OG94bWQxUzJEemkybDRxUTB0VlRZeFlTK3J2NmgrR21YUmJPK1YzYWlLZnhRMXdMMCtkak1DZ1lFQXg5YTAKQys3MFIvUExOUmNvTmlERUZ2bUVvYWlOc29LSUxaemYvMFRYVVIvSTk5MHVWQXpucVRyajVIUlJRK2VtblVyego2SXQwbVVrM0llc3ZrNmM4MDBaMkQ5eDlDaXdzVEJLV0N1cDR4c1VScHE0YWVQOFBwNk0rU0ROdk5OdlZwVlIrCkt0cThCb0pPQTg0R0V2dzBhU1M2VUhSRGUzWDB6N2s0d2p3REhIRUNnWUVBc3FiVms5MVRBNVdSVDJzVmVKWmQKYWhSa1RFcDRqd1daQi96Y1d5eVl0NGM5U2JTS0l1NjhyUXNNRloyN204ZEMyY2FaTGlpSzR2N0Yza25xalNvcwoxQjZRMWY1L0FOL28zTFhiOEptMGVxOFlGZEJDL1pZQXZDMTgwUWxhV2IzZVczb09xNTlSWDYxUXF3TW5PTzhsCkE3MFdWTWpEaWJPTlFtdEh5eWZSeTlFQ2dZQk9uL25jekJwT2lPd0ZxbVBHMENOMmlwdVZZeFRGRERoNkFjUGIKMG9FSXlRR3dDOVRqZXVSV24vWHo5NVBWckxuUUh5SlI5elJiN3dPREU5NTNNSkJzNjhjZHZIbHgzQ2xka041NQowd0RMNjlOakNoTWVVZlFkMTh0MGF0QXhNdUVmR0Z3L2ppbjJRYVJpT05nSTlqUEV2bytUZ2ZyZkEyemJvWnRrClNHcE04UUtCZ1FDaEhVUUlnN1F0M2JyakNOTnIydVIzNWZPUEx1aElBbytSNEJhSUNQUUZSVDl0OHRMTFZoeXIKNUxtUDRtMmtnWGV6bEFRWG02VHRkZXF0ay9IbVV6UFd5L0g0OUpTUXFhcUxHYzU0Q2Zsc09ydlFibjlTdG1URAp3bzU2Z3lFUmxRMjk0VWRLUnBJakFKdGRRbURwcmpycDJqeHdJWnlOdW4rZndGa0NSTjNSdVE9PQotLS0tLUVORCBSU0EgUFJJVkFURSBLRVktLS0tLQo=
+kind: Secret
+metadata:
+  name: webhook-server-tls
+  namespace: crane-system
+type: kubernetes.io/tls
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: recommendation-config
+  namespace: crane-system
+data:
+  config_set.yaml: |-
+    apiVersion: analysis.crane.io/v1alpha1
+    kind: ConfigSet
+    configs:
+      - targets: []
+        properties:
+          cpu-request-percentile: "0.98"
+          ehpa.deployment-min-replicas: "1"
+          ehpa.statefulset-min-replicas: "1"
+          ehpa.workload-min-replicas: "1"
+          ehpa.pod-min-ready-seconds: "30"
+          ehpa.pod-available-ratio: "0.5"

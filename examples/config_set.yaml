@@ -1,0 +1,6 @@
+apiVersion: analysis.crane.io/v1alpha1
+kind: ConfigSet
+configs:
+  - targets: []
+    properties:
+      cpu-request-percentile: "0.98"

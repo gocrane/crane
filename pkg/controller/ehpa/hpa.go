@@ -31,7 +31,7 @@ func (c *EffectiveHPAController) ReconcileHPA(ctx context.Context, ehpa *autosca
 			return c.CreateHPA(ctx, ehpa, substitute)
 		} else {
 			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedGetHPA", err.Error())
-			c.Log.Error(err, "Failed to get HPA", "ehpa", klog.KObj(ehpa))
+			klog.Error("Failed to get HPA, ehpa %s error %v", klog.KObj(ehpa), err)
 			return nil, err
 		}
 	} else if len(hpaList.Items) == 0 {
@@ -60,18 +60,18 @@ func (c *EffectiveHPAController) CreateHPA(ctx context.Context, ehpa *autoscalin
 	hpa, err := c.NewHPAObject(ctx, ehpa, substitute)
 	if err != nil {
 		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreateHPAObject", err.Error())
-		c.Log.Error(err, "Failed to create object", "HorizontalPodAutoscaler", hpa)
+		klog.Errorf("Failed to create object, HorizontalPodAutoscaler %s error %v", hpa, err)
 		return nil, err
 	}
 
 	err = c.Client.Create(ctx, hpa)
 	if err != nil {
 		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreateHPA", err.Error())
-		c.Log.Error(err, "Failed to create", "HorizontalPodAutoscaler", hpa)
+		klog.Errorf("Failed to create HorizontalPodAutoscaler, error %v", hpa, err)
 		return nil, err
 	}
 
-	c.Log.Info("Create HorizontalPodAutoscaler successfully", "HorizontalPodAutoscaler", hpa)
+	klog.Infof("Create HorizontalPodAutoscaler successfully, HorizontalPodAutoscaler %s", klog.KObj(hpa))
 	c.Recorder.Event(ehpa, v1.EventTypeNormal, "HPACreated", "Create HorizontalPodAutoscaler successfully")
 
 	return hpa, nil
@@ -133,22 +133,22 @@ func (c *EffectiveHPAController) UpdateHPAIfNeed(ctx context.Context, ehpa *auto
 	hpa, err := c.NewHPAObject(ctx, ehpa, substitute)
 	if err != nil {
 		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreateHPAObject", err.Error())
-		c.Log.Error(err, "Failed to create object", "HorizontalPodAutoscaler", hpa)
+		klog.Errorf("Failed to create object, HorizontalPodAutoscaler %s error %v", klog.KObj(hpa), err)
 		return nil, err
 	}
 
 	if !equality.Semantic.DeepEqual(&hpaExist.Spec, &hpa.Spec) {
-		c.Log.V(4).Info("HorizontalPodAutoscaler is unsynced according to EffectiveHorizontalPodAutoscaler, should be updated", "currentHPA", hpaExist.Spec, "expectHPA", hpa.Spec)
+		klog.V(4).Infof("HorizontalPodAutoscaler is unsynced according to EffectiveHorizontalPodAutoscaler, should be updated, currentHPA %v expectHPA %v", hpaExist.Spec, hpa.Spec)
 
 		hpaExist.Spec = hpa.Spec
 		err := c.Update(ctx, hpaExist)
 		if err != nil {
 			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedUpdateHPA", err.Error())
-			c.Log.Error(err, "Failed to update", "HorizontalPodAutoscaler", hpaExist)
+			klog.Errorf("Failed to update HorizontalPodAutoscaler %s error %v", klog.KObj(hpaExist), err)
 			return nil, err
 		}
 
-		c.Log.Info("Update HorizontalPodAutoscaler successful", "HorizontalPodAutoscaler", klog.KObj(hpaExist))
+		klog.Infof("Update HorizontalPodAutoscaler successful, HorizontalPodAutoscaler %s", klog.KObj(hpaExist))
 	}
 
 	return hpaExist, nil
@@ -201,7 +201,11 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 						return nil, err
 					}
 
-					requests, err := calculatePodRequests(pods, metric.Resource.Name)
+					if len(pods) == 0 {
+						return nil, fmt.Errorf("No pods returns from scale object. ")
+					}
+
+					requests, err := utils.CalculatePodRequests(pods, metric.Resource.Name)
 					if err != nil {
 						return nil, err
 					}
@@ -233,21 +237,6 @@ func GetPredictionMetricName(Name v1.ResourceName) (string, error) {
 	default:
 		return "", fmt.Errorf("resource name not predictable")
 	}
-}
-
-// calculatePodRequests sum request total from pods
-func calculatePodRequests(pods []v1.Pod, resource v1.ResourceName) (int64, error) {
-	var requests int64
-	for _, pod := range pods {
-		for _, c := range pod.Spec.Containers {
-			if containerRequest, ok := c.Resources.Requests[resource]; ok {
-				requests += containerRequest.MilliValue()
-			} else {
-				return 0, fmt.Errorf("missing request for %s", resource)
-			}
-		}
-	}
-	return requests, nil
 }
 
 func setHPACondition(status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus, conditions []autoscalingv2.HorizontalPodAutoscalerCondition) {

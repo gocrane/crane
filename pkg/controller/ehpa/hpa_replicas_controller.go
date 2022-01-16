@@ -3,7 +3,6 @@ package ehpa
 import (
 	"context"
 
-	"github.com/go-logr/logr"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -18,14 +17,13 @@ import (
 // HPAReplicasController is responsible for monitor and export replicas for hpa
 type HPAReplicasController struct {
 	client.Client
-	Log        logr.Logger
 	Scheme     *runtime.Scheme
 	RestMapper meta.RESTMapper
 	Recorder   record.EventRecorder
 }
 
 func (c *HPAReplicasController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	c.Log.Info("got", "hpa", req.NamespacedName)
+	klog.Infof("Got hpa %s", req.NamespacedName)
 
 	hpa := &autoscalingv2.HorizontalPodAutoscaler{}
 	if err := c.Client.Get(ctx, req.NamespacedName, hpa); err != nil {

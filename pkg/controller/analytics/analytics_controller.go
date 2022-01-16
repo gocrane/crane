@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -22,6 +21,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -34,7 +34,6 @@ import (
 
 type Controller struct {
 	client.Client
-	Logger          logr.Logger
 	Scheme          *runtime.Scheme
 	RestMapper      meta.RESTMapper
 	Recorder        record.EventRecorder
@@ -46,7 +45,7 @@ type Controller struct {
 }
 
 func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	c.Logger.V(4).Info("Got an analytics resource.", "analytics", req.NamespacedName)
+	klog.V(4).InfoS("Got an analytics resource.", "analytics", req.NamespacedName)
 
 	a := &analysisv1alph1.Analytics{}
 
@@ -59,7 +58,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	if a.DeletionTimestamp != nil {
-		c.Logger.Info("Analytics resource is being deleted.", "name", req.NamespacedName)
+		klog.InfoS("Analytics resource is being deleted.", "name", req.NamespacedName)
 		return ctrl.Result{}, nil
 	}
 
@@ -69,6 +68,10 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if a.Status.LastSuccessfulTime.Add(d).After(time.Now()) {
 			return ctrl.Result{}, nil
 		}
+	}
+
+	if a.Spec.CompletionStrategy.CompletionStrategyType == analysisv1alph1.CompletionStrategyOnce && a.Status.LastSuccessfulTime != nil {
+		return ctrl.Result{}, err
 	}
 
 	identities := map[string]ObjectIdentity{}
@@ -137,7 +140,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 
 		for i := range us {
-			k := objRefKey(rs.Kind, rs.APIVersion, us[i].GetNamespace(), us[i].GetName())
+			k := objRefKey(rs.Kind, rs.APIVersion, us[i].GetNamespace(), us[i].GetName(), string(a.Spec.Type))
 			if _, exists := identities[k]; !exists {
 				identities[k] = ObjectIdentity{
 					Namespace:  us[i].GetNamespace(),
@@ -162,21 +165,18 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	rm := map[string]*analysisv1alph1.Recommendation{}
 	for _, r := range rs {
-		k := objRefKey(r.Spec.TargetRef.Kind, r.Spec.TargetRef.APIVersion, r.Spec.TargetRef.Namespace, r.Spec.TargetRef.Name)
+		k := objRefKey(r.Spec.TargetRef.Kind, r.Spec.TargetRef.APIVersion, r.Spec.TargetRef.Namespace, r.Spec.TargetRef.Name, string(r.Spec.Type))
 		rm[k] = r.DeepCopy()
 	}
 
-	if c.Logger.V(6).Enabled() {
+	if klog.V(6).Enabled() {
 		// Print recommendations
 		for k, r := range rm {
-			c.Logger.V(6).Info("recommendations", "key", k, "namespace", r.Namespace, "name", r.Name)
+			klog.V(6).InfoS("recommendations", "key", k, "namespace", r.Namespace, "name", r.Name)
 		}
-	}
-
-	if c.Logger.V(6).Enabled() {
 		// Print identities
 		for k, id := range identities {
-			c.Logger.V(6).Info("identities", "key", k, "apiVersion", id.APIVersion, "kind", id.Kind, "namespace", id.Namespace, "name", id.Name)
+			klog.V(6).InfoS("identities", "key", k, "apiVersion", id.APIVersion, "kind", id.Kind, "namespace", id.Namespace, "name", id.Name)
 		}
 	}
 
@@ -193,7 +193,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			})
 			found := false
 			for _, or := range r.OwnerReferences {
-				if or.Name == a.Name && or.Kind == a.Kind && a.APIVersion == a.APIVersion {
+				if or.Name == a.Name && or.Kind == a.Kind && or.APIVersion == a.APIVersion {
 					found = true
 					break
 				}
@@ -222,7 +222,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if a.Spec.CompletionStrategy.CompletionStrategyType == analysisv1alph1.CompletionStrategyPeriodical {
 		if a.Spec.CompletionStrategy.PeriodSeconds != nil {
 			d := time.Second * time.Duration(*a.Spec.CompletionStrategy.PeriodSeconds)
-			c.Logger.V(5).Info("Will re-sync", "after", d)
+			klog.V(4).InfoS("Will re-sync", "after", d)
 			return ctrl.Result{
 				RequeueAfter: d,
 			}, nil
@@ -261,15 +261,18 @@ func (ac *Controller) createRecommendation(ctx context.Context, a *analysisv1alp
 			Type:               a.Spec.Type,
 			CompletionStrategy: a.Spec.CompletionStrategy,
 		},
+		Status: analysisv1alph1.RecommendationStatus{
+			LastUpdateTime: metav1.Now(),
+		},
 	}
 
 	if err := ac.Create(ctx, r); err != nil {
-		ac.Logger.Error(err, "Failed to create Recommendation")
+		klog.Error(err, "Failed to create Recommendation")
 		return err
 	}
 
 	if err := ac.Get(ctx, types.NamespacedName{Namespace: r.Namespace, Name: r.Name}, r); err != nil {
-		ac.Logger.Error(err, "Failed to get Recommendation")
+		klog.Error(err, "Failed to get Recommendation")
 		return err
 	}
 	*refs = append(*refs, corev1.ObjectReference{
@@ -283,8 +286,8 @@ func (ac *Controller) createRecommendation(ctx context.Context, a *analysisv1alp
 	return nil
 }
 
-func objRefKey(kind, apiVersion, namespace, name string) string {
-	return fmt.Sprintf("%s#%s#%s#%s", kind, apiVersion, namespace, name)
+func objRefKey(kind, apiVersion, namespace, name, recommendType string) string {
+	return fmt.Sprintf("%s#%s#%s#%s#%s", kind, apiVersion, namespace, name, recommendType)
 }
 
 func match(labelSelector metav1.LabelSelector, matchLabels map[string]string) bool {

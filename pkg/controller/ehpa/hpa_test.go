@@ -6,6 +6,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/gocrane/crane/pkg/utils"
 )
 
 func TestCalculatePodRequests(t *testing.T) {
@@ -78,7 +80,7 @@ func TestCalculatePodRequests(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		requests, err := calculatePodRequests(pods, test.resource)
+		requests, err := utils.CalculatePodRequests(pods, test.resource)
 		if err != nil {
 			t.Errorf("Failed to calculatePodRequests: %v", err)
 		}

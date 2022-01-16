@@ -3,12 +3,12 @@ package cnp
 import (
 	"context"
 
-	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -18,7 +18,6 @@ import (
 
 type ClusterNodePredictionController struct {
 	client.Client
-	Logger     logr.Logger
 	Scheme     *runtime.Scheme
 	RestMapper meta.RESTMapper
 	Recorder   record.EventRecorder
@@ -27,7 +26,7 @@ type ClusterNodePredictionController struct {
 
 func (c *ClusterNodePredictionController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Log for controller information
-	c.Logger.V(4).Info("Got an cnp resource", "cnp", req.NamespacedName)
+	klog.V(4).Infof("Cnp resource reconcile: %s/%s", req.NamespacedName, req.Name)
 
 	// Get cnp object, Ignore object not found event
 	var cnp predictionapi.ClusterNodePrediction

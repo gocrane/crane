@@ -13,6 +13,8 @@ spec:
     kind: Recommendation
     listKind: RecommendationList
     plural: recommendations
+    shortNames:
+    - recommend
     singular: recommendation
   scope: Namespaced
   versions:
@@ -115,6 +117,11 @@ spec:
                     description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                     type: string
                 type: object
+              timeoutSeconds:
+                description: timeoutSeconds specifies the seconds of one recommendation
+                  process. Default value is 600(for 10 minutes).
+                format: int32
+                type: integer
               type:
                 type: string
             required:
@@ -738,6 +745,8 @@ spec:
                             type: object
                           percentile:
                             properties:
+                              aggregated:
+                                type: boolean
                               histogram:
                                 properties:
                                   bucketSize:
@@ -753,6 +762,8 @@ spec:
                                   maxValue:
                                     type: string
                                 type: object
+                              historyLength:
+                                type: string
                               marginFraction:
                                 type: string
                               minSampleWeight:
