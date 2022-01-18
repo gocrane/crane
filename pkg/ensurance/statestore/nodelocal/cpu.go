@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/shirou/gopsutil/cpu"
+	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog/v2"
 
 	"github.com/gocrane/crane/pkg/common"
@@ -19,7 +20,7 @@ const (
 )
 
 func init() {
-	registerMetrics(cpuCollectorName, []types.MetricName{types.MetricNamCpuTotalUsage, types.MetricNamCpuTotalUtilization}, NewCPUCollector)
+	registerMetrics(cpuCollectorName, []types.MetricName{types.MetricNameCpuTotalUsage, types.MetricNameCpuTotalUtilization}, NewCPUCollector)
 }
 
 type CpuTimeStampState struct {
@@ -34,7 +35,7 @@ type CpuCollector struct {
 }
 
 // NewCPUCollector returns a new Collector exposing kernel/system statistics.
-func NewCPUCollector() (nodeLocalCollector, error) {
+func NewCPUCollector(_ corelisters.PodLister) (nodeLocalCollector, error) {
 	var cpuCoreNumbers uint64
 	if cpuInfos, err := cpu.Info(); err != nil {
 		return nil, err
@@ -77,8 +78,8 @@ func (c *CpuCollector) collect() (map[string][]common.TimeSeries, error) {
 
 	c.cpuState = nowCpuState
 
-	c.data[string(types.MetricNamCpuTotalUsage)] = []common.TimeSeries{{Samples: []common.Sample{{Value: usageCore, Timestamp: now.Unix()}}}}
-	c.data[string(types.MetricNamCpuTotalUtilization)] = []common.TimeSeries{{Samples: []common.Sample{{Value: usagePercent, Timestamp: now.Unix()}}}}
+	c.data[string(types.MetricNameCpuTotalUsage)] = []common.TimeSeries{{Samples: []common.Sample{{Value: usageCore, Timestamp: now.Unix()}}}}
+	c.data[string(types.MetricNameCpuTotalUtilization)] = []common.TimeSeries{{Samples: []common.Sample{{Value: usagePercent, Timestamp: now.Unix()}}}}
 	return c.data, nil
 }
 

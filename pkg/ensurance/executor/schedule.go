@@ -2,10 +2,13 @@ package executor
 
 import (
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
+	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog/v2"
 
 	client "github.com/gocrane/crane/pkg/ensurance/client"
 	"github.com/gocrane/crane/pkg/known"
+	"github.com/gocrane/crane/pkg/utils"
 )
 
 const (
@@ -104,37 +107,58 @@ func (s ScheduledQOSPriority) Greater(i ScheduledQOSPriority) bool {
 	return s.PriorityClassValue > i.PriorityClassValue
 }
 
+func GetMaxQOSPriority(podLister corelisters.PodLister, podTypes []types.NamespacedName) (types.NamespacedName, ScheduledQOSPriority) {
+
+	var podType types.NamespacedName
+	var scheduledQOSPriority ScheduledQOSPriority
+
+	for _, podNamespace := range podTypes {
+		if pod, err := podLister.Pods(podNamespace.Namespace).Get(podNamespace.Name); err != nil {
+			klog.V(6).Infof("Warning: getMaxQOSPriority get pod %s not found", podNamespace.String())
+			continue
+		} else {
+			var priority = ScheduledQOSPriority{PodQOSClass: pod.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(pod.Spec.Priority, 0) - 1}
+			if priority.Greater(scheduledQOSPriority) {
+				scheduledQOSPriority = priority
+				podType = podNamespace
+			}
+		}
+	}
+
+	return podType, scheduledQOSPriority
+}
+
 // We defined guaranteed is the highest qos class, burstable is the middle level
 // bestEffort is the lowest
 // if a qos class is greater than b, return 1
 // if a qos class is less than b, return -1
 // if a qos class equal with b , return 0
 func comparePodQos(a v1.PodQOSClass, b v1.PodQOSClass) int32 {
-	switch a {
+	switch b {
 	case v1.PodQOSGuaranteed:
-		if b == v1.PodQOSGuaranteed {
+		if a == v1.PodQOSGuaranteed {
 			return 0
 		} else {
 			return -1
 		}
 	case v1.PodQOSBurstable:
-		if b == v1.PodQOSGuaranteed {
+		if a == v1.PodQOSGuaranteed {
 			return 1
-		} else if b == v1.PodQOSBurstable {
+		} else if a == v1.PodQOSBurstable {
 			return 0
 		} else {
 			return -1
 		}
 	case v1.PodQOSBestEffort:
-		if (b == v1.PodQOSGuaranteed) || (b == v1.PodQOSBurstable) {
+		if (a == v1.PodQOSGuaranteed) || (a == v1.PodQOSBurstable) {
 			return 1
-		} else if b == v1.PodQOSBestEffort {
+		} else if a == v1.PodQOSBestEffort {
 			return 0
 		} else {
 			return -1
 		}
 	default:
-		if (b == v1.PodQOSGuaranteed) || (b == v1.PodQOSBurstable) || (b == v1.PodQOSBestEffort) {
+		if (a == v1.PodQOSGuaranteed) || (a == v1.PodQOSBurstable) || (a == v1.PodQOSBestEffort) {
 			return 1
 		} else {
 			return 0

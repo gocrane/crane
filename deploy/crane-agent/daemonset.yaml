@@ -34,7 +34,22 @@ spec:
           command:
             - /crane-agent
             - -v=4
+            - --runtime-endpoint=unix:///rootvar/run/dockershim.sock
           name: crane-agent
+          volumeMounts:
+            - mountPath: /sys
+              name: sys
+            - mountPath: /rootvar/run
+              name: run
       restartPolicy: Always
       priorityClassName: system-node-critical
       serviceAccount: crane-agent
+      volumes:
+        - hostPath:
+            path: /sys
+            type: ""
+          name: sys
+        - hostPath:
+            path: /var/run
+            type: ""
+          name: run

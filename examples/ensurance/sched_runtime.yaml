@@ -1,7 +1,7 @@
 apiVersion: ensurance.crane.io/v1alpha1
 kind: NodeQOSEnsurancePolicy
 metadata:
-  name: "waterline2"
+  name: "sched"
   labels:
     app: "system"
 spec:
@@ -11,11 +11,11 @@ spec:
     nodeLocalGet:
       localCacheTTLSeconds: 60
   objectiveEnsurances:
-    - name: "cpu_usage"
-      avoidanceThreshold: 2
-      restoreThreshold: 2
+    - name: "container_sched_run_queue_time"
+      avoidanceThreshold: 1
+      restoreThreshold: 10
       actionName: "throttle"
       strategy: "None"
       metricRule:
-        name: "cpu_total_usage"
-        value: 6000
+        name: "container_sched_run_queue_time"
+        value: 500

@@ -61,7 +61,7 @@ func GetPodCondition(status *v1.PodStatus, conditionType v1.PodConditionType) (i
 	return -1, nil
 }
 
-//EvictPodWithGracePeriod evict pod with grace period
+// EvictPodWithGracePeriod evict pod with grace period
 func EvictPodWithGracePeriod(client clientset.Interface, pod *v1.Pod, gracePeriodSeconds int32) error {
 	if kubelettypes.IsCriticalPod(pod) {
 		return fmt.Errorf("Eviction manager: cannot evict a critical pod(%s)", klog.KObj(pod))
@@ -91,4 +91,15 @@ func CalculatePodRequests(pods []v1.Pod, resource v1.ResourceName) (int64, error
 		}
 	}
 	return requests, nil
+}
+
+// GetPodContainerByName get container info by container name
+func GetPodContainerByName(pod *v1.Pod, containerName string) (v1.Container, error) {
+	for _, v := range pod.Spec.Containers {
+		if v.Name == containerName {
+			return v, nil
+		}
+	}
+
+	return v1.Container{}, fmt.Errorf("container not found")
 }

@@ -1,13 +1,17 @@
 package avoidance
 
 import (
+	"google.golang.org/grpc"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	"k8s.io/klog/v2"
 
 	"github.com/gocrane/crane/pkg/ensurance/executor"
+	cgrpc "github.com/gocrane/crane/pkg/ensurance/grpc"
+	cruntime "github.com/gocrane/crane/pkg/ensurance/runtime"
 )
 
 type AvoidanceManager struct {
@@ -20,19 +24,31 @@ type AvoidanceManager struct {
 
 	nodeLister corelisters.NodeLister
 	nodeSynced cache.InformerSynced
+
+	runtimeClient pb.RuntimeServiceClient
+	runtimeConn   *grpc.ClientConn
 }
 
 // NewAvoidanceManager create avoidance manager
 func NewAvoidanceManager(client clientset.Interface, nodeName string, podInformer coreinformers.PodInformer, nodeInformer coreinformers.NodeInformer,
-	noticeCh <-chan executor.AvoidanceExecutor) *AvoidanceManager {
+	noticeCh <-chan executor.AvoidanceExecutor, runtimeEndpoint string) *AvoidanceManager {
+
+	runtimeClient, runtimeConn, err := cruntime.GetRuntimeClient(runtimeEndpoint, true)
+	if err != nil {
+		klog.Errorf("GetRuntimeClient failed %s", err.Error())
+		return nil
+	}
+
 	return &AvoidanceManager{
-		nodeName:   nodeName,
-		client:     client,
-		noticeCh:   noticeCh,
-		podLister:  podInformer.Lister(),
-		podSynced:  podInformer.Informer().HasSynced,
-		nodeLister: nodeInformer.Lister(),
-		nodeSynced: nodeInformer.Informer().HasSynced,
+		nodeName:      nodeName,
+		client:        client,
+		noticeCh:      noticeCh,
+		podLister:     podInformer.Lister(),
+		podSynced:     podInformer.Informer().HasSynced,
+		nodeLister:    nodeInformer.Lister(),
+		nodeSynced:    nodeInformer.Informer().HasSynced,
+		runtimeClient: runtimeClient,
+		runtimeConn:   runtimeConn,
 	}
 }
 
@@ -64,6 +80,9 @@ func (a *AvoidanceManager) Run(stop <-chan struct{}) {
 			case <-stop:
 				{
 					klog.Infof("Avoidance exit")
+					if err := cgrpc.CloseGrpcConnection(a.runtimeConn); err != nil {
+						klog.Errorf("Failed to close grpc connection: %v", err)
+					}
 					return
 				}
 			}
@@ -75,10 +94,12 @@ func (a *AvoidanceManager) Run(stop <-chan struct{}) {
 
 func (a *AvoidanceManager) doAction(ae executor.AvoidanceExecutor, _ <-chan struct{}) error {
 	var ctx = &executor.ExecuteContext{
-		NodeName:   a.nodeName,
-		Client:     a.client,
-		PodLister:  a.podLister,
-		NodeLister: a.nodeLister,
+		NodeName:      a.nodeName,
+		Client:        a.client,
+		PodLister:     a.podLister,
+		NodeLister:    a.nodeLister,
+		RuntimeClient: a.runtimeClient,
+		RuntimeConn:   a.runtimeConn,
 	}
 
 	//step1 do avoidance actions

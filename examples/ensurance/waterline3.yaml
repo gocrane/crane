@@ -1,7 +1,7 @@
 apiVersion: ensurance.crane.io/v1alpha1
 kind: NodeQOSEnsurancePolicy
 metadata:
-  name: "waterline1"
+  name: "waterline3"
   labels:
     app: "system"
 spec:
@@ -14,8 +14,8 @@ spec:
   - name: "cpu_usage"
     avoidanceThreshold: 2
     restoreThreshold: 2
-    actionName: "disablescheduled"
-    strategy: "None"
+    actionName: "evict"
+    strategy: "Preview"
     metricRule:
       name: "cpu_total_usage"
-      value: 4000
+      value: 6000
