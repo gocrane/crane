@@ -58,7 +58,6 @@ func (s *Signal) Frequencies() []float64 {
 // IsPeriodic checks whether the signal is periodic and its period is approximately
 // equal to the given value
 func (s *Signal) IsPeriodic(cycleDuration time.Duration) bool {
-	//s.Frequencies()
 	// The signal length must be at least double of the period
 	si, m := s.Truncate(cycleDuration)
 	if m < 2 {
@@ -66,12 +65,14 @@ func (s *Signal) IsPeriodic(cycleDuration time.Duration) bool {
 	}
 
 	secondsPerCycle := cycleDuration.Seconds()
-	for _, freq := range si.Frequencies() {
+	frequencies := si.Frequencies()
+	for _, freq := range frequencies {
 		t := 1.0 / freq
 		if t > secondsPerCycle {
 			return false
 		}
-		epsilon := math.Abs(t-secondsPerCycle) / t
+		m := secondsPerCycle / t
+		epsilon := math.Abs(m - float64(int(m)))
 		if epsilon < 1e-3 {
 			return true
 		}
