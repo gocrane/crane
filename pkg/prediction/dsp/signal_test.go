@@ -20,6 +20,7 @@ var (
 	sampleInterval = duration / sampleRate // second
 	frequency      = 25.0
 	amplitude      = 10.0
+	nInputs        = 16
 )
 
 var signal *Signal
@@ -81,7 +82,6 @@ func TestSignal_Denormalize(t *testing.T) {
 }
 
 func TestSignal_IsPeriodic(t *testing.T) {
-	nInputs := 15
 	signals := make([]*Signal, nInputs)
 	for i := 0; i < nInputs; i++ {
 		s, err := readCsvFile(fmt.Sprintf("test_data/input%d.csv", i))
@@ -105,6 +105,7 @@ func TestSignal_IsPeriodic(t *testing.T) {
 		Day,
 		Day,
 		Day,
+		Day,
 	}
 
 	for i := 0; i < nInputs; i++ {
@@ -115,7 +116,6 @@ func TestSignal_IsPeriodic(t *testing.T) {
 // Uncomment test below to see what time series in test_data look like.
 // "Green" charts are  periodic time series, and "red" charts represent the non-periodic.
 //func TestSignal_Plot(t *testing.T) {
-//	nInputs := 15
 //	signals := make([]*Signal, nInputs)
 //	for i := 0; i < nInputs; i++ {
 //		s, err := readCsvFile(fmt.Sprintf("test_data/input%d.csv", i))
@@ -149,6 +149,7 @@ var periodic = []bool{
 	false,
 	false,
 	false,
+	true,
 	true,
 	true,
 	true,
