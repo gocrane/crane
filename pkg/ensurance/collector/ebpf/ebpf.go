@@ -2,8 +2,6 @@ package ebpf
 
 import (
 	"sync"
-
-	"k8s.io/klog/v2"
 )
 
 type EBPF struct {
@@ -24,6 +22,5 @@ func NewEBPF() *EBPF {
 }
 
 func (e *EBPF) Collect() {
-	klog.V(4).Infof("Ebpf collecting")
 	return
 }

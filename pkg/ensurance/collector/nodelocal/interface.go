@@ -1,6 +1,8 @@
 package nodelocal
 
-import "github.com/gocrane/crane/pkg/common"
+import (
+	"github.com/gocrane/crane/pkg/common"
+)
 
 type nodeLocalCollector interface {
 	name() string

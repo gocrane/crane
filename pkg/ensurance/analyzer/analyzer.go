@@ -11,24 +11,28 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	coreinformers "k8s.io/client-go/informers/core/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
-	craneinformerfactory "github.com/gocrane/api/pkg/generated/informers/externalversions"
+	"github.com/gocrane/api/pkg/generated/informers/externalversions/ensurance/v1alpha1"
 	ensurancelisters "github.com/gocrane/api/pkg/generated/listers/ensurance/v1alpha1"
+
 	"github.com/gocrane/crane/pkg/common"
 	ecache "github.com/gocrane/crane/pkg/ensurance/cache"
+	"github.com/gocrane/crane/pkg/ensurance/collector"
+	stypes "github.com/gocrane/crane/pkg/ensurance/collector/types"
 	"github.com/gocrane/crane/pkg/ensurance/executor"
 	"github.com/gocrane/crane/pkg/ensurance/logic"
-	"github.com/gocrane/crane/pkg/ensurance/statestore"
-	stypes "github.com/gocrane/crane/pkg/ensurance/statestore/types"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
-type AnalyzerManager struct {
+type AnormalyAnalyzer struct {
 	nodeName string
 
 	podLister corelisters.PodLister
@@ -43,9 +47,9 @@ type AnalyzerManager struct {
 	avoidanceActionLister ensurancelisters.AvoidanceActionLister
 	avoidanceActionSynced cache.InformerSynced
 
-	statestore statestore.StateStore
+	stateStore *collector.StateStore
 	recorder   record.EventRecorder
-	noticeCh   chan<- executor.AvoidanceExecutor
+	actionCh   chan<- executor.AvoidanceExecutor
 
 	logic             logic.Logic
 	status            map[string][]common.TimeSeries
@@ -55,42 +59,51 @@ type AnalyzerManager struct {
 	lastTriggeredTime time.Time
 }
 
-// NewAnalyzerManager create an analyzer manager
-func NewAnalyzerManager(nodeName string, podInformer coreinformers.PodInformer, nodeInformer coreinformers.NodeInformer,
-	craneInformerFactory craneinformerfactory.SharedInformerFactory, statestore statestore.StateStore,
-	record record.EventRecorder, noticeCh chan<- executor.AvoidanceExecutor) Analyzer {
+// NewAnormalyAnalyzer create an analyzer manager
+func NewAnormalyAnalyzer(kubeClient *kubernetes.Clientset,
+	nodeName string,
+	podInformer coreinformers.PodInformer,
+	nodeInformer coreinformers.NodeInformer,
+	nepInformer v1alpha1.NodeQOSEnsurancePolicyInformer,
+	actionInformer v1alpha1.AvoidanceActionInformer,
+	stateStore *collector.StateStore,
+	noticeCh chan<- executor.AvoidanceExecutor,
+) *AnormalyAnalyzer {
 
 	basicLogic := logic.NewBasicLogic()
-
-	return &AnalyzerManager{
+	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartStructuredLogging(0)
+	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
+	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "crane-agent"})
+	return &AnormalyAnalyzer{
 		nodeName:              nodeName,
 		logic:                 basicLogic,
-		noticeCh:              noticeCh,
-		recorder:              record,
+		actionCh:              noticeCh,
+		recorder:              recorder,
 		podLister:             podInformer.Lister(),
 		podSynced:             podInformer.Informer().HasSynced,
 		nodeLister:            nodeInformer.Lister(),
 		nodeSynced:            nodeInformer.Informer().HasSynced,
-		nodeQOSLister:         craneInformerFactory.Ensurance().V1alpha1().NodeQOSEnsurancePolicies().Lister(),
-		nodeQOSSynced:         craneInformerFactory.Ensurance().V1alpha1().NodeQOSEnsurancePolicies().Informer().HasSynced,
-		avoidanceActionLister: craneInformerFactory.Ensurance().V1alpha1().AvoidanceActions().Lister(),
-		avoidanceActionSynced: craneInformerFactory.Ensurance().V1alpha1().AvoidanceActions().Informer().HasSynced,
-		statestore:            statestore,
+		nodeQOSLister:         nepInformer.Lister(),
+		nodeQOSSynced:         nepInformer.Informer().HasSynced,
+		avoidanceActionLister: actionInformer.Lister(),
+		avoidanceActionSynced: actionInformer.Informer().HasSynced,
+		stateStore:            stateStore,
 		reached:               make(map[string]uint64),
 		restored:              make(map[string]uint64),
 		actionEventStatus:     make(map[string]ecache.DetectionStatus),
 	}
 }
 
-func (s *AnalyzerManager) Name() string {
+func (s *AnormalyAnalyzer) Name() string {
 	return "AnalyzeManager"
 }
 
-func (s *AnalyzerManager) Run(stop <-chan struct{}) {
-	klog.Infof("Starting analyser manager.")
+func (s *AnormalyAnalyzer) Run(stop <-chan struct{}) {
+	klog.Infof("Starting anormaly analyzer.")
 
 	// Wait for the caches to be synced before starting workers
-	if !cache.WaitForNamedCacheSync("analyzer-manager",
+	if !cache.WaitForNamedCacheSync("anormaly-analyzer",
 		stop,
 		s.podSynced,
 		s.nodeSynced,
@@ -108,7 +121,7 @@ func (s *AnalyzerManager) Run(stop <-chan struct{}) {
 			case <-updateTicker.C:
 				s.Analyze()
 			case <-stop:
-				klog.Infof("Analyzer exit")
+				klog.Infof("AnormalyAnalyzer exit")
 				return
 			}
 		}
@@ -117,8 +130,7 @@ func (s *AnalyzerManager) Run(stop <-chan struct{}) {
 	return
 }
 
-func (s *AnalyzerManager) Analyze() {
-	// step1 copy neps
+func (s *AnormalyAnalyzer) Analyze() {
 	node, err := s.nodeLister.Get(s.nodeName)
 	if err != nil {
 		klog.Errorf("Failed to get node: %v", err)
@@ -133,11 +145,9 @@ func (s *AnalyzerManager) Analyze() {
 	}
 
 	for _, nep := range allNeps {
-		//check the node is selected
 		if matched, err := utils.LabelSelectorMatched(node.Labels, &nep.Spec.Selector); err != nil || !matched {
 			continue
 		}
-
 		neps = append(neps, nep.DeepCopy())
 	}
 
@@ -148,11 +158,11 @@ func (s *AnalyzerManager) Analyze() {
 		return
 	}
 
-	for _, n := range allAvoidance {
-		avoidanceMaps[n.Name] = n
+	for _, a := range allAvoidance {
+		avoidanceMaps[a.Name] = a
 	}
 
-	s.status = s.statestore.List()
+	s.status = s.stateStore.List()
 	klog.V(6).Infof("Analyze state store status %#v", s.status)
 
 	// step 2: do analyze for neps
@@ -160,9 +170,9 @@ func (s *AnalyzerManager) Analyze() {
 	for _, n := range neps {
 		for _, v := range n.Spec.ObjectiveEnsurances {
 			var key = strings.Join([]string{n.Name, v.Name}, ".")
-			detection, err := s.doAnalyze(key, v)
+			detection, err := s.analyze(key, v)
 			if err != nil {
-				klog.Errorf("Failed to doAnalyze, %v.", err)
+				klog.Errorf("Failed to analyze, %v.", err)
 			}
 			detection.Nep = n
 			dcs = append(dcs, detection)
@@ -171,20 +181,20 @@ func (s *AnalyzerManager) Analyze() {
 
 	klog.V(10).Infof("Analyze dcs: %v", dcs)
 
-	//step 3 : doMerge
-	avoidanceAction := s.doMerge(avoidanceMaps, dcs)
+	//step 3 : merge
+	avoidanceAction := s.merge(avoidanceMaps, dcs)
 	if err != nil {
-		klog.Errorf("Failed to doMerge, %v.", err)
+		klog.Errorf("Failed to merge, %v.", err)
 		return
 	}
 
-	//step 4 :notice the avoidance manager
-	s.noticeAvoidanceManager(avoidanceAction)
+	//step 4 :notice the enforcer manager
+	s.notify(avoidanceAction)
 
 	return
 }
 
-func (s *AnalyzerManager) doAnalyze(key string, object ensuranceapi.ObjectiveEnsurance) (ecache.DetectionCondition, error) {
+func (s *AnormalyAnalyzer) analyze(key string, object ensuranceapi.ObjectiveEnsurance) (ecache.DetectionCondition, error) {
 	var dc = ecache.DetectionCondition{Strategy: object.Strategy, ObjectiveEnsuranceName: object.Name, ActionName: object.AvoidanceActionName}
 
 	if strings.HasPrefix(object.MetricRule.Name, "container") {
@@ -195,37 +205,35 @@ func (s *AnalyzerManager) doAnalyze(key string, object ensuranceapi.ObjectiveEns
 			return dc, fmt.Errorf("metric %s not found", object.MetricRule.Name)
 		}
 
-		var basicThrottleQosPriority = executor.ScheduledQOSPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
+		var basicThrottleQosPriority = executor.ClassAndPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
 
-		var beInfluencedPods []types.NamespacedName
+		var impacted []types.NamespacedName
 		var threshold bool
 
-		for _, serie := range series {
-			b, err := s.logic.EvalWithMetric(object.MetricRule.Name, float64(object.MetricRule.Value.Value()), serie.Samples[0].Value)
+		for _, ts := range series {
+			b, err := s.logic.EvalWithMetric(object.MetricRule.Name, float64(object.MetricRule.Value.Value()), ts.Samples[0].Value)
 			if err != nil {
 				return dc, err
 			}
 
-			klog.V(6).Infof("doAnalyze: b %v, Value: %.2f, %s/%s", b, serie.Samples[0].Value,
-				common.GetValueByName(serie.Labels, common.LabelNamePodNamespace),
-				common.GetValueByName(serie.Labels, common.LabelNamePodName))
-
+			klog.V(6).Infof("analyze: b %v, Value: %.2f, %s/%s", b, ts.Samples[0].Value,
+				common.GetValueByName(ts.Labels, common.LabelNamePodNamespace),
+				common.GetValueByName(ts.Labels, common.LabelNamePodName))
 			if !b {
 				continue
 			}
 
-			if (common.GetValueByName(serie.Labels, common.LabelNamePodName) != "") &&
-				(common.GetValueByName(serie.Labels, common.LabelNamePodNamespace) != "") {
-
-				pod, err := s.podLister.Pods(common.GetValueByName(serie.Labels, common.LabelNamePodNamespace)).Get(common.GetValueByName(serie.Labels, common.LabelNamePodName))
+			if (common.GetValueByName(ts.Labels, common.LabelNamePodName) != "") &&
+				(common.GetValueByName(ts.Labels, common.LabelNamePodNamespace) != "") {
+				pod, err := s.podLister.Pods(common.GetValueByName(ts.Labels, common.LabelNamePodNamespace)).Get(common.GetValueByName(ts.Labels, common.LabelNamePodName))
 				if err != nil {
-					klog.V(4).Infof("Warning: doAnalyze: Pod %s/%s not found", common.GetValueByName(serie.Labels, common.LabelNamePodNamespace), common.GetValueByName(serie.Labels, common.LabelNamePodName))
+					klog.V(4).Infof("Warning: analyze: Pod %s/%s not found", common.GetValueByName(ts.Labels, common.LabelNamePodNamespace), common.GetValueByName(ts.Labels, common.LabelNamePodName))
 					continue
 				} else {
-					var qosPriority = executor.ScheduledQOSPriority{PodQOSClass: pod.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(pod.Spec.Priority, 0)}
+					var qosPriority = executor.ClassAndPriority{PodQOSClass: pod.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(pod.Spec.Priority, 0)}
 					if qosPriority.Greater(basicThrottleQosPriority) {
-						beInfluencedPods = append(beInfluencedPods, types.NamespacedName{Name: common.GetValueByName(serie.Labels, common.LabelNamePodName),
-							Namespace: common.GetValueByName(serie.Labels, common.LabelNamePodNamespace)})
+						impacted = append(impacted, types.NamespacedName{Name: common.GetValueByName(ts.Labels, common.LabelNamePodName),
+							Namespace: common.GetValueByName(ts.Labels, common.LabelNamePodNamespace)})
 						threshold = true
 					}
 				}
@@ -246,7 +254,7 @@ func (s *AnalyzerManager) doAnalyze(key string, object ensuranceapi.ObjectiveEns
 			s.reached[key] = reached
 			if reached >= uint64(object.AvoidanceThreshold) {
 				dc.Triggered = true
-				dc.BeInfluencedPods = beInfluencedPods
+				dc.BeInfluencedPods = impacted
 			}
 		} else {
 			s.reached[key] = 0
@@ -295,13 +303,13 @@ func (s *AnalyzerManager) doAnalyze(key string, object ensuranceapi.ObjectiveEns
 	return dc, nil
 }
 
-func (s *AnalyzerManager) doMerge(avoidanceMaps map[string]*ensuranceapi.AvoidanceAction, dcs []ecache.DetectionCondition) executor.AvoidanceExecutor {
+func (s *AnormalyAnalyzer) merge(avoidanceMaps map[string]*ensuranceapi.AvoidanceAction, dcs []ecache.DetectionCondition) executor.AvoidanceExecutor {
 	var now = time.Now()
 
 	//step1 filter the only dryRun detection
 	var dcsFiltered []ecache.DetectionCondition
 	for _, dc := range dcs {
-		s.doLogEvent(dc, now)
+		s.logEvent(dc, now)
 		if !(dc.Strategy == ensuranceapi.AvoidanceActionStrategyPreview) {
 			dcsFiltered = append(dcsFiltered, dc)
 		}
@@ -320,7 +328,7 @@ func (s *AnalyzerManager) doMerge(avoidanceMaps map[string]*ensuranceapi.Avoidan
 	}
 
 	if disableScheduled {
-		ae.ScheduledExecutor.DisableScheduledQOSPriority = &executor.ScheduledQOSPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
+		ae.ScheduleExecutor.DisableClassAndPriority = &executor.ClassAndPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
 		s.lastTriggeredTime = now
 	} else {
 		if len(dcsFiltered) == 0 {
@@ -345,7 +353,7 @@ func (s *AnalyzerManager) doMerge(avoidanceMaps map[string]*ensuranceapi.Avoidan
 	}
 
 	if restoreScheduled {
-		ae.ScheduledExecutor.RestoreScheduledQOSPriority = &executor.ScheduledQOSPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
+		ae.ScheduleExecutor.RestoreClassAndPriority = &executor.ClassAndPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
 	}
 
 	//step3 do Throttle merge FilterAndSortThrottlePods
@@ -359,14 +367,14 @@ func (s *AnalyzerManager) doMerge(avoidanceMaps map[string]*ensuranceapi.Avoidan
 			}
 
 			if action.Spec.Throttle != nil {
-				var basicThrottleQosPriority executor.ScheduledQOSPriority
+				var basicThrottleQosPriority executor.ClassAndPriority
 				if len(dc.BeInfluencedPods) > 0 {
 					_, beInfluencedPodPriority := executor.GetMaxQOSPriority(s.podLister, dc.BeInfluencedPods)
 					if beInfluencedPodPriority.Greater(basicThrottleQosPriority) {
 						basicThrottleQosPriority = beInfluencedPodPriority
 					}
 				} else {
-					basicThrottleQosPriority = executor.ScheduledQOSPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
+					basicThrottleQosPriority = executor.ClassAndPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
 				}
 
 				allPods, err := s.podLister.List(labels.Everything())
@@ -377,7 +385,7 @@ func (s *AnalyzerManager) doMerge(avoidanceMaps map[string]*ensuranceapi.Avoidan
 
 				for _, v := range allPods {
 
-					var qosPriority = executor.ScheduledQOSPriority{PodQOSClass: v.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(v.Spec.Priority, 0)}
+					var qosPriority = executor.ClassAndPriority{PodQOSClass: v.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(v.Spec.Priority, 0)}
 					if !qosPriority.Greater(basicThrottleQosPriority) {
 						var throttlePod executor.ThrottlePod
 						throttlePod.PodTypes = types.NamespacedName{Namespace: v.Namespace, Name: v.Name}
@@ -433,7 +441,7 @@ func (s *AnalyzerManager) doMerge(avoidanceMaps map[string]*ensuranceapi.Avoidan
 					}
 
 					for _, v := range allPods {
-						var qosPriority = executor.ScheduledQOSPriority{PodQOSClass: v.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(v.Spec.Priority, 0)}
+						var qosPriority = executor.ClassAndPriority{PodQOSClass: v.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(v.Spec.Priority, 0)}
 						var throttlePod executor.ThrottlePod
 						throttlePod.PodTypes = types.NamespacedName{Namespace: v.Namespace, Name: v.Name}
 						throttlePod.CPUThrottle.MinCPURatio = action.Spec.Throttle.CPUThrottle.MinCPURatio
@@ -470,7 +478,7 @@ func (s *AnalyzerManager) doMerge(avoidanceMaps map[string]*ensuranceapi.Avoidan
 	}
 
 	//step4 do Evict merge  FilterAndSortEvictPods
-	var basicEvictQosPriority = executor.ScheduledQOSPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
+	var basicEvictQosPriority = executor.ClassAndPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
 	var evictPods executor.EvictPods
 	for _, dc := range dcsFiltered {
 		if dc.Triggered {
@@ -489,10 +497,10 @@ func (s *AnalyzerManager) doMerge(avoidanceMaps map[string]*ensuranceapi.Avoidan
 				}
 
 				for _, v := range allPods {
-					var qosPriority = executor.ScheduledQOSPriority{PodQOSClass: v.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(v.Spec.Priority, 0)}
-					if !qosPriority.Greater(basicEvictQosPriority) {
+					var classAndPriority = executor.ClassAndPriority{PodQOSClass: v.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(v.Spec.Priority, 0)}
+					if !classAndPriority.Greater(basicEvictQosPriority) {
 						evictPods = append(evictPods, executor.EvictPod{DeletionGracePeriodSeconds: deletionGracePeriodSeconds,
-							PodTypes: types.NamespacedName{Name: v.Name, Namespace: v.Namespace}, PodQOSPriority: qosPriority})
+							PodKey: types.NamespacedName{Name: v.Name, Namespace: v.Namespace}, ClassAndPriority: classAndPriority})
 					}
 				}
 			}
@@ -501,11 +509,11 @@ func (s *AnalyzerManager) doMerge(avoidanceMaps map[string]*ensuranceapi.Avoidan
 
 	// remove the replicated pod
 	for _, e := range evictPods {
-		if i := ae.EvictExecutor.Executors.Find(e.PodTypes); i == -1 {
-			ae.EvictExecutor.Executors = append(ae.EvictExecutor.Executors, e)
+		if i := ae.EvictExecutor.EvictPods.Find(e.PodKey); i == -1 {
+			ae.EvictExecutor.EvictPods = append(ae.EvictExecutor.EvictPods, e)
 		} else {
-			if e.DeletionGracePeriodSeconds < ae.EvictExecutor.Executors[i].DeletionGracePeriodSeconds {
-				ae.EvictExecutor.Executors[i].DeletionGracePeriodSeconds = e.DeletionGracePeriodSeconds
+			if e.DeletionGracePeriodSeconds < ae.EvictExecutor.EvictPods[i].DeletionGracePeriodSeconds {
+				ae.EvictExecutor.EvictPods[i].DeletionGracePeriodSeconds = e.DeletionGracePeriodSeconds
 			} else {
 				// nothing to do,replicated filter the evictPod
 			}
@@ -513,12 +521,12 @@ func (s *AnalyzerManager) doMerge(avoidanceMaps map[string]*ensuranceapi.Avoidan
 	}
 
 	// sort the evicting executor by pod qos priority
-	sort.Sort(ae.EvictExecutor.Executors)
+	sort.Sort(ae.EvictExecutor.EvictPods)
 
 	return ae
 }
 
-func (s *AnalyzerManager) doLogEvent(dc ecache.DetectionCondition, now time.Time) {
+func (s *AnormalyAnalyzer) logEvent(dc ecache.DetectionCondition, now time.Time) {
 	var key = strings.Join([]string{dc.Nep.Name, dc.ObjectiveEnsuranceName}, "/")
 
 	if !(dc.Triggered || dc.Restored) {
@@ -533,15 +541,15 @@ func (s *AnalyzerManager) doLogEvent(dc ecache.DetectionCondition, now time.Time
 		klog.V(4).Infof("LOG: %s triggered action %s", key, dc.ActionName)
 
 		// record an event about the objective ensurance triggered
-		s.recorder.Event(nodeRef, v1.EventTypeWarning, "ObjectiveEnsuranceTriggered", fmt.Sprintf("%s triggered action %s", key, dc.ActionName))
+		s.recorder.Event(nodeRef, v1.EventTypeWarning, "AvoidanceTriggered", fmt.Sprintf("%s triggered action %s", key, dc.ActionName))
 		s.actionEventStatus[key] = ecache.DetectionStatus{IsTriggered: true, LastTime: now}
 	}
 
 	if dc.Restored {
-		if s.needSendEventForRestore(dc) {
+		if s.actionTriggered(dc) {
 			klog.V(4).Infof("LOG: %s restored action %s", key, dc.ActionName)
 			// record an event about the objective ensurance restored
-			s.recorder.Event(nodeRef, v1.EventTypeNormal, "ObjectiveEnsuranceRestored", fmt.Sprintf("%s restored action %s", key, dc.ActionName))
+			s.recorder.Event(nodeRef, v1.EventTypeNormal, "RestoreTriggered", fmt.Sprintf("%s restored action %s", key, dc.ActionName))
 			s.actionEventStatus[key] = ecache.DetectionStatus{IsTriggered: false, LastTime: now}
 		}
 	}
@@ -549,7 +557,7 @@ func (s *AnalyzerManager) doLogEvent(dc ecache.DetectionCondition, now time.Time
 	return
 }
 
-func (s *AnalyzerManager) getMetricFromMap(metricName string, selector *metav1.LabelSelector) (float64, error) {
+func (s *AnormalyAnalyzer) getMetricFromMap(metricName string, selector *metav1.LabelSelector) (float64, error) {
 	// step1: get the value from map
 	if v, ok := s.status[metricName]; ok {
 		for _, vv := range v {
@@ -566,7 +574,7 @@ func (s *AnalyzerManager) getMetricFromMap(metricName string, selector *metav1.L
 	return 0, fmt.Errorf("metricName %s not found value", metricName)
 }
 
-func (s *AnalyzerManager) getTimeSeriesFromMap(metricName string, selector *metav1.LabelSelector) []common.TimeSeries {
+func (s *AnormalyAnalyzer) getTimeSeriesFromMap(metricName string, selector *metav1.LabelSelector) []common.TimeSeries {
 	var series []common.TimeSeries
 
 	// step1: get the series from maps
@@ -585,15 +593,15 @@ func (s *AnalyzerManager) getTimeSeriesFromMap(metricName string, selector *meta
 	return series
 }
 
-func (s *AnalyzerManager) noticeAvoidanceManager(as executor.AvoidanceExecutor) {
-	//step1: check need to notice avoidance manager
+func (s *AnormalyAnalyzer) notify(as executor.AvoidanceExecutor) {
+	//step1: check need to notice enforcer manager
 
 	//step2: notice by channel
-	s.noticeCh <- as
+	s.actionCh <- as
 	return
 }
 
-func (s *AnalyzerManager) needSendEventForRestore(dc ecache.DetectionCondition) bool {
+func (s *AnormalyAnalyzer) actionTriggered(dc ecache.DetectionCondition) bool {
 	var key = strings.Join([]string{dc.Nep.Name, dc.ObjectiveEnsuranceName}, "/")
 
 	if v, ok := s.actionEventStatus[key]; ok {
@@ -607,7 +615,7 @@ func (s *AnalyzerManager) needSendEventForRestore(dc ecache.DetectionCondition) 
 	return false
 }
 
-func (s *AnalyzerManager) getPodUsage(metricName string, pod *v1.Pod) (float64, []executor.ContainerUsage) {
+func (s *AnormalyAnalyzer) getPodUsage(metricName string, pod *v1.Pod) (float64, []executor.ContainerUsage) {
 	var podUsage = 0.0
 	var containerUsages []executor.ContainerUsage
 

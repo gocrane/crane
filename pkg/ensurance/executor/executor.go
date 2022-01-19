@@ -1,4 +1,4 @@
-package avoidance
+package executor
 
 import (
 	"google.golang.org/grpc"
@@ -9,29 +9,27 @@ import (
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	"k8s.io/klog/v2"
 
-	"github.com/gocrane/crane/pkg/ensurance/executor"
 	cgrpc "github.com/gocrane/crane/pkg/ensurance/grpc"
 	cruntime "github.com/gocrane/crane/pkg/ensurance/runtime"
 )
 
-type AvoidanceManager struct {
+type ActionExecutor struct {
 	nodeName string
 	client   clientset.Interface
-	noticeCh <-chan executor.AvoidanceExecutor
+	noticeCh <-chan AvoidanceExecutor
 
-	podLister corelisters.PodLister
-	podSynced cache.InformerSynced
-
+	podLister  corelisters.PodLister
 	nodeLister corelisters.NodeLister
+	podSynced  cache.InformerSynced
 	nodeSynced cache.InformerSynced
 
 	runtimeClient pb.RuntimeServiceClient
 	runtimeConn   *grpc.ClientConn
 }
 
-// NewAvoidanceManager create avoidance manager
-func NewAvoidanceManager(client clientset.Interface, nodeName string, podInformer coreinformers.PodInformer, nodeInformer coreinformers.NodeInformer,
-	noticeCh <-chan executor.AvoidanceExecutor, runtimeEndpoint string) *AvoidanceManager {
+// NewActionExecutor create enforcer manager
+func NewActionExecutor(client clientset.Interface, nodeName string, podInformer coreinformers.PodInformer, nodeInformer coreinformers.NodeInformer,
+	noticeCh <-chan AvoidanceExecutor, runtimeEndpoint string) *ActionExecutor {
 
 	runtimeClient, runtimeConn, err := cruntime.GetRuntimeClient(runtimeEndpoint, true)
 	if err != nil {
@@ -39,7 +37,7 @@ func NewAvoidanceManager(client clientset.Interface, nodeName string, podInforme
 		return nil
 	}
 
-	return &AvoidanceManager{
+	return &ActionExecutor{
 		nodeName:      nodeName,
 		client:        client,
 		noticeCh:      noticeCh,
@@ -52,16 +50,15 @@ func NewAvoidanceManager(client clientset.Interface, nodeName string, podInforme
 	}
 }
 
-func (a *AvoidanceManager) Name() string {
-	return "AvoidanceManager"
+func (a *ActionExecutor) Name() string {
+	return "ActionExecutor"
 }
 
-// Run does nothing
-func (a *AvoidanceManager) Run(stop <-chan struct{}) {
-	klog.Infof("Starting avoid manager.")
+func (a *ActionExecutor) Run(stop <-chan struct{}) {
+	klog.Infof("Starting action executor.")
 
 	// Wait for the caches to be synced before starting workers
-	if !cache.WaitForNamedCacheSync("avoidance-manager",
+	if !cache.WaitForNamedCacheSync("action-executor",
 		stop,
 		a.podSynced,
 		a.nodeSynced,
@@ -73,13 +70,13 @@ func (a *AvoidanceManager) Run(stop <-chan struct{}) {
 		for {
 			select {
 			case as := <-a.noticeCh:
-				if err := a.doAction(as, stop); err != nil {
+				if err := a.execute(as, stop); err != nil {
 					// TODO: if it failed in action, how to retry
-					klog.Errorf("Failed to doAction: %v", err)
+					klog.Errorf("Failed to execute action: %v", err)
 				}
 			case <-stop:
 				{
-					klog.Infof("Avoidance exit")
+					klog.Infof("Exiting action executor.")
 					if err := cgrpc.CloseGrpcConnection(a.runtimeConn); err != nil {
 						klog.Errorf("Failed to close grpc connection: %v", err)
 					}
@@ -92,8 +89,8 @@ func (a *AvoidanceManager) Run(stop <-chan struct{}) {
 	return
 }
 
-func (a *AvoidanceManager) doAction(ae executor.AvoidanceExecutor, _ <-chan struct{}) error {
-	var ctx = &executor.ExecuteContext{
+func (a *ActionExecutor) execute(ae AvoidanceExecutor, _ <-chan struct{}) error {
+	var ctx = &ExecuteContext{
 		NodeName:      a.nodeName,
 		Client:        a.client,
 		PodLister:     a.podLister,
@@ -102,23 +99,23 @@ func (a *AvoidanceManager) doAction(ae executor.AvoidanceExecutor, _ <-chan stru
 		RuntimeConn:   a.runtimeConn,
 	}
 
-	//step1 do avoidance actions
-	if err := doAvoidance(ctx, ae); err != nil {
+	//step1 do enforcer actions
+	if err := avoid(ctx, ae); err != nil {
 		return err
 	}
 
 	//step2 do restoration actions
-	if err := doRestoration(ctx, ae); err != nil {
+	if err := restore(ctx, ae); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func doAvoidance(ctx *executor.ExecuteContext, ae executor.AvoidanceExecutor) error {
+func avoid(ctx *ExecuteContext, ae AvoidanceExecutor) error {
 
 	//step1 do DisableScheduled action
-	if err := ae.ScheduledExecutor.Avoid(ctx); err != nil {
+	if err := ae.ScheduleExecutor.Avoid(ctx); err != nil {
 		return err
 	}
 
@@ -135,9 +132,9 @@ func doAvoidance(ctx *executor.ExecuteContext, ae executor.AvoidanceExecutor) er
 	return nil
 }
 
-func doRestoration(ctx *executor.ExecuteContext, ae executor.AvoidanceExecutor) error {
+func restore(ctx *ExecuteContext, ae AvoidanceExecutor) error {
 	//step1 do DisableScheduled action
-	if err := ae.ScheduledExecutor.Restore(ctx); err != nil {
+	if err := ae.ScheduleExecutor.Restore(ctx); err != nil {
 		return err
 	}
 
