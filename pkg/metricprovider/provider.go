@@ -34,26 +34,46 @@ var _ provider.CustomMetricsProvider = &MetricProvider{}
 
 // MetricProvider is an implementation of provider.MetricsProvider which provide predictive metric for resource
 type MetricProvider struct {
-	client   client.Client
-	recorder record.EventRecorder
+	client        client.Client
+	remoteAdapter *RemoteAdapter
+	recorder      record.EventRecorder
 }
 
 // NewMetricProvider returns an instance of metricProvider
-func NewMetricProvider(client client.Client, recorder record.EventRecorder) provider.CustomMetricsProvider {
+func NewMetricProvider(client client.Client, remoteAdapter *RemoteAdapter, recorder record.EventRecorder) provider.CustomMetricsProvider {
 	provider := &MetricProvider{
-		client:   client,
-		recorder: recorder,
+		client:        client,
+		remoteAdapter: remoteAdapter,
+		recorder:      recorder,
 	}
 	return provider
 }
 
 func (p *MetricProvider) GetMetricByName(ctx context.Context, name types.NamespacedName, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValue, error) {
+	klog.Info(fmt.Sprintf("Get metric by name for custom metric, GroupResource %s namespacedName %s metric %s metricSelector %s", info.GroupResource.String(), name.String(), info.Metric, metricSelector.String()))
+
+	if !IsLocalMetric(info) {
+		if p.remoteAdapter != nil {
+			return p.remoteAdapter.GetMetricByName(ctx, name, info, metricSelector)
+		} else {
+			return nil, apiErrors.NewServiceUnavailable("not supported")
+		}
+	}
+
 	return nil, apiErrors.NewServiceUnavailable("not supported")
 }
 
 // GetMetricBySelector fetches metric for pod resources, get predictive metric from giving selector
 func (p *MetricProvider) GetMetricBySelector(ctx context.Context, namespace string, selector labels.Selector, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValueList, error) {
-	klog.Info(fmt.Sprintf("Get metric for custom metric, GroupResource %s namespace %s metric %s selector %s metricSelector %s", info.GroupResource.String(), namespace, info.Metric, selector.String(), metricSelector.String()))
+	klog.Info(fmt.Sprintf("Get metric by selector for custom metric, Info %v namespace %s selector %s metricSelector %s", info, namespace, selector.String(), metricSelector.String()))
+
+	if !IsLocalMetric(info) {
+		if p.remoteAdapter != nil {
+			return p.remoteAdapter.GetMetricBySelector(ctx, namespace, selector, info, metricSelector)
+		} else {
+			return nil, apiErrors.NewServiceUnavailable("not supported")
+		}
+	}
 
 	var matchingMetrics []custom_metrics.MetricValue
 	prediction, err := p.GetPrediction(ctx, namespace, metricSelector)
@@ -119,7 +139,7 @@ func (p *MetricProvider) GetMetricBySelector(ctx context.Context, namespace stri
 
 	averageValue := int64(math.Round(largestMetricValue.value * 1000 / float64(len(readyPods))))
 
-	klog.Info("Provide custom metric %s average value %f.", info.Metric, float64(averageValue)/1000)
+	klog.Infof("Provide custom metric %s average value %f.", info.Metric, float64(averageValue)/1000)
 
 	for name := range readyPods {
 		metric := custom_metrics.MetricValue{
@@ -153,6 +173,16 @@ func (p *MetricProvider) GetMetricBySelector(ctx context.Context, namespace stri
 func (p *MetricProvider) ListAllMetrics() []provider.CustomMetricInfo {
 	klog.Info("List all custom metrics")
 
+	metricInfos := ListAllLocalMetrics()
+
+	if p.remoteAdapter != nil {
+		metricInfos = append(metricInfos, p.remoteAdapter.ListAllMetrics()...)
+	}
+
+	return metricInfos
+}
+
+func ListAllLocalMetrics() []provider.CustomMetricInfo {
 	return []provider.CustomMetricInfo{
 		{
 			GroupResource: schema.GroupResource{Group: "", Resource: "pods"},
@@ -165,6 +195,18 @@ func (p *MetricProvider) ListAllMetrics() []provider.CustomMetricInfo {
 			Metric:        known.MetricNamePodMemoryUsage,
 		},
 	}
+}
+
+func IsLocalMetric(metricInfo provider.CustomMetricInfo) bool {
+	for _, info := range ListAllLocalMetrics() {
+		if info.Namespaced == metricInfo.Namespaced &&
+			info.Metric == metricInfo.Metric &&
+			info.GroupResource.String() == metricInfo.GroupResource.String() {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (p *MetricProvider) GetPrediction(ctx context.Context, namespace string, metricSelector labels.Selector) (*predictionapi.TimeSeriesPrediction, error) {
