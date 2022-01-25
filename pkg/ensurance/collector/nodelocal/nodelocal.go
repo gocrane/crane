@@ -31,7 +31,7 @@ type NodeLocal struct {
 }
 
 func NewNodeLocal(podLister corelisters.PodLister, ifaces []string) *NodeLocal {
-	klog.V(2).Infof("NewNodeLocal")
+	klog.V(2).Infof("New NodeLocal collector on interfaces %v", ifaces)
 
 	n := NodeLocal{
 		Name: types.NodeLocalCollectorType,

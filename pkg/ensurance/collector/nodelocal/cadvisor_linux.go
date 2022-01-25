@@ -102,7 +102,7 @@ func (c *CadvisorCollector) name() string {
 }
 
 func (c *CadvisorCollector) collect() (map[string][]common.TimeSeries, error) {
-	var cgroupState = make(map[string]CgroupState, 0)
+	var cgroupState = make(map[string]CgroupState)
 
 	allPods, err := c.podLister.List(labels.Everything())
 	if err != nil {
@@ -110,44 +110,30 @@ func (c *CadvisorCollector) collect() (map[string][]common.TimeSeries, error) {
 		return nil, err
 	}
 
-	var cpuUsageTimeSeries []common.TimeSeries
-	var schedRunQueueTimeSeries []common.TimeSeries
-	var cpuLimitTimeSeries []common.TimeSeries
-	var cpuQuotaTimeSeries []common.TimeSeries
-	var cpuPeriodTimeSeries []common.TimeSeries
-
+	var stateMap = make(map[string][]common.TimeSeries)
 	for _, pod := range allPods {
-		var ref = GetCgroupRefFromPod(pod)
 		var now = time.Now()
-
-		containerInfo, err := c.Manager.GetContainerInfoV2(ref.GetCgroupPath(), cadvisorapiv2.RequestOptions{
+		containers, err := c.Manager.GetContainerInfoV2(types.GetCgroupPath(pod), cadvisorapiv2.RequestOptions{
 			IdType:    cadvisorapiv2.TypeName,
 			Count:     1,
 			Recursive: true,
 		})
-
 		if err != nil {
 			klog.Errorf("GetContainerInfoV2 failed: %v", err)
 			continue
 		}
 
-		for key, v := range containerInfo {
-			var containerId = utils.GetContainerIdFromKey(key)
-			var containerName = GetContainerNameFromPod(pod, containerId)
-			var refCopy = ref
-
-			// Filter the pause container
+		for key, v := range containers {
+			containerId := utils.GetContainerIdFromKey(key)
+			containerName := GetContainerNameFromPod(pod, containerId)
+			// Filter the sandbox container
 			if (containerId != "") && (containerName == "") {
 				continue
 			}
-
-			refCopy.ContainerId = containerId
-			refCopy.ContainerName = containerName
-
 			// In the GetContainerInfoV2 not collect the cpu quota and period
 			// We used GetContainerInfo instead
 			// issue https://github.com/google/cadvisor/issues/3040
-			var query = info.ContainerInfoRequest{NumStats: 60}
+			var query = info.ContainerInfoRequest{}
 			containerInfoV1, err := c.Manager.GetContainerInfo(key, &query)
 			if err != nil {
 				klog.Errorf("ContainerInfoRequest failed: %v", err)
@@ -155,48 +141,62 @@ func (c *CadvisorCollector) collect() (map[string][]common.TimeSeries, error) {
 			}
 
 			if state, ok := c.cgroupState[key]; ok {
-				var label = GetLabelFromRef(&refCopy)
+				var labels = GetContainerLabels(pod, containerId, containerName)
 
-				cpuUsageIncrease := v.Stats[0].Cpu.Usage.Total - state.stat.Stats[0].Cpu.Usage.Total
-				schedRunqueueTimeIncrease := v.Stats[0].Cpu.Schedstat.RunqueueTime - state.stat.Stats[0].Cpu.Schedstat.RunqueueTime
-				timeIncrease := v.Stats[0].Timestamp.UnixNano() - state.stat.Stats[0].Timestamp.UnixNano()
-				cpuUsage := float64(cpuUsageIncrease) / float64(timeIncrease)
-				schedRunqueueTime := float64(schedRunqueueTimeIncrease) * 1000 * 1000 / float64(timeIncrease)
-
-				cpuUsageTimeSeries = append(cpuUsageTimeSeries, common.TimeSeries{Labels: label, Samples: []common.Sample{{Value: cpuUsage, Timestamp: now.Unix()}}})
-				schedRunQueueTimeSeries = append(schedRunQueueTimeSeries, common.TimeSeries{Labels: label, Samples: []common.Sample{{Value: schedRunqueueTime, Timestamp: now.Unix()}}})
-				cpuLimitTimeSeries = append(cpuLimitTimeSeries, common.TimeSeries{Labels: label, Samples: []common.Sample{{Value: float64(state.stat.Spec.Cpu.Limit), Timestamp: now.Unix()}}})
-				cpuQuotaTimeSeries = append(cpuQuotaTimeSeries, common.TimeSeries{Labels: label, Samples: []common.Sample{{Value: float64(containerInfoV1.Spec.Cpu.Quota), Timestamp: now.Unix()}}})
-				cpuPeriodTimeSeries = append(cpuPeriodTimeSeries, common.TimeSeries{Labels: label, Samples: []common.Sample{{Value: float64(containerInfoV1.Spec.Cpu.Period), Timestamp: now.Unix()}}})
+				cpuUsageSample, schedRunqueueTime := CaculateCPUUsage(&v, &state)
+				if cpuUsageSample == 0 && schedRunqueueTime == 0 {
+					continue
+				}
+				addSampleToStateMap(types.MetricNameContainerCpuTotalUsage, composeSample(labels, cpuUsageSample, now), stateMap)
+				addSampleToStateMap(types.MetricNameContainerSchedRunQueueTime, composeSample(labels, schedRunqueueTime, now), stateMap)
+				addSampleToStateMap(types.MetricNameContainerCpuLimit, composeSample(labels, float64(state.stat.Spec.Cpu.Limit), now), stateMap)
+				addSampleToStateMap(types.MetricNameContainerCpuQuota, composeSample(labels, float64(containerInfoV1.Spec.Cpu.Quota), now), stateMap)
+				addSampleToStateMap(types.MetricNameContainerCpuPeriod, composeSample(labels, float64(containerInfoV1.Spec.Cpu.Period), now), stateMap)
 
 				klog.V(4).Infof("Pod: %s, containerName: %s, key %s, scheduler run queue time %.2f", klog.KObj(pod), containerName, key, schedRunqueueTime)
 			}
-
 			cgroupState[key] = CgroupState{stat: v, timestamp: now}
 		}
 	}
 
 	c.cgroupState = cgroupState
 
-	var storeMaps = make(map[string][]common.TimeSeries, 0)
-	storeMaps[string(types.MetricNameContainerCpuTotalUsage)] = cpuUsageTimeSeries
-	storeMaps[string(types.MetricNameContainerSchedRunQueueTime)] = schedRunQueueTimeSeries
-	storeMaps[string(types.MetricNameContainerCpuLimit)] = cpuLimitTimeSeries
-	storeMaps[string(types.MetricNameContainerCpuQuota)] = cpuQuotaTimeSeries
-	storeMaps[string(types.MetricNameContainerCpuPeriod)] = cpuPeriodTimeSeries
-
-	return storeMaps, nil
+	return stateMap, nil
 }
 
-func GetCgroupRefFromPod(pod *v1.Pod) types.CgroupRef {
-	var ref types.CgroupRef
+func composeSample(labels []common.Label, cpuUsageSample float64, sampleTime time.Time) common.TimeSeries {
+	return common.TimeSeries{
+		Labels: labels,
+		Samples: []common.Sample{
+			{
+				Value:     cpuUsageSample,
+				Timestamp: sampleTime.Unix(),
+			},
+		},
+	}
+}
 
-	ref.PodQOSClass = pod.Status.QOSClass
-	ref.PodName = pod.Name
-	ref.PodNamespace = pod.Namespace
-	ref.PodUid = string(pod.UID)
+func addSampleToStateMap(metricsName types.MetricName, usage common.TimeSeries, storeMaps map[string][]common.TimeSeries) {
+	key := string(metricsName)
+	if _, exists := storeMaps[key]; !exists {
+		storeMaps[key] = []common.TimeSeries{usage}
+	} else {
+		storeMaps[key] = append(storeMaps[key], usage)
+	}
+}
 
-	return ref
+func CaculateCPUUsage(info *cadvisorapiv2.ContainerInfo, state *CgroupState) (float64, float64) {
+	if info == nil ||
+		state == nil ||
+		len(info.Stats) == 0 {
+		return 0, 0
+	}
+	cpuUsageIncrease := info.Stats[0].Cpu.Usage.Total - state.stat.Stats[0].Cpu.Usage.Total
+	schedRunqueueTimeIncrease := info.Stats[0].Cpu.Schedstat.RunqueueTime - state.stat.Stats[0].Cpu.Schedstat.RunqueueTime
+	timeIncrease := info.Stats[0].Timestamp.UnixNano() - state.stat.Stats[0].Timestamp.UnixNano()
+	cpuUsageSample := float64(cpuUsageIncrease) / float64(timeIncrease)
+	schedRunqueueTime := float64(schedRunqueueTimeIncrease) * 1000 * 1000 / float64(timeIncrease)
+	return cpuUsageSample, schedRunqueueTime
 }
 
 func GetContainerNameFromPod(pod *v1.Pod, containerId string) string {
@@ -216,12 +216,12 @@ func GetContainerNameFromPod(pod *v1.Pod, containerId string) string {
 	return ""
 }
 
-func GetLabelFromRef(ref *types.CgroupRef) []common.Label {
+func GetContainerLabels(pod *v1.Pod, containerId, containerName string) []common.Label {
 	return []common.Label{
-		{Name: common.LabelNamePodName, Value: ref.PodName},
-		{Name: common.LabelNamePodNamespace, Value: ref.PodNamespace},
-		{Name: common.LabelNamePodUid, Value: ref.PodUid},
-		{Name: common.LabelNameContainerName, Value: ref.ContainerName},
-		{Name: common.LabelNameContainerId, Value: ref.ContainerId},
+		{Name: common.LabelNamePodName, Value: pod.Name},
+		{Name: common.LabelNamePodNamespace, Value: pod.Namespace},
+		{Name: common.LabelNamePodUid, Value: string(pod.UID)},
+		{Name: common.LabelNameContainerName, Value: containerName},
+		{Name: common.LabelNameContainerId, Value: containerId},
 	}
 }

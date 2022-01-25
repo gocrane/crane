@@ -98,6 +98,9 @@ func Run(ctx context.Context, opts *options.Options) error {
 	actionInformer.Informer()
 
 	agent, err := agent.NewAgent(ctx, hostname, opts.RuntimeEndpoint, kubeClient, craneClient, podInformer, nodeInformer, nepInformer, actionInformer, opts.Ifaces)
+	nepInformer.Informer()
+	actionInformer.Informer()
+
 	if err != nil {
 		return err
 	}

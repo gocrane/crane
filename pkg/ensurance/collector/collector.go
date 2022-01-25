@@ -16,38 +16,38 @@ import (
 	"github.com/gocrane/crane/pkg/utils"
 )
 
-type MetricsCollector struct {
+type StateCollector struct {
 	nodeName   string
 	nepLister  ensuranceListers.NodeQOSEnsurancePolicyLister
 	podLister  corelisters.PodLister
 	nodeLister corelisters.NodeLister
-	collectors map[types.CollectType]Collector
 	ifaces     []string
-	*StateStore
+	collectors *sync.Map
+	StateChann chan map[string][]common.TimeSeries
 }
 
 type StateStore struct {
 	*sync.Map
 }
 
-func NewMetricsCollector(nodeName string, nepLister ensuranceListers.NodeQOSEnsurancePolicyLister, podLister corelisters.PodLister, nodeLister corelisters.NodeLister, ifaces []string) (*MetricsCollector, *StateStore) {
-	stateStore := &StateStore{&sync.Map{}}
-	return &MetricsCollector{
+func NewStateCollector(nodeName string, nepLister ensuranceListers.NodeQOSEnsurancePolicyLister, podLister corelisters.PodLister, nodeLister corelisters.NodeLister, ifaces []string) *StateCollector {
+	stateChann := make(chan map[string][]common.TimeSeries)
+	return &StateCollector{
 		nodeName:   nodeName,
 		nepLister:  nepLister,
 		podLister:  podLister,
 		nodeLister: nodeLister,
-		StateStore: stateStore,
 		ifaces:     ifaces,
-		collectors: map[types.CollectType]Collector{},
-	}, stateStore
+		StateChann: stateChann,
+		collectors: &sync.Map{},
+	}
 }
 
-func (s *MetricsCollector) Name() string {
-	return "MetricsCollector"
+func (s *StateCollector) Name() string {
+	return "StateCollector"
 }
 
-func (s *MetricsCollector) Run(stop <-chan struct{}) {
+func (s *StateCollector) Run(stop <-chan struct{}) {
 	go func() {
 		updateTicker := time.NewTicker(10 * time.Second)
 		defer updateTicker.Stop()
@@ -56,7 +56,7 @@ func (s *MetricsCollector) Run(stop <-chan struct{}) {
 			case <-updateTicker.C:
 				s.UpdateCollectors()
 			case <-stop:
-				klog.Infof("MetricsCollector config updater exit")
+				klog.Infof("StateCollector config updater exit")
 				return
 			}
 		}
@@ -69,17 +69,17 @@ func (s *MetricsCollector) Run(stop <-chan struct{}) {
 		for {
 			select {
 			case <-updateTicker.C:
-				for _, c := range s.collectors {
+				s.collectors.Range(func(key, value interface{}) bool {
+					c := value.(Collector)
 					if data, err := c.Collect(); err == nil {
-						for key, v := range data {
-							s.StateStore.Store(key, v)
-						}
+						s.StateChann <- data
 					} else {
 						klog.Errorf("Failed to collect metrics: %v", c.GetType(), err)
 					}
-				}
+					return true
+				})
 			case <-stop:
-				klog.Infof("MetricsCollector exit")
+				klog.Infof("StateCollector exit")
 				return
 			}
 		}
@@ -88,7 +88,7 @@ func (s *MetricsCollector) Run(stop <-chan struct{}) {
 	return
 }
 
-func (s *MetricsCollector) UpdateCollectors() {
+func (s *StateCollector) UpdateCollectors() {
 	allNeps, err := s.nepLister.List(labels.Everything())
 	if err != nil {
 		klog.Warningf("Failed to list NodeQOSEnsurancePolicy, err %v", err)
@@ -108,30 +108,17 @@ func (s *MetricsCollector) UpdateCollectors() {
 			continue
 		}
 		nodeLocal = true
-		if _, exists := s.collectors[types.NodeLocalCollectorType]; !exists {
+		if _, exists := s.collectors.Load(types.NodeLocalCollectorType); exists {
 			nc := nodelocal.NewNodeLocal(s.podLister, s.ifaces)
-			s.collectors[types.NodeLocalCollectorType] = nc
+			s.collectors.Store(types.NodeLocalCollectorType, nc)
+			break
 		}
-		break
 	}
 
 	if !nodeLocal {
-		if _, exists := s.collectors[types.NodeLocalCollectorType]; exists {
-			delete(s.collectors, types.NodeLocalCollectorType)
+		if _, exists := s.collectors.Load(types.NodeLocalCollectorType); exists {
+			s.collectors.Delete(types.NodeLocalCollectorType)
 		}
 	}
 	return
-}
-
-func (s *StateStore) List() map[string][]common.TimeSeries {
-	var maps = make(map[string][]common.TimeSeries)
-
-	s.Range(func(key, value interface{}) bool {
-		var name = key.(string)
-		var series = value.([]common.TimeSeries)
-		maps[name] = series
-		return true
-	})
-
-	return maps
 }

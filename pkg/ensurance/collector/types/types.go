@@ -51,33 +51,18 @@ const (
 	UintConversionStep1000 = 1000.0
 )
 
-// CgroupRef group pod infos
-type CgroupRef struct {
-	ContainerName string
-	ContainerId   string
-	PodName       string
-	PodNamespace  string
-	PodUid        string
-	PodQOSClass   v1.PodQOSClass
-}
-
-func (c *CgroupRef) GetCgroupPath() string {
+func GetCgroupPath(p *v1.Pod) string {
 	var pathArrays = []string{utils.CgroupKubePods}
 
-	switch c.PodQOSClass {
+	switch p.Status.QOSClass {
 	case v1.PodQOSGuaranteed:
-		pathArrays = append(pathArrays, utils.CgroupPodPrefix+c.PodUid)
+		pathArrays = append(pathArrays, utils.CgroupPodPrefix+string(p.UID))
 	case v1.PodQOSBurstable:
-		pathArrays = append(pathArrays, strings.ToLower(string(v1.PodQOSBurstable)), utils.CgroupPodPrefix+c.PodUid)
+		pathArrays = append(pathArrays, strings.ToLower(string(v1.PodQOSBurstable)), utils.CgroupPodPrefix+string(p.UID))
 	case v1.PodQOSBestEffort:
-		pathArrays = append(pathArrays, strings.ToLower(string(v1.PodQOSBestEffort)), utils.CgroupPodPrefix+c.PodUid)
+		pathArrays = append(pathArrays, strings.ToLower(string(v1.PodQOSBestEffort)), utils.CgroupPodPrefix+string(p.UID))
 	default:
 		return ""
 	}
-
-	if c.ContainerId != "" {
-		pathArrays = append(pathArrays, c.ContainerId)
-	}
-
 	return strings.Join(pathArrays, "/")
 }
