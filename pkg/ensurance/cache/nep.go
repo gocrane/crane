@@ -6,18 +6,13 @@ import (
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 )
 
-type CachedNodeQOSEnsurancePolicy struct {
-	// The cached object of the nodeQOSEnsurancePolicy
-	Nep *ensuranceapi.NodeQOSEnsurancePolicy
-}
-
 type NodeQOSEnsurancePolicyCache struct {
-	mu     sync.Mutex // protects nepMap
-	nepMap map[string]*CachedNodeQOSEnsurancePolicy
+	mu     sync.Mutex
+	nepMap map[string]*ensuranceapi.NodeQOSEnsurancePolicy
 }
 
 func (s *NodeQOSEnsurancePolicyCache) Init() {
-	s.nepMap = make(map[string]*CachedNodeQOSEnsurancePolicy)
+	s.nepMap = make(map[string]*ensuranceapi.NodeQOSEnsurancePolicy)
 }
 
 // ListKeys implements the interface required by DeltaFIFO to list the keys we
@@ -32,7 +27,7 @@ func (s *NodeQOSEnsurancePolicyCache) ListKeys() []string {
 	return keys
 }
 
-func (s *NodeQOSEnsurancePolicyCache) Get(name string) (*CachedNodeQOSEnsurancePolicy, bool) {
+func (s *NodeQOSEnsurancePolicyCache) Get(name string) (*ensuranceapi.NodeQOSEnsurancePolicy, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	nep, ok := s.nepMap[name]
@@ -46,12 +41,12 @@ func (s *NodeQOSEnsurancePolicyCache) Exist(name string) bool {
 	return ok
 }
 
-func (s *NodeQOSEnsurancePolicyCache) GetOrCreate(nep *ensuranceapi.NodeQOSEnsurancePolicy) *CachedNodeQOSEnsurancePolicy {
+func (s *NodeQOSEnsurancePolicyCache) GetOrCreate(nep *ensuranceapi.NodeQOSEnsurancePolicy) *ensuranceapi.NodeQOSEnsurancePolicy {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	cacheNep, ok := s.nepMap[nep.Name]
 	if !ok {
-		s.nepMap[nep.Name] = &CachedNodeQOSEnsurancePolicy{Nep: nep}
+		s.nepMap[nep.Name] = nep
 	}
 	return cacheNep
 }
@@ -59,7 +54,7 @@ func (s *NodeQOSEnsurancePolicyCache) GetOrCreate(nep *ensuranceapi.NodeQOSEnsur
 func (s *NodeQOSEnsurancePolicyCache) Set(nep *ensuranceapi.NodeQOSEnsurancePolicy) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.nepMap[nep.Name] = &CachedNodeQOSEnsurancePolicy{Nep: nep}
+	s.nepMap[nep.Name] = nep
 }
 
 func (s *NodeQOSEnsurancePolicyCache) Delete(name string) {

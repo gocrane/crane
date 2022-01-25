@@ -6,7 +6,7 @@ import (
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog/v2"
 
-	client "github.com/gocrane/crane/pkg/ensurance/client"
+	"github.com/gocrane/crane/pkg/ensurance/client"
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/utils"
 )
@@ -15,20 +15,20 @@ const (
 	DefaultCoolDownSeconds = 300
 )
 
-type ScheduledExecutor struct {
-	DisableScheduledQOSPriority *ScheduledQOSPriority
-	RestoreScheduledQOSPriority *ScheduledQOSPriority
+type ScheduleExecutor struct {
+	DisableClassAndPriority *ClassAndPriority
+	RestoreClassAndPriority *ClassAndPriority
 }
 
-type ScheduledQOSPriority struct {
+type ClassAndPriority struct {
 	PodQOSClass        v1.PodQOSClass
 	PriorityClassValue int32
 }
 
-func (b *ScheduledExecutor) Avoid(ctx *ExecuteContext) error {
-	klog.V(10).Info("DisableScheduledExecutor avoid, %v", *b)
+func (b *ScheduleExecutor) Avoid(ctx *ExecuteContext) error {
+	klog.V(6).Info("DisableScheduledExecutor avoid, %v", *b)
 
-	if b.DisableScheduledQOSPriority == nil {
+	if b.DisableClassAndPriority == nil {
 		return nil
 	}
 
@@ -54,10 +54,10 @@ func (b *ScheduledExecutor) Avoid(ctx *ExecuteContext) error {
 	return nil
 }
 
-func (b *ScheduledExecutor) Restore(ctx *ExecuteContext) error {
+func (b *ScheduleExecutor) Restore(ctx *ExecuteContext) error {
 	klog.V(10).Info("DisableScheduledExecutor restore, %v", *b)
 
-	if b.RestoreScheduledQOSPriority == nil {
+	if b.RestoreClassAndPriority == nil {
 		return nil
 	}
 
@@ -83,7 +83,7 @@ func (b *ScheduledExecutor) Restore(ctx *ExecuteContext) error {
 	return nil
 }
 
-func (s ScheduledQOSPriority) Less(i ScheduledQOSPriority) bool {
+func (s ClassAndPriority) Less(i ClassAndPriority) bool {
 	if comparePodQos(s.PodQOSClass, i.PodQOSClass) == 1 {
 		return false
 	}
@@ -95,7 +95,7 @@ func (s ScheduledQOSPriority) Less(i ScheduledQOSPriority) bool {
 	return s.PriorityClassValue < i.PriorityClassValue
 }
 
-func (s ScheduledQOSPriority) Greater(i ScheduledQOSPriority) bool {
+func (s ClassAndPriority) Greater(i ClassAndPriority) bool {
 	if comparePodQos(s.PodQOSClass, i.PodQOSClass) == 1 {
 		return true
 	}
@@ -107,17 +107,17 @@ func (s ScheduledQOSPriority) Greater(i ScheduledQOSPriority) bool {
 	return s.PriorityClassValue > i.PriorityClassValue
 }
 
-func GetMaxQOSPriority(podLister corelisters.PodLister, podTypes []types.NamespacedName) (types.NamespacedName, ScheduledQOSPriority) {
+func GetMaxQOSPriority(podLister corelisters.PodLister, podTypes []types.NamespacedName) (types.NamespacedName, ClassAndPriority) {
 
 	var podType types.NamespacedName
-	var scheduledQOSPriority ScheduledQOSPriority
+	var scheduledQOSPriority ClassAndPriority
 
 	for _, podNamespace := range podTypes {
 		if pod, err := podLister.Pods(podNamespace.Namespace).Get(podNamespace.Name); err != nil {
 			klog.V(6).Infof("Warning: getMaxQOSPriority get pod %s not found", podNamespace.String())
 			continue
 		} else {
-			var priority = ScheduledQOSPriority{PodQOSClass: pod.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(pod.Spec.Priority, 0) - 1}
+			var priority = ClassAndPriority{PodQOSClass: pod.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(pod.Spec.Priority, 0) - 1}
 			if priority.Greater(scheduledQOSPriority) {
 				scheduledQOSPriority = priority
 				podType = podNamespace

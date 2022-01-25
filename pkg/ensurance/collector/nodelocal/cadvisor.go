@@ -21,7 +21,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/gocrane/crane/pkg/common"
-	"github.com/gocrane/crane/pkg/ensurance/statestore/types"
+	"github.com/gocrane/crane/pkg/ensurance/collector/types"
 	"github.com/gocrane/crane/pkg/utils"
 )
 

@@ -85,11 +85,7 @@ func (s *DetectionConditionCache) ListDetections() []DetectionCondition {
 }
 
 func GenerateDetectionKey(c DetectionCondition) string {
-	if c.Nep.Namespace == "" {
-		return strings.Join([]string{"node", c.Nep.Name, c.ObjectiveEnsuranceName}, ".")
-	} else {
-		return strings.Join([]string{"pod", c.Nep.Name, c.Nep.Namespace, c.ObjectiveEnsuranceName}, ".")
-	}
+	return strings.Join([]string{"node", c.Nep.Name, c.ObjectiveEnsuranceName}, ".")
 }
 
 type DetectionStatus struct {

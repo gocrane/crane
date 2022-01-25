@@ -2,8 +2,6 @@ package metricsserver
 
 import (
 	"sync"
-
-	"k8s.io/klog/v2"
 )
 
 type MetricsServer struct {
@@ -13,7 +11,7 @@ type MetricsServer struct {
 
 func NewMetricsServer() *MetricsServer {
 	m := MetricsServer{
-		Name:        "metricsserver",
+		Name:        "metrics-server",
 		StatusCache: sync.Map{},
 	}
 	return &m
@@ -24,6 +22,5 @@ func (m *MetricsServer) GetName() string {
 }
 
 func (m *MetricsServer) Collect() {
-	klog.V(4).Infof("Metrics server collecting")
 	return
 }

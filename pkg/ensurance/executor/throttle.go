@@ -64,7 +64,7 @@ type ThrottlePod struct {
 	ContainerCPUQuotas  []ContainerUsage
 	PodCPUPeriod        float64
 	ContainerCPUPeriods []ContainerUsage
-	PodQOSPriority      ScheduledQOSPriority
+	PodQOSPriority      ClassAndPriority
 }
 
 type ContainerUsage struct {

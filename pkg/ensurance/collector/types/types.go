@@ -26,17 +26,6 @@ const (
 	NodeLocalCollectorType CollectType = "node-local"
 )
 
-type MetricNameConfig struct {
-	//metricName string
-	//selector   metav1.LabelSelector
-}
-
-type MetricNameConfigs []MetricNameConfig
-
-type UpdateEvent struct {
-	Index uint64
-}
-
 // CgroupRef group pod infos
 type CgroupRef struct {
 	ContainerName string
