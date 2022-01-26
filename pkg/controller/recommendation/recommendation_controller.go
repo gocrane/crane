@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -100,8 +101,13 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	if proposed != nil {
-		newStatus.ResourceRequest = proposed.ResourceRequest
-		newStatus.EffectiveHPA = proposed.EffectiveHPA
+		if proposed.ResourceRequest != nil {
+			val, _ := yaml.Marshal(proposed.ResourceRequest)
+			newStatus.RecommendedValue = string(val)
+		} else if proposed.EffectiveHPA != nil {
+			val, _ := yaml.Marshal(proposed.EffectiveHPA)
+			newStatus.RecommendedValue = string(val)
+		}
 	}
 
 	setCondition(newStatus, "Ready", metav1.ConditionTrue, "RecommendationReady", "Recommendation is ready")
