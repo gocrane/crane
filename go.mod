@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-echarts/go-echarts/v2 v2.2.4
-	github.com/gocrane/api v0.0.0-20220101093604-2129a9ce85e3
+	github.com/gocrane/api v0.0.0-20220124113147-be8c412252d3
 	github.com/google/cadvisor v0.39.2
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/mjibson/go-dsp v0.0.0-20180508042940-11479a337f12
@@ -18,6 +18,7 @@ require (
 	golang.org/x/net v0.0.0-20210520170846-37e1c6afe023
 	golang.org/x/tools v0.1.5 // indirect
 	google.golang.org/grpc v1.38.0
+	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.22.3
 	k8s.io/apimachinery v0.22.3
 	k8s.io/apiserver v0.22.3
@@ -134,7 +135,6 @@ require (
 	google.golang.org/protobuf v1.26.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	k8s.io/apiextensions-apiserver v0.22.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20210817084001-7fbd8d59e5b8 // indirect
@@ -145,7 +145,6 @@ require (
 )
 
 replace (
-    github.com/gocrane/api => github.com/yan234280533/api v0.0.0-20220117025739-a9f8ba724529
 	golang.org/x/net => github.com/golang/net v0.0.0-20210825183410-e898025ed96a
 	k8s.io/api => k8s.io/api v0.22.3
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.22.3

@@ -7,7 +7,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/klog/v2"
 
-	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/prediction/config"
@@ -86,7 +85,7 @@ func makeMemConfig(expr string, props map[string]string) *config.Config {
 }
 
 func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) error {
-	r := &analysisapi.ResourceRequestRecommendation{}
+	r := &types.ResourceRequestRecommendation{}
 
 	p := a.Predictors[predictionapi.AlgorithmTypePercentile]
 
@@ -115,9 +114,9 @@ func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) 
 		}
 		mc.WithConfig(makeMemConfig(expr, a.ConfigProperties))
 
-		cr := analysisapi.ContainerRecommendation{
+		cr := types.ContainerRecommendation{
 			ContainerName: c.Name,
-			Target:        map[corev1.ResourceName]resource.Quantity{},
+			Target:        map[corev1.ResourceName]string{},
 		}
 
 		expr = fmt.Sprintf(cpuQueryExprTemplate, c.Name, namespace, podNamePrefix)
@@ -129,7 +128,7 @@ func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) 
 			return fmt.Errorf("no value, expr: %s", expr)
 		}
 		v := int64(ts[0].Samples[0].Value * 1000)
-		cr.Target[corev1.ResourceCPU] = *resource.NewMilliQuantity(v, resource.DecimalSI)
+		cr.Target[corev1.ResourceCPU] = resource.NewMilliQuantity(v, resource.DecimalSI).String()
 
 		expr = fmt.Sprintf(memQueryExprTemplate, c.Name, namespace, podNamePrefix)
 		ts, err = p.QueryRealtimePredictedValues(expr)
@@ -140,7 +139,7 @@ func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) 
 			return fmt.Errorf("no value, expr: %s", expr)
 		}
 		v = int64(ts[0].Samples[0].Value)
-		cr.Target[corev1.ResourceMemory] = *resource.NewMilliQuantity(v, resource.BinarySI)
+		cr.Target[corev1.ResourceMemory] = resource.NewMilliQuantity(v, resource.BinarySI).String()
 
 		r.Containers = append(r.Containers, cr)
 	}

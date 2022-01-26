@@ -9,7 +9,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 
-	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
@@ -114,7 +113,7 @@ func (a *EHPAAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 	}
 
 	defaultPredictionWindow := int32(3600)
-	proposedEHPA := &analysisapi.EffectiveHorizontalPodAutoscalerRecommendation{
+	proposedEHPA := &types.EffectiveHorizontalPodAutoscalerRecommendation{
 		MaxReplicas: &maxReplicasProposed,
 		MinReplicas: &minReplicasProposed,
 		Metrics: []autoscalingv2.MetricSpec{
