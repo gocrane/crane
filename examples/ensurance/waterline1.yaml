@@ -14,7 +14,7 @@ spec:
   - name: "cpu_usage"
     avoidanceThreshold: 2
     restoreThreshold: 2
-    actionName: "disablescheduled"
+    actionName: "disablescheduling"
     strategy: "None"
     metricRule:
       name: "cpu_total_usage"
