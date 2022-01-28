@@ -13,8 +13,28 @@ type CollectType string
 type MetricName string
 
 const (
-	MetricNameCpuTotalUsage              MetricName = "cpu_total_usage"
-	MetricNameCpuTotalUtilization        MetricName = "cpu_total_utilization"
+	MetricNameCpuTotalUsage       MetricName = "cpu_total_usage"
+	MetricNameCpuTotalUtilization MetricName = "cpu_total_utilization"
+	MetricNameCpuLoad1Min         MetricName = "cpu_load_1_min"
+	MetricNameCpuLoad5Min         MetricName = "cpu_load_5_min"
+	MetricNameCpuLoad15Min        MetricName = "cpu_load_15_min"
+
+	MetricNameMemoryTotalUsage       MetricName = "memory_total_usage"
+	MetricNameMemoryTotalUtilization MetricName = "memory_total_utilization"
+
+	MetricDiskReadKiBPS   MetricName = "disk_read_kibps"
+	MetricDiskWriteKiBPS  MetricName = "disk_write_kibps"
+	MetricDiskReadIOPS    MetricName = "disk_read_iops"
+	MetricDiskWriteIOPS   MetricName = "disk_read_iops"
+	MetricDiskUtilization MetricName = "disk_read_utilization"
+
+	MetricNetworkReceiveKiBPS MetricName = "network_receive_kibps"
+	MetricNetworkSentKiBPS    MetricName = "network_sent_kibps"
+	MetricNetworkReceivePckPS MetricName = "network_receive_pckps"
+	MetricNetworkSentPckPS    MetricName = "network_sent_pckps"
+	MetricNetworkDropIn       MetricName = "network_drop_in"
+	MetricNetworkDropOut      MetricName = "network_drop_out"
+
 	MetricNameContainerCpuTotalUsage     MetricName = "container_cpu_total_usage"
 	MetricNameContainerCpuLimit          MetricName = "container_cpu_limit"
 	MetricNameContainerCpuQuota          MetricName = "container_cpu_quota"
@@ -24,6 +44,11 @@ const (
 
 const (
 	NodeLocalCollectorType CollectType = "node-local"
+)
+
+const (
+	UintConversionStep1024 = 1024.0
+	UintConversionStep1000 = 1000.0
 )
 
 // CgroupRef group pod infos

@@ -22,6 +22,7 @@ type MetricsCollector struct {
 	podLister  corelisters.PodLister
 	nodeLister corelisters.NodeLister
 	collectors map[types.CollectType]Collector
+	ifaces     []string
 	*StateStore
 }
 
@@ -29,7 +30,7 @@ type StateStore struct {
 	*sync.Map
 }
 
-func NewMetricsCollector(nodeName string, nepLister ensuranceListers.NodeQOSEnsurancePolicyLister, podLister corelisters.PodLister, nodeLister corelisters.NodeLister) (*MetricsCollector, *StateStore) {
+func NewMetricsCollector(nodeName string, nepLister ensuranceListers.NodeQOSEnsurancePolicyLister, podLister corelisters.PodLister, nodeLister corelisters.NodeLister, ifaces []string) (*MetricsCollector, *StateStore) {
 	stateStore := &StateStore{&sync.Map{}}
 	return &MetricsCollector{
 		nodeName:   nodeName,
@@ -37,6 +38,7 @@ func NewMetricsCollector(nodeName string, nepLister ensuranceListers.NodeQOSEnsu
 		podLister:  podLister,
 		nodeLister: nodeLister,
 		StateStore: stateStore,
+		ifaces:     ifaces,
 		collectors: map[types.CollectType]Collector{},
 	}, stateStore
 }
@@ -107,7 +109,7 @@ func (s *MetricsCollector) UpdateCollectors() {
 		}
 		nodeLocal = true
 		if _, exists := s.collectors[types.NodeLocalCollectorType]; !exists {
-			nc := nodelocal.NewNodeLocal(s.podLister)
+			nc := nodelocal.NewNodeLocal(s.podLister, s.ifaces)
 			s.collectors[types.NodeLocalCollectorType] = nc
 		}
 		break

@@ -35,14 +35,16 @@ func NewAgent(ctx context.Context,
 	nodeInformer coreinformers.NodeInformer,
 	nepInformer v1alpha1.NodeQOSEnsurancePolicyInformer,
 	actionInformer v1alpha1.AvoidanceActionInformer,
+	ifaces []string,
 ) (*Agent, error) {
 	var managers []manager.Manager
 	var noticeCh = make(chan executor.AvoidanceExecutor)
 
 	utilruntime.Must(ensuranceapi.AddToScheme(scheme.Scheme))
-	metricsCollector, stateStore := collector.NewMetricsCollector(nodeName, nepInformer.Lister(), podInformer.Lister(), nodeInformer.Lister())
+	metricsCollector, stateStore := collector.NewMetricsCollector(nodeName, nepInformer.Lister(), podInformer.Lister(), nodeInformer.Lister(), ifaces)
 	managers = append(managers, metricsCollector)
 	analyzerManager := analyzer.NewAnormalyAnalyzer(kubeClient, nodeName, podInformer, nodeInformer, nepInformer, actionInformer, stateStore, noticeCh)
+
 	managers = append(managers, analyzerManager)
 	avoidanceManager := executor.NewActionExecutor(kubeClient, nodeName, podInformer, nodeInformer, noticeCh, runtimeEndpoint)
 	managers = append(managers, avoidanceManager)

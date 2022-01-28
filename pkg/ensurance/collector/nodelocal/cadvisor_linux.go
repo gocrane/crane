@@ -50,8 +50,7 @@ type CadvisorCollector struct {
 	MaxHousekeepingConfig cmanager.HouskeepingConfig
 }
 
-func NewCadvisor(podLister corelisters.PodLister) (nodeLocalCollector, error) {
-	klog.V(2).Info("NewCadvisor")
+func NewCadvisor(context *NodeLocalContext) (nodeLocalCollector, error) {
 
 	var includedMetrics = cadvisorcontainer.MetricSet{
 		cadvisorcontainer.CpuUsageMetrics:         struct{}{},
@@ -71,7 +70,7 @@ func NewCadvisor(podLister corelisters.PodLister) (nodeLocalCollector, error) {
 
 	c := CadvisorCollector{
 		Manager:   m,
-		podLister: podLister,
+		podLister: context.PodLister,
 	}
 
 	if err := c.Manager.Start(); err != nil {
@@ -108,7 +107,7 @@ func (c *CadvisorCollector) collect() (map[string][]common.TimeSeries, error) {
 	allPods, err := c.podLister.List(labels.Everything())
 	if err != nil {
 		klog.Errorf("Failed to list all pods: %v", err)
-		return make(map[string][]common.TimeSeries, 0), err
+		return nil, err
 	}
 
 	var cpuUsageTimeSeries []common.TimeSeries
