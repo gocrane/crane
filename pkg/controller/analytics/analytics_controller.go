@@ -7,6 +7,8 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,7 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
@@ -29,6 +30,7 @@ import (
 	craneclient "github.com/gocrane/api/pkg/generated/clientset/versioned"
 	analysisinformer "github.com/gocrane/api/pkg/generated/informers/externalversions"
 	analysislister "github.com/gocrane/api/pkg/generated/listers/analysis/v1alpha1"
+
 	"github.com/gocrane/crane/pkg/known"
 )
 
@@ -47,9 +49,9 @@ type Controller struct {
 func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	klog.V(4).InfoS("Got an analytics resource.", "analytics", req.NamespacedName)
 
-	a := &analysisv1alph1.Analytics{}
+	analytics := &analysisv1alph1.Analytics{}
 
-	err := c.Client.Get(ctx, req.NamespacedName, a)
+	err := c.Client.Get(ctx, req.NamespacedName, analytics)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -57,33 +59,223 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	if a.DeletionTimestamp != nil {
+	if analytics.DeletionTimestamp != nil {
 		klog.InfoS("Analytics resource is being deleted.", "name", req.NamespacedName)
 		return ctrl.Result{}, nil
 	}
 
-	if a.Spec.CompletionStrategy.CompletionStrategyType == analysisv1alph1.CompletionStrategyPeriodical &&
-		a.Spec.CompletionStrategy.PeriodSeconds != nil && a.Status.LastSuccessfulTime != nil {
-		d := time.Second * time.Duration(*a.Spec.CompletionStrategy.PeriodSeconds)
-		if a.Status.LastSuccessfulTime.Add(d).After(time.Now()) {
-			return ctrl.Result{}, nil
+	shouldAnalytics := c.ShouldAnalytics(analytics)
+	if !shouldAnalytics {
+		klog.V(4).Infof("Nothing happens for Analytics %s", req.NamespacedName)
+		return ctrl.Result{}, nil
+	}
+
+	c.DoAnalytics(ctx, analytics)
+
+	if analytics.Spec.CompletionStrategy.CompletionStrategyType == analysisv1alph1.CompletionStrategyPeriodical {
+		if analytics.Spec.CompletionStrategy.PeriodSeconds != nil {
+			d := time.Second * time.Duration(*analytics.Spec.CompletionStrategy.PeriodSeconds)
+			klog.V(4).InfoS("Will re-sync", "after", d)
+			return ctrl.Result{
+				RequeueAfter: d,
+			}, nil
 		}
 	}
 
-	if a.Spec.CompletionStrategy.CompletionStrategyType == analysisv1alph1.CompletionStrategyOnce && a.Status.LastSuccessfulTime != nil {
-		return ctrl.Result{}, err
+	return ctrl.Result{}, nil
+}
+
+// ShouldAnalytics decide if we need do analytics according to status
+func (c *Controller) ShouldAnalytics(analytics *analysisv1alph1.Analytics) bool {
+	lastUpdateTime := analytics.Status.LastUpdateTime
+
+	if analytics.Spec.CompletionStrategy.CompletionStrategyType == analysisv1alph1.CompletionStrategyOnce {
+		if lastUpdateTime != nil {
+			// already finish analytics
+			return false
+		}
+	} else {
+		if lastUpdateTime != nil {
+			planingTime := lastUpdateTime.Add(time.Duration(*analytics.Spec.CompletionStrategy.PeriodSeconds) * time.Second)
+			if time.Now().Before(planingTime) {
+				return false
+			}
+		}
 	}
 
+	return true
+}
+
+func (c *Controller) DoAnalytics(ctx context.Context, analytics *analysisv1alph1.Analytics) {
+	newStatus := analytics.Status.DeepCopy()
+
+	identities, err := c.GetIdentities(ctx, analytics)
+	if err != nil {
+		c.Recorder.Event(analytics, v1.EventTypeNormal, "FailedSelectResource", err.Error())
+		msg := fmt.Sprintf("Failed to get idenitities, Analytics %s error %v", klog.KObj(analytics), err)
+		klog.Errorf(msg)
+		setReadyCondition(newStatus, metav1.ConditionFalse, "FailedSelectResource", msg)
+		c.UpdateStatus(ctx, analytics, newStatus)
+		return
+	}
+
+	var recommendations []*analysisv1alph1.Recommendation
+	if analytics.Namespace == known.CraneSystemNamespace {
+		recommendations, err = c.recommLister.List(labels.Everything())
+	} else {
+		recommendations, err = c.recommLister.Recommendations(analytics.Namespace).List(labels.Everything())
+	}
+	if err != nil {
+		c.Recorder.Event(analytics, v1.EventTypeNormal, "FailedSelectResource", err.Error())
+		msg := fmt.Sprintf("Failed to get recomendations, Analytics %s error %v", klog.KObj(analytics), err)
+		klog.Errorf(msg)
+		setReadyCondition(newStatus, metav1.ConditionFalse, "FailedSelectResource", msg)
+		c.UpdateStatus(ctx, analytics, newStatus)
+		return
+	}
+
+	recommendationMap := map[string]*analysisv1alph1.Recommendation{}
+	for _, r := range recommendations {
+		k := objRefKey(r.Spec.TargetRef.Kind, r.Spec.TargetRef.APIVersion, r.Spec.TargetRef.Namespace, r.Spec.TargetRef.Name, string(r.Spec.Type))
+		recommendationMap[k] = r.DeepCopy()
+	}
+
+	if klog.V(6).Enabled() {
+		// Print recommendations
+		for k, r := range recommendationMap {
+			klog.V(6).InfoS("recommendations", "analytics", klog.KObj(analytics), "key", k, "namespace", r.Namespace, "name", r.Name)
+		}
+		// Print identities
+		for k, id := range identities {
+			klog.V(6).InfoS("identities", "analytics", klog.KObj(analytics), "key", k, "apiVersion", id.APIVersion, "kind", id.Kind, "namespace", id.Namespace, "name", id.Name)
+		}
+	}
+
+	var refs []corev1.ObjectReference
+
+	for k, id := range identities {
+		if r, exists := recommendationMap[k]; exists {
+			refs = append(refs, corev1.ObjectReference{
+				Kind:       recommendationMap[k].Kind,
+				Name:       recommendationMap[k].Name,
+				Namespace:  recommendationMap[k].Namespace,
+				APIVersion: recommendationMap[k].APIVersion,
+				UID:        recommendationMap[k].UID,
+			})
+			found := false
+			for _, or := range r.OwnerReferences {
+				if or.Name == analytics.Name && or.Kind == analytics.Kind && or.APIVersion == analytics.APIVersion {
+					found = true
+					break
+				}
+			}
+			if !found {
+				rCopy := r.DeepCopy()
+				rCopy.OwnerReferences = append(rCopy.OwnerReferences, *newOwnerRef(analytics))
+				if err = c.Update(ctx, rCopy); err != nil {
+					c.Recorder.Event(analytics, v1.EventTypeNormal, "FailedUpdateRecommendation", err.Error())
+					msg := fmt.Sprintf("Failed to update ownerReferences for recommendation %s, Analytics %s error %v", klog.KObj(rCopy), klog.KObj(analytics), err)
+					klog.Errorf(msg)
+					setReadyCondition(newStatus, metav1.ConditionFalse, "FailedUpdateRecommendation", msg)
+					c.UpdateStatus(ctx, analytics, newStatus)
+					return
+				}
+				klog.InfoS("Successful to update ownerReferences", "Recommendation", rCopy, "Analytics", analytics)
+			}
+		} else {
+			if err = c.CreateRecommendation(ctx, analytics, id, &refs); err != nil {
+				c.Recorder.Event(analytics, v1.EventTypeNormal, "FailedCreateRecommendation", err.Error())
+				msg := fmt.Sprintf("Failed to create recommendation, Analytics %s error %v", klog.KObj(analytics), err)
+				klog.Errorf(msg)
+				setReadyCondition(newStatus, metav1.ConditionFalse, "FailedCreateRecommendation", msg)
+				c.UpdateStatus(ctx, analytics, newStatus)
+				return
+			}
+		}
+	}
+	newStatus.Recommendations = refs
+	timeNow := metav1.Now()
+	newStatus.LastUpdateTime = &timeNow
+	setReadyCondition(newStatus, metav1.ConditionTrue, "AnalyticsReady", "Analytics is ready")
+
+	c.UpdateStatus(ctx, analytics, newStatus)
+}
+
+func (c *Controller) CreateRecommendation(ctx context.Context, analytics *analysisv1alph1.Analytics,
+	id ObjectIdentity, refs *[]corev1.ObjectReference) error {
+
+	recommendation := &analysisv1alph1.Recommendation{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: fmt.Sprintf("%s-%s-", analytics.Name, strings.ToLower(string(analytics.Spec.Type))),
+			Namespace:    analytics.Namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				*newOwnerRef(analytics),
+			},
+			Labels: id.Labels,
+		},
+		Spec: analysisv1alph1.RecommendationSpec{
+			TargetRef:          corev1.ObjectReference{Kind: id.Kind, APIVersion: id.APIVersion, Namespace: id.Namespace, Name: id.Name},
+			Type:               analytics.Spec.Type,
+			CompletionStrategy: analytics.Spec.CompletionStrategy,
+		},
+	}
+
+	if err := c.Create(ctx, recommendation); err != nil {
+		klog.Error(err, "Failed to create Recommendation")
+		return err
+	}
+
+	klog.InfoS("Successful to create", "Recommendation", klog.KObj(recommendation), "Analytics", klog.KObj(analytics))
+
+	*refs = append(*refs, corev1.ObjectReference{
+		Kind:       recommendation.Kind,
+		Name:       recommendation.Name,
+		Namespace:  recommendation.Namespace,
+		APIVersion: recommendation.APIVersion,
+		UID:        recommendation.UID,
+	})
+
+	return nil
+}
+
+func (c *Controller) SetupWithManager(mgr ctrl.Manager) error {
+	c.kubeClient = kubernetes.NewForConfigOrDie(mgr.GetConfig())
+
+	c.discoveryClient = discovery.NewDiscoveryClientForConfigOrDie(mgr.GetConfig())
+
+	c.dynamicClient = dynamic.NewForConfigOrDie(mgr.GetConfig())
+
+	cli := craneclient.NewForConfigOrDie(mgr.GetConfig())
+	fact := analysisinformer.NewSharedInformerFactory(cli, time.Second*30)
+	c.recommLister = fact.Analysis().V1alpha1().Recommendations().Lister()
+
+	fact.Start(nil)
+	if ok := cache.WaitForCacheSync(nil, fact.Analysis().V1alpha1().Recommendations().Informer().HasSynced); !ok {
+		return fmt.Errorf("failed to sync")
+	}
+
+	serverVersion, err := c.discoveryClient.ServerVersion()
+	if err != nil {
+		return err
+	}
+	c.K8SVersion = version.MustParseGeneric(serverVersion.GitVersion)
+
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&analysisv1alph1.Analytics{}).
+		Complete(c)
+}
+
+func (c *Controller) GetIdentities(ctx context.Context, analytics *analysisv1alph1.Analytics) (map[string]ObjectIdentity, error) {
 	identities := map[string]ObjectIdentity{}
 
-	for _, rs := range a.Spec.ResourceSelectors {
+	for _, rs := range analytics.Spec.ResourceSelectors {
 		if rs.Kind == "" {
-			return ctrl.Result{}, fmt.Errorf("empty kind")
+			return nil, fmt.Errorf("empty kind")
 		}
 
 		resList, err := c.discoveryClient.ServerResourcesForGroupVersion(rs.APIVersion)
 		if err != nil {
-			return ctrl.Result{}, err
+			return nil, err
 		}
 
 		var resName string
@@ -94,142 +286,91 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			}
 		}
 		if resName == "" {
-			return ctrl.Result{}, fmt.Errorf("invalid kind %s", rs.Kind)
+			return nil, fmt.Errorf("invalid kind %s", rs.Kind)
 		}
 
 		gv, err := schema.ParseGroupVersion(rs.APIVersion)
 		if err != nil {
-			return ctrl.Result{}, err
+			return nil, err
 		}
 		gvr := gv.WithResource(resName)
 
-		var us []unstructured.Unstructured
+		var unstructureds []unstructured.Unstructured
 
 		if rs.Name != "" {
-			u, err := c.dynamicClient.Resource(gvr).Namespace(req.Namespace).Get(ctx, rs.Name, metav1.GetOptions{})
+			unstructured, err := c.dynamicClient.Resource(gvr).Namespace(analytics.Namespace).Get(ctx, rs.Name, metav1.GetOptions{})
 			if err != nil {
-				return ctrl.Result{}, err
+				return nil, err
 			}
-			us = append(us, *u)
+			unstructureds = append(unstructureds, *unstructured)
 		} else {
-			var ul *unstructured.UnstructuredList
+			var unstructuredList *unstructured.UnstructuredList
 			var err error
 
-			if req.Namespace == known.CraneSystemNamespace {
-				ul, err = c.dynamicClient.Resource(gvr).List(ctx, metav1.ListOptions{})
+			if analytics.Namespace == known.CraneSystemNamespace {
+				unstructuredList, err = c.dynamicClient.Resource(gvr).List(ctx, metav1.ListOptions{})
 			} else {
-				ul, err = c.dynamicClient.Resource(gvr).Namespace(req.Namespace).List(ctx, metav1.ListOptions{})
+				unstructuredList, err = c.dynamicClient.Resource(gvr).Namespace(analytics.Namespace).List(ctx, metav1.ListOptions{})
 			}
 			if err != nil {
-				return ctrl.Result{}, err
+				return nil, err
 			}
 
-			for _, u := range ul.Items {
-				m, ok, err := unstructured.NestedStringMap(u.Object, "spec", "selector", "matchLabels")
+			for _, item := range unstructuredList.Items {
+				// todo: rename rs.LabelSelector to rs.matchLabelSelector ?
+				m, ok, err := unstructured.NestedStringMap(item.Object, "spec", "selector", "matchLabels")
 				if !ok || err != nil {
-					return ctrl.Result{}, fmt.Errorf("%s not supported", gvr.String())
+					return nil, fmt.Errorf("%s not supported", gvr.String())
 				}
 				matchLabels := map[string]string{}
 				for k, v := range m {
 					matchLabels[k] = v
 				}
 				if match(rs.LabelSelector, matchLabels) {
-					us = append(us, u)
+					unstructureds = append(unstructureds, item)
 				}
 			}
 		}
 
-		for i := range us {
-			k := objRefKey(rs.Kind, rs.APIVersion, us[i].GetNamespace(), us[i].GetName(), string(a.Spec.Type))
+		for i := range unstructureds {
+			k := objRefKey(rs.Kind, rs.APIVersion, unstructureds[i].GetNamespace(), unstructureds[i].GetName(), string(analytics.Spec.Type))
 			if _, exists := identities[k]; !exists {
 				identities[k] = ObjectIdentity{
-					Namespace:  us[i].GetNamespace(),
-					Name:       us[i].GetName(),
+					Namespace:  unstructureds[i].GetNamespace(),
+					Name:       unstructureds[i].GetName(),
 					Kind:       rs.Kind,
 					APIVersion: rs.APIVersion,
-					Labels:     us[i].GetLabels(),
+					Labels:     unstructureds[i].GetLabels(),
 				}
 			}
 		}
 	}
 
-	var rs []*analysisv1alph1.Recommendation
-	if req.Namespace == known.CraneSystemNamespace {
-		rs, err = c.recommLister.List(labels.Everything())
-	} else {
-		rs, err = c.recommLister.Recommendations(req.Namespace).List(labels.Everything())
-	}
-	if err != nil {
-		return ctrl.Result{}, err
-	}
+	return identities, nil
+}
 
-	rm := map[string]*analysisv1alph1.Recommendation{}
-	for _, r := range rs {
-		k := objRefKey(r.Spec.TargetRef.Kind, r.Spec.TargetRef.APIVersion, r.Spec.TargetRef.Namespace, r.Spec.TargetRef.Name, string(r.Spec.Type))
-		rm[k] = r.DeepCopy()
-	}
+func (c *Controller) UpdateStatus(ctx context.Context, analytics *analysisv1alph1.Analytics, newStatus *analysisv1alph1.AnalyticsStatus) {
+	if !equality.Semantic.DeepEqual(&analytics.Status, newStatus) {
+		klog.V(4).Infof("Analytics status should be updated, currentStatus %v newStatus %v", &analytics.Status, newStatus)
 
-	if klog.V(6).Enabled() {
-		// Print recommendations
-		for k, r := range rm {
-			klog.V(6).InfoS("recommendations", "key", k, "namespace", r.Namespace, "name", r.Name)
+		analytics.Status = *newStatus
+		err := c.Update(ctx, analytics)
+		if err != nil {
+			c.Recorder.Event(analytics, v1.EventTypeNormal, "FailedUpdateStatus", err.Error())
+			klog.Errorf("Failed to update status, Analytics %s error %v", klog.KObj(analytics), err)
+			return
 		}
-		// Print identities
-		for k, id := range identities {
-			klog.V(6).InfoS("identities", "key", k, "apiVersion", id.APIVersion, "kind", id.Kind, "namespace", id.Namespace, "name", id.Name)
-		}
-	}
 
-	var refs []corev1.ObjectReference
-
-	for k, id := range identities {
-		if r, exists := rm[k]; exists {
-			refs = append(refs, corev1.ObjectReference{
-				Kind:       rm[k].Kind,
-				Name:       rm[k].Name,
-				Namespace:  rm[k].Namespace,
-				APIVersion: rm[k].APIVersion,
-				UID:        rm[k].UID,
-			})
-			found := false
-			for _, or := range r.OwnerReferences {
-				if or.Name == a.Name && or.Kind == a.Kind && or.APIVersion == a.APIVersion {
-					found = true
-					break
-				}
-			}
-			if !found {
-				nr := r.DeepCopy()
-				nr.OwnerReferences = append(nr.OwnerReferences, *newOwnerRef(a))
-				if err = c.Update(ctx, nr); err != nil {
-					return ctrl.Result{}, err
-				}
-			}
-		} else {
-			if err = c.createRecommendation(ctx, a, id, &refs); err != nil {
-				return ctrl.Result{}, err
-			}
-		}
+		klog.Infof("Update Analytics status successful, Analytics %s", klog.KObj(analytics))
 	}
-	na := a.DeepCopy()
-	na.Status.Recommendations = refs
-	t := metav1.Now()
-	na.Status.LastSuccessfulTime = &t
-	if err = c.Client.Update(ctx, na); err != nil {
-		return ctrl.Result{}, err
-	}
+}
 
-	if a.Spec.CompletionStrategy.CompletionStrategyType == analysisv1alph1.CompletionStrategyPeriodical {
-		if a.Spec.CompletionStrategy.PeriodSeconds != nil {
-			d := time.Second * time.Duration(*a.Spec.CompletionStrategy.PeriodSeconds)
-			klog.V(4).InfoS("Will re-sync", "after", d)
-			return ctrl.Result{
-				RequeueAfter: d,
-			}, nil
-		}
-	}
-
-	return ctrl.Result{}, nil
+type ObjectIdentity struct {
+	Namespace  string
+	APIVersion string
+	Kind       string
+	Name       string
+	Labels     map[string]string
 }
 
 func newOwnerRef(a *analysisv1alph1.Analytics) *metav1.OwnerReference {
@@ -242,48 +383,6 @@ func newOwnerRef(a *analysisv1alph1.Analytics) *metav1.OwnerReference {
 		BlockOwnerDeletion: &blockOwnerDeletion,
 		Controller:         &isController,
 	}
-}
-
-func (ac *Controller) createRecommendation(ctx context.Context, a *analysisv1alph1.Analytics,
-	id ObjectIdentity, refs *[]corev1.ObjectReference) error {
-
-	r := &analysisv1alph1.Recommendation{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: fmt.Sprintf("%s-%s-", a.Name, strings.ToLower(string(a.Spec.Type))),
-			Namespace:    a.Namespace,
-			OwnerReferences: []metav1.OwnerReference{
-				*newOwnerRef(a),
-			},
-			Labels: id.Labels,
-		},
-		Spec: analysisv1alph1.RecommendationSpec{
-			TargetRef:          corev1.ObjectReference{Kind: id.Kind, APIVersion: id.APIVersion, Namespace: id.Namespace, Name: id.Name},
-			Type:               a.Spec.Type,
-			CompletionStrategy: a.Spec.CompletionStrategy,
-		},
-		Status: analysisv1alph1.RecommendationStatus{
-			LastUpdateTime: metav1.Now(),
-		},
-	}
-
-	if err := ac.Create(ctx, r); err != nil {
-		klog.Error(err, "Failed to create Recommendation")
-		return err
-	}
-
-	if err := ac.Get(ctx, types.NamespacedName{Namespace: r.Namespace, Name: r.Name}, r); err != nil {
-		klog.Error(err, "Failed to get Recommendation")
-		return err
-	}
-	*refs = append(*refs, corev1.ObjectReference{
-		Kind:       r.Kind,
-		Name:       r.Name,
-		Namespace:  r.Namespace,
-		APIVersion: r.APIVersion,
-		UID:        r.UID,
-	})
-
-	return nil
 }
 
 func objRefKey(kind, apiVersion, namespace, name, recommendType string) string {
@@ -336,37 +435,21 @@ func match(labelSelector metav1.LabelSelector, matchLabels map[string]string) bo
 	return true
 }
 
-func (c *Controller) SetupWithManager(mgr ctrl.Manager) error {
-	c.kubeClient = kubernetes.NewForConfigOrDie(mgr.GetConfig())
-
-	c.discoveryClient = discovery.NewDiscoveryClientForConfigOrDie(mgr.GetConfig())
-
-	c.dynamicClient = dynamic.NewForConfigOrDie(mgr.GetConfig())
-
-	cli := craneclient.NewForConfigOrDie(mgr.GetConfig())
-	fact := analysisinformer.NewSharedInformerFactory(cli, time.Second*30)
-	c.recommLister = fact.Analysis().V1alpha1().Recommendations().Lister()
-
-	fact.Start(nil)
-	if ok := cache.WaitForCacheSync(nil, fact.Analysis().V1alpha1().Recommendations().Informer().HasSynced); !ok {
-		return fmt.Errorf("failed to sync")
+func setReadyCondition(status *analysisv1alph1.AnalyticsStatus, conditionStatus metav1.ConditionStatus, reason string, message string) {
+	for i := range status.Conditions {
+		if status.Conditions[i].Type == "Ready" {
+			status.Conditions[i].Status = conditionStatus
+			status.Conditions[i].Reason = reason
+			status.Conditions[i].Message = message
+			status.Conditions[i].LastTransitionTime = metav1.Now()
+			return
+		}
 	}
-
-	serverVersion, err := c.discoveryClient.ServerVersion()
-	if err != nil {
-		return err
-	}
-	c.K8SVersion = version.MustParseGeneric(serverVersion.GitVersion)
-
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&analysisv1alph1.Analytics{}).
-		Complete(c)
-}
-
-type ObjectIdentity struct {
-	Namespace  string
-	APIVersion string
-	Kind       string
-	Name       string
-	Labels     map[string]string
+	status.Conditions = append(status.Conditions, metav1.Condition{
+		Type:               "Ready",
+		Status:             conditionStatus,
+		Reason:             reason,
+		Message:            message,
+		LastTransitionTime: metav1.Now(),
+	})
 }
