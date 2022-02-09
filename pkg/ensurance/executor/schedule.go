@@ -15,6 +15,10 @@ const (
 	DefaultCoolDownSeconds = 300
 )
 
+type ComparablePod struct {
+	*v1.Pod
+}
+
 type ScheduleExecutor struct {
 	DisableClassAndPriority *ClassAndPriority
 	RestoreClassAndPriority *ClassAndPriority
@@ -81,6 +85,13 @@ func (b *ScheduleExecutor) Restore(ctx *ExecuteContext) error {
 	}
 
 	return nil
+}
+func (p *ComparablePod) Less(p2 ComparablePod) bool {
+	if comparePodQos(p.Status.QOSClass, p2.Status.QOSClass) == 1 {
+
+	}
+
+	return *p.Spec.Priority < *p2.Spec.Priority
 }
 
 func (s ClassAndPriority) Less(i ClassAndPriority) bool {

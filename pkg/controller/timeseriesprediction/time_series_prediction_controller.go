@@ -27,7 +27,7 @@ type Controller struct {
 	tsPredictionMap sync.Map
 
 	lock sync.Mutex
-	// predictors used to do predict and config, maybe the predictor should running as a independent system not as a built-in goroutines logic
+	// predictors used to do predict and config, maybe the predictor should running as a independent system not as a built-in goroutines evaluator
 	predictors map[predictionv1alph1.AlgorithmType]prediction.Interface
 }
 
