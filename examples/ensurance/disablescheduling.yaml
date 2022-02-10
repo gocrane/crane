@@ -3,7 +3,7 @@ kind: AvoidanceAction
 metadata:
   labels:
     app: system
-  name: disablescheduled
+  name: disablescheduling
 spec:
-  description: disable scheduled
   ##coolDownSeconds: 300
+  description: disable schedule new pods to the node

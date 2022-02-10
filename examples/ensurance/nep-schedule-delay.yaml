@@ -1,7 +1,7 @@
 apiVersion: ensurance.crane.io/v1alpha1
 kind: NodeQOSEnsurancePolicy
 metadata:
-  name: "sched"
+  name: "schedule-delay"
   labels:
     app: "system"
 spec:
@@ -11,7 +11,7 @@ spec:
     nodeLocalGet:
       localCacheTTLSeconds: 60
   objectiveEnsurances:
-    - name: "container_sched_run_queue_time"
+    - name: "container-schedule-delay-time"
       avoidanceThreshold: 1
       restoreThreshold: 10
       actionName: "throttle"

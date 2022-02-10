@@ -10,4 +10,4 @@ spec:
     cpuThrottle:
       minCPURatio: 10
       stepCPURatio: 10
-  description: "throttle the pod"
+  description: "throttle low priority pods"
