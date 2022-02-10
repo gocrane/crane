@@ -1,4 +1,4 @@
-package recommendation
+package analytics
 
 import (
 	"context"
@@ -19,23 +19,23 @@ type ValidationAdmission struct {
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (p *ValidationAdmission) Default(ctx context.Context, req runtime.Object) error {
-	recommendation, ok := req.(*analysisv1alph1.Recommendation)
+	analytics, ok := req.(*analysisv1alph1.Analytics)
 	if !ok {
-		return fmt.Errorf("Failed to convert req to Recommendation. ")
+		return fmt.Errorf("Failed to convert req to Analytics. ")
 	}
 
-	Default(recommendation)
+	Default(analytics)
 	return nil
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (p *ValidationAdmission) ValidateCreate(ctx context.Context, req runtime.Object) error {
-	recommendation, ok := req.(*analysisv1alph1.Recommendation)
+	analytics, ok := req.(*analysisv1alph1.Analytics)
 	if !ok {
-		return fmt.Errorf("Failed to convert req to Recommendation. ")
+		return fmt.Errorf("Failed to convert req to Analytics. ")
 	}
 
-	klog.V(4).Info("validate create object %s", klog.KObj(recommendation))
+	klog.V(4).Info("validate create object %s", klog.KObj(analytics))
 	return nil
 }
 
@@ -49,12 +49,12 @@ func (p *ValidationAdmission) ValidateDelete(ctx context.Context, req runtime.Ob
 	return nil
 }
 
-func Default(recommendation *analysisv1alph1.Recommendation) {
-	if recommendation.Spec.CompletionStrategy.CompletionStrategyType == "" {
-		recommendation.Spec.CompletionStrategy.CompletionStrategyType = analysisv1alph1.CompletionStrategyOnce
+func Default(analytics *analysisv1alph1.Analytics) {
+	if analytics.Spec.CompletionStrategy.CompletionStrategyType == "" {
+		analytics.Spec.CompletionStrategy.CompletionStrategyType = analysisv1alph1.CompletionStrategyOnce
 	}
 
-	if recommendation.Spec.CompletionStrategy.PeriodSeconds == nil {
-		recommendation.Spec.CompletionStrategy.PeriodSeconds = &DefaultPeriodSeconds
+	if analytics.Spec.CompletionStrategy.PeriodSeconds == nil {
+		analytics.Spec.CompletionStrategy.PeriodSeconds = &DefaultPeriodSeconds
 	}
 }

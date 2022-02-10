@@ -46,5 +46,14 @@ func SetupWebhookWithManager(mgr ctrl.Manager) error {
 		klog.Errorf("Failed to setup recommendation webhook: %v", err)
 	}
 
+	analyticsValidationAdmission := recommendation.ValidationAdmission{}
+	err = ctrl.NewWebhookManagedBy(mgr).
+		For(&analysisapi.Analytics{}).
+		WithValidator(&analyticsValidationAdmission).
+		Complete()
+	if err != nil {
+		klog.Errorf("Failed to setup analytics webhook: %v", err)
+	}
+
 	return err
 }
