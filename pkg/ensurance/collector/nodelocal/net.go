@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/shirou/gopsutil/net"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 
 	"github.com/gocrane/crane/pkg/common"
@@ -16,7 +15,7 @@ const (
 )
 
 func init() {
-	registerMetrics(netioCollectorName, []types.MetricName{types.MetricNetworkReceiveKiBPS, types.MetricNetworkSentKiBPS, types.MetricNetworkReceivePckPS, types.MetricNetworkSentPckPS, types.MetricNetworkDropIn, types.MetricNetworkDropOut}, NewNetIOCollector)
+	registerCollector(netioCollectorName, []types.MetricName{types.MetricNetworkReceiveKiBPS, types.MetricNetworkSentKiBPS, types.MetricNetworkReceivePckPS, types.MetricNetworkSentPckPS, types.MetricNetworkDropIn, types.MetricNetworkDropOut}, collectNetIO)
 }
 
 type NetTimeStampState struct {
@@ -40,17 +39,7 @@ type NetInterfaceUsage struct {
 	DropOut float64
 }
 
-type NetIOCollector struct {
-	netStates map[string]NetTimeStampState
-	ifaces    sets.String
-}
-
-// NewNetIOCollector returns a new Collector exposing kernel/system statistics.
-func NewNetIOCollector(context *NodeLocalContext) (nodeLocalCollector, error) {
-	return &NetIOCollector{netStates: make(map[string]NetTimeStampState), ifaces: sets.NewString(context.Ifaces...)}, nil
-}
-
-func (n *NetIOCollector) collect() (map[string][]common.TimeSeries, error) {
+func collectNetIO(nodeState *nodeState) (map[string][]common.TimeSeries, error) {
 	var now = time.Now()
 
 	netIOStats, err := net.IOCounters(true)
@@ -66,19 +55,19 @@ func (n *NetIOCollector) collect() (map[string][]common.TimeSeries, error) {
 	var netDropInTimeSeries []common.TimeSeries
 	var netDropOutTimeSeries []common.TimeSeries
 
-	var netStateMaps = make(map[string]NetTimeStampState)
+	var currentNetStates = make(map[string]NetTimeStampState)
 	for _, v := range netIOStats {
 		if v.Name == "" {
 			continue
 		}
 
-		if !n.ifaces.Has(v.Name) {
+		if !nodeState.ifaces.Has(v.Name) {
 			continue
 		}
 
-		netStateMaps[v.Name] = NetTimeStampState{stat: v, timestamp: now}
-		if vv, ok := n.netStates[v.Name]; ok {
-			netIOUsage := calculateNetIO(vv, netStateMaps[v.Name])
+		currentNetStates[v.Name] = NetTimeStampState{stat: v, timestamp: now}
+		if vv, ok := nodeState.latestNetStates[v.Name]; ok {
+			netIOUsage := calculateNetIO(vv, currentNetStates[v.Name])
 			netReceiveKiBpsTimeSeries = append(netReceiveKiBpsTimeSeries, common.TimeSeries{Labels: []common.Label{{Name: "NetInterface", Value: v.Name}}, Samples: []common.Sample{{Value: netIOUsage.ReceiveKibps, Timestamp: now.Unix()}}})
 			netSentKiBpsTimeSeries = append(netSentKiBpsTimeSeries, common.TimeSeries{Labels: []common.Label{{Name: "NetInterface", Value: v.Name}}, Samples: []common.Sample{{Value: netIOUsage.SentKibps, Timestamp: now.Unix()}}})
 			netReceivePckpsTimeSeries = append(netReceivePckpsTimeSeries, common.TimeSeries{Labels: []common.Label{{Name: "NetInterface", Value: v.Name}}, Samples: []common.Sample{{Value: netIOUsage.ReceivePckps, Timestamp: now.Unix()}}})
@@ -88,21 +77,17 @@ func (n *NetIOCollector) collect() (map[string][]common.TimeSeries, error) {
 		}
 	}
 
-	n.netStates = netStateMaps
+	nodeState.latestNetStates = currentNetStates
 
-	var storeMap = make(map[string][]common.TimeSeries, 0)
-	storeMap[string(types.MetricNetworkReceiveKiBPS)] = netReceiveKiBpsTimeSeries
-	storeMap[string(types.MetricNetworkSentKiBPS)] = netSentKiBpsTimeSeries
-	storeMap[string(types.MetricNetworkReceivePckPS)] = netReceivePckpsTimeSeries
-	storeMap[string(types.MetricNetworkSentPckPS)] = netSentPckpsTimeSeries
-	storeMap[string(types.MetricNetworkDropIn)] = netDropInTimeSeries
-	storeMap[string(types.MetricNetworkDropOut)] = netDropOutTimeSeries
+	var data = make(map[string][]common.TimeSeries, 6)
+	data[string(types.MetricNetworkReceiveKiBPS)] = netReceiveKiBpsTimeSeries
+	data[string(types.MetricNetworkSentKiBPS)] = netSentKiBpsTimeSeries
+	data[string(types.MetricNetworkReceivePckPS)] = netReceivePckpsTimeSeries
+	data[string(types.MetricNetworkSentPckPS)] = netSentPckpsTimeSeries
+	data[string(types.MetricNetworkDropIn)] = netDropInTimeSeries
+	data[string(types.MetricNetworkDropOut)] = netDropOutTimeSeries
 
-	return storeMap, nil
-}
-
-func (n *NetIOCollector) name() string {
-	return netioCollectorName
+	return data, nil
 }
 
 // calculateNetIO calculate net io usage

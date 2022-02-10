@@ -1,10 +1,9 @@
 //go:build linux
 // +build linux
 
-package nodelocal
+package cadvisor
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -25,69 +24,54 @@ import (
 	"github.com/gocrane/crane/pkg/utils"
 )
 
-const (
-	cadvisorCollectorName = "cadvisor"
-)
-
-func init() {
-	registerMetrics(cadvisorCollectorName, []types.MetricName{types.MetricNameContainerCpuTotalUsage, types.MetricNameContainerSchedRunQueueTime}, NewCadvisor)
-}
-
-type CgroupState struct {
+type ContainerState struct {
 	stat      cadvisorapiv2.ContainerInfo
 	timestamp time.Time
 }
 
 //CadvisorCollector is the collector to collect container state
 type CadvisorCollector struct {
-	Manager   cmanager.Manager
+	manager   cmanager.Manager
 	podLister corelisters.PodLister
 
-	cgroupState           map[string]CgroupState
-	MemCache              *cmemory.InMemoryCache
-	SysFs                 csysfs.SysFs
-	IncludeMetrics        cadvisorcontainer.MetricSet
-	MaxHousekeepingConfig cmanager.HouskeepingConfig
+	latestContainersStates map[string]ContainerState
 }
 
-func NewCadvisor(context *NodeLocalContext) (nodeLocalCollector, error) {
+func NewCadvisor(podLister corelisters.PodLister) *CadvisorCollector {
 
 	var includedMetrics = cadvisorcontainer.MetricSet{
 		cadvisorcontainer.CpuUsageMetrics:         struct{}{},
 		cadvisorcontainer.ProcessSchedulerMetrics: struct{}{},
 	}
 
-	var allowDynamic bool = true
-	var maxHousekeepingInterval time.Duration = 10 * time.Second
-	var memCache = cmemory.New(10*time.Minute, nil)
-	var sysfs = csysfs.NewRealSysFs()
-	var maxHousekeepingConfig = cmanager.HouskeepingConfig{Interval: &maxHousekeepingInterval, AllowDynamic: &allowDynamic}
+	allowDynamic := true
+	maxHousekeepingInterval := 10 * time.Second
+	memCache := cmemory.New(10*time.Minute, nil)
+	sysfs := csysfs.NewRealSysFs()
+	maxHousekeepingConfig := cmanager.HouskeepingConfig{Interval: &maxHousekeepingInterval, AllowDynamic: &allowDynamic}
 
 	m, err := cmanager.New(memCache, sysfs, maxHousekeepingConfig, includedMetrics, http.DefaultClient, []string{utils.CgroupKubePods}, "")
 	if err != nil {
-		return nil, fmt.Errorf("cadvisor manager start err: %s", err.Error())
+		klog.Errorf("Failed to create cadvisor manager start: %v", err)
+		return nil
 	}
 
 	c := CadvisorCollector{
-		Manager:   m,
-		podLister: context.PodLister,
+		manager:   m,
+		podLister: podLister,
 	}
 
-	if err := c.Manager.Start(); err != nil {
-		return nil, err
+	if err := c.manager.Start(); err != nil {
+		klog.Errorf("Failed to start cadvisor manager: %v", err)
+		return nil
 	}
 
-	return &c, nil
-}
-
-// Start cadvisor manager
-func (c *CadvisorCollector) Start() error {
-	return c.Manager.Start()
+	return &c
 }
 
 // Stop cadvisor and clear existing factory
 func (c *CadvisorCollector) Stop() error {
-	if err := c.Manager.Stop(); err != nil {
+	if err := c.manager.Stop(); err != nil {
 		return err
 	}
 
@@ -97,12 +81,12 @@ func (c *CadvisorCollector) Stop() error {
 	return nil
 }
 
-func (c *CadvisorCollector) name() string {
-	return cadvisorCollectorName
+func (c *CadvisorCollector) GetType() types.CollectType {
+	return types.CadvisorCollectorType
 }
 
-func (c *CadvisorCollector) collect() (map[string][]common.TimeSeries, error) {
-	var cgroupState = make(map[string]CgroupState)
+func (c *CadvisorCollector) Collect() (map[string][]common.TimeSeries, error) {
+	var containerStates = make(map[string]ContainerState)
 
 	allPods, err := c.podLister.List(labels.Everything())
 	if err != nil {
@@ -113,7 +97,7 @@ func (c *CadvisorCollector) collect() (map[string][]common.TimeSeries, error) {
 	var stateMap = make(map[string][]common.TimeSeries)
 	for _, pod := range allPods {
 		var now = time.Now()
-		containers, err := c.Manager.GetContainerInfoV2(types.GetCgroupPath(pod), cadvisorapiv2.RequestOptions{
+		containers, err := c.manager.GetContainerInfoV2(types.GetCgroupPath(pod), cadvisorapiv2.RequestOptions{
 			IdType:    cadvisorapiv2.TypeName,
 			Count:     1,
 			Recursive: true,
@@ -134,16 +118,16 @@ func (c *CadvisorCollector) collect() (map[string][]common.TimeSeries, error) {
 			// We used GetContainerInfo instead
 			// issue https://github.com/google/cadvisor/issues/3040
 			var query = info.ContainerInfoRequest{}
-			containerInfoV1, err := c.Manager.GetContainerInfo(key, &query)
+			containerInfoV1, err := c.manager.GetContainerInfo(key, &query)
 			if err != nil {
 				klog.Errorf("ContainerInfoRequest failed: %v", err)
 				continue
 			}
 
-			if state, ok := c.cgroupState[key]; ok {
+			if state, ok := c.latestContainersStates[key]; ok {
 				var labels = GetContainerLabels(pod, containerId, containerName)
 
-				cpuUsageSample, schedRunqueueTime := CaculateCPUUsage(&v, &state)
+				cpuUsageSample, schedRunqueueTime := caculateCPUUsage(&v, &state)
 				if cpuUsageSample == 0 && schedRunqueueTime == 0 {
 					continue
 				}
@@ -153,13 +137,13 @@ func (c *CadvisorCollector) collect() (map[string][]common.TimeSeries, error) {
 				addSampleToStateMap(types.MetricNameContainerCpuQuota, composeSample(labels, float64(containerInfoV1.Spec.Cpu.Quota), now), stateMap)
 				addSampleToStateMap(types.MetricNameContainerCpuPeriod, composeSample(labels, float64(containerInfoV1.Spec.Cpu.Period), now), stateMap)
 
-				klog.V(4).Infof("Pod: %s, containerName: %s, key %s, scheduler run queue time %.2f", klog.KObj(pod), containerName, key, schedRunqueueTime)
+				klog.V(10).Infof("Pod: %s, containerName: %s, key %s, scheduler run queue time %.2f", klog.KObj(pod), containerName, key, schedRunqueueTime)
 			}
-			cgroupState[key] = CgroupState{stat: v, timestamp: now}
+			containerStates[key] = ContainerState{stat: v, timestamp: now}
 		}
 	}
 
-	c.cgroupState = cgroupState
+	c.latestContainersStates = containerStates
 
 	return stateMap, nil
 }
@@ -176,16 +160,16 @@ func composeSample(labels []common.Label, cpuUsageSample float64, sampleTime tim
 	}
 }
 
-func addSampleToStateMap(metricsName types.MetricName, usage common.TimeSeries, storeMaps map[string][]common.TimeSeries) {
+func addSampleToStateMap(metricsName types.MetricName, usage common.TimeSeries, storeMap map[string][]common.TimeSeries) {
 	key := string(metricsName)
-	if _, exists := storeMaps[key]; !exists {
-		storeMaps[key] = []common.TimeSeries{usage}
+	if _, exists := storeMap[key]; !exists {
+		storeMap[key] = []common.TimeSeries{usage}
 	} else {
-		storeMaps[key] = append(storeMaps[key], usage)
+		storeMap[key] = append(storeMap[key], usage)
 	}
 }
 
-func CaculateCPUUsage(info *cadvisorapiv2.ContainerInfo, state *CgroupState) (float64, float64) {
+func caculateCPUUsage(info *cadvisorapiv2.ContainerInfo, state *ContainerState) (float64, float64) {
 	if info == nil ||
 		state == nil ||
 		len(info.Stats) == 0 {
