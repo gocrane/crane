@@ -68,7 +68,7 @@ func (c *EffectiveHPAController) CreateHPA(ctx context.Context, ehpa *autoscalin
 	err = c.Client.Create(ctx, hpa)
 	if err != nil {
 		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreateHPA", err.Error())
-		klog.Errorf("Failed to create HorizontalPodAutoscaler, error %v", hpa, err)
+		klog.Errorf("Failed to create HorizontalPodAutoscaler %s, error %v", klog.KObj(hpa), err)
 		return nil, err
 	}
 
