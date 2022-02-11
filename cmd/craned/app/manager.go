@@ -196,6 +196,7 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 			RestMapper:  mgr.GetRESTMapper(),
 			Recorder:    mgr.GetEventRecorderFor("effective-hpa-controller"),
 			ScaleClient: scaleClient,
+			Config:      opts.EhpaControllerConfig,
 		}).SetupWithManager(mgr); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "EffectiveHPAController")
 		}

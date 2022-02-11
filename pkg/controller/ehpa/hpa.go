@@ -3,6 +3,7 @@ package ehpa
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	v1 "k8s.io/api/core/v1"
@@ -121,6 +122,10 @@ func (c *EffectiveHPAController) NewHPAObject(ctx context.Context, ehpa *autosca
 	}
 	hpa.Spec.Behavior = behavior
 
+	// propagate target labels and annotations to hpa from ehpa; related to --ehpa-propagation-label-prefixes, --ehpa-propagation-annotation-prefixes,
+	// --ehpa-propagation-labels, --ehpa-propagation-annotations
+	c.propagateLabelAndAnnotation(ehpa, hpa)
+
 	// EffectiveHPA control the underground hpa so set controller reference for hpa here
 	if err := controllerutil.SetControllerReference(ehpa, hpa, c.Scheme); err != nil {
 		return nil, err
@@ -130,6 +135,7 @@ func (c *EffectiveHPAController) NewHPAObject(ctx context.Context, ehpa *autosca
 }
 
 func (c *EffectiveHPAController) UpdateHPAIfNeed(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, hpaExist *autoscalingv2.HorizontalPodAutoscaler, substitute *autoscalingapi.Substitute) (*autoscalingv2.HorizontalPodAutoscaler, error) {
+	var needUpdate bool
 	hpa, err := c.NewHPAObject(ctx, ehpa, substitute)
 	if err != nil {
 		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreateHPAObject", err.Error())
@@ -138,16 +144,29 @@ func (c *EffectiveHPAController) UpdateHPAIfNeed(ctx context.Context, ehpa *auto
 	}
 
 	if !equality.Semantic.DeepEqual(&hpaExist.Spec, &hpa.Spec) {
-		klog.V(4).Infof("HorizontalPodAutoscaler is unsynced according to EffectiveHorizontalPodAutoscaler, should be updated, currentHPA %v expectHPA %v", hpaExist.Spec, hpa.Spec)
-
+		needUpdate = true
 		hpaExist.Spec = hpa.Spec
+	}
+
+	if !equality.Semantic.DeepEqual(&hpaExist.Annotations, &hpa.Annotations) {
+		needUpdate = true
+		hpaExist.Annotations = hpa.Annotations
+	}
+
+	if !equality.Semantic.DeepEqual(&hpaExist.Labels, &hpa.Labels) {
+		needUpdate = true
+		hpaExist.Labels = hpa.Labels
+	}
+
+	if needUpdate {
+		klog.V(4).Infof("HorizontalPodAutoscaler is unsynced according to EffectiveHorizontalPodAutoscaler, should be updated, currentHPA %v expectHPA %v", hpaExist, hpa)
+
 		err := c.Update(ctx, hpaExist)
 		if err != nil {
 			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedUpdateHPA", err.Error())
 			klog.Errorf("Failed to update HorizontalPodAutoscaler %s error %v", klog.KObj(hpaExist), err)
 			return nil, err
 		}
-
 		klog.Infof("Update HorizontalPodAutoscaler successful, HorizontalPodAutoscaler %s", klog.KObj(hpaExist))
 	}
 
@@ -242,5 +261,45 @@ func GetPredictionMetricName(Name v1.ResourceName) (string, error) {
 func setHPACondition(status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus, conditions []autoscalingv2.HorizontalPodAutoscalerCondition) {
 	for _, cond := range conditions {
 		setCondition(status, autoscalingapi.ConditionType(cond.Type), metav1.ConditionStatus(cond.Status), cond.Reason, cond.Message)
+	}
+}
+
+func (c *EffectiveHPAController) propagateLabelAndAnnotation(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, hpa *autoscalingv2.HorizontalPodAutoscaler) {
+	for key, value := range ehpa.Labels {
+		for _, prefix := range c.Config.PropagationConfig.LabelPrefixes {
+			if strings.HasPrefix(key, prefix) {
+				if hpa.Labels == nil {
+					hpa.Labels = make(map[string]string)
+				}
+				hpa.Labels[key] = value
+			}
+		}
+		for _, labelKey := range c.Config.PropagationConfig.Labels {
+			if key == labelKey {
+				if hpa.Labels == nil {
+					hpa.Labels = make(map[string]string)
+				}
+				hpa.Labels[key] = value
+			}
+		}
+	}
+
+	for key, value := range ehpa.Annotations {
+		for _, prefix := range c.Config.PropagationConfig.AnnotationPrefixes {
+			if strings.HasPrefix(key, prefix) {
+				if hpa.Annotations == nil {
+					hpa.Annotations = make(map[string]string)
+				}
+				hpa.Annotations[key] = value
+			}
+		}
+		for _, annoKey := range c.Config.PropagationConfig.Annotations {
+			if key == annoKey {
+				if hpa.Annotations == nil {
+					hpa.Annotations = make(map[string]string)
+				}
+				hpa.Annotations[key] = value
+			}
+		}
 	}
 }

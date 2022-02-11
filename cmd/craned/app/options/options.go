@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/pflag"
 	componentbaseconfig "k8s.io/component-base/config"
 
+	"github.com/gocrane/crane/pkg/controller/ehpa"
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/providers"
 	serverconfig "github.com/gocrane/crane/pkg/server/config"
@@ -45,6 +46,9 @@ type Options struct {
 
 	// ServerOptions hold the craned web server options
 	ServerOptions *ServerOptions
+
+	// EhpaControllerConfig is the configuration for Ehpa controller
+	EhpaControllerConfig ehpa.EhpaControllerConfig
 }
 
 // NewOptions builds an empty options.
@@ -103,4 +107,9 @@ func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&o.WebhookConfig.Enabled, "webhook-enabled", true, "whether enable webhook or not, default to true")
 
 	flags.StringVar(&o.RecommendationConfigFile, "recommendation-config-file", "", "recommendation configuration file")
+
+	flags.StringSliceVar(&o.EhpaControllerConfig.PropagationConfig.LabelPrefixes, "ehpa-propagation-label-prefixes", []string{}, "propagate labels whose key has the prefix to hpa")
+	flags.StringSliceVar(&o.EhpaControllerConfig.PropagationConfig.AnnotationPrefixes, "ehpa-propagation-annotation-prefixes", []string{}, "propagate annotations whose key has the prefix to hpa")
+	flags.StringSliceVar(&o.EhpaControllerConfig.PropagationConfig.Labels, "ehpa-propagation-labels", []string{}, "propagate labels whose key is complete matching to hpa")
+	flags.StringSliceVar(&o.EhpaControllerConfig.PropagationConfig.Annotations, "ehpa-propagation-annotations", []string{}, "propagate annotations whose key is complete matching to hpa")
 }
