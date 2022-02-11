@@ -119,7 +119,7 @@ func (c *MetricContext) ResourceToPromQueryExpr(resourceName *corev1.ResourceNam
 	} else {
 		switch *resourceName {
 		case corev1.ResourceCPU:
-			return fmt.Sprintf(WorkloadCpuUsagePromQLFmtStr, c.Namespace, c.Name, "1m")
+			return fmt.Sprintf(WorkloadCpuUsagePromQLFmtStr, c.Namespace, c.Name, "5m")
 		case corev1.ResourceMemory:
 			return fmt.Sprintf(WorkloadMemUsagePromQLFmtStr, c.Namespace, c.Name)
 		}
