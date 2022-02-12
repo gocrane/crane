@@ -108,7 +108,7 @@ func (s *StateCollector) UpdateCollectors() {
 			continue
 		}
 		nodeLocal = true
-		if _, exists := s.collectors.Load(types.NodeLocalCollectorType); exists {
+		if _, exists := s.collectors.Load(types.NodeLocalCollectorType); !exists {
 			nc := nodelocal.NewNodeLocal(s.podLister, s.ifaces)
 			s.collectors.Store(types.NodeLocalCollectorType, nc)
 			break

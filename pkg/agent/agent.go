@@ -4,6 +4,7 @@ import (
 	"context"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -51,7 +52,7 @@ func NewAgent(ctx context.Context,
 
 	return &Agent{
 		ctx:         ctx,
-		name:        nodeName,
+		name:        getAgentName(nodeName),
 		kubeClient:  kubeClient,
 		craneClient: craneClient,
 		managers:    managers,
@@ -67,4 +68,8 @@ func (a *Agent) Run() {
 
 	<-a.ctx.Done()
 
+}
+
+func getAgentName(nodeName string) string {
+	return nodeName + "_" + string(uuid.NewUUID())
 }
