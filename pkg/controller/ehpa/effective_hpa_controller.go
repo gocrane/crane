@@ -33,6 +33,7 @@ type EffectiveHPAController struct {
 	Recorder    record.EventRecorder
 	ScaleClient scale.ScalesGetter
 	K8SVersion  *version.Version
+	Config      EhpaControllerConfig
 }
 
 func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
