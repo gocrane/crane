@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/gocrane/crane/pkg/recommend"
 	"github.com/spf13/cobra"
+	"golang.org/x/sync/errgroup"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
@@ -39,6 +39,9 @@ import (
 	"github.com/gocrane/crane/pkg/providers"
 	"github.com/gocrane/crane/pkg/providers/mock"
 	"github.com/gocrane/crane/pkg/providers/prom"
+	"github.com/gocrane/crane/pkg/recommend"
+	"github.com/gocrane/crane/pkg/server"
+	serverconfig "github.com/gocrane/crane/pkg/server/config"
 	"github.com/gocrane/crane/pkg/webhooks"
 )
 
@@ -65,9 +68,10 @@ func NewManagerCommand(ctx context.Context) *cobra.Command {
 			if err := opts.Complete(); err != nil {
 				klog.Exit(err)
 			}
-			if err := opts.Validate(); err != nil {
-				klog.Exit(err)
+			if errs := opts.Validate(); len(errs) != 0 {
+				klog.Exit(errs)
 			}
+
 			if err := Run(ctx, opts); err != nil {
 				klog.Exit(err)
 			}
@@ -115,9 +119,35 @@ func Run(ctx context.Context, opts *options.Options) error {
 	// initialization custom collector metrics
 	initializationMetricCollector(mgr)
 
-	if err := mgr.Start(ctx); err != nil {
-		klog.Error(err, "problem running crane manager")
-		return err
+	var eg errgroup.Group
+
+	eg.Go(func() error {
+		if err := mgr.Start(ctx); err != nil {
+			klog.Error(err, "problem running crane manager")
+			klog.Exit(err)
+		}
+		return nil
+	})
+
+	eg.Go(func() error {
+		// Start the craned web server
+		serverConfig := serverconfig.NewServerConfig()
+		if err := opts.ApplyTo(serverConfig); err != nil {
+			klog.Exit(err)
+		}
+		// use controller runtime rest config, we can not refer kubeconfig option directly because it is unexported variable in vendor/sigs.k8s.io/controller-runtime/pkg/client/config/config.go
+		serverConfig.KubeRestConfig = mgr.GetConfig()
+		craneServer, err := server.NewServer(serverConfig)
+		if err != nil {
+			klog.Exit(err)
+		}
+		craneServer.Run(ctx)
+		return nil
+	})
+
+	// wait for all components exit
+	if err := eg.Wait(); err != nil {
+		klog.Fatal(err)
 	}
 
 	return nil

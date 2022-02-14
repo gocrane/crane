@@ -63,8 +63,12 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 	go mod vendor; \
     $(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" rbac:roleName=manager-role crd webhook paths="./vendor/github.com/gocrane/api/..." output:crd:artifacts:config=deploy/manifests
 
+.PHONY: mockgen
+mockgen: ## Run go mockgen to gen mock code.
+	go generate ./...
+
 .PHONY: generate
-generate: manifests ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+generate: manifests mockgen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
@@ -222,4 +226,21 @@ ifeq (, $(shell which goimports))
 GO_IMPORTS=$(shell go env GOPATH)/bin/goimports
 else
 GO_IMPORTS=$(shell which goimports)
+endif
+
+
+mockgen:
+ifeq (, $(shell which mockgen))
+	@{ \
+	set -e ;\
+	export GO111MODULE=on; \
+	GO_IMPORTS_TMP_DIR=$$(mktemp -d) ;\
+	cd $$GO_IMPORTS_TMP_DIR ;\
+	go mod init tmp ;\
+	go get github.com/golang/mock@v1.5.0 ;\
+	rm -rf $$GO_IMPORTS_TMP_DIR ;\
+	}
+GO_IMPORTS=$(shell go env GOPATH)/bin/mockgen
+else
+GO_IMPORTS=$(shell which mockgen)
 endif
