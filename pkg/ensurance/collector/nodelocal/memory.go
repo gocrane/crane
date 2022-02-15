@@ -16,22 +16,10 @@ const (
 )
 
 func init() {
-	registerMetrics(memoryCollectorName, []types.MetricName{types.MetricNameMemoryTotalUsage, types.MetricNameMemoryTotalUtilization}, NewMemoryCollector)
+	registerCollector(memoryCollectorName, []types.MetricName{types.MetricNameMemoryTotalUsage, types.MetricNameMemoryTotalUtilization}, collectMemory)
 }
 
-type MemoryCollector struct {
-	data map[string][]common.TimeSeries
-}
-
-// NewMemoryCollector returns a new Collector exposing kernel/system statistics.
-func NewMemoryCollector(_ *NodeLocalContext) (nodeLocalCollector, error) {
-
-	var data = make(map[string][]common.TimeSeries)
-
-	return &MemoryCollector{data: data}, nil
-}
-
-func (c *MemoryCollector) collect() (map[string][]common.TimeSeries, error) {
+func collectMemory(_ *nodeState) (map[string][]common.TimeSeries, error) {
 	var now = time.Now()
 	stat, err := mem.VirtualMemory()
 	if err != nil {
@@ -39,21 +27,18 @@ func (c *MemoryCollector) collect() (map[string][]common.TimeSeries, error) {
 	}
 
 	if stat == nil {
-		return nil, fmt.Errorf("stat is nil")
+		return nil, fmt.Errorf("memory stat is nil")
 	}
 
 	usage := stat.Total - stat.Available
-	usagePercent := float64(usage) / float64(stat.Total) * 100.0
+	usagePercent := float64(usage) / float64(stat.Total) * types.MaxPercentage
 
 	klog.V(6).Infof("MemoryCollector collected, total %d, Free %d, Available %d, usagePercent %.2f, usageCore %d",
 		stat.Total, stat.Free, stat.Available, usagePercent, usage)
 
-	c.data[string(types.MetricNameMemoryTotalUsage)] = []common.TimeSeries{{Samples: []common.Sample{{Value: float64(usage), Timestamp: now.Unix()}}}}
-	c.data[string(types.MetricNameMemoryTotalUtilization)] = []common.TimeSeries{{Samples: []common.Sample{{Value: usagePercent, Timestamp: now.Unix()}}}}
+	var data = make(map[string][]common.TimeSeries, 2)
+	data[string(types.MetricNameMemoryTotalUsage)] = []common.TimeSeries{{Samples: []common.Sample{{Value: float64(usage), Timestamp: now.Unix()}}}}
+	data[string(types.MetricNameMemoryTotalUtilization)] = []common.TimeSeries{{Samples: []common.Sample{{Value: usagePercent, Timestamp: now.Unix()}}}}
 
-	return c.data, nil
-}
-
-func (c *MemoryCollector) name() string {
-	return memoryCollectorName
+	return data, nil
 }

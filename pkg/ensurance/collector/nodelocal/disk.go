@@ -1,6 +1,3 @@
-//go:build linux
-// +build linux
-
 package nodelocal
 
 import (
@@ -20,16 +17,12 @@ const (
 )
 
 func init() {
-	registerMetrics(diskioCollectorName, []types.MetricName{types.MetricDiskReadKiBPS, types.MetricDiskWriteKiBPS, types.MetricDiskReadIOPS, types.MetricDiskWriteIOPS, types.MetricDiskUtilization}, NewDiskIOCollector)
+	registerCollector(diskioCollectorName, []types.MetricName{types.MetricDiskReadKiBPS, types.MetricDiskWriteKiBPS, types.MetricDiskReadIOPS, types.MetricDiskWriteIOPS, types.MetricDiskUtilization}, collectDiskIO)
 }
 
 type DiskState struct {
 	stat      disk.IOCountersStat
 	timestamp time.Time
-}
-
-type DiskIOCollector struct {
-	diskStates map[string]DiskState
 }
 
 type DiskIOUsage struct {
@@ -40,12 +33,7 @@ type DiskIOUsage struct {
 	Utilization    float64
 }
 
-// NewDiskIOCollector returns a new Collector exposing kernel/system statistics.
-func NewDiskIOCollector(_ *NodeLocalContext) (nodeLocalCollector, error) {
-	return &DiskIOCollector{diskStates: make(map[string]DiskState)}, nil
-}
-
-func (d *DiskIOCollector) collect() (map[string][]common.TimeSeries, error) {
+func collectDiskIO(nodeState *nodeState) (map[string][]common.TimeSeries, error) {
 	var now = time.Now()
 
 	devices, err := sysBlockDevices(sysBlockPath)
@@ -65,11 +53,11 @@ func (d *DiskIOCollector) collect() (map[string][]common.TimeSeries, error) {
 	var diskWriteIOpsTimeSeries []common.TimeSeries
 	var diskUtilizationTimeSeries []common.TimeSeries
 
-	var diskStateMap = make(map[string]DiskState)
+	var currentDiskStates = make(map[string]DiskState)
 	for key, v := range diskIOStats {
-		diskStateMap[key] = DiskState{stat: v, timestamp: now}
-		if vv, ok := d.diskStates[key]; ok {
-			diskIOUsage := calculateDiskIO(vv, diskStateMap[key])
+		currentDiskStates[key] = DiskState{stat: v, timestamp: now}
+		if vv, ok := nodeState.latestDiskStates[key]; ok {
+			diskIOUsage := calculateDiskIO(vv, currentDiskStates[key])
 			diskReadKiBpsTimeSeries = append(diskReadKiBpsTimeSeries, common.TimeSeries{Labels: []common.Label{{Name: "diskName", Value: key}}, Samples: []common.Sample{{Value: diskIOUsage.DiskReadKiBps, Timestamp: now.Unix()}}})
 			diskWriteKiBpsTimeSeries = append(diskWriteKiBpsTimeSeries, common.TimeSeries{Labels: []common.Label{{Name: "diskName", Value: key}}, Samples: []common.Sample{{Value: diskIOUsage.DiskWriteKiBps, Timestamp: now.Unix()}}})
 			diskReadIOpsTimeSeries = append(diskReadIOpsTimeSeries, common.TimeSeries{Labels: []common.Label{{Name: "diskName", Value: key}}, Samples: []common.Sample{{Value: diskIOUsage.DiskReadIOps, Timestamp: now.Unix()}}})
@@ -78,20 +66,16 @@ func (d *DiskIOCollector) collect() (map[string][]common.TimeSeries, error) {
 		}
 	}
 
-	d.diskStates = diskStateMap
+	nodeState.latestDiskStates = currentDiskStates
 
-	var storeMap = make(map[string][]common.TimeSeries, 0)
-	storeMap[string(types.MetricDiskReadKiBPS)] = diskReadKiBpsTimeSeries
-	storeMap[string(types.MetricDiskWriteKiBPS)] = diskWriteKiBpsTimeSeries
-	storeMap[string(types.MetricDiskReadIOPS)] = diskReadIOpsTimeSeries
-	storeMap[string(types.MetricDiskWriteIOPS)] = diskWriteIOpsTimeSeries
-	storeMap[string(types.MetricDiskUtilization)] = diskUtilizationTimeSeries
+	var data = make(map[string][]common.TimeSeries, 5)
+	data[string(types.MetricDiskReadKiBPS)] = diskReadKiBpsTimeSeries
+	data[string(types.MetricDiskWriteKiBPS)] = diskWriteKiBpsTimeSeries
+	data[string(types.MetricDiskReadIOPS)] = diskReadIOpsTimeSeries
+	data[string(types.MetricDiskWriteIOPS)] = diskWriteIOpsTimeSeries
+	data[string(types.MetricDiskUtilization)] = diskUtilizationTimeSeries
 
-	return storeMap, nil
-}
-
-func (d *DiskIOCollector) name() string {
-	return diskioCollectorName
+	return data, nil
 }
 
 // sysBlockDevices lists the device names from /sys/block/<dev>.

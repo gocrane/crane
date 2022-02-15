@@ -8,4 +8,5 @@ import (
 type Collector interface {
 	GetType() types.CollectType
 	Collect() (map[string][]common.TimeSeries, error)
+	Stop() error
 }

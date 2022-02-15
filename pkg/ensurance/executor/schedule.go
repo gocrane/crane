@@ -6,7 +6,6 @@ import (
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog/v2"
 
-	"github.com/gocrane/crane/pkg/ensurance/client"
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/utils"
 )
@@ -36,23 +35,16 @@ func (b *ScheduleExecutor) Avoid(ctx *ExecuteContext) error {
 		return nil
 	}
 
-	node, err := ctx.NodeLister.Get(ctx.NodeName)
-	if err != nil {
+	// update node condition for block scheduled
+	if _, err := utils.UpdateNodeConditionsStatues(ctx.Client,ctx.NodeLister,ctx.NodeName,
+		v1.NodeCondition{Type: known.EnsuranceAnalyzedPressureConditionKey, Status: v1.ConditionTrue},nil); err != nil {
 		return err
 	}
 
-	// update node condition for block scheduled
-	if updateNode, needUpdate := client.UpdateNodeConditions(node, v1.NodeCondition{Type: known.EnsuranceAnalyzedPressureConditionKey, Status: v1.ConditionTrue}); needUpdate {
-		if err := client.UpdateNodeStatus(ctx.Client, updateNode, nil); err != nil {
-			return err
-		}
-	}
-
 	// update node taint for block scheduled
-	if updateNode, needUpdate := client.UpdateNodeTaints(node, v1.Taint{Key: known.EnsuranceAnalyzedPressureTaintKey, Effect: v1.TaintEffectPreferNoSchedule}); needUpdate {
-		if err := client.UpdateNode(ctx.Client, updateNode, nil); err != nil {
-			return err
-		}
+	if _, err := utils.UpdateNodeTaints(ctx.Client,ctx.NodeLister,ctx.NodeName,
+		v1.Taint{Key: known.EnsuranceAnalyzedPressureTaintKey, Effect: v1.TaintEffectPreferNoSchedule},nil); err != nil {
+		return err
 	}
 
 	return nil
@@ -65,27 +57,21 @@ func (b *ScheduleExecutor) Restore(ctx *ExecuteContext) error {
 		return nil
 	}
 
-	node, err := ctx.NodeLister.Get(ctx.NodeName)
-	if err != nil {
+	// update node condition for restored scheduled
+	if _, err := utils.UpdateNodeConditionsStatues(ctx.Client, ctx.NodeLister, ctx.NodeName,
+		v1.NodeCondition{Type: known.EnsuranceAnalyzedPressureConditionKey, Status: v1.ConditionFalse}, nil); err != nil {
 		return err
 	}
 
-	// update node condition for restored scheduled
-	if updateNode, needUpdate := client.UpdateNodeConditions(node, v1.NodeCondition{Type: known.EnsuranceAnalyzedPressureConditionKey, Status: v1.ConditionFalse}); needUpdate {
-		if err := client.UpdateNodeStatus(ctx.Client, updateNode, nil); err != nil {
-			return err
-		}
-	}
-
 	// update node taint for restored scheduled
-	if updateNode, needUpdate := client.RemoveNodeTaints(node, v1.Taint{Key: known.EnsuranceAnalyzedPressureTaintKey, Effect: v1.TaintEffectPreferNoSchedule}); needUpdate {
-		if err := client.UpdateNode(ctx.Client, updateNode, nil); err != nil {
-			return err
-		}
+	if _, err := utils.RemoveNodeTaints(ctx.Client, ctx.NodeLister, ctx.NodeName,
+		v1.Taint{Key: known.EnsuranceAnalyzedPressureTaintKey, Effect: v1.TaintEffectPreferNoSchedule}, nil); err != nil {
+		return err
 	}
 
 	return nil
 }
+
 func (p *ComparablePod) Less(p2 ComparablePod) bool {
 	if comparePodQos(p.Status.QOSClass, p2.Status.QOSClass) == 1 {
 
