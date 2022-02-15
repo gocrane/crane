@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"net"
 	"net/http"
@@ -73,6 +74,19 @@ func (s *apiServer) installGenericAPIs() {
 	s.GET("/version", func(c *gin.Context) {
 		ginwrapper.WriteResponse(c, nil, version.GetVersionInfo())
 	})
+
+	s.GET("/klog", func(c *gin.Context) {
+		v := c.Query("v")
+		if v != "" {
+			err := flag.Lookup("v").Value.Set(v)
+			if err != nil {
+				ginwrapper.WriteResponse(c, err, nil)
+				return
+			}
+			klog.Infof("set log level to %v", v)
+		}
+		ginwrapper.WriteResponse(c, nil, map[string]string{"status": "ok"})
+	})
 }
 
 func (s *apiServer) installDefaultMiddlewares() {
@@ -119,8 +133,8 @@ func (s *apiServer) initServices() {
 func (s *apiServer) Run(ctx context.Context) {
 	s.initServices()
 
-	s.installGenericAPIs()
 	s.installDefaultMiddlewares()
+	s.installGenericAPIs()
 	s.initRouter()
 
 	s.startGracefulShutDownManager(ctx)
