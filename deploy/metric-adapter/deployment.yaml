@@ -29,6 +29,9 @@ spec:
         - name: metric-adapter
           image: docker.io/gocrane/metric-adapter:v0.2.0
           imagePullPolicy: IfNotPresent
+          env:
+            - name: TZ
+              value: Asia/Shanghai
           args:
             - /metric-adapter
             - --secure-port=6443

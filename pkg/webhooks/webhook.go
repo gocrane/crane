@@ -17,19 +17,25 @@ limitations under the License.
 package webhooks
 
 import (
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
+	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
+	"github.com/gocrane/crane/pkg/features"
+	"github.com/gocrane/crane/pkg/webhooks/autoscaling"
 	"github.com/gocrane/crane/pkg/webhooks/ensurance"
 	"github.com/gocrane/crane/pkg/webhooks/prediction"
 	"github.com/gocrane/crane/pkg/webhooks/recommendation"
 )
 
 func SetupWebhookWithManager(mgr ctrl.Manager) error {
+	autoscalingEnabled := utilfeature.DefaultFeatureGate.Enabled(features.CraneAutoscaling)
+
 	tspValidationAdmission := prediction.ValidationAdmission{}
 	err := ctrl.NewWebhookManagedBy(mgr).
 		For(&predictionapi.TimeSeriesPrediction{}).
@@ -80,5 +86,17 @@ func SetupWebhookWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
-	return nil
+	if autoscalingEnabled {
+		autoscalingValidationAdmission := autoscaling.ValidationAdmission{}
+		err = ctrl.NewWebhookManagedBy(mgr).
+			For(&autoscalingapi.EffectiveHorizontalPodAutoscaler{}).
+			WithValidator(&autoscalingValidationAdmission).
+			Complete()
+		if err != nil {
+			klog.Errorf("Failed to setup autoscaling webhook: %v", err)
+		}
+		klog.Infof("Succeed to setup autoscaling webhook")
+	}
+
+	return err
 }

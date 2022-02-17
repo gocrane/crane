@@ -160,6 +160,10 @@ func IsPredictionEnabled(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) 
 	return ehpa.Spec.Prediction != nil && ehpa.Spec.Prediction.PredictionWindowSeconds != nil && ehpa.Spec.Prediction.PredictionAlgorithm != nil
 }
 
+func IsCronEnabled(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) bool {
+	return len(ehpa.Spec.Crons) > 0
+}
+
 func setPredictionCondition(status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus, conditions []metav1.Condition) {
 	for _, cond := range conditions {
 		if cond.Type == string(predictionapi.TimeSeriesPredictionConditionReady) {

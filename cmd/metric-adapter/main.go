@@ -2,24 +2,22 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"os"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 	openapinamer "k8s.io/apiserver/pkg/endpoints/openapi"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/component-base/logs"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 	basecmd "sigs.k8s.io/custom-metrics-apiserver/pkg/cmd"
 	"sigs.k8s.io/custom-metrics-apiserver/pkg/provider"
 
@@ -50,19 +48,13 @@ type MetricAdapter struct {
 	Message string
 }
 
-func (a *MetricAdapter) makeProvider(remoteAdapter *metricprovider.RemoteAdapter, config *rest.Config, client client.Client) (provider.CustomMetricsProvider, error) {
-	kubeClient, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, fmt.Errorf("unable to create kube client: %v", err)
-	}
+func (a *MetricAdapter) makeCustomMetricProvider(remoteAdapter *metricprovider.RemoteAdapter, client client.Client, recorder record.EventRecorder) provider.CustomMetricsProvider {
 
-	broadcaster := record.NewBroadcaster()
-	broadcaster.StartRecordingToSink(&v1core.EventSinkImpl{
-		Interface: kubeClient.CoreV1().Events(""),
-	})
-	recorder := broadcaster.NewRecorder(scheme, corev1.EventSource{Component: "crane-metric-adapter"})
+	return metricprovider.NewCustomMetricProvider(client, remoteAdapter, recorder)
+}
 
-	return metricprovider.NewMetricProvider(client, remoteAdapter, recorder), nil
+func (a *MetricAdapter) makeExternalMetricProvider(client client.Client, recorder record.EventRecorder) *metricprovider.ExternalMetricProvider {
+	return metricprovider.NewExternalMetricProvider(client, recorder)
 }
 
 func main() {
@@ -117,15 +109,27 @@ func main() {
 		}
 	}
 
-	metricProvider, err := cmd.makeProvider(remoteAdapter, config, client)
+	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		klog.Error(err, "Failed to make provider")
-		os.Exit(1)
+		klog.Exitf("Failed to create kube client: %v", err)
 	}
-	cmd.WithCustomMetrics(metricProvider)
+
+	broadcaster := record.NewBroadcaster()
+	broadcaster.StartRecordingToSink(&v1core.EventSinkImpl{
+		Interface: kubeClient.CoreV1().Events(""),
+	})
+	recorder := broadcaster.NewRecorder(scheme, corev1.EventSource{Component: "crane-metric-adapter"})
+
+	ctx := signals.SetupSignalHandler()
+
+	customMetricProvider := cmd.makeCustomMetricProvider(remoteAdapter, client, recorder)
+	externalMetricProvider := cmd.makeExternalMetricProvider(client, recorder)
+
+	cmd.WithCustomMetrics(customMetricProvider)
+	cmd.WithExternalMetrics(externalMetricProvider)
 
 	klog.Infof(cmd.Message)
-	if err := cmd.Run(wait.NeverStop); err != nil {
+	if err := cmd.Run(ctx.Done()); err != nil {
 		klog.Error(err, "Failed to run metrics adapter")
 		os.Exit(1)
 	}
