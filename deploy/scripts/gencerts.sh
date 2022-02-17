@@ -3,7 +3,7 @@ keydir=$workdir/keys
 mkdir -p $keydir
 
 echo Generating the CA cert and private key to ${keydir}
-openssl req -nodes -new -x509 -keyout ${keydir}/ca.key -out ${keydir}/ca.crt -subj "/CN=crane"
+openssl req -days 3650 -nodes -new -x509 -keyout ${keydir}/ca.key -out ${keydir}/ca.crt -subj "/CN=crane"
 
 echo Generating the private key for the webhook server
 openssl genrsa -out ${keydir}/tls.key 2048
