@@ -22,12 +22,12 @@ import (
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 	"github.com/gocrane/api/pkg/generated/informers/externalversions/ensurance/v1alpha1"
 	ensurancelisters "github.com/gocrane/api/pkg/generated/listers/ensurance/v1alpha1"
-
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/ensurance/analyzer/evaluator"
 	ecache "github.com/gocrane/crane/pkg/ensurance/cache"
 	stypes "github.com/gocrane/crane/pkg/ensurance/collector/types"
 	"github.com/gocrane/crane/pkg/ensurance/executor"
+	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
@@ -141,7 +141,7 @@ func (s *AnormalyAnalyzer) Analyze(state map[string][]common.TimeSeries) {
 	}
 
 	for _, nep := range allNeps {
-		if matched, err := utils.LabelSelectorMatched(node.Labels, &nep.Spec.Selector); err != nil || !matched {
+		if matched, err := utils.LabelSelectorMatched(node.Labels, nep.Spec.Selector); err != nil || !matched {
 			continue
 		}
 		neps = append(neps, nep.DeepCopy())
@@ -249,7 +249,7 @@ func (s *AnormalyAnalyzer) analyze(key string, object ensuranceapi.ObjectiveEnsu
 			triggered := utils.GetUint64FromMaps(key, s.triggered)
 			triggered++
 			s.triggered[key] = triggered
-			if triggered >= uint64(object.AvoidanceThreshold) {
+			if triggered >= uint64(utils.GetInt32withDefault(object.AvoidanceThreshold, known.DefaultAvoidedThreshold)) {
 				dc.Triggered = true
 				dc.BeInfluencedPods = impacted
 			}
@@ -258,7 +258,7 @@ func (s *AnormalyAnalyzer) analyze(key string, object ensuranceapi.ObjectiveEnsu
 			restored := utils.GetUint64FromMaps(key, s.restored)
 			restored++
 			s.restored[key] = restored
-			if restored >= uint64(object.RestoreThreshold) {
+			if restored >= uint64(utils.GetInt32withDefault(object.RestoreThreshold, known.DefaultRestoredThreshold)) {
 				dc.Restored = true
 			}
 		}
@@ -280,7 +280,7 @@ func (s *AnormalyAnalyzer) analyze(key string, object ensuranceapi.ObjectiveEnsu
 			triggered := utils.GetUint64FromMaps(key, s.triggered)
 			triggered++
 			s.triggered[key] = triggered
-			if triggered >= uint64(object.AvoidanceThreshold) {
+			if triggered >= uint64(utils.GetInt32withDefault(object.AvoidanceThreshold, known.DefaultAvoidedThreshold)) {
 				dc.Triggered = true
 			}
 		} else {
@@ -288,7 +288,7 @@ func (s *AnormalyAnalyzer) analyze(key string, object ensuranceapi.ObjectiveEnsu
 			restored := utils.GetUint64FromMaps(key, s.restored)
 			restored++
 			s.restored[key] = restored
-			if restored >= uint64(object.RestoreThreshold) {
+			if restored >= uint64(utils.GetInt32withDefault(object.RestoreThreshold, known.DefaultRestoredThreshold)) {
 				dc.Restored = true
 			}
 		}
@@ -336,8 +336,7 @@ func (s *AnormalyAnalyzer) merge(stateMap map[string][]common.TimeSeries, avoida
 				}
 
 				if dc.Restored {
-					var schedulingCoolDown = utils.GetInt64withDefault(action.Spec.CoolDownSeconds, executor.DefaultCoolDownSeconds)
-					if now.After(s.lastTriggeredTime.Add(time.Duration(schedulingCoolDown) * time.Second)) {
+					if now.After(s.lastTriggeredTime.Add(time.Duration(utils.GetInt32withDefault(action.Spec.CoolDownSeconds, known.DefaultCoolDownSeconds)) * time.Second)) {
 						enableSchedule = true
 						break
 					}
@@ -383,8 +382,8 @@ func (s *AnormalyAnalyzer) merge(stateMap map[string][]common.TimeSeries, avoida
 					if !qosPriority.Greater(basicThrottleQosPriority) {
 						var throttlePod executor.ThrottlePod
 						throttlePod.PodTypes = types.NamespacedName{Namespace: pod.Namespace, Name: pod.Name}
-						throttlePod.CPUThrottle.MinCPURatio = action.Spec.Throttle.CPUThrottle.MinCPURatio
-						throttlePod.CPUThrottle.StepCPURatio = action.Spec.Throttle.CPUThrottle.StepCPURatio
+						throttlePod.CPUThrottle.MinCPURatio = uint64(action.Spec.Throttle.CPUThrottle.MinCPURatio)
+						throttlePod.CPUThrottle.StepCPURatio = uint64(action.Spec.Throttle.CPUThrottle.StepCPURatio)
 
 						throttlePod.PodCPUUsage, throttlePod.ContainerCPUUsages = s.getPodUsage(string(stypes.MetricNameContainerCpuTotalUsage), stateMap, pod)
 						throttlePod.PodCPUShare, throttlePod.ContainerCPUShares = s.getPodUsage(string(stypes.MetricNameContainerCpuLimit), stateMap, pod)
@@ -438,8 +437,8 @@ func (s *AnormalyAnalyzer) merge(stateMap map[string][]common.TimeSeries, avoida
 						var qosPriority = executor.ClassAndPriority{PodQOSClass: pod.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(pod.Spec.Priority, 0)}
 						var throttlePod executor.ThrottlePod
 						throttlePod.PodTypes = types.NamespacedName{Namespace: pod.Namespace, Name: pod.Name}
-						throttlePod.CPUThrottle.MinCPURatio = action.Spec.Throttle.CPUThrottle.MinCPURatio
-						throttlePod.CPUThrottle.StepCPURatio = action.Spec.Throttle.CPUThrottle.StepCPURatio
+						throttlePod.CPUThrottle.MinCPURatio = uint64(action.Spec.Throttle.CPUThrottle.MinCPURatio)
+						throttlePod.CPUThrottle.StepCPURatio = uint64(action.Spec.Throttle.CPUThrottle.StepCPURatio)
 						throttlePod.PodCPUUsage, throttlePod.ContainerCPUUsages = s.getPodUsage(string(stypes.MetricNameContainerCpuTotalUsage), stateMap, pod)
 						throttlePod.PodCPUShare, throttlePod.ContainerCPUShares = s.getPodUsage(string(stypes.MetricNameContainerCpuLimit), stateMap, pod)
 						throttlePod.PodCPUQuota, throttlePod.ContainerCPUQuotas = s.getPodUsage(string(stypes.MetricNameContainerCpuQuota), stateMap, pod)
@@ -483,7 +482,6 @@ func (s *AnormalyAnalyzer) merge(stateMap map[string][]common.TimeSeries, avoida
 			}
 
 			if action.Spec.Eviction != nil {
-				var deletionGracePeriodSeconds = utils.GetInt32withDefault(action.Spec.Eviction.TerminationGracePeriodSeconds, executor.DefaultDeletionGracePeriodSeconds)
 				allPods, err := s.podLister.List(labels.Everything())
 				if err != nil {
 					klog.Errorf("Failed to list all pods: %v.", err)
@@ -493,7 +491,7 @@ func (s *AnormalyAnalyzer) merge(stateMap map[string][]common.TimeSeries, avoida
 				for _, v := range allPods {
 					var classAndPriority = executor.ClassAndPriority{PodQOSClass: v.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(v.Spec.Priority, 0)}
 					if !classAndPriority.Greater(basicEvictQosPriority) {
-						evictPods = append(evictPods, executor.EvictPod{DeletionGracePeriodSeconds: deletionGracePeriodSeconds,
+						evictPods = append(evictPods, executor.EvictPod{DeletionGracePeriodSeconds: uint32(utils.GetInt32withDefault(action.Spec.Eviction.TerminationGracePeriodSeconds, known.DefaultDeletionGracePeriodSeconds)),
 							PodKey: types.NamespacedName{Name: v.Name, Namespace: v.Namespace}, ClassAndPriority: classAndPriority})
 					}
 				}

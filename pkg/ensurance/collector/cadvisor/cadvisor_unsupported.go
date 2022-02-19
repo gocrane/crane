@@ -27,3 +27,7 @@ func (c *CadvisorCollector) GetType() types.CollectType {
 func (c *CadvisorCollector) Collect() (map[string][]common.TimeSeries, error) {
 	return nil, nil
 }
+
+func CheckMetricNameExist(name string) bool {
+	return false
+}
