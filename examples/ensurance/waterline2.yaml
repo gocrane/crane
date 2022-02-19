@@ -6,12 +6,11 @@ metadata:
     app: "system"
 spec:
   nodeQualityProbe:
-    initialDelaySeconds: 10
     timeoutSeconds: 10
     nodeLocalGet:
       localCacheTTLSeconds: 60
   objectiveEnsurances:
-    - name: "cpu_usage"
+    - name: "cpu-usage"
       avoidanceThreshold: 2
       restoreThreshold: 2
       actionName: "throttle"

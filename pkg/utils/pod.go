@@ -62,7 +62,7 @@ func GetPodCondition(status *v1.PodStatus, conditionType v1.PodConditionType) (i
 }
 
 // EvictPodWithGracePeriod evict pod with grace period
-func EvictPodWithGracePeriod(client clientset.Interface, pod *v1.Pod, gracePeriodSeconds int32) error {
+func EvictPodWithGracePeriod(client clientset.Interface, pod *v1.Pod, gracePeriodSeconds uint32) error {
 	if kubelettypes.IsCriticalPod(pod) {
 		return fmt.Errorf("Eviction manager: cannot evict a critical pod(%s)", klog.KObj(pod))
 	}
