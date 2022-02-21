@@ -11,3 +11,31 @@ spec:
       targetPort: 9443
   selector:
     app: craned
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: crane-server-service
+  namespace: crane-system
+spec:
+  ports:
+    - port: 8082
+      protocol: TCP
+      targetPort: 8082
+  selector:
+    app: craned
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+  namespace: crane-system
+spec:
+  type: NodePort
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 80
+      nodePort: 30005
+  selector:
+    app: craned

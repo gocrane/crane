@@ -35,6 +35,12 @@ func (s *apiServer) installHandler() {
 			clustersv1.DELETE(":clusterid", clusterHandler.DeleteCluster)
 			clustersv1.PUT(":clusterid", clusterHandler.UpdateCluster)
 			clustersv1.GET(":clusterid", clusterHandler.GetCluster)
+
+			// namespaces
+			nsv1 := clustersv1.Group("/namespaces")
+			{
+				nsv1.GET(":clusterid", clusterHandler.ListNamespaces)
+			}
 		}
 	}
 

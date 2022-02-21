@@ -123,6 +123,16 @@ func (ch *ClusterHandler) GetCluster(c *gin.Context) {
 	ginwrapper.WriteResponse(c, nil, getCluster)
 }
 
+// GetNamespaces return namespaces in specified cluster
+func (ch *ClusterHandler) ListNamespaces(c *gin.Context) {
+	getNamespaces, err := ch.clusterSrv.ListNamespaces(context.TODO(), c.Param("clusterid"))
+	if err != nil {
+		ginwrapper.WriteResponse(c, err, nil)
+		return
+	}
+	ginwrapper.WriteResponse(c, nil, getNamespaces)
+}
+
 func IsUrl(str string) bool {
 	u, err := url.Parse(str)
 	return err == nil && u.Scheme != "" && u.Host != ""

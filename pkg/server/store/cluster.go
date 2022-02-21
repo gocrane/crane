@@ -19,6 +19,11 @@ type ClusterList struct {
 	Items      []*Cluster `json:"items"`
 }
 
+type NamespaceList struct {
+	TotalCount int      `json:"totalCount"`
+	Items      []string   `json:"items"`
+}
+
 // ClusterStore define the cluster store CURD interface
 type ClusterStore interface {
 	AddCluster(ctx context.Context, cluster *Cluster) error
@@ -26,4 +31,5 @@ type ClusterStore interface {
 	UpdateCluster(ctx context.Context, cluster *Cluster) error
 	GetCluster(ctx context.Context, clusterid string) (*Cluster, error)
 	ListClusters(ctx context.Context) (*ClusterList, error)
+	ListNamespaces(ctx context.Context, clusterid string) (*NamespaceList, error)
 }
