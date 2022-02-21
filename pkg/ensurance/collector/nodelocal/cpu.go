@@ -1,11 +1,13 @@
 package nodelocal
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"time"
 
 	"github.com/shirou/gopsutil/cpu"
+	"github.com/shirou/gopsutil/load"
 	"k8s.io/klog/v2"
 
 	"github.com/gocrane/crane/pkg/common"
@@ -13,13 +15,13 @@ import (
 )
 
 const (
-	cpuCollectorName = "cpu"
-	MAX_PERCENTAGE   = 100
-	MIN_PERCENTAGE   = 0
+	cpuCollectorName     = "cpu"
+	cpuLoadCollectorName = "cpuLoad"
 )
 
 func init() {
-	registerMetrics(cpuCollectorName, []types.MetricName{types.MetricNameCpuTotalUsage, types.MetricNameCpuTotalUtilization}, NewCPUCollector)
+	registerCollector(cpuCollectorName, []types.MetricName{types.MetricNameCpuTotalUsage, types.MetricNameCpuTotalUtilization}, collectCPU)
+	registerCollector(cpuLoadCollectorName, []types.MetricName{types.MetricNameCpuLoad1Min, types.MetricNameCpuLoad5Min, types.MetricNameCpuLoad15Min}, collectCPULoad)
 }
 
 type CpuTimeStampState struct {
@@ -27,30 +29,18 @@ type CpuTimeStampState struct {
 	timestamp time.Time
 }
 
-type CpuCollector struct {
-	cpuState       *CpuTimeStampState
-	cpuCoreNumbers uint64
-	data           map[string][]common.TimeSeries
-}
+func collectCPU(nodeState *nodeState) (map[string][]common.TimeSeries, error) {
+	var now = time.Now()
 
-// NewCPUCollector returns a new Collector exposing kernel/system statistics.
-func NewCPUCollector(_ *NodeLocalContext) (nodeLocalCollector, error) {
-	var cpuCoreNumbers uint64
-	if cpuInfos, err := cpu.Info(); err != nil {
-		return nil, err
-	} else {
-		cpuCoreNumbers = uint64(len(cpuInfos))
+	// if the cpu core number is not set, to initialize it
+	if nodeState.cpuCoreNumbers == 0 {
+		if cpuInfos, err := cpu.Info(); err != nil {
+			return nil, err
+		} else {
+			nodeState.cpuCoreNumbers = uint64(len(cpuInfos))
+		}
 	}
 
-	klog.V(2).Infof("NewCPUCollector, cpuCoreNumbers: %v", cpuCoreNumbers)
-
-	var data = make(map[string][]common.TimeSeries)
-
-	return &CpuCollector{cpuCoreNumbers: cpuCoreNumbers, data: data}, nil
-}
-
-func (c *CpuCollector) collect() (map[string][]common.TimeSeries, error) {
-	var now = time.Now()
 	stats, err := cpu.Times(false)
 	if err != nil {
 		return nil, err
@@ -60,30 +50,50 @@ func (c *CpuCollector) collect() (map[string][]common.TimeSeries, error) {
 		return nil, fmt.Errorf("len stat is not 1")
 	}
 
-	nowCpuState := &CpuTimeStampState{
+	currentCpuState := &CpuTimeStampState{
 		stat:      stats[0],
 		timestamp: now,
 	}
 
-	if c.cpuState == nil {
-		c.cpuState = nowCpuState
-		return nil, fmt.Errorf("collect_init")
+	// if the latest cpu state is empty, to initialize it
+	if nodeState.latestCpuState == nil {
+		nodeState.latestCpuState = currentCpuState
+		return nil, errors.New(types.CollectInitErrorText)
 	}
 
-	usagePercent := calculateBusy(c.cpuState.stat, nowCpuState.stat)
-	usageCore := usagePercent * float64(c.cpuCoreNumbers) * 1000 / 100
+	usagePercent := calculateBusy(nodeState.latestCpuState.stat, currentCpuState.stat)
+	usageCore := usagePercent * float64(nodeState.cpuCoreNumbers) * 1000 / types.MaxPercentage
 
 	klog.V(6).Infof("CpuCollector collected,usagePercent %v, usageCore %v", usagePercent, usageCore)
 
-	c.cpuState = nowCpuState
+	nodeState.latestCpuState = currentCpuState
 
-	c.data[string(types.MetricNameCpuTotalUsage)] = []common.TimeSeries{{Samples: []common.Sample{{Value: usageCore, Timestamp: now.Unix()}}}}
-	c.data[string(types.MetricNameCpuTotalUtilization)] = []common.TimeSeries{{Samples: []common.Sample{{Value: usagePercent, Timestamp: now.Unix()}}}}
-	return c.data, nil
+	var data = make(map[string][]common.TimeSeries, 2)
+	data[string(types.MetricNameCpuTotalUsage)] = []common.TimeSeries{{Samples: []common.Sample{{Value: usageCore, Timestamp: now.Unix()}}}}
+	data[string(types.MetricNameCpuTotalUtilization)] = []common.TimeSeries{{Samples: []common.Sample{{Value: usagePercent, Timestamp: now.Unix()}}}}
+
+	return data, nil
 }
 
-func (c *CpuCollector) name() string {
-	return cpuCollectorName
+func collectCPULoad(_ *nodeState) (map[string][]common.TimeSeries, error) {
+	var now = time.Now()
+	stat, err := load.Avg()
+	if err != nil {
+		return nil, err
+	}
+
+	if stat == nil {
+		return nil, fmt.Errorf("cpu load stat is nil")
+	}
+
+	klog.V(6).Infof("LoadCollector collected 1minLoad %v, 5minLoad %v, 15minLoad %v", stat.Load1, stat.Load5, stat.Load15)
+
+	var data = make(map[string][]common.TimeSeries, 3)
+	data[string(types.MetricNameCpuLoad1Min)] = []common.TimeSeries{{Samples: []common.Sample{{Value: stat.Load1, Timestamp: now.Unix()}}}}
+	data[string(types.MetricNameCpuLoad5Min)] = []common.TimeSeries{{Samples: []common.Sample{{Value: stat.Load5, Timestamp: now.Unix()}}}}
+	data[string(types.MetricNameCpuLoad15Min)] = []common.TimeSeries{{Samples: []common.Sample{{Value: stat.Load15, Timestamp: now.Unix()}}}}
+
+	return data, nil
 }
 
 func calculateBusy(stat1 cpu.TimesStat, stat2 cpu.TimesStat) float64 {
@@ -91,12 +101,12 @@ func calculateBusy(stat1 cpu.TimesStat, stat2 cpu.TimesStat) float64 {
 	stat2All, stat2Busy := getAllBusy(stat2)
 
 	if stat2Busy <= stat1Busy {
-		return MIN_PERCENTAGE
+		return types.MinPercentage
 	}
 	if stat2All <= stat1All {
-		return MAX_PERCENTAGE
+		return types.MaxPercentage
 	}
-	return math.Min(MAX_PERCENTAGE, math.Max(MIN_PERCENTAGE, (stat2Busy-stat1Busy)/(stat2All-stat1All)*100))
+	return math.Min(types.MaxPercentage, math.Max(types.MinPercentage, (stat2Busy-stat1Busy)/(stat2All-stat1All)*100))
 }
 
 func getAllBusy(stat cpu.TimesStat) (float64, float64) {

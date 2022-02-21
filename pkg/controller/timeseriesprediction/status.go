@@ -2,6 +2,7 @@ package timeseriesprediction
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -152,7 +153,11 @@ func (tc *Controller) doPredict(tsPrediction *v1alpha1.TimeSeriesPrediction, sta
 			return result, err
 		}
 		predictedData := CommonTimeSeries2ApiTimeSeries(data)
-		klog.V(8).Infof("Predicted data details, %+v", predictedData)
+		if klog.V(6).Enabled() {
+			apiDataBytes, err1 := json.Marshal(predictedData)
+			dataBytes, err2 := json.Marshal(data)
+			klog.V(6).Infof("DoPredict predicted data details, key: %v, queryExpr: %v, apiData: %v, predictData: %v, errs: %+v", klog.KObj(tsPrediction), queryExpr, string(apiDataBytes), string(dataBytes), []error{err1, err2})
+		}
 		result = append(result, v1alpha1.PredictionMetricStatus{ResourceIdentifier: metric.ResourceIdentifier, Prediction: predictedData})
 	}
 	return result, nil
