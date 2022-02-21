@@ -36,14 +36,14 @@ func (b *ScheduleExecutor) Avoid(ctx *ExecuteContext) error {
 	}
 
 	// update node condition for block scheduled
-	if _, err := utils.UpdateNodeConditionsStatues(ctx.Client,ctx.NodeLister,ctx.NodeName,
-		v1.NodeCondition{Type: known.EnsuranceAnalyzedPressureConditionKey, Status: v1.ConditionTrue},nil); err != nil {
+	if _, err := utils.UpdateNodeConditionsStatues(ctx.Client, ctx.NodeLister, ctx.NodeName,
+		v1.NodeCondition{Type: known.EnsuranceAnalyzedPressureConditionKey, Status: v1.ConditionTrue}, nil); err != nil {
 		return err
 	}
 
 	// update node taint for block scheduled
-	if _, err := utils.UpdateNodeTaints(ctx.Client,ctx.NodeLister,ctx.NodeName,
-		v1.Taint{Key: known.EnsuranceAnalyzedPressureTaintKey, Effect: v1.TaintEffectPreferNoSchedule},nil); err != nil {
+	if _, err := utils.UpdateNodeTaints(ctx.Client, ctx.NodeLister, ctx.NodeName,
+		v1.Taint{Key: known.EnsuranceAnalyzedPressureTaintKey, Effect: v1.TaintEffectPreferNoSchedule}, nil); err != nil {
 		return err
 	}
 
