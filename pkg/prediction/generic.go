@@ -25,12 +25,12 @@ type GenericPrediction struct {
 	realtimeProvider providers.Interface
 	metricsMap       map[string][]common.QueryCondition
 	querySet         map[string]struct{}
-	withCh           chan string
-	delCh            chan string
+	withCh           chan QueryExprWithCaller
+	delCh            chan QueryExprWithCaller
 	mu               sync.Mutex
 }
 
-func NewGenericPrediction(withCh, stopCh chan string) GenericPrediction {
+func NewGenericPrediction(withCh, stopCh chan QueryExprWithCaller) GenericPrediction {
 	return GenericPrediction{
 		withCh:     withCh,
 		delCh:      stopCh,
@@ -38,6 +38,15 @@ func NewGenericPrediction(withCh, stopCh chan string) GenericPrediction {
 		metricsMap: map[string][]common.QueryCondition{},
 		querySet:   map[string]struct{}{},
 	}
+}
+
+type QueryExprWithCaller struct {
+	QueryExpr string
+	Caller    string
+}
+
+func (q QueryExprWithCaller) String() string {
+	return fmt.Sprintf("%s####%s", q.Caller, q.QueryExpr)
 }
 
 func (p *GenericPrediction) GetHistoryProvider() providers.Interface {
@@ -58,33 +67,49 @@ func (p *GenericPrediction) WithProviders(providers map[string]providers.Interfa
 	}
 }
 
-func (p *GenericPrediction) WithQuery(queryExpr string) error {
+func (p *GenericPrediction) WithQuery(queryExpr string, caller string) error {
 	if queryExpr == "" {
 		return fmt.Errorf("empty query expression")
+	}
+	if caller == "" {
+		return fmt.Errorf("empty caller")
 	}
 
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	if _, exists := p.querySet[queryExpr]; !exists {
-		p.querySet[queryExpr] = struct{}{}
-		p.withCh <- queryExpr
+	q := QueryExprWithCaller{
+		QueryExpr: queryExpr,
+		Caller: caller,
+	}
+
+	if _, exists := p.querySet[q.String()]; !exists {
+		p.querySet[q.String()] = struct{}{}
+		p.withCh <- q
 	}
 
 	return nil
 }
 
-func (p *GenericPrediction) DeleteQuery(queryExpr string) error {
+func (p *GenericPrediction) DeleteQuery(queryExpr string, caller string) error {
 	if queryExpr == "" {
 		return fmt.Errorf("empty query expression")
+	}
+	if caller == "" {
+		return fmt.Errorf("empty caller")
 	}
 
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	if _, exists := p.querySet[queryExpr]; exists {
-		delete(p.querySet, queryExpr)
-		p.delCh <- queryExpr
+	q := QueryExprWithCaller{
+		QueryExpr: queryExpr,
+		Caller: caller,
+	}
+
+	if _, exists := p.querySet[q.String()]; exists {
+		delete(p.querySet, q.String())
+		p.delCh <- q
 	}
 
 	return nil
