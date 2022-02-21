@@ -16,6 +16,8 @@ import (
 const (
 	cpuQueryExprTemplate = `irate(container_cpu_usage_seconds_total{container="%s",namespace="%s",pod=~"^%s.*$"}[3m])`
 	memQueryExprTemplate = `container_memory_working_set_bytes{container="%s",namespace="%s",pod=~"^%s.*$"}`
+
+	resourceRequestCaller = "ResourceRequestCaller"
 )
 
 const (
@@ -102,14 +104,14 @@ func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) 
 	for _, c := range pod.Spec.Containers {
 		expr = fmt.Sprintf(cpuQueryExprTemplate, c.Name, namespace, podNamePrefix)
 		klog.V(4).Infof("CPU query: %s", expr)
-		if err := p.WithQuery(expr); err != nil {
+		if err := p.WithQuery(expr, resourceRequestCaller); err != nil {
 			return err
 		}
 		mc.WithConfig(makeCpuConfig(expr, a.ConfigProperties))
 
 		expr = fmt.Sprintf(memQueryExprTemplate, c.Name, namespace, podNamePrefix)
 		klog.V(4).Infof("Memory query: %s", expr)
-		if err := p.WithQuery(expr); err != nil {
+		if err := p.WithQuery(expr, resourceRequestCaller); err != nil {
 			return err
 		}
 		mc.WithConfig(makeMemConfig(expr, a.ConfigProperties))

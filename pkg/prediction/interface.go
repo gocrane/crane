@@ -19,10 +19,10 @@ type Interface interface {
 
 	// WithQuery registers a PromQL like query expression, so that the prediction will involve the time series that
 	// are selected and aggregated through the specified 'queryExpr'.
-	WithQuery(queryExpr string) error
+	WithQuery(queryExpr string, caller string) error
 
 	// DeleteQuery unregisters a query expression, so that its prediction routine will be stopped.
-	DeleteQuery(queryExpr string) error
+	DeleteQuery(queryExpr string, caller string) error
 
 	// GetRealtimePredictedValues returns the predicted values
 	//GetRealtimePredictedValues(metricName string, Conditions []common.QueryCondition) ([]*common.TimeSeries, error)
