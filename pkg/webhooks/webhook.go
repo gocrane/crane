@@ -17,7 +17,6 @@ limitations under the License.
 package webhooks
 
 import (
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -25,70 +24,72 @@ import (
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
-
-	"github.com/gocrane/crane/pkg/features"
 	"github.com/gocrane/crane/pkg/webhooks/autoscaling"
 	"github.com/gocrane/crane/pkg/webhooks/ensurance"
 	"github.com/gocrane/crane/pkg/webhooks/prediction"
 	"github.com/gocrane/crane/pkg/webhooks/recommendation"
 )
 
-func SetupWebhookWithManager(mgr ctrl.Manager) error {
-	autoscalingEnabled := utilfeature.DefaultFeatureGate.Enabled(features.CraneAutoscaling)
-
-	tspValidationAdmission := prediction.ValidationAdmission{}
-	err := ctrl.NewWebhookManagedBy(mgr).
-		For(&predictionapi.TimeSeriesPrediction{}).
-		WithValidator(&tspValidationAdmission).
-		Complete()
-	if err != nil {
-		klog.Errorf("Failed to setup tsp webhook: %v", err)
-		return err
+func SetupWebhookWithManager(mgr ctrl.Manager, autoscalingEnabled, nodeResourceEnabled, clusterNodePredictionEnabled, analysisEnabled, timeseriespredictEnabled bool) error {
+	if timeseriespredictEnabled {
+		tspValidationAdmission := prediction.ValidationAdmission{}
+		err := ctrl.NewWebhookManagedBy(mgr).
+			For(&predictionapi.TimeSeriesPrediction{}).
+			WithValidator(&tspValidationAdmission).
+			Complete()
+		if err != nil {
+			klog.Errorf("Failed to setup tsp webhook: %v", err)
+			return err
+		}
 	}
 
-	recomendValidationAdmission := recommendation.ValidationAdmission{}
-	err = ctrl.NewWebhookManagedBy(mgr).
-		For(&analysisapi.Recommendation{}).
-		WithValidator(&recomendValidationAdmission).
-		Complete()
-	if err != nil {
-		klog.Errorf("Failed to setup recommendation webhook: %v", err)
-		return err
+	if analysisEnabled {
+		recomendValidationAdmission := recommendation.ValidationAdmission{}
+		err := ctrl.NewWebhookManagedBy(mgr).
+			For(&analysisapi.Recommendation{}).
+			WithValidator(&recomendValidationAdmission).
+			Complete()
+		if err != nil {
+			klog.Errorf("Failed to setup recommendation webhook: %v", err)
+			return err
+		}
+
+		analyticsValidationAdmission := recommendation.ValidationAdmission{}
+		err = ctrl.NewWebhookManagedBy(mgr).
+			For(&analysisapi.Analytics{}).
+			WithValidator(&analyticsValidationAdmission).
+			Complete()
+		if err != nil {
+			klog.Errorf("Failed to setup analytics webhook: %v", err)
+			return err
+		}
 	}
 
-	analyticsValidationAdmission := recommendation.ValidationAdmission{}
-	err = ctrl.NewWebhookManagedBy(mgr).
-		For(&analysisapi.Analytics{}).
-		WithValidator(&analyticsValidationAdmission).
-		Complete()
-	if err != nil {
-		klog.Errorf("Failed to setup analytics webhook: %v", err)
-		return err
-	}
+	if nodeResourceEnabled || clusterNodePredictionEnabled {
+		nepValidationAdmission := ensurance.NepValidationAdmission{}
+		err := ctrl.NewWebhookManagedBy(mgr).
+			For(&ensuranceapi.NodeQOSEnsurancePolicy{}).
+			WithValidator(&nepValidationAdmission).
+			Complete()
+		if err != nil {
+			klog.Errorf("Failed to setup NodeQOSEnsurancePolicy webhook: %v", err)
+			return err
+		}
 
-	nepValidationAdmission := ensurance.NepValidationAdmission{}
-	err = ctrl.NewWebhookManagedBy(mgr).
-		For(&ensuranceapi.NodeQOSEnsurancePolicy{}).
-		WithValidator(&nepValidationAdmission).
-		Complete()
-	if err != nil {
-		klog.Errorf("Failed to setup NodeQOSEnsurancePolicy webhook: %v", err)
-		return err
-	}
-
-	actionValidationAdmission := ensurance.ActionValidationAdmission{}
-	err = ctrl.NewWebhookManagedBy(mgr).
-		For(&ensuranceapi.AvoidanceAction{}).
-		WithValidator(&actionValidationAdmission).
-		Complete()
-	if err != nil {
-		klog.Errorf("Failed to setup AvoidanceAction webhook: %v", err)
-		return err
+		actionValidationAdmission := ensurance.ActionValidationAdmission{}
+		err = ctrl.NewWebhookManagedBy(mgr).
+			For(&ensuranceapi.AvoidanceAction{}).
+			WithValidator(&actionValidationAdmission).
+			Complete()
+		if err != nil {
+			klog.Errorf("Failed to setup AvoidanceAction webhook: %v", err)
+			return err
+		}
 	}
 
 	if autoscalingEnabled {
 		autoscalingValidationAdmission := autoscaling.ValidationAdmission{}
-		err = ctrl.NewWebhookManagedBy(mgr).
+		err := ctrl.NewWebhookManagedBy(mgr).
 			For(&autoscalingapi.EffectiveHorizontalPodAutoscaler{}).
 			WithValidator(&autoscalingValidationAdmission).
 			Complete()
@@ -98,5 +99,5 @@ func SetupWebhookWithManager(mgr ctrl.Manager) error {
 		klog.Infof("Succeed to setup autoscaling webhook")
 	}
 
-	return err
+	return nil
 }
