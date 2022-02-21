@@ -27,17 +27,21 @@ const (
 
 type periodicSignalPrediction struct {
 	prediction.GenericPrediction
-	a           aggregateSignalMap
-	qr          config.Receiver
+	a           map[string] /*query expression*/ *aggregateSignalMap
+	withCh      chan string
+	delCh       chan string
+	stopChMap   sync.Map
 	modelConfig config.AlgorithmModelConfig
 }
 
 func NewPrediction(mc config.AlgorithmModelConfig) (prediction.Interface, error) {
-	qb := config.NewBroadcaster()
+	withCh, delCh := make(chan string), make(chan string)
 	return &periodicSignalPrediction{
-		GenericPrediction: prediction.NewGenericPrediction(qb),
-		a:                 aggregateSignalMap{},
-		qr:                qb.Listen(),
+		GenericPrediction: prediction.NewGenericPrediction(withCh, delCh),
+		a:                 map[string]*aggregateSignalMap{},
+		withCh:            withCh,
+		delCh:             delCh,
+		stopChMap:         sync.Map{},
 		modelConfig:       mc,
 	}, nil
 }
@@ -145,28 +149,56 @@ func (p *periodicSignalPrediction) Run(stopCh <-chan struct{}) {
 		return
 	}
 
-	for {
-		// Waiting for a WithQuery request
-		queryExpr := p.qr.Read().(string)
-		klog.InfoS("Dsp received a WithQuery reques", "queryExpr", queryExpr)
-
-		go func(queryExpr string) {
-			ticker := time.NewTicker(p.modelConfig.UpdateInterval)
-			defer ticker.Stop()
-			for {
-				klog.V(4).InfoS("DSP: try to updateAggregateSignalsWithQuery", "queryExpr", queryExpr)
-				if err := p.updateAggregateSignalsWithQuery(queryExpr); err != nil {
-					klog.ErrorS(err, "Failed to updateAggregateSignalsWithQuery.")
-				}
-				select {
-				case <-stopCh:
-					return
-				case <-ticker.C:
-					continue
-				}
+	go func() {
+		for {
+			// Waiting for a WithQuery request
+			queryExpr := <-p.withCh
+			if _, ok := p.stopChMap.Load(queryExpr); ok {
+				continue
 			}
-		}(queryExpr)
-	}
+			klog.InfoS("Register a query expression for prediction.", "queryExpr", queryExpr)
+
+			go func(queryExpr string) {
+				ticker := time.NewTicker(p.modelConfig.UpdateInterval)
+				defer ticker.Stop()
+
+				v, _ := p.stopChMap.LoadOrStore(queryExpr, make(chan struct{}))
+				predStopCh := v.(chan struct{})
+				for {
+					klog.V(4).InfoS("DSP: try to updateAggregateSignalsWithQuery", "queryExpr", queryExpr)
+					if err := p.updateAggregateSignalsWithQuery(queryExpr); err != nil {
+						klog.ErrorS(err, "Failed to updateAggregateSignalsWithQuery.")
+					}
+
+					select {
+					case <-predStopCh:
+						klog.InfoS("Prediction routine stopped.", "queryExpr", queryExpr)
+						return
+					case <-ticker.C:
+						continue
+					}
+				}
+			}(queryExpr)
+		}
+	}()
+
+	go func() {
+		for {
+			queryExpr := <-p.delCh
+			klog.InfoS("Unregister a query expression from prediction.", "queryExpr", queryExpr)
+
+			go func(queryExpr string) {
+				val, loaded := p.stopChMap.LoadAndDelete(queryExpr)
+				if loaded {
+					predStopCh := val.(chan struct{})
+					predStopCh <- struct{}{}
+				}
+				p.deleteAggregateSignalsWithQuery(queryExpr)
+			}(queryExpr)
+		}
+	}()
+
+	<-stopCh
 }
 
 func (p *periodicSignalPrediction) updateAggregateSignalsWithQuery(queryExpr string) error {
@@ -184,6 +216,11 @@ func (p *periodicSignalPrediction) updateAggregateSignalsWithQuery(queryExpr str
 	p.updateAggregateSignals(queryExpr, tsList, cfg)
 
 	return nil
+}
+
+func (p *periodicSignalPrediction) deleteAggregateSignalsWithQuery(queryExpr string) {
+	delete(p.a, queryExpr)
+	klog.InfoS("Prediction aggregate signal removed", "queryExpr", queryExpr)
 }
 
 func (p *periodicSignalPrediction) queryHistoryTimeSeries(queryExpr string) ([]*common.TimeSeries, error) {
@@ -274,13 +311,16 @@ func (p *periodicSignalPrediction) updateAggregateSignals(id string, tsList []*c
 		}
 	}
 
+	if _, exists := p.a[id]; !exists {
+		p.a[id] = &aggregateSignalMap{}
+	}
 	for i := range predictedTimeSeriesList {
-		key := prediction.AggregateSignalKey(id, predictedTimeSeriesList[i].Labels)
-		if _, exists := p.a.Load(key); !exists {
+		key := prediction.AggregateSignalKey(predictedTimeSeriesList[i].Labels)
+		if _, exists := p.a[id].Load(key); !exists {
 			klog.InfoS("DSP aggregateSignalKey added.", "key", key)
-			p.a.Store(key, newAggregateSignal())
+			p.a[id].Store(key, newAggregateSignal())
 		}
-		a, _ := p.a.Load(key)
+		a, _ := p.a[id].Load(key)
 		a.setPredictedTimeSeries(predictedTimeSeriesList[i])
 	}
 }
@@ -316,18 +356,18 @@ func bestEstimator(id string, estimators []Estimator, signal *Signal, totalCycle
 	return bestEstimator
 }
 
-func (p *periodicSignalPrediction) QueryPredictedTimeSeries(rawQuery string, startTime time.Time, endTime time.Time) ([]*common.TimeSeries, error) {
+func (p *periodicSignalPrediction) QueryPredictedTimeSeries(queryExpr string, startTime time.Time, endTime time.Time) ([]*common.TimeSeries, error) {
 	if p.GetRealtimeProvider() == nil {
 		return nil, fmt.Errorf("realtime data provider not set")
 	}
 
-	tsList, err := p.GetRealtimeProvider().QueryLatestTimeSeries(rawQuery)
+	tsList, err := p.GetRealtimeProvider().QueryLatestTimeSeries(queryExpr)
 	if err != nil {
 		klog.ErrorS(err, "Failed to query latest time series.")
 		return nil, err
 	}
 
-	return p.getPredictedTimeSeriesList(rawQuery, tsList, startTime, endTime), nil
+	return p.getPredictedTimeSeriesList(queryExpr, tsList, startTime, endTime), nil
 }
 
 func (p *periodicSignalPrediction) QueryRealtimePredictedValues(queryExpr string) ([]*common.TimeSeries, error) {
@@ -371,10 +411,20 @@ func (p *periodicSignalPrediction) QueryRealtimePredictedValues(queryExpr string
 func (p *periodicSignalPrediction) getPredictedTimeSeriesList(id string, tsList []*common.TimeSeries, start, end time.Time) []*common.TimeSeries {
 	var predictedTimeSeriesList []*common.TimeSeries
 
+	if _, exists := p.a[id]; !exists {
+		klog.InfoS("Aggregate signal not found", "queryExpr", id)
+		return predictedTimeSeriesList
+	}
+
 	for _, ts := range tsList {
-		key := prediction.AggregateSignalKey(id, ts.Labels)
-		klog.InfoS("Got aggregate signal key", "key", key)
-		a, exists := p.a.Load(key)
+		key := prediction.AggregateSignalKey(ts.Labels)
+		klog.V(6).InfoS("Got aggregate signal key", "key", key)
+
+		if _, exists := p.a[id]; !exists {
+			klog.InfoS("Aggregate signal not found", "queryExpr", id)
+			continue
+		}
+		a, exists := p.a[id].Load(key)
 		if !exists {
 			klog.InfoS("Aggregate signal not found", "key", key)
 			continue
