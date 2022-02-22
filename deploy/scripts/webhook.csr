@@ -3,12 +3,12 @@ req_extensions = v3_req
 distinguished_name = req_distinguished_name
 prompt = no
 [req_distinguished_name]
-CN = webhook-service.crane-system.svc
+CN = craned.crane-system.svc
 [ v3_req ]
 basicConstraints = CA:FALSE
 keyUsage = nonRepudiation, digitalSignature, keyEncipherment
 extendedKeyUsage = clientAuth, serverAuth
 subjectAltName = @alt_names
 [alt_names]
-DNS.1 = webhook-service.crane-system.svc
-DNS.2 = webhook-service.crane-system.svc.cluster.local
+DNS.1 = craned.crane-system.svc
+DNS.2 = craned.crane-system.svc.cluster.local
