@@ -1,11 +1,11 @@
 package percentile
 
 import (
-	"github.com/gocrane/crane/pkg/prediction"
 	"math"
 	"sync"
 	"time"
 
+	"github.com/gocrane/crane/pkg/prediction"
 	vpa "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/recommender/util"
 )
 

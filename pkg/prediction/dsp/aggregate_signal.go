@@ -1,11 +1,11 @@
 package dsp
 
 import (
-	"github.com/gocrane/crane/pkg/prediction"
 	"sync"
 	"time"
 
 	"github.com/gocrane/crane/pkg/common"
+	"github.com/gocrane/crane/pkg/prediction"
 )
 
 type aggregateSignal struct {
