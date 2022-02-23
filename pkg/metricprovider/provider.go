@@ -157,8 +157,6 @@ func (p *MetricProvider) GetMetricBySelector(ctx context.Context, namespace stri
 
 		if info.Metric == known.MetricNamePodCpuUsage {
 			metric.Value = *resource.NewMilliQuantity(averageValue, resource.DecimalSI)
-		} else if info.Metric == known.MetricNamePodMemoryUsage {
-			metric.Value = *resource.NewMilliQuantity(averageValue, resource.BinarySI)
 		}
 
 		matchingMetrics = append(matchingMetrics, metric)
@@ -188,11 +186,6 @@ func ListAllLocalMetrics() []provider.CustomMetricInfo {
 			GroupResource: schema.GroupResource{Group: "", Resource: "pods"},
 			Namespaced:    true,
 			Metric:        known.MetricNamePodCpuUsage,
-		},
-		{
-			GroupResource: schema.GroupResource{Group: "", Resource: "pods"},
-			Namespaced:    true,
-			Metric:        known.MetricNamePodMemoryUsage,
 		},
 	}
 }

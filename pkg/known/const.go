@@ -5,6 +5,5 @@ const (
 )
 
 const (
-	MetricNamePodCpuUsage    = "pod_cpu_usage"
-	MetricNamePodMemoryUsage = "pod_memory_usage"
+	MetricNamePodCpuUsage    = "crane_pod_cpu_usage"
 )
