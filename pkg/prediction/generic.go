@@ -80,7 +80,7 @@ func (p *GenericPrediction) WithQuery(queryExpr string, caller string) error {
 
 	q := QueryExprWithCaller{
 		QueryExpr: queryExpr,
-		Caller: caller,
+		Caller:    caller,
 	}
 
 	if _, exists := p.querySet[q.String()]; !exists {
@@ -104,7 +104,7 @@ func (p *GenericPrediction) DeleteQuery(queryExpr string, caller string) error {
 
 	q := QueryExprWithCaller{
 		QueryExpr: queryExpr,
-		Caller: caller,
+		Caller:    caller,
 	}
 
 	if _, exists := p.querySet[q.String()]; exists {

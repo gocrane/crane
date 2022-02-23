@@ -30,14 +30,14 @@ func (a *aggregateSignal) setPredictedTimeSeries(ts *common.TimeSeries) {
 }
 
 type aggregateSignals struct {
-	mu sync.Mutex
-	callerMap map[string]/*expr*/map[string/*caller*/]struct{}
-	signalMap map[string]/*expr*/map[string/*key*/]*aggregateSignal
+	mu        sync.Mutex
+	callerMap map[string] /*expr*/ map[string] /*caller*/ struct{}
+	signalMap map[string] /*expr*/ map[string] /*key*/ *aggregateSignal
 }
 
 func newAggregateSignals() aggregateSignals {
 	return aggregateSignals{
-		mu: sync.Mutex{},
+		mu:        sync.Mutex{},
 		callerMap: map[string]map[string]struct{}{},
 		signalMap: map[string]map[string]*aggregateSignal{},
 	}
@@ -58,12 +58,14 @@ func (a *aggregateSignals) Add(qc prediction.QueryExprWithCaller) bool {
 
 	if _, exists := a.signalMap[qc.QueryExpr]; !exists {
 		a.signalMap[qc.QueryExpr] = map[string]*aggregateSignal{}
+	} else {
+		return false
 	}
 
 	return true
 }
 
-func (a *aggregateSignals) Delete(qc prediction.QueryExprWithCaller) bool/*need clean or not*/ {
+func (a *aggregateSignals) Delete(qc prediction.QueryExprWithCaller) bool /*need clean or not*/ {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
