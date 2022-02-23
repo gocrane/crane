@@ -20,6 +20,7 @@ Crane (FinOps Crane) is a cloud native open source project which manages cloud r
     - [QoS Ensurance](#qos-ensurance)
   - [Repositories](#repositories)
   - [Getting Started](#getting-started)
+  - [RoadMap](#roadmap)
 
 ## Introduction
 
@@ -34,7 +35,7 @@ The goal of Crane is to provide a one-stop-shop project to help Kubernetes users
   - Cost Optimization
 - **Enhanced QoS** based on Pod PriorityClass
 
-<img alt="Crane Overview" height="400" src="docs/images/crane-overview.png" width="700"/>
+<img alt="Crane Overview" height="700" src="docs/images/crane-overview.png" width="886"/>
 
 ## Features
 ### Time Series Prediction
@@ -387,4 +388,7 @@ Something you should know about HPA recommendation:
   * Must provide cpu request for pod spec
   * The workload should be running for at least **a week** to get enough metrics to forecast
   * The workload's cpu load should be predictable, **too low** or **too unstable** workload often is unpredictable
-  
+
+### RoadMap
+Please see [this document](./docs/roadmaps/roadmap-1h-2022.md) to learn more.
+
