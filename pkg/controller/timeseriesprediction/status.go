@@ -23,7 +23,7 @@ import (
 	"github.com/gocrane/crane/pkg/prediction"
 )
 
-const caller = "TimeSeriesPredictionCaller"
+const callerFormat = "TimeSeriesPredictionCaller-%s"
 
 // check and update the status if it is needed, update each time series prediction status window length is double of the spec.PredictionWindowSeconds.
 // check the actual state of world and decide if need to update the crd status,
@@ -144,7 +144,7 @@ func (tc *Controller) doPredict(tsPrediction *v1alpha1.TimeSeriesPrediction, sta
 			queryExpr = metric.ExpressionQuery.Expression
 		}
 
-		err := predictor.WithQuery(queryExpr, caller)
+		err := predictor.WithQuery(queryExpr, fmt.Sprintf(callerFormat, tsPrediction.UID))
 		if err != nil {
 			return result, err
 		}

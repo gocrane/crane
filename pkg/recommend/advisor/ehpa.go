@@ -19,17 +19,13 @@ import (
 
 var _ Advisor = &EHPAAdvisor{}
 
-const ehpaCaller = "EffectiveHPACaller"
+const callerFormat = "RecommendationCaller-%s"
 
 type EHPAAdvisor struct {
 	*types.Context
 }
 
 func (a *EHPAAdvisor) Advise(proposed *types.ProposedRecommendation) error {
-	p := a.Predictors[predictionapi.AlgorithmTypeDSP]
-
-	mc := &config.MetricContext{}
-
 	resourceCpu := corev1.ResourceCPU
 	namespace := a.Recommendation.Spec.TargetRef.Namespace
 	if len(namespace) == 0 {
@@ -47,14 +43,14 @@ func (a *EHPAAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 		return fmt.Errorf("EHPAAdvisor query historic metrics data is unexpected, List length is %d ", len(tsList))
 	}
 
-	err = p.WithQuery(cpuQueryExpr, ehpaCaller)
-	if err != nil {
-		return err
-	}
 	cpuConfig := getPredictionCpuConfig(cpuQueryExpr)
-	mc.WithConfig(cpuConfig)
 
-	tsListPrediction, err := p.QueryPredictedTimeSeries(cpuQueryExpr, timeNow, timeNow.Add(time.Hour*24*7))
+	tsListPrediction, err := utils.PredictionQueryTimeSeriesOnce(a.Predictors[predictionapi.AlgorithmTypeDSP],
+		fmt.Sprintf(callerFormat, a.Recommendation.UID),
+		cpuConfig,
+		cpuQueryExpr,
+		timeNow,
+		timeNow.Add(time.Hour*24*7))
 	if err != nil {
 		return fmt.Errorf("EHPAAdvisor query predicted time series failed: %v ", err)
 	}

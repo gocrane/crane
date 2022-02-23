@@ -11,13 +11,12 @@ import (
 
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/recommend/types"
+	"github.com/gocrane/crane/pkg/utils"
 )
 
 const (
 	cpuQueryExprTemplate = `irate(container_cpu_usage_seconds_total{container="%s",namespace="%s",pod=~"^%s.*$"}[3m])`
 	memQueryExprTemplate = `container_memory_working_set_bytes{container="%s",namespace="%s",pod=~"^%s.*$"}`
-
-	resourceRequestCaller = "ResourceRequestCaller"
 )
 
 const (
@@ -89,59 +88,56 @@ func makeMemConfig(expr string, props map[string]string) *config.Config {
 func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 	r := &types.ResourceRequestRecommendation{}
 
-	p := a.Predictors[predictionapi.AlgorithmTypePercentile]
-
 	if len(a.Pods) == 0 {
 		return fmt.Errorf("pod not found")
 	}
 
-	mc := &config.MetricContext{}
 	pod := a.Pods[0]
 	namespace := pod.Namespace
 	podNamePrefix := pod.OwnerReferences[0].Name + "-"
 
 	var expr string
 	for _, c := range pod.Spec.Containers {
-		expr = fmt.Sprintf(cpuQueryExprTemplate, c.Name, namespace, podNamePrefix)
-		klog.V(4).Infof("CPU query: %s", expr)
-		if err := p.WithQuery(expr, resourceRequestCaller); err != nil {
-			return err
-		}
-		mc.WithConfig(makeCpuConfig(expr, a.ConfigProperties))
-
-		expr = fmt.Sprintf(memQueryExprTemplate, c.Name, namespace, podNamePrefix)
-		klog.V(4).Infof("Memory query: %s", expr)
-		if err := p.WithQuery(expr, resourceRequestCaller); err != nil {
-			return err
-		}
-		mc.WithConfig(makeMemConfig(expr, a.ConfigProperties))
-
 		cr := types.ContainerRecommendation{
 			ContainerName: c.Name,
 			Target:        map[corev1.ResourceName]string{},
 		}
 
+		// cpu resource
 		expr = fmt.Sprintf(cpuQueryExprTemplate, c.Name, namespace, podNamePrefix)
-		ts, err := p.QueryRealtimePredictedValues(expr)
-		if err != nil {
-			return err
-		}
-		if len(ts) < 1 || len(ts[0].Samples) < 1 {
-			return fmt.Errorf("no value, expr: %s", expr)
-		}
-		v := int64(ts[0].Samples[0].Value * 1000)
-		cr.Target[corev1.ResourceCPU] = resource.NewMilliQuantity(v, resource.DecimalSI).String()
+		klog.V(4).Infof("CPU query: %s", expr)
+		cpuConfig := makeCpuConfig(expr, a.ConfigProperties)
 
-		expr = fmt.Sprintf(memQueryExprTemplate, c.Name, namespace, podNamePrefix)
-		ts, err = p.QueryRealtimePredictedValues(expr)
+		tsCpu, err := utils.PredictionQueryTimeSeriesValuesOnce(a.Predictors[predictionapi.AlgorithmTypeDSP],
+			fmt.Sprintf(callerFormat, a.Recommendation.UID),
+			cpuConfig,
+			expr)
 		if err != nil {
 			return err
 		}
-		if len(ts) < 1 || len(ts[0].Samples) < 1 {
+		if len(tsCpu) < 1 || len(tsCpu[0].Samples) < 1 {
 			return fmt.Errorf("no value, expr: %s", expr)
 		}
-		v = int64(ts[0].Samples[0].Value)
-		cr.Target[corev1.ResourceMemory] = resource.NewMilliQuantity(v, resource.BinarySI).String()
+		cpuValue := int64(tsCpu[0].Samples[0].Value * 1000)
+		cr.Target[corev1.ResourceCPU] = resource.NewMilliQuantity(cpuValue, resource.DecimalSI).String()
+
+		// memory resource
+		expr = fmt.Sprintf(memQueryExprTemplate, c.Name, namespace, podNamePrefix)
+		klog.V(4).Infof("Memory query: %s", expr)
+		memConfig := makeMemConfig(expr, a.ConfigProperties)
+
+		tsMem, err := utils.PredictionQueryTimeSeriesValuesOnce(a.Predictors[predictionapi.AlgorithmTypeDSP],
+			fmt.Sprintf(callerFormat, a.Recommendation.UID),
+			memConfig,
+			expr)
+		if err != nil {
+			return err
+		}
+		if len(tsMem) < 1 || len(tsMem[0].Samples) < 1 {
+			return fmt.Errorf("no value, expr: %s", expr)
+		}
+		memValue := int64(tsMem[0].Samples[0].Value)
+		cr.Target[corev1.ResourceMemory] = resource.NewMilliQuantity(memValue, resource.BinarySI).String()
 
 		r.Containers = append(r.Containers, cr)
 	}
