@@ -35,7 +35,7 @@ spec:
           operator: Exists
       containers:
         - name: craned
-          image: docker.io/gocrane/craned:v0.1.0
+          image: docker.io/gocrane/craned:v0.2.0
           imagePullPolicy: IfNotPresent
           command:
             - /craned

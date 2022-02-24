@@ -23,7 +23,7 @@ func UpdateNodeConditionsStatues(client clientset.Interface, nodeLister corelist
 			return nil, err
 		}
 
-		updateNode, needUpdate := updateNodeConditions(node, condition);
+		updateNode, needUpdate := updateNodeConditions(node, condition)
 		if needUpdate {
 			if updateNode, err = client.CoreV1().Nodes().UpdateStatus(context.Background(), updateNode, metav1.UpdateOptions{}); err != nil {
 				if errors.IsConflict(err) {
@@ -34,7 +34,7 @@ func UpdateNodeConditionsStatues(client clientset.Interface, nodeLister corelist
 			}
 		}
 
-		return updateNode,nil
+		return updateNode, nil
 	}
 
 	return nil, fmt.Errorf("update node failed, conflict too more times")
@@ -106,7 +106,7 @@ func updateNodeTaints(node *v1.Node, taint v1.Taint) (*v1.Node, bool) {
 	return updatedNode, true
 }
 
-func RemoveNodeTaints(client clientset.Interface, nodeLister corelisters.NodeLister, nodeName string, taint v1.Taint, retry *uint64) (*v1.Node, error)  {
+func RemoveNodeTaints(client clientset.Interface, nodeLister corelisters.NodeLister, nodeName string, taint v1.Taint, retry *uint64) (*v1.Node, error) {
 	klog.V(4).Infof("RemoveNodeTaints %v", taint)
 
 	for i := uint64(0); i < GetUint64withDefault(retry, defaultRetryTimes); i++ {
@@ -131,7 +131,6 @@ func RemoveNodeTaints(client clientset.Interface, nodeLister corelisters.NodeLis
 
 	return nil, fmt.Errorf("update node failed, conflict too more times")
 }
-
 
 func removeNodeTaints(node *v1.Node, taint v1.Taint) (*v1.Node, bool) {
 
