@@ -130,10 +130,8 @@ func (c *EffectiveHPAController) UpdateStatus(ctx context.Context, ehpa *autosca
 	if !equality.Semantic.DeepEqual(&ehpa.Status, newStatus) {
 		klog.V(4).Infof("EffectiveHorizontalPodAutoscaler status should be updated, currentStatus %v newStatus %v", &ehpa.Status, newStatus)
 
-		// use patch to avoid conflict errors
-		patch := client.MergeFrom(ehpa)
 		ehpa.Status = *newStatus
-		err := c.Patch(ctx, ehpa, patch)
+		err := c.Status().Update(ctx, ehpa)
 		if err != nil {
 			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedUpdateStatus", err.Error())
 			klog.Errorf("Failed to update status, ehpa %s error %v", klog.KObj(ehpa), err)
