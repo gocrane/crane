@@ -117,11 +117,6 @@ spec:
                     description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                     type: string
                 type: object
-              timeoutSeconds:
-                description: timeoutSeconds specifies the seconds of one recommendation
-                  process. Default value is 600(for 10 minutes).
-                format: int32
-                type: integer
               type:
                 type: string
             required:
@@ -201,11 +196,6 @@ spec:
                   - type
                   type: object
                 type: array
-              lastSuccessfulTime:
-                description: LastSuccessfulTime is the last time the recommendation
-                  successfully completed.
-                format: date-time
-                type: string
               lastUpdateTime:
                 description: LastUpdateTime is last time we got an update on this
                   status.
