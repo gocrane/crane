@@ -61,7 +61,8 @@ help: ## Display this help.
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	go mod vendor; \
-    $(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" rbac:roleName=manager-role crd webhook paths="./vendor/github.com/gocrane/api/..." output:crd:artifacts:config=deploy/manifests
+    $(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" rbac:roleName=manager-role crd webhook paths="./vendor/github.com/gocrane/api/..." output:crd:artifacts:config=deploy/manifests; \
+    rm -rf vendor
 
 .PHONY: mockgen
 mockgen: ## Run go mockgen to gen mock code.
@@ -106,7 +107,7 @@ lint: golangci-lint  ## Run golang lint against code
       -E structcheck
 
 .PHONY: test
-test: manifests fmt vet goimports ## Run tests.
+test: fmt vet lint ## Run tests.
 	go test -coverprofile coverage.out -covermode=atomic ./...
 
 
@@ -114,7 +115,7 @@ test: manifests fmt vet goimports ## Run tests.
 build: craned crane-agent metric-adapter
 
 .PHONY: all
-all: test lint vet craned  crane-agent metric-adapter
+all: generate test craned  crane-agent metric-adapter
 
 .PHONY: craned
 craned: ## Build binary with the crane manager.
