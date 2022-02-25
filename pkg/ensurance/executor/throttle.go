@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 
+	"github.com/gocrane/crane/pkg/common"
 	cruntime "github.com/gocrane/crane/pkg/ensurance/runtime"
 	"github.com/gocrane/crane/pkg/utils"
 )
@@ -140,7 +141,7 @@ func (t *ThrottleExecutor) Avoid(ctx *ExecuteContext) error {
 			}
 
 			if limitCPU, ok := container.Resources.Limits[v1.ResourceCPU]; ok {
-				if float64(limitCPU.MilliValue())/1000.0*float64(throttlePod.CPUThrottle.MinCPURatio) > containerCPUQuotaNew {
+				if float64(limitCPU.MilliValue())/1000.0*float64(throttlePod.CPUThrottle.MinCPURatio)/100 > containerCPUQuotaNew {
 					containerCPUQuotaNew = float64(limitCPU.MilliValue()) * float64(throttlePod.CPUThrottle.MinCPURatio) / 1000.0
 				}
 			}
@@ -260,4 +261,57 @@ func (t *ThrottleExecutor) Restore(ctx *ExecuteContext) error {
 	}
 
 	return nil
+}
+
+func (e *ThrottleExecutor) Deduplicate(throttlePods, throttleUpPods ThrottlePods) {
+	for _, t := range throttlePods {
+		if i := e.ThrottleDownPods.Find(t.PodTypes); i == -1 {
+			e.ThrottleDownPods = append(e.ThrottleDownPods, t)
+		} else {
+			if t.CPUThrottle.MinCPURatio > e.ThrottleDownPods[i].CPUThrottle.MinCPURatio {
+				e.ThrottleDownPods[i].CPUThrottle.MinCPURatio = t.CPUThrottle.MinCPURatio
+			}
+
+			if t.CPUThrottle.StepCPURatio > e.ThrottleDownPods[i].CPUThrottle.StepCPURatio {
+				e.ThrottleDownPods[i].CPUThrottle.StepCPURatio = t.CPUThrottle.StepCPURatio
+			}
+		}
+	}
+	for _, t := range throttleUpPods {
+
+		if i := e.ThrottleUpPods.Find(t.PodTypes); i == -1 {
+			e.ThrottleUpPods = append(e.ThrottleUpPods, t)
+		} else {
+			if t.CPUThrottle.MinCPURatio > e.ThrottleUpPods[i].CPUThrottle.MinCPURatio {
+				e.ThrottleUpPods[i].CPUThrottle.MinCPURatio = t.CPUThrottle.MinCPURatio
+			}
+
+			if t.CPUThrottle.StepCPURatio > e.ThrottleUpPods[i].CPUThrottle.StepCPURatio {
+				e.ThrottleUpPods[i].CPUThrottle.StepCPURatio = t.CPUThrottle.StepCPURatio
+			}
+		}
+	}
+}
+
+func GetPodUsage(metricName string, stateMap map[string][]common.TimeSeries, pod *v1.Pod) (float64, []ContainerUsage) {
+	var podUsage = 0.0
+	var containerUsages []ContainerUsage
+	var podMaps = map[string]string{common.LabelNamePodName: pod.Name, common.LabelNamePodNamespace: pod.Namespace, common.LabelNamePodUid: string(pod.UID)}
+	state, ok := stateMap[metricName]
+	if !ok {
+		return podUsage, containerUsages
+	}
+	for _, vv := range state {
+		var labelMaps = common.Labels2Maps(vv.Labels)
+		if utils.ContainMaps(labelMaps, podMaps) {
+			if labelMaps[common.LabelNameContainerId] == "" {
+				podUsage = vv.Samples[0].Value
+			} else {
+				containerUsages = append(containerUsages, ContainerUsage{ContainerId: labelMaps[common.LabelNameContainerId],
+					ContainerName: labelMaps[common.LabelNameContainerName], Value: vv.Samples[0].Value})
+			}
+		}
+	}
+
+	return podUsage, containerUsages
 }

@@ -10,11 +10,11 @@ spec:
     nodeLocalGet:
       localCacheTTLSeconds: 60
   objectiveEnsurances:
-  - name: "cpu-usage"
-    avoidanceThreshold: 2
-    restoreThreshold: 2
-    actionName: "eviction"
-    strategy: "Preview"
-    metricRule:
-      name: "cpu_total_usage"
-      value: 6000
+    - name: "cpu_usage"
+      avoidanceThreshold: 2
+      restoreThreshold: 2
+      actionName: "eviction"
+      strategy: "Preview"
+      metricRule:
+        name: "cpu_total_usage"
+        value: 6000
