@@ -181,6 +181,43 @@ spec:
                         type: integer
                     type: object
                 type: object
+              crons:
+                description: Crons contains cron specs to use crontab to scale workloads
+                items:
+                  description: CronSpec defines the cron scale info
+                  properties:
+                    description:
+                      description: Description is the description of the cron
+                      type: string
+                    end:
+                      description: End is a crontab format, see https://en.wikipedia.org/wiki/Cron
+                        Define the cron schedule end, when it ended, EHPA will stop
+                        to trigger hpa to scale. Between the start and end, EHPA will
+                        keep replicas of the targetRef to equal to TargetReplicas,
+                        a scaling is a process rather than a instant action, make
+                        it as a final consistent system.
+                      type: string
+                    name:
+                      description: Name is the identifier of this cron scale. name
+                        must be unique in the same ehpa
+                      type: string
+                    start:
+                      description: Start is a crontab format, see https://en.wikipedia.org/wiki/Cron
+                        Define the cron schedule start, when the cron start is triggered,
+                        hpa will reconcile targetRef to scale to the TargetReplicas
+                        continuously.
+                      type: string
+                    targetReplicas:
+                      description: TargetReplicas is the target replicas when it is
+                        time to do scale between cron start and end
+                      format: int32
+                      type: integer
+                    timezone:
+                      description: TimeZone is the time zone of this cron schedule
+                        running in, default is UTC time.
+                      type: string
+                  type: object
+                type: array
               maxReplicas:
                 description: MaxReplicas is the upper limit replicas to the scale
                   target which the autoscaler can scale up to. It cannot be less that
