@@ -347,3 +347,4 @@ func (p *percentilePrediction) addSamples(queryExpr string) {
 func (p *percentilePrediction) Name() string {
 	return "Percentile"
 }
+
