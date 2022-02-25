@@ -205,8 +205,9 @@ spec:
                   - type
                   type: object
                 type: array
-              lastUpdateTime:
-                description: LastUpdateTime is the last time the status updated.
+              lastSuccessfulTime:
+                description: LastSuccessfulTime is the last time the recommendation
+                  successfully completed.
                 format: date-time
                 type: string
               recommendations:

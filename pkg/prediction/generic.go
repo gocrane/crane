@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/gocrane/crane/pkg/common"
+	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/providers"
 )
 
@@ -21,22 +22,20 @@ type WithMetricEvent struct {
 }
 
 type GenericPrediction struct {
-	historyProvider  providers.Interface
-	realtimeProvider providers.Interface
-	metricsMap       map[string][]common.QueryCondition
-	querySet         map[string]struct{}
-	withCh           chan string
-	delCh            chan string
-	mu               sync.Mutex
+	historyProvider      providers.Interface
+	realtimeProvider     providers.Interface
+	metricsMap           map[string][]common.QueryCondition
+	querySet             map[string]struct{}
+	withQueryBroadcaster config.Broadcaster
+	mu                   sync.Mutex
 }
 
-func NewGenericPrediction(withCh, stopCh chan string) GenericPrediction {
+func NewGenericPrediction(withQueryBroadcaster config.Broadcaster) GenericPrediction {
 	return GenericPrediction{
-		withCh:     withCh,
-		delCh:      stopCh,
-		mu:         sync.Mutex{},
-		metricsMap: map[string][]common.QueryCondition{},
-		querySet:   map[string]struct{}{},
+		withQueryBroadcaster: withQueryBroadcaster,
+		mu:                   sync.Mutex{},
+		metricsMap:           map[string][]common.QueryCondition{},
+		querySet:             map[string]struct{}{},
 	}
 }
 
@@ -58,43 +57,27 @@ func (p *GenericPrediction) WithProviders(providers map[string]providers.Interfa
 	}
 }
 
-func (p *GenericPrediction) WithQuery(queryExpr string) error {
-	if queryExpr == "" {
-		return fmt.Errorf("empty query expression")
+func (p *GenericPrediction) WithQuery(query string) error {
+	if query == "" {
+		return fmt.Errorf("empty query")
 	}
 
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	if _, exists := p.querySet[queryExpr]; !exists {
-		p.querySet[queryExpr] = struct{}{}
-		p.withCh <- queryExpr
+	if _, exists := p.querySet[query]; !exists {
+		p.querySet[query] = struct{}{}
+		p.withQueryBroadcaster.Write(query)
 	}
 
 	return nil
 }
 
-func (p *GenericPrediction) DeleteQuery(queryExpr string) error {
-	if queryExpr == "" {
-		return fmt.Errorf("empty query expression")
-	}
-
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	if _, exists := p.querySet[queryExpr]; exists {
-		delete(p.querySet, queryExpr)
-		p.delCh <- queryExpr
-	}
-
-	return nil
-}
-
-func AggregateSignalKey(labels []common.Label) string {
+func AggregateSignalKey(id string, labels []common.Label) string {
 	labelSet := make([]string, 0, len(labels))
 	for _, label := range labels {
 		labelSet = append(labelSet, label.Name+"="+label.Value)
 	}
 	sort.Strings(labelSet)
-	return strings.Join(labelSet, ",")
+	return id + "#" + strings.Join(labelSet, ",")
 }

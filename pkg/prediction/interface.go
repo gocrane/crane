@@ -21,9 +21,6 @@ type Interface interface {
 	// are selected and aggregated through the specified 'queryExpr'.
 	WithQuery(queryExpr string) error
 
-	// DeleteQuery unregisters a query expression, so that its prediction routine will be stopped.
-	DeleteQuery(queryExpr string) error
-
 	// GetRealtimePredictedValues returns the predicted values
 	//GetRealtimePredictedValues(metricName string, Conditions []common.QueryCondition) ([]*common.TimeSeries, error)
 
