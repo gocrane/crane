@@ -41,6 +41,10 @@ spec:
               name: sys
             - mountPath: /rootvar/run
               name: run
+          livenessProbe:
+            httpGet:
+              path: /health-check
+              port: 8081
       restartPolicy: Always
       priorityClassName: system-node-critical
       serviceAccount: crane-agent

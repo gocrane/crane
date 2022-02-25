@@ -57,6 +57,14 @@ func Int32P(value int32) *int32 {
 	return &i
 }
 
+func Bool2Int32(b bool) int32 {
+	if b {
+		return 1
+	}
+
+	return 0
+}
+
 const float64EqualityThreshold = 1e-9
 
 func AlmostEqual(a, b float64) bool {

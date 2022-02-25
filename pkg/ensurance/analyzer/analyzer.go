@@ -27,6 +27,8 @@ import (
 	ecache "github.com/gocrane/crane/pkg/ensurance/cache"
 	stypes "github.com/gocrane/crane/pkg/ensurance/collector/types"
 	"github.com/gocrane/crane/pkg/ensurance/executor"
+	"github.com/gocrane/crane/pkg/known"
+	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
@@ -93,7 +95,7 @@ func NewAnormalyAnalyzer(kubeClient *kubernetes.Clientset,
 }
 
 func (s *AnormalyAnalyzer) Name() string {
-	return "AnalyzeManager"
+	return "AnormalyAnalyzer"
 }
 
 func (s *AnormalyAnalyzer) Run(stop <-chan struct{}) {
@@ -114,7 +116,14 @@ func (s *AnormalyAnalyzer) Run(stop <-chan struct{}) {
 		for {
 			select {
 			case state := <-s.stateChann:
-				go s.Analyze(state)
+				{
+					start := time.Now()
+					metrics.UpdateLastTime(string(known.ModuleAnormalyAnalyzer), metrics.StepMain, start)
+
+					s.Analyze(state)
+
+					metrics.UpdateDurationFromStart(string(known.ModuleAnormalyAnalyzer), metrics.StepMain, start)
+				}
 			case <-stop:
 				klog.Infof("AnormalyAnalyzer exit")
 				return
@@ -164,8 +173,12 @@ func (s *AnormalyAnalyzer) Analyze(state map[string][]common.TimeSeries) {
 			var key = strings.Join([]string{n.Name, v.Name}, ".")
 			ac, err := s.analyze(key, v, state)
 			if err != nil {
+				metrics.UpdateAnalyzerWithKeyStatus(metrics.AnalyzeTypeAnalyzeError, key, 1.0)
 				klog.Errorf("Failed to analyze, %v.", err)
 			}
+			metrics.UpdateAnalyzerWithKeyStatus(metrics.AnalyzeTypeAvoidance, key, float64(utils.Bool2Int32(ac.Triggered)))
+			metrics.UpdateAnalyzerWithKeyStatus(metrics.AnalyzeTypeRestore, key, float64(utils.Bool2Int32(ac.Restored)))
+
 			ac.Nep = n
 			actionContexts = append(actionContexts, ac)
 		}
@@ -421,34 +434,56 @@ func (s *AnormalyAnalyzer) getEvictPods(triggered bool, action *ensuranceapi.Avo
 	return evictPods
 }
 
-func (s *AnormalyAnalyzer) disableSchedulingMerge(acsFiltered []ecache.ActionContext, avoidanceMaps map[string]*ensuranceapi.AvoidanceAction, ae *executor.AvoidanceExecutor) (enableSchedule bool) {
+func (s *AnormalyAnalyzer) disableSchedulingMerge(acsFiltered []ecache.ActionContext, avoidanceMaps map[string]*ensuranceapi.AvoidanceAction, ae *executor.AvoidanceExecutor) bool {
 	var now = time.Now()
-	enableSchedule = false
-	for _, ac := range acsFiltered {
-		if ac.Triggered {
-			enableSchedule = false
-		}
-		if ac.Restored {
+
+	// If any rules are triggered, the avoidance is true，otherwise the avoidance is false.
+	// If all rules are not triggered and some rules are restored, the restore is true，otherwise the restore is false.
+	// If the restore is true and the cool downtime  reached, the enableScheduling is true，otherwise the enableScheduling is false.
+	var enableScheduling, avoidance, restore bool
+
+	defer func() {
+		metrics.UpdateAnalyzerStatus(metrics.AnalyzeTypeEnableScheduling, float64(utils.Bool2Int32(enableScheduling)))
+		metrics.UpdateAnalyzerStatus(metrics.AnalyzeTypeAvoidance, float64(utils.Bool2Int32(avoidance)))
+		metrics.UpdateAnalyzerStatus(metrics.AnalyzeTypeRestore, float64(utils.Bool2Int32(restore)))
+	}()
+
+	// If the ensurance rules are empty, it must be recovered soon.
+	// So we set enableScheduling true
+	if len(acsFiltered) == 0 {
+		enableScheduling = true
+	} else {
+		for _, ac := range acsFiltered {
 			action, ok := avoidanceMaps[ac.ActionName]
 			if !ok {
 				klog.Warningf("DoMerge for detection,but the action %s not found", ac.ActionName)
 				continue
 			}
 
-			if !enableSchedule && now.After(s.lastTriggeredTime.Add(time.Duration(action.Spec.CoolDownSeconds)*time.Second)) {
-				enableSchedule = true
-				return
+			if ac.Triggered {
+				avoidance = true
+				enableScheduling = false
+			}
+
+			if ac.Restored {
+				restore = true
+				if !avoidance && now.After(s.lastTriggeredTime.Add(time.Duration(action.Spec.CoolDownSeconds)*time.Second)) {
+					enableScheduling = true
+				}
 			}
 		}
 	}
 
-	if enableSchedule {
-		ae.ScheduleExecutor.RestoreClassAndPriority = &executor.ClassAndPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
-	} else {
+	if avoidance {
+		s.lastTriggeredTime = now
 		ae.ScheduleExecutor.DisableClassAndPriority = &executor.ClassAndPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
 	}
-	s.lastTriggeredTime = now
-	return
+
+	if enableScheduling {
+		ae.ScheduleExecutor.RestoreClassAndPriority = &executor.ClassAndPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
+	}
+
+	return enableScheduling
 }
 
 func throttlePodConstruct(pod *v1.Pod, stateMap map[string][]common.TimeSeries, action *ensuranceapi.AvoidanceAction) executor.ThrottlePod {

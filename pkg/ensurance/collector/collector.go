@@ -4,6 +4,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gocrane/crane/pkg/known"
+	"github.com/gocrane/crane/pkg/metrics"
+
 	"k8s.io/apimachinery/pkg/labels"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog/v2"
@@ -17,25 +20,30 @@ import (
 )
 
 type StateCollector struct {
-	nodeName   string
-	nepLister  ensuranceListers.NodeQOSEnsurancePolicyLister
-	podLister  corelisters.PodLister
-	nodeLister corelisters.NodeLister
-	ifaces     []string
-	collectors *sync.Map
-	StateChann chan map[string][]common.TimeSeries
+	nodeName        string
+	nepLister       ensuranceListers.NodeQOSEnsurancePolicyLister
+	podLister       corelisters.PodLister
+	nodeLister      corelisters.NodeLister
+	healthCheck     *metrics.HealthCheck
+	collectInterval time.Duration
+	ifaces          []string
+	collectors      *sync.Map
+	StateChann      chan map[string][]common.TimeSeries
 }
 
-func NewStateCollector(nodeName string, nepLister ensuranceListers.NodeQOSEnsurancePolicyLister, podLister corelisters.PodLister, nodeLister corelisters.NodeLister, ifaces []string) *StateCollector {
+func NewStateCollector(nodeName string, nepLister ensuranceListers.NodeQOSEnsurancePolicyLister, podLister corelisters.PodLister,
+	nodeLister corelisters.NodeLister, ifaces []string, healthCheck *metrics.HealthCheck, collectInterval time.Duration) *StateCollector {
 	stateChann := make(chan map[string][]common.TimeSeries)
 	return &StateCollector{
-		nodeName:   nodeName,
-		nepLister:  nepLister,
-		podLister:  podLister,
-		nodeLister: nodeLister,
-		ifaces:     ifaces,
-		StateChann: stateChann,
-		collectors: &sync.Map{},
+		nodeName:        nodeName,
+		nepLister:       nepLister,
+		podLister:       podLister,
+		nodeLister:      nodeLister,
+		healthCheck:     healthCheck,
+		collectInterval: collectInterval,
+		ifaces:          ifaces,
+		StateChann:      stateChann,
+		collectors:      &sync.Map{},
 	}
 }
 
@@ -45,12 +53,19 @@ func (s *StateCollector) Name() string {
 
 func (s *StateCollector) Run(stop <-chan struct{}) {
 	go func() {
-		updateTicker := time.NewTicker(10 * time.Second)
+		updateTicker := time.NewTicker(s.collectInterval)
 		defer updateTicker.Stop()
 		for {
 			select {
 			case <-updateTicker.C:
-				s.UpdateCollectors()
+				{
+					start := time.Now()
+					metrics.UpdateLastTime(string(known.ModuleStateCollector), metrics.StepUpdateConfig, start)
+					s.healthCheck.UpdateLastConfigUpdate(start)
+
+					s.UpdateCollectors()
+					metrics.UpdateDurationFromStart(string(known.ModuleStateCollector), metrics.StepUpdateConfig, start)
+				}
 			case <-stop:
 				s.StopCollectors()
 				klog.Infof("StateCollector config updater exit")
@@ -66,7 +81,15 @@ func (s *StateCollector) Run(stop <-chan struct{}) {
 		for {
 			select {
 			case <-updateTicker.C:
-				s.Collect()
+				{
+					start := time.Now()
+					metrics.UpdateLastTime(string(known.ModuleStateCollector), metrics.StepMain, start)
+					s.healthCheck.UpdateLastActivity(start)
+
+					s.Collect()
+
+					metrics.UpdateDurationFromStart(string(known.ModuleStateCollector), metrics.StepMain, start)
+				}
 			case <-stop:
 				klog.Infof("StateCollector exit")
 				return
@@ -79,6 +102,7 @@ func (s *StateCollector) Run(stop <-chan struct{}) {
 
 func (s *StateCollector) Collect() {
 	wg := sync.WaitGroup{}
+	start := time.Now()
 
 	var data = make(map[string][]common.TimeSeries)
 	var mux sync.Mutex
@@ -87,8 +111,12 @@ func (s *StateCollector) Collect() {
 		c := value.(Collector)
 
 		wg.Add(1)
+		metrics.UpdateLastTimeWithSubComponent(string(known.ModuleStateCollector), string(c.GetType()), metrics.StepCollect, start)
+
 		go func(c Collector, data map[string][]common.TimeSeries) {
 			defer wg.Done()
+			defer metrics.UpdateDurationFromStartWithSubComponent(string(known.ModuleStateCollector), string(c.GetType()), metrics.StepCollect, start)
+
 			if cdata, err := c.Collect(); err == nil {
 				mux.Lock()
 				for key, series := range cdata {

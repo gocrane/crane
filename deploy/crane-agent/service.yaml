@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: crane-agent
+  name: crane-agent
+  namespace: crane-system
+spec:
+  ports:
+    - name: health-metric-port
+      port: 8081
+      protocol: TCP
+      targetPort: 8081
+  selector:
+    app: crane-agent
