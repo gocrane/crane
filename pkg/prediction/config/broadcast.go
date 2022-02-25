@@ -2,7 +2,7 @@ package config
 
 type event struct {
 	nextEventCh chan event
-	value       interface{}
+	value interface{}
 }
 
 type Broadcaster struct {
