@@ -84,3 +84,17 @@ func (e *EvictExecutor) Avoid(ctx *ExecuteContext) error {
 func (e *EvictExecutor) Restore(ctx *ExecuteContext) error {
 	return nil
 }
+
+func (e *EvictExecutor) Deduplicate(evictPods, NoEvictPods EvictPods) {
+	for _, ep := range evictPods {
+		if i := e.EvictPods.Find(ep.PodKey); i == -1 {
+			e.EvictPods = append(e.EvictPods, ep)
+		} else {
+			if ep.DeletionGracePeriodSeconds < e.EvictPods[i].DeletionGracePeriodSeconds {
+				e.EvictPods[i].DeletionGracePeriodSeconds = ep.DeletionGracePeriodSeconds
+			} else {
+				// nothing to do,replicated filter the evictPod
+			}
+		}
+	}
+}
