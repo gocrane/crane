@@ -10,7 +10,7 @@ import (
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 )
 
-type DetectionCondition struct {
+type ActionContext struct {
 	// the Objective Ensurance name
 	ObjectiveEnsuranceName string
 	// strategy for the action
@@ -30,61 +30,61 @@ type DetectionCondition struct {
 	BeInfluencedPods []types.NamespacedName
 }
 
-type DetectionConditionCache struct {
-	mu        sync.Mutex // protects detectMap
-	detectMap map[string]DetectionCondition
+type ActionContextCache struct {
+	mu               sync.Mutex // protects actionContextMap
+	actionContextMap map[string]ActionContext
 }
 
-func (s *DetectionConditionCache) GetOrCreate(c DetectionCondition) DetectionCondition {
+func (s *ActionContextCache) GetOrCreate(c ActionContext) ActionContext {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	var key = GenerateDetectionKey(c)
 
-	cacheDetection, ok := s.detectMap[key]
+	actionContext, ok := s.actionContextMap[key]
 	if !ok {
-		s.detectMap[key] = c
+		s.actionContextMap[key] = c
 	}
-	return cacheDetection
+	return actionContext
 }
 
-func (s *DetectionConditionCache) Get(key string) (DetectionCondition, bool) {
+func (s *ActionContextCache) Get(key string) (ActionContext, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	detect, ok := s.detectMap[key]
-	return detect, ok
+	actionContext, ok := s.actionContextMap[key]
+	return actionContext, ok
 }
 
-func (s *DetectionConditionCache) Set(c DetectionCondition) {
+func (s *ActionContextCache) Set(c ActionContext) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	var key = GenerateDetectionKey(c)
-	s.detectMap[key] = c
+	s.actionContextMap[key] = c
 
 	return
 }
 
-func (s *DetectionConditionCache) Exist(key string) bool {
+func (s *ActionContextCache) Exist(key string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	_, ok := s.detectMap[key]
+	_, ok := s.actionContextMap[key]
 	return ok
 }
 
-func (s *DetectionConditionCache) ListDetections() []DetectionCondition {
+func (s *ActionContextCache) ListDetections() []ActionContext {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	detections := make([]DetectionCondition, 0, len(s.detectMap))
+	actionContexts := make([]ActionContext, 0, len(s.actionContextMap))
 
-	for _, v := range s.detectMap {
-		detections = append(detections, v)
+	for _, v := range s.actionContextMap {
+		actionContexts = append(actionContexts, v)
 	}
-	return detections
+	return actionContexts
 }
 
-func GenerateDetectionKey(c DetectionCondition) string {
+func GenerateDetectionKey(c ActionContext) string {
 	return strings.Join([]string{"node", c.Nep.Name, c.ObjectiveEnsuranceName}, ".")
 }
 

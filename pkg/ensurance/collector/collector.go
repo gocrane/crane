@@ -9,7 +9,6 @@ import (
 	"k8s.io/klog/v2"
 
 	ensuranceListers "github.com/gocrane/api/pkg/generated/listers/ensurance/v1alpha1"
-
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/ensurance/collector/cadvisor"
 	"github.com/gocrane/crane/pkg/ensurance/collector/nodelocal"
@@ -145,16 +144,15 @@ func (s *StateCollector) UpdateCollectors() {
 	}
 
 	if !nodeLocal {
-		if _, exists := s.collectors.Load(types.NodeLocalCollectorType); exists {
-			s.collectors.Delete(types.NodeLocalCollectorType)
-		}
+		stopCollectors := []types.CollectType{types.NodeLocalCollectorType, types.CadvisorCollectorType}
 
-		// cadvisor need to stop manager before
-		if value, exists := s.collectors.Load(types.CadvisorCollectorType); !exists {
-			s.collectors.Delete(types.CadvisorCollectorType)
-			c := value.(Collector)
-			if err = c.Stop(); err != nil {
-				klog.Errorf("Failed to stop the cadvisor manager.")
+		for _, collector := range stopCollectors {
+			if value, exists := s.collectors.Load(collector); exists {
+				s.collectors.Delete(collector)
+				c := value.(Collector)
+				if err = c.Stop(); err != nil {
+					klog.Errorf("Failed to stop the %s manager.", collector)
+				}
 			}
 		}
 	}

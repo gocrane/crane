@@ -8,12 +8,15 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 
+	"github.com/gocrane/crane/pkg/common"
 	cruntime "github.com/gocrane/crane/pkg/ensurance/runtime"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
 const (
-	MAX_UP_QUOTA = 60 * 1000 // 60CU
+	MaxUpQuota            = 60 * 1000 // 60CU
+	CpuQuotaCoefficient = 1000.0
+	MaxRatio            = 100.0
 )
 
 type ThrottleExecutor struct {
@@ -128,20 +131,20 @@ func (t *ThrottleExecutor) Avoid(ctx *ExecuteContext) error {
 
 			var containerCPUQuotaNew float64
 			if utils.AlmostEqual(containerCPUQuota.Value, -1.0) || utils.AlmostEqual(containerCPUQuota.Value, 0.0) {
-				containerCPUQuotaNew = v.Value * (1.0 - float64(throttlePod.CPUThrottle.StepCPURatio)/100.0)
+				containerCPUQuotaNew = v.Value * (1.0 - float64(throttlePod.CPUThrottle.StepCPURatio)/MaxRatio)
 			} else {
-				containerCPUQuotaNew = containerCPUQuota.Value / containerCPUPeriod.Value * (1.0 - float64(throttlePod.CPUThrottle.StepCPURatio)/100.0)
+				containerCPUQuotaNew = containerCPUQuota.Value / containerCPUPeriod.Value * (1.0 - float64(throttlePod.CPUThrottle.StepCPURatio)/MaxRatio)
 			}
 
 			if requestCPU, ok := container.Resources.Requests[v1.ResourceCPU]; ok {
-				if float64(requestCPU.MilliValue())/1000.0 > containerCPUQuotaNew {
-					containerCPUQuotaNew = float64(requestCPU.MilliValue()) / 1000.0
+				if float64(requestCPU.MilliValue())/CpuQuotaCoefficient > containerCPUQuotaNew {
+					containerCPUQuotaNew = float64(requestCPU.MilliValue()) / CpuQuotaCoefficient
 				}
 			}
 
 			if limitCPU, ok := container.Resources.Limits[v1.ResourceCPU]; ok {
-				if float64(limitCPU.MilliValue())/1000.0*float64(throttlePod.CPUThrottle.MinCPURatio) > containerCPUQuotaNew {
-					containerCPUQuotaNew = float64(limitCPU.MilliValue()) * float64(throttlePod.CPUThrottle.MinCPURatio) / 1000.0
+				if float64(limitCPU.MilliValue())/CpuQuotaCoefficient*float64(throttlePod.CPUThrottle.MinCPURatio)/MaxRatio > containerCPUQuotaNew {
+					containerCPUQuotaNew = float64(limitCPU.MilliValue()) * float64(throttlePod.CPUThrottle.MinCPURatio) / CpuQuotaCoefficient
 				}
 			}
 
@@ -216,15 +219,15 @@ func (t *ThrottleExecutor) Restore(ctx *ExecuteContext) error {
 			if utils.AlmostEqual(containerCPUQuota.Value, -1.0) || utils.AlmostEqual(containerCPUQuota.Value, 0.0) {
 				continue
 			} else {
-				containerCPUQuotaNew = containerCPUQuota.Value / containerCPUPeriod.Value * (1.0 + float64(throttlePod.CPUThrottle.StepCPURatio)/100.0)
+				containerCPUQuotaNew = containerCPUQuota.Value / containerCPUPeriod.Value * (1.0 + float64(throttlePod.CPUThrottle.StepCPURatio)/MaxRatio)
 			}
 
 			if limitCPU, ok := container.Resources.Limits[v1.ResourceCPU]; ok {
-				if float64(limitCPU.MilliValue())/1000.0 < containerCPUQuotaNew {
-					containerCPUQuotaNew = float64(limitCPU.MilliValue()) / 1000.0
+				if float64(limitCPU.MilliValue())/CpuQuotaCoefficient < containerCPUQuotaNew {
+					containerCPUQuotaNew = float64(limitCPU.MilliValue()) / CpuQuotaCoefficient
 				}
 			} else {
-				if containerCPUQuotaNew > MAX_UP_QUOTA*containerCPUPeriod.Value/1000.0 {
+				if containerCPUQuotaNew > MaxUpQuota*containerCPUPeriod.Value/CpuQuotaCoefficient {
 					containerCPUQuotaNew = -1
 				}
 			}
@@ -260,4 +263,27 @@ func (t *ThrottleExecutor) Restore(ctx *ExecuteContext) error {
 	}
 
 	return nil
+}
+
+func GetPodUsage(metricName string, stateMap map[string][]common.TimeSeries, pod *v1.Pod) (float64, []ContainerUsage) {
+	var podUsage = 0.0
+	var containerUsages []ContainerUsage
+	var podMaps = map[string]string{common.LabelNamePodName: pod.Name, common.LabelNamePodNamespace: pod.Namespace, common.LabelNamePodUid: string(pod.UID)}
+	state, ok := stateMap[metricName]
+	if !ok {
+		return podUsage, containerUsages
+	}
+	for _, vv := range state {
+		var labelMaps = common.Labels2Maps(vv.Labels)
+		if utils.ContainMaps(labelMaps, podMaps) {
+			if labelMaps[common.LabelNameContainerId] == "" {
+				podUsage = vv.Samples[0].Value
+			} else {
+				containerUsages = append(containerUsages, ContainerUsage{ContainerId: labelMaps[common.LabelNameContainerId],
+					ContainerName: labelMaps[common.LabelNameContainerName], Value: vv.Samples[0].Value})
+			}
+		}
+	}
+
+	return podUsage, containerUsages
 }
