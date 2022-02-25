@@ -19,8 +19,6 @@ import (
 
 var _ Advisor = &EHPAAdvisor{}
 
-const ehpaCaller = "EffectiveHPACaller"
-
 type EHPAAdvisor struct {
 	*types.Context
 }
@@ -47,7 +45,7 @@ func (a *EHPAAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 		return fmt.Errorf("EHPAAdvisor query historic metrics data is unexpected, List length is %d ", len(tsList))
 	}
 
-	err = p.WithQuery(cpuQueryExpr, ehpaCaller)
+	err = p.WithQuery(cpuQueryExpr)
 	if err != nil {
 		return err
 	}
