@@ -5,6 +5,8 @@ import (
 	"time"
 
 	vpa "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/recommender/util"
+
+	"github.com/gocrane/crane/pkg/common"
 )
 
 type aggregateSignal struct {
@@ -14,6 +16,7 @@ type aggregateSignal struct {
 	minSampleWeight   float64
 	totalSamplesCount int
 	creationTime      time.Time
+	labels            []common.Label
 }
 
 func (a *aggregateSignal) addSample(sampleTime time.Time, sampleValue float64) {

@@ -5,20 +5,14 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/klog/v2"
-
 	"github.com/gocrane/api/prediction/v1alpha1"
 
-	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
 var mu = sync.Mutex{}
 
 var queryToInternalConfigMap map[string]*internalConfig = map[string]*internalConfig{}
-
-var configUpdateEventReceiver config.Receiver
-var configDeleteEventReceiver config.Receiver
 
 var defaultInternalConfig = internalConfig{
 	historyResolution: time.Minute,
@@ -118,53 +112,53 @@ func makeInternalConfig(d *v1alpha1.DSP) (*internalConfig, error) {
 	return &internalConfig{historyResolution, historyDuration, estimators}, nil
 }
 
-func getInternalConfig(queryExpr string) *internalConfig {
-	mu.Lock()
-	defer mu.Unlock()
+//func getInternalConfig(queryExpr string) *internalConfig {
+//	mu.Lock()
+//	defer mu.Unlock()
+//
+//	config, exists := queryToInternalConfigMap[queryExpr]
+//	if !exists {
+//		klog.InfoS("Dsp internal config not found, using the default one.", "queryExpr", queryExpr)
+//		queryToInternalConfigMap[queryExpr] = &defaultInternalConfig
+//		return queryToInternalConfigMap[queryExpr]
+//	}
+//
+//	return config
+//}
 
-	config, exists := queryToInternalConfigMap[queryExpr]
-	if !exists {
-		klog.InfoS("Dsp internal config not found, using the default one.", "queryExpr", queryExpr)
-		queryToInternalConfigMap[queryExpr] = &defaultInternalConfig
-		return queryToInternalConfigMap[queryExpr]
-	}
-
-	return config
-}
-
-func init() {
-	configUpdateEventReceiver = config.UpdateEventBroadcaster.Listen()
-	configDeleteEventReceiver = config.DeleteEventBroadcaster.Listen()
-
-	go func() {
-		for {
-			cfg := configUpdateEventReceiver.Read().(*config.Config)
-			if cfg.DSP == nil {
-				continue
-			}
-			internalCfg, err := makeInternalConfig(cfg.DSP)
-			if err != nil {
-				klog.ErrorS(err, "Failed to create internal config.")
-				continue
-			}
-
-			mu.Lock()
-			if cfg.Expression != nil && len(cfg.Expression.Expression) > 0 {
-				queryToInternalConfigMap[cfg.Expression.Expression] = internalCfg
-			}
-			mu.Unlock()
-		}
-	}()
-
-	go func() {
-		for {
-			cfg := configDeleteEventReceiver.Read().(*config.Config)
-
-			mu.Lock()
-			if cfg.Expression != nil {
-				delete(queryToInternalConfigMap, cfg.Expression.Expression)
-			}
-			mu.Unlock()
-		}
-	}()
-}
+//func init() {
+//	configUpdateEventReceiver = config.UpdateEventBroadcaster.Listen()
+//	configDeleteEventReceiver = config.DeleteEventBroadcaster.Listen()
+//
+//	go func() {
+//		for {
+//			cfg := configUpdateEventReceiver.Read().(*config.Config)
+//			if cfg.DSP == nil {
+//				continue
+//			}
+//			internalCfg, err := makeInternalConfig(cfg.DSP)
+//			if err != nil {
+//				klog.ErrorS(err, "Failed to create internal config.")
+//				continue
+//			}
+//
+//			mu.Lock()
+//			if cfg.Expression != nil && len(cfg.Expression.Expression) > 0 {
+//				queryToInternalConfigMap[cfg.Expression.Expression] = internalCfg
+//			}
+//			mu.Unlock()
+//		}
+//	}()
+//
+//	go func() {
+//		for {
+//			cfg := configDeleteEventReceiver.Read().(*config.Config)
+//
+//			mu.Lock()
+//			if cfg.Expression != nil {
+//				delete(queryToInternalConfigMap, cfg.Expression.Expression)
+//			}
+//			mu.Unlock()
+//		}
+//	}()
+//}
