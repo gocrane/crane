@@ -187,9 +187,9 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 		for _, metric := range metrics {
 			// generate a custom metric for resource metric
 			if metric.Type == autoscalingv2.ResourceMetricSourceType {
-				name, err := GetPredictionMetricName(metric.Resource.Name)
-				if err != nil {
-					return nil, err
+				name := GetPredictionMetricName(metric.Resource.Name)
+				if len(name) == 0 {
+					continue
 				}
 
 				customMetric := &autoscalingv2.PodsMetricSource{
@@ -247,14 +247,12 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 }
 
 // GetPredictionMetricName return metric name used by prediction
-func GetPredictionMetricName(Name v1.ResourceName) (string, error) {
+func GetPredictionMetricName(Name v1.ResourceName) string {
 	switch Name {
 	case v1.ResourceCPU:
-		return known.MetricNamePodCpuUsage, nil
-	case v1.ResourceMemory:
-		return known.MetricNamePodMemoryUsage, nil
+		return known.MetricNamePodCpuUsage
 	default:
-		return "", fmt.Errorf("resource name not predictable")
+		return ""
 	}
 }
 

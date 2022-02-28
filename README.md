@@ -20,6 +20,11 @@ Crane (FinOps Crane) is a cloud native open source project which manages cloud r
     - [QoS Ensurance](#qos-ensurance)
   - [Repositories](#repositories)
   - [Getting Started](#getting-started)
+    - [Installation](#installation)
+    - [Get your Kubernetes Cost Report](#get-your-kubernetes-cost-report)
+    - [Analytics and Recommend Pod Resources](#analytics-and-recommend-pod-resources)
+    - [Analytics and Recommend HPA](#analytics-and-recommend-hpa)
+  - [RoadMap](#roadmap)
 
 ## Introduction
 
@@ -34,7 +39,7 @@ The goal of Crane is to provide a one-stop-shop project to help Kubernetes users
   - Cost Optimization
 - **Enhanced QoS** based on Pod PriorityClass
 
-<img alt="Crane Overview" height="400" src="docs/images/crane-overview.png" width="700"/>
+<img alt="Crane Overview" height="550" src="docs/images/crane-overview.png" width="800"/>
 
 ## Features
 ### Time Series Prediction
@@ -59,6 +64,14 @@ Two Recommendations are currently supported:
 - **Effective HPARecommend**: Recommend which workloads are suitable for autoscaling and provide optimized configurations such as minReplicas, maxReplicas.
 
 ### QoS Ensurance
+Kubernetes is capable of starting multiple pods on same node, and as a result, some of the user applications may be impacted when there are resources(e.g. cpu) consumption competition. To mitigate this, Crane allows users defining PrioirtyClass for the pods and QoSEnsurancePolicy, and then detects disruption and ensure the high priority pods not being impacted by resource competition.
+
+Avoidance Actions:
+- **Disable Schedule**: disable scheduling by setting node taint and condition
+- **Throttle**: throttle the low priority pods by squeezing cgroup settings
+- **Evict**: evict low priority pods
+
+Please see [this document](./docs/tutorials/using-qos-ensurance.md) to learn more.
 
 ## Repositories
 
@@ -83,16 +96,14 @@ Crane is composed of the following components:
 - Kubernetes 1.18+
 - Helm 3.1.0
 
-**All-In-One Installation**
-
-> Note:
-> If you already deployed prometheus, grafana, or you want to customize it then you can refer to [Customize Installation](#customize-installation).
-
 **Helm Installation**
 
 Please refer to Helm's [documentation](https://helm.sh/docs/intro/install/) for installation.
 
 **Installing prometheus and grafana with helm chart**
+
+> Note:
+> If you already deployed prometheus, grafana in your environment, then skip this step.
 
 Crane use prometheus to be the default metric provider. Using following command to install prometheus components: prometheus-server, node-exporter, kube-state-metrics.
 
@@ -110,47 +121,49 @@ helm install grafana -f https://raw.githubusercontent.com/gocrane/helm-charts/ma
 
 **Deploying Crane and Fadvisor**
 
+```console
+helm repo add crane https://gocrane.github.io/helm-charts
+helm install crane -n crane-system --create-namespace crane/crane
+helm install fadvisor -n crane-system --create-namespace crane/fadvisor
+```
+
+**Verify Installation**
+
+Check deployments are all available by running:
+
+```console
+kubectl get deploy -n crane-system
+```
+
+The output is similar to:
+```console
+NAME                            READY   UP-TO-DATE   AVAILABLE   AGE
+craned                          1/1     1            1           60m
+fadvisor                        1/1     1            1           60m
+grafana                         1/1     1            1           60m
+metric-adapter                  1/1     1            1           60m
+prometheus-kube-state-metrics   1/1     1            1           61m
+prometheus-server               1/1     1            1           61m
+```
+
+you can see [this](https://github.com/gocrane/helm-charts) to learn more.
+
+**Customize Installation**
+
 Deploy `Crane` by apply YAML declaration.
 
 ```console
-git checkout v0.1.0
+git checkout v0.2.0
 kubectl apply -f deploy/manifests 
 kubectl apply -f deploy/craned 
 kubectl apply -f deploy/metric-adapter
 ```
 
-Deploy `Fadvisor` by helm chart.
-
-```console
-helm repo add crane https://gocrane.github.io/helm-charts
-helm install cost-exporter -n crane-system --create-namespace crane/cost-exporter
-```
-
-### Customize Installation
-
-**Configure Prometheus Address**
-
-The following command will configure prometheus http address for crane. Specify `CUSTOMIZE_PROMETHEUS` if you have existing prometheus server.
+The following command will configure prometheus http address for crane if you want to customize it. Specify `CUSTOMIZE_PROMETHEUS` if you have existing prometheus server.
 
 ```console
 export CUSTOMIZE_PROMETHEUS=
 if [ $CUSTOMIZE_PROMETHEUS ]; then sed -i '' "s/http:\/\/prometheus-server.crane-system.svc.cluster.local:8080/${CUSTOMIZE_PROMETHEUS}/" deploy/craned/deployment.yaml ; fi
-```
-
-### Uninstallation
-
-Uninstall helm charts will remove all the Kubernetes components associated with the chart and deletes the release.
-
-```console
-helm uninstall prometheus -n crane-system
-helm uninstall grafana -n crane-system
-helm uninstall cost-exporter -n crane-system
-```
-
-Delete `crane-system` will remove all resources in crane.
-
-```console
-kubectl delete ns crane-system
 ```
 
 ### Get your Kubernetes Cost Report
@@ -376,4 +389,7 @@ Something you should know about HPA recommendation:
   * Must provide cpu request for pod spec
   * The workload should be running for at least **a week** to get enough metrics to forecast
   * The workload's cpu load should be predictable, **too low** or **too unstable** workload often is unpredictable
-  
+
+## RoadMap
+Please see [this document](./docs/roadmaps/roadmap-1h-2022.md) to learn more.
+

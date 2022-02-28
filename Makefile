@@ -61,22 +61,19 @@ help: ## Display this help.
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	go mod vendor; \
-    $(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" rbac:roleName=manager-role crd webhook paths="./vendor/github.com/gocrane/api/..." output:crd:artifacts:config=deploy/manifests
+    $(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" rbac:roleName=manager-role crd webhook paths="./vendor/github.com/gocrane/api/..." output:crd:artifacts:config=deploy/manifests; \
+    rm -rf vendor
 
-.PHONY: mockgen
-mockgen: ## Run go mockgen to gen mock code.
+.PHONY: go-mockgen
+go-mockgen: mockgen ## Run go mockgen to gen mock code.
 	go generate ./...
 
 .PHONY: generate
-generate: manifests mockgen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+generate: manifests go-mockgen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
 	go fmt ./...
-
-.PHONY: goimports
-goimports: ## Run goimports to ordering import packages group
-	goimports -w ./
 
 .PHONY: vet
 vet: ## Run go vet against code.
@@ -106,15 +103,14 @@ lint: golangci-lint  ## Run golang lint against code
       -E structcheck
 
 .PHONY: test
-test: manifests fmt vet goimports ## Run tests.
+test: fmt vet lint ## Run tests.
 	go test -coverprofile coverage.out -covermode=atomic ./...
-
 
 .PHONY: build
 build: craned crane-agent metric-adapter
 
 .PHONY: all
-all: test lint vet craned  crane-agent metric-adapter
+all: generate test craned  crane-agent metric-adapter
 
 .PHONY: craned
 craned: ## Build binary with the crane manager.
@@ -228,17 +224,17 @@ else
 GO_IMPORTS=$(shell which goimports)
 endif
 
-
 mockgen:
 ifeq (, $(shell which mockgen))
 	@{ \
 	set -e ;\
 	export GO111MODULE=on; \
-	GO_IMPORTS_TMP_DIR=$$(mktemp -d) ;\
-	cd $$GO_IMPORTS_TMP_DIR ;\
+	GO_MOCKGEN_TMP_DIR=$$(mktemp -d) ;\
+	cd $$GO_MOCKGEN_TMP_DIR ;\
 	go mod init tmp ;\
-	go get github.com/golang/mock@v1.5.0 ;\
-	rm -rf $$GO_IMPORTS_TMP_DIR ;\
+	go get github.com/golang/mock/mockgen@v1.5.0 ;\
+	go install github.com/golang/mock/mockgen ;\
+	rm -rf $$GO_MOCKGEN_TMP_DIR ;\
 	}
 GO_IMPORTS=$(shell go env GOPATH)/bin/mockgen
 else
