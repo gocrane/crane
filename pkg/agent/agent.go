@@ -21,6 +21,7 @@ import (
 	"github.com/gocrane/api/pkg/generated/informers/externalversions/ensurance/v1alpha1"
 	predictionv1 "github.com/gocrane/api/pkg/generated/informers/externalversions/prediction/v1alpha1"
 	"github.com/gocrane/crane/pkg/ensurance/analyzer"
+	"github.com/gocrane/crane/pkg/ensurance/cm"
 	"github.com/gocrane/crane/pkg/ensurance/collector"
 	"github.com/gocrane/crane/pkg/ensurance/executor"
 	"github.com/gocrane/crane/pkg/ensurance/manager"
@@ -56,20 +57,24 @@ func NewAgent(ctx context.Context,
 	utilruntime.Must(ensuranceapi.AddToScheme(scheme.Scheme))
 
 	stateCollector := collector.NewStateCollector(nodeName, nepInformer.Lister(), podInformer.Lister(), nodeInformer.Lister(), ifaces, healthCheck, CollectInterval)
-	managers = append(managers, stateCollector)
+	managers = appendManagerIfNotNil(managers, stateCollector)
 	analyzerManager := analyzer.NewAnormalyAnalyzer(kubeClient, nodeName, podInformer, nodeInformer, nepInformer, actionInformer, stateCollector.AnalyzerChann, noticeCh)
-	managers = append(managers, analyzerManager)
+	managers = appendManagerIfNotNil(managers, analyzerManager)
 	avoidanceManager := executor.NewActionExecutor(kubeClient, nodeName, podInformer, nodeInformer, noticeCh, runtimeEndpoint)
-	managers = append(managers, avoidanceManager)
+	managers = appendManagerIfNotNil(managers, avoidanceManager)
+	if craneCpuSetManager := utilfeature.DefaultFeatureGate.Enabled(features.CraneCpuSetManager); craneCpuSetManager {
+		cpuManager := cm.NewAdvancedCpuManager(podInformer, runtimeEndpoint, stateCollector.GetCollectors())
+		managers = appendManagerIfNotNil(managers, cpuManager)
+	}
 
 	if nodeResource := utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResource); nodeResource {
 		nodeResourceManager := resource.NewNodeResourceManager(kubeClient, nodeName, podInformer, nodeInformer, tspInformer, runtimeEndpoint, stateCollector.NodeResourceChann)
-		managers = append(managers, nodeResourceManager)
+		managers = appendManagerIfNotNil(managers, nodeResourceManager)
 	}
 
 	if podResource := utilfeature.DefaultFeatureGate.Enabled(features.CranePodResource); podResource {
-		podResourceManager :=  resource.NewPodResourceManager(kubeClient, nodeName, podInformer, runtimeEndpoint, stateCollector.PodResourceChann, stateCollector.GetCollectors())
-		managers = append(managers, podResourceManager)
+		podResourceManager := resource.NewPodResourceManager(kubeClient, nodeName, podInformer, runtimeEndpoint, stateCollector.PodResourceChann, stateCollector.GetCollectors())
+		managers = appendManagerIfNotNil(managers, podResourceManager)
 	}
 
 	return &Agent{
@@ -110,4 +115,11 @@ func (a *Agent) Run(healthCheck *metrics.HealthCheck, enableProfiling bool, bind
 
 func getAgentName(nodeName string) string {
 	return nodeName + "_" + string(uuid.NewUUID())
+}
+
+func appendManagerIfNotNil(managers []manager.Manager, m manager.Manager) []manager.Manager {
+	if m != nil {
+		return append(managers, m)
+	}
+	return managers
 }

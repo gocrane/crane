@@ -59,6 +59,7 @@ func (s *StateCollector) Name() string {
 }
 
 func (s *StateCollector) Run(stop <-chan struct{}) {
+	s.UpdateCollectors()
 	go func() {
 		updateTicker := time.NewTicker(s.collectInterval)
 		defer updateTicker.Stop()
