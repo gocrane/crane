@@ -39,7 +39,7 @@ The goal of Crane is to provide a one-stop-shop project to help Kubernetes users
   - Cost Optimization
 - **Enhanced QoS** based on Pod PriorityClass
 
-<img alt="Crane Overview" height="700" src="docs/images/crane-overview.png" width="886"/>
+<img alt="Crane Overview" height="550" src="docs/images/crane-overview.png" width="800"/>
 
 ## Features
 ### Time Series Prediction
