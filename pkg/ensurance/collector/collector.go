@@ -119,7 +119,7 @@ func (s *StateCollector) UpdateCollectors() {
 	}
 	var nodeLocal bool
 	for _, n := range allNeps {
-		if matched, err := utils.LabelSelectorMatched(node.Labels, &n.Spec.Selector); err != nil || !matched {
+		if matched, err := utils.LabelSelectorMatched(node.Labels, n.Spec.Selector); err != nil || !matched {
 			continue
 		}
 
@@ -177,4 +177,16 @@ func (s *StateCollector) StopCollectors() {
 	})
 
 	return
+}
+
+func CheckMetricNameExist(name string) bool {
+	if nodelocal.CheckMetricNameExist(name) {
+		return true
+	}
+
+	if cadvisor.CheckMetricNameExist(name) {
+		return true
+	}
+
+	return false
 }

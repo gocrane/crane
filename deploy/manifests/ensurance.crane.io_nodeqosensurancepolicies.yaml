@@ -84,11 +84,6 @@ spec:
                     required:
                     - port
                     type: object
-                  initialDelaySeconds:
-                    description: InitialDelaySeconds is the init delay time for handler,
-                      the default InitialDelaySeconds is 5s
-                    format: int32
-                    type: integer
                   nodeLocalGet:
                     description: NodeLocalGet specifies how to request node local
                     properties:
@@ -97,13 +92,9 @@ spec:
                         description: the default LocalCacheTTLSeconds is 60s
                         format: int32
                         type: integer
-                      maxHousekeepingIntervalSeconds:
-                        default: 60
-                        description: default is 60s
-                        format: int32
-                        type: integer
                     type: object
                   timeoutSeconds:
+                    default: 1
                     description: TimeoutSeconds is the timeout for request The default
                       value is 1 seconds
                     format: int32
