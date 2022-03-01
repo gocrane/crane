@@ -42,6 +42,21 @@ func GetUint64FromMaps(key string, maps map[string]uint64) uint64 {
 	return 0
 }
 
+func Uint32P(value uint32) *uint32 {
+	var i = value
+	return &i
+}
+
+func Uint64P(value uint64) *uint64 {
+	var i = value
+	return &i
+}
+
+func Int32P(value int32) *int32 {
+	var i = value
+	return &i
+}
+
 const float64EqualityThreshold = 1e-9
 
 func AlmostEqual(a, b float64) bool {

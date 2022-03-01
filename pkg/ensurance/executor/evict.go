@@ -11,16 +11,12 @@ import (
 	"github.com/gocrane/crane/pkg/utils"
 )
 
-const (
-	DefaultDeletionGracePeriodSeconds = 30
-)
-
 type EvictExecutor struct {
 	EvictPods EvictPods
 }
 
 type EvictPod struct {
-	DeletionGracePeriodSeconds int32
+	DeletionGracePeriodSeconds uint32
 	PodKey                     types.NamespacedName
 	ClassAndPriority           ClassAndPriority
 }

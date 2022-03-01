@@ -79,10 +79,10 @@ func (n *NodeLocal) Stop() error {
 	return nil
 }
 
-func CheckMetricNameExist(name types.MetricName) bool {
+func CheckMetricNameExist(name string) bool {
 	for _, v := range nodeLocalMetric {
 		for _, vv := range v {
-			if vv == name {
+			if string(vv) == name {
 				return true
 			}
 		}

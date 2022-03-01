@@ -24,6 +24,14 @@ import (
 	"github.com/gocrane/crane/pkg/utils"
 )
 
+var cadvisorMetrics = []types.MetricName{
+	types.MetricNameContainerCpuTotalUsage,
+	types.MetricNameContainerSchedRunQueueTime,
+	types.MetricNameContainerCpuLimit,
+	types.MetricNameContainerCpuQuota,
+	types.MetricNameContainerCpuPeriod,
+}
+
 type ContainerState struct {
 	stat      cadvisorapiv2.ContainerInfo
 	timestamp time.Time
@@ -208,4 +216,13 @@ func GetContainerLabels(pod *v1.Pod, containerId, containerName string) []common
 		{Name: common.LabelNameContainerName, Value: containerName},
 		{Name: common.LabelNameContainerId, Value: containerId},
 	}
+}
+
+func CheckMetricNameExist(name string) bool {
+	for _, vv := range cadvisorMetrics {
+		if string(vv) == name {
+			return true
+		}
+	}
+	return false
 }

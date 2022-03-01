@@ -21,6 +21,7 @@ import (
 
 	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
+	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
 	"github.com/gocrane/crane/cmd/craned/app/options"
@@ -53,6 +54,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(predictionapi.AddToScheme(scheme))
 	utilruntime.Must(analysisapi.AddToScheme(scheme))
+	utilruntime.Must(ensuranceapi.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 
 }
