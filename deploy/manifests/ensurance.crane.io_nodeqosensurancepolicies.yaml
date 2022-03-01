@@ -94,9 +94,9 @@ spec:
                         type: integer
                     type: object
                   timeoutSeconds:
-                    default: 1
+                    default: 10
                     description: TimeoutSeconds is the timeout for request The default
-                      value is 1 seconds
+                      value is 10 seconds
                     format: int32
                     type: integer
                 type: object
