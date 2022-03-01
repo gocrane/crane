@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/go-echarts/go-echarts/v2 v2.2.4
-	github.com/gocrane/api v0.2.0
+	github.com/gocrane/api v0.0.0-20220301110624-31728eac9aec
 	github.com/google/cadvisor v0.39.2
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/mjibson/go-dsp v0.0.0-20180508042940-11479a337f12
@@ -165,7 +165,6 @@ require (
 )
 
 replace (
-	github.com/gocrane/api => github.com/yan234280533/api v0.0.0-20220228133721-d6e4c6629140
 	github.com/grafana-tools/sdk => github.com/csmarchbanks/sdk v0.0.0-20220120205302-870d00a83f4e
 	golang.org/x/net => github.com/golang/net v0.0.0-20210825183410-e898025ed96a
 	k8s.io/api => k8s.io/api v0.22.3
