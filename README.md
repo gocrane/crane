@@ -25,6 +25,8 @@ Crane (FinOps Crane) is a cloud native open source project which manages cloud r
     - [Analytics and Recommend Pod Resources](#analytics-and-recommend-pod-resources)
     - [Analytics and Recommend HPA](#analytics-and-recommend-hpa)
   - [RoadMap](#roadmap)
+  - [Contributing](#Contributing)
+  - [Code of Conduct](#Code-of-Conduct)
 
 ## Introduction
 
@@ -393,3 +395,9 @@ Something you should know about HPA recommendation:
 ## RoadMap
 Please see [this document](./docs/roadmaps/roadmap-1h-2022.md) to learn more.
 
+## Contributing
+
+Contributors are welcomed to join Crane project. Please check [CONTRIBUTING](./CONTRIBUTING.md) about how to contribute to this project.
+
+## Code of Conduct
+Crane adopts [CNCF Code of Conduct](https://github.com/cncf/foundation/blob/master/code-of-conduct.md).
