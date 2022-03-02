@@ -89,14 +89,13 @@ spec:
                     properties:
                       localCacheTTLSeconds:
                         default: 60
-                        description: the default LocalCacheTTLSeconds is 60s
+                        description: LocalCacheTTLSeconds is the cache expired time.
+                          Defaults to 60
                         format: int32
                         type: integer
                     type: object
                   timeoutSeconds:
-                    default: 10
-                    description: TimeoutSeconds is the timeout for request The default
-                      value is 10 seconds
+                    description: TimeoutSeconds is the timeout for request
                     format: int32
                     type: integer
                 type: object
@@ -106,12 +105,12 @@ spec:
                   description: ObjectiveEnsurance defines the policy that
                   properties:
                     actionName:
-                      description: Avoidance action when be triggered
+                      description: Avoidance action to be executed when the rule triggered
                       type: string
                     avoidanceThreshold:
                       default: 1
                       description: How many times the rule is reach, to trigger avoidance
-                        action, default is 1
+                        action. Defaults to 1. Minimum value is 1.
                       format: int32
                       type: integer
                     metricRule:
@@ -183,14 +182,14 @@ spec:
                       type: string
                     restoreThreshold:
                       default: 1
-                      description: How many times the rule can restore, default is
-                        1
+                      description: How many times the rule can restore. Defaults to
+                        1. Minimum value is 1.
                       format: int32
                       type: integer
                     strategy:
                       default: None
-                      description: Action only preview, not to do the real action
-                        the default AvoidanceActionStrategy is None.
+                      description: Action only preview, not to do the real action.
+                        Default AvoidanceActionStrategy is None.
                       enum:
                       - None
                       - Preview

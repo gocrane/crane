@@ -27,7 +27,6 @@ import (
 	ecache "github.com/gocrane/crane/pkg/ensurance/cache"
 	stypes "github.com/gocrane/crane/pkg/ensurance/collector/types"
 	"github.com/gocrane/crane/pkg/ensurance/executor"
-	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
@@ -244,7 +243,7 @@ func (s *AnormalyAnalyzer) computeActionContext(threshold bool, key string, obje
 		triggered := utils.GetUint64FromMaps(key, s.triggered)
 		triggered++
 		s.triggered[key] = triggered
-		if triggered >= uint64(utils.GetInt32withDefault(object.AvoidanceThreshold, known.DefaultAvoidedThreshold)) {
+		if triggered >= uint64(object.AvoidanceThreshold) {
 			ac.Triggered = true
 		}
 	} else {
@@ -252,7 +251,7 @@ func (s *AnormalyAnalyzer) computeActionContext(threshold bool, key string, obje
 		restored := utils.GetUint64FromMaps(key, s.restored)
 		restored++
 		s.restored[key] = restored
-		if restored >= uint64(utils.GetInt32withDefault(object.RestoreThreshold, known.DefaultRestoredThreshold)) {
+		if restored >= uint64(object.RestoreThreshold) {
 			ac.Restored = true
 		}
 	}
@@ -415,7 +414,7 @@ func (s *AnormalyAnalyzer) getEvictPods(triggered bool, action *ensuranceapi.Avo
 
 		for _, v := range allPods {
 			var classAndPriority = executor.ClassAndPriority{PodQOSClass: v.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(v.Spec.Priority, 0)}
-			evictPods = append(evictPods, executor.EvictPod{DeletionGracePeriodSeconds: uint32(utils.GetInt32withDefault(action.Spec.Eviction.TerminationGracePeriodSeconds, known.DefaultDeletionGracePeriodSeconds)),
+			evictPods = append(evictPods, executor.EvictPod{DeletionGracePeriodSeconds: action.Spec.Eviction.TerminationGracePeriodSeconds,
 				PodKey: types.NamespacedName{Name: v.Name, Namespace: v.Namespace}, ClassAndPriority: classAndPriority})
 		}
 	}
@@ -435,8 +434,8 @@ func (s *AnormalyAnalyzer) disableSchedulingMerge(acsFiltered []ecache.ActionCon
 				klog.Warningf("DoMerge for detection,but the action %s not found", ac.ActionName)
 				continue
 			}
-			var schedulingCoolDown = utils.GetInt32withDefault(action.Spec.CoolDownSeconds, executor.DefaultCoolDownSeconds)
-			if !enableSchedule && now.After(s.lastTriggeredTime.Add(time.Duration(schedulingCoolDown)*time.Second)) {
+
+			if !enableSchedule && now.After(s.lastTriggeredTime.Add(time.Duration(action.Spec.CoolDownSeconds)*time.Second)) {
 				enableSchedule = true
 				return
 			}
@@ -504,7 +503,8 @@ func combineEvictDuplicate(e *executor.EvictExecutor, evictPods executor.EvictPo
 		if i := e.EvictPods.Find(ep.PodKey); i == -1 {
 			e.EvictPods = append(e.EvictPods, ep)
 		} else {
-			if ep.DeletionGracePeriodSeconds < e.EvictPods[i].DeletionGracePeriodSeconds {
+			if (ep.DeletionGracePeriodSeconds != nil) && ((e.EvictPods[i].DeletionGracePeriodSeconds == nil) ||
+				(*(e.EvictPods[i].DeletionGracePeriodSeconds) > *(ep.DeletionGracePeriodSeconds))) {
 				e.EvictPods[i].DeletionGracePeriodSeconds = ep.DeletionGracePeriodSeconds
 			}
 		}

@@ -132,12 +132,18 @@ func validateObjectiveEnsurances(objects []ensuranceapi.ObjectiveEnsurance, fldP
 			}
 		}
 
-		if obj.AvoidanceThreshold != nil {
-			allErrs = append(allErrs, genericvalidation.ValidateNonnegativeField(int64(*obj.AvoidanceThreshold), idxPath.Child("avoidanceThreshold"))...)
+		if obj.AvoidanceThreshold == 0 {
+			allErrs = append(allErrs, field.Invalid(idxPath.Child("avoidanceThreshold"),
+				obj.AvoidanceThreshold, fmt.Sprintf("AvoidanceThreshold can not be zero, you can set it %d as dafault.", known.DefaultAvoidedThreshold)))
+		} else {
+			allErrs = append(allErrs, genericvalidation.ValidateNonnegativeField(int64(obj.AvoidanceThreshold), idxPath.Child("avoidanceThreshold"))...)
 		}
 
-		if obj.RestoreThreshold != nil {
-			allErrs = append(allErrs, genericvalidation.ValidateNonnegativeField(int64(*obj.RestoreThreshold), idxPath.Child("restoreThreshold"))...)
+		if obj.RestoreThreshold == 0 {
+			allErrs = append(allErrs, field.Invalid(idxPath.Child("restoreThreshold"),
+				obj.AvoidanceThreshold, fmt.Sprintf("RestoreThreshold can not be zero, you can set it %d as dafault.", known.DefaultRestoredThreshold)))
+		} else {
+			allErrs = append(allErrs, genericvalidation.ValidateNonnegativeField(int64(obj.RestoreThreshold), idxPath.Child("restoreThreshold"))...)
 		}
 
 		if obj.MetricRule == nil {
@@ -221,8 +227,10 @@ func (p *ActionValidationAdmission) ValidateCreate(ctx context.Context, req runt
 func validateAvoidanceActionSpec(spec ensuranceapi.AvoidanceActionSpec, fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
-	if spec.CoolDownSeconds != nil {
-		allErrs = append(allErrs, genericvalidation.ValidateNonnegativeField(int64(*spec.CoolDownSeconds), fldPath.Child("coolDownSeconds"))...)
+	if spec.CoolDownSeconds == 0 {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("coolDownSeconds"), spec.CoolDownSeconds, fmt.Sprintf("CoolDownSeconds can not be zero, you can set it %d as dafault.", known.DefaultCoolDownSeconds)))
+	} else {
+		allErrs = append(allErrs, genericvalidation.ValidateNonnegativeField(int64(spec.CoolDownSeconds), fldPath.Child("coolDownSeconds"))...)
 	}
 
 	if spec.Throttle != nil {

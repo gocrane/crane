@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	MaxUpQuota            = 60 * 1000 // 60CU
+	MaxUpQuota          = 60 * 1000 // 60CU
 	CpuQuotaCoefficient = 1000.0
 	MaxRatio            = 100.0
 )
