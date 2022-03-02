@@ -159,23 +159,23 @@ func (s *AnormalyAnalyzer) Analyze(state map[string][]common.TimeSeries) {
 	}
 
 	// step 2: do analyze for neps
-	var dcs []ecache.DetectionCondition
+	var actionContexts []ecache.ActionContext
 	for _, n := range neps {
 		for _, v := range n.Spec.ObjectiveEnsurances {
 			var key = strings.Join([]string{n.Name, v.Name}, ".")
-			detection, err := s.analyze(key, v, state)
+			ac, err := s.analyze(key, v, state)
 			if err != nil {
 				klog.Errorf("Failed to analyze, %v.", err)
 			}
-			detection.Nep = n
-			dcs = append(dcs, detection)
+			ac.Nep = n
+			actionContexts = append(actionContexts, ac)
 		}
 	}
 
-	klog.V(6).Infof("Analyze dcs: %v", dcs)
+	klog.V(6).Infof("Analyze actionContexts: %v", actionContexts)
 
 	//step 3 : merge
-	avoidanceAction := s.merge(state, avoidanceMaps, dcs)
+	avoidanceAction := s.merge(state, avoidanceMaps, actionContexts)
 	if err != nil {
 		klog.Errorf("Failed to merge, %v.", err)
 		return
@@ -187,341 +187,134 @@ func (s *AnormalyAnalyzer) Analyze(state map[string][]common.TimeSeries) {
 	return
 }
 
-func (s *AnormalyAnalyzer) analyze(key string, object ensuranceapi.ObjectiveEnsurance, stateMap map[string][]common.TimeSeries) (ecache.DetectionCondition, error) {
-	var dc = ecache.DetectionCondition{Strategy: object.Strategy, ObjectiveEnsuranceName: object.Name, ActionName: object.AvoidanceActionName}
-	state, ok := stateMap[object.MetricRule.Name]
-	if !ok {
-		return dc, fmt.Errorf("metric %s not found", object.MetricRule.Name)
+func (s *AnormalyAnalyzer) getSeries(state []common.TimeSeries, selector *metav1.LabelSelector, metricName string) ([]common.TimeSeries, error) {
+	series := s.getTimeSeriesFromMap(state, selector)
+	if len(series) == 0 {
+		return []common.TimeSeries{}, fmt.Errorf("time series length is 0 for metric %s", metricName)
 	}
-	if strings.HasPrefix(object.MetricRule.Name, "container") {
-		//step1: get series from value
-
-		series := s.getTimeSeriesFromMap(state, object.MetricRule.Selector)
-
-		if len(series) == 0 {
-			return dc, fmt.Errorf("time series len is 0 for metric %s", object.MetricRule.Name)
-		}
-
-		var basicThrottleQosPriority = executor.ClassAndPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
-
-		var impacted []types.NamespacedName
-		var threshold bool
-
-		for _, ts := range series {
-			triggered := s.evaluator.EvalWithMetric(object.MetricRule.Name, float64(object.MetricRule.Value.Value()), ts.Samples[0].Value)
-
-			klog.V(6).Infof("Anormaly detection result %v, Name: %s, Value: %.2f, %s/%s", triggered,
-				object.MetricRule.Name,
-				ts.Samples[0].Value,
-				common.GetValueByName(ts.Labels, common.LabelNamePodNamespace),
-				common.GetValueByName(ts.Labels, common.LabelNamePodName))
-
-			if !triggered {
-				continue
-			}
-
-			if (common.GetValueByName(ts.Labels, common.LabelNamePodName) != "") &&
-				(common.GetValueByName(ts.Labels, common.LabelNamePodNamespace) != "") {
-				pod, err := s.podLister.Pods(common.GetValueByName(ts.Labels, common.LabelNamePodNamespace)).Get(common.GetValueByName(ts.Labels, common.LabelNamePodName))
-				if err != nil {
-					klog.V(4).Infof("Warning: analyze: Pod %s/%s not found", common.GetValueByName(ts.Labels, common.LabelNamePodNamespace), common.GetValueByName(ts.Labels, common.LabelNamePodName))
-					continue
-				} else {
-					var qosPriority = executor.ClassAndPriority{PodQOSClass: pod.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(pod.Spec.Priority, 0)}
-					if qosPriority.Greater(basicThrottleQosPriority) {
-						impacted = append(impacted, types.NamespacedName{Name: common.GetValueByName(ts.Labels, common.LabelNamePodName),
-							Namespace: common.GetValueByName(ts.Labels, common.LabelNamePodNamespace)})
-						threshold = true
-					}
-				}
-			} else {
-				// node metrics
-				klog.Infof("PodName or PodNamespace is empty")
-				threshold = true
-			}
-		}
-
-		klog.V(4).Infof("DoAnalyze: key %s, threshold %v", key, threshold)
-
-		//step3: check is triggered action or restored, set the detection
-		if threshold {
-			s.restored[key] = 0
-			triggered := utils.GetUint64FromMaps(key, s.triggered)
-			triggered++
-			s.triggered[key] = triggered
-			if triggered >= uint64(utils.GetInt32withDefault(object.AvoidanceThreshold, known.DefaultAvoidedThreshold)) {
-				dc.Triggered = true
-				dc.BeInfluencedPods = impacted
-			}
-		} else {
-			s.triggered[key] = 0
-			restored := utils.GetUint64FromMaps(key, s.restored)
-			restored++
-			s.restored[key] = restored
-			if restored >= uint64(utils.GetInt32withDefault(object.RestoreThreshold, known.DefaultRestoredThreshold)) {
-				dc.Restored = true
-			}
-		}
-
-	} else {
-
-		//step1: get metric value
-		value, err := s.getMetricFromMap(object.MetricRule.Name, state, object.MetricRule.Selector)
-		if err != nil {
-			return dc, err
-		}
-
-		//step2: use opa to check if triggered
-		triggered := s.evaluator.EvalWithMetric(object.MetricRule.Name, float64(object.MetricRule.Value.Value()), value)
-
-		//step3: check is triggered action or restored, set the detection
-		if triggered {
-			s.restored[key] = 0
-			triggered := utils.GetUint64FromMaps(key, s.triggered)
-			triggered++
-			s.triggered[key] = triggered
-			if triggered >= uint64(utils.GetInt32withDefault(object.AvoidanceThreshold, known.DefaultAvoidedThreshold)) {
-				dc.Triggered = true
-			}
-		} else {
-			s.triggered[key] = 0
-			restored := utils.GetUint64FromMaps(key, s.restored)
-			restored++
-			s.restored[key] = restored
-			if restored >= uint64(utils.GetInt32withDefault(object.RestoreThreshold, known.DefaultRestoredThreshold)) {
-				dc.Restored = true
-			}
-		}
-	}
-
-	return dc, nil
+	return series, nil
 }
 
-func (s *AnormalyAnalyzer) merge(stateMap map[string][]common.TimeSeries, avoidanceMaps map[string]*ensuranceapi.AvoidanceAction, dcs []ecache.DetectionCondition) executor.AvoidanceExecutor {
-	var now = time.Now()
+func (s *AnormalyAnalyzer) trigger(series []common.TimeSeries, object ensuranceapi.ObjectiveEnsurance) bool {
+	var triggered, threshold bool
+	for _, ts := range series {
+		triggered = s.evaluator.EvalWithMetric(object.MetricRule.Name, float64(object.MetricRule.Value.Value()), ts.Samples[0].Value)
 
-	//step1 filter dry run detections
-	var dcsFiltered []ecache.DetectionCondition
-	for _, dc := range dcs {
-		s.logEvent(dc, now)
-		if !(dc.Strategy == ensuranceapi.AvoidanceActionStrategyPreview) {
-			dcsFiltered = append(dcsFiltered, dc)
+		klog.V(6).Infof("Anormaly detection result %v, Name: %s, Value: %.2f, %s/%s", triggered,
+			object.MetricRule.Name,
+			ts.Samples[0].Value,
+			common.GetValueByName(ts.Labels, common.LabelNamePodNamespace),
+			common.GetValueByName(ts.Labels, common.LabelNamePodName))
+
+		if triggered {
+			threshold = true
 		}
 	}
+	return threshold
+}
 
+func (s *AnormalyAnalyzer) analyze(key string, object ensuranceapi.ObjectiveEnsurance, stateMap map[string][]common.TimeSeries) (ecache.ActionContext, error) {
+	var ac = ecache.ActionContext{Strategy: object.Strategy, ObjectiveEnsuranceName: object.Name, ActionName: object.AvoidanceActionName}
+
+	state, ok := stateMap[object.MetricRule.Name]
+	if !ok {
+		return ac, fmt.Errorf("metric %s not found", object.MetricRule.Name)
+	}
+
+	//step1: get series from value
+	series, err := s.getSeries(state, object.MetricRule.Selector, object.MetricRule.Name)
+	if err != nil {
+		return ac, err
+	}
+
+	//step2: check if triggered for NodeQOSEnsurance
+	threshold := s.trigger(series, object)
+
+	klog.V(4).Infof("for NodeQOS %s, metrics reach the threshold: %v", key, threshold)
+
+	//step3: check is triggered action or restored, set the detection
+	s.computeActionContext(threshold, key, object, &ac)
+
+	return ac, nil
+}
+
+func (s *AnormalyAnalyzer) computeActionContext(threshold bool, key string, object ensuranceapi.ObjectiveEnsurance, ac *ecache.ActionContext) {
+	if threshold {
+		s.restored[key] = 0
+		triggered := utils.GetUint64FromMaps(key, s.triggered)
+		triggered++
+		s.triggered[key] = triggered
+		if triggered >= uint64(utils.GetInt32withDefault(object.AvoidanceThreshold, known.DefaultAvoidedThreshold)) {
+			ac.Triggered = true
+		}
+	} else {
+		s.triggered[key] = 0
+		restored := utils.GetUint64FromMaps(key, s.restored)
+		restored++
+		s.restored[key] = restored
+		if restored >= uint64(utils.GetInt32withDefault(object.RestoreThreshold, known.DefaultRestoredThreshold)) {
+			ac.Restored = true
+		}
+	}
+}
+
+func (s *AnormalyAnalyzer) filterDryRun(acs []ecache.ActionContext) []ecache.ActionContext {
+	var dcsFiltered []ecache.ActionContext
+	now := time.Now()
+	for _, ac := range acs {
+		s.logEvent(ac, now)
+		if !(ac.Strategy == ensuranceapi.AvoidanceActionStrategyPreview) {
+			dcsFiltered = append(dcsFiltered, ac)
+		}
+	}
+	return dcsFiltered
+}
+
+func (s *AnormalyAnalyzer) merge(stateMap map[string][]common.TimeSeries, avoidanceMaps map[string]*ensuranceapi.AvoidanceAction, acs []ecache.ActionContext) executor.AvoidanceExecutor {
 	var ae executor.AvoidanceExecutor
 
+	//step1 filter dry run ActionContext
+	acsFiltered := s.filterDryRun(acs)
+
 	//step2 do DisableScheduled merge
-	var disableSchedule bool
-	var enableSchedule bool
-	for _, dc := range dcsFiltered {
-		if dc.Triggered {
-			disableSchedule = true
-			enableSchedule = false
+	enableSchedule := s.disableSchedulingMerge(acsFiltered, avoidanceMaps, &ae)
+
+	for _, ac := range acsFiltered {
+		action, ok := avoidanceMaps[ac.ActionName]
+		if !ok {
+			klog.Warningf("The action %s not found.", ac.ActionName)
+			continue
 		}
-	}
 
-	if disableSchedule {
-		ae.ScheduleExecutor.DisableClassAndPriority = &executor.ClassAndPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
-		s.lastTriggeredTime = now
-	} else {
-		if len(dcsFiltered) == 0 {
-			enableSchedule = true
-		} else {
-			for _, dc := range dcsFiltered {
-				action, ok := avoidanceMaps[dc.ActionName]
-				if !ok {
-					klog.Warningf("DoMerge for detection,but the action %s not found", dc.ActionName)
-					continue
-				}
-
-				if dc.Restored {
-					if now.After(s.lastTriggeredTime.Add(time.Duration(utils.GetInt32withDefault(action.Spec.CoolDownSeconds, known.DefaultCoolDownSeconds)) * time.Second)) {
-						enableSchedule = true
-						break
-					}
-				}
-			}
+		//step3 get and deduplicate throttlePods, throttleUpPods
+		if action.Spec.Throttle != nil {
+			throttlePods, throttleUpPods := s.getThrottlePods(enableSchedule, ac, action, stateMap)
+			// combine the replicated pod
+			combineThrottleDuplicate(&ae.ThrottleExecutor, throttlePods, throttleUpPods)
 		}
-	}
 
-	if enableSchedule {
-		ae.ScheduleExecutor.RestoreClassAndPriority = &executor.ClassAndPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
-	}
-
-	//step3 do Throttle merge FilterAndSortThrottlePods
-	var throttlePods executor.ThrottlePods
-	for _, dc := range dcsFiltered {
-		if dc.Triggered {
-			action, ok := avoidanceMaps[dc.ActionName]
-			if !ok {
-				klog.Warningf("The action %s not found.", dc.ActionName)
-				continue
-			}
-
-			if action.Spec.Throttle != nil {
-				var basicThrottleQosPriority executor.ClassAndPriority
-				if len(dc.BeInfluencedPods) > 0 {
-					_, beInfluencedPodPriority := executor.GetMaxQOSPriority(s.podLister, dc.BeInfluencedPods)
-					if beInfluencedPodPriority.Greater(basicThrottleQosPriority) {
-						basicThrottleQosPriority = beInfluencedPodPriority
-					}
-				} else {
-					basicThrottleQosPriority = executor.ClassAndPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
-				}
-
-				allPods, err := s.podLister.List(labels.Everything())
-				if err != nil {
-					klog.Errorf("Failed to list all pods: %v", err)
-					continue
-				}
-
-				for _, pod := range allPods {
-
-					var qosPriority = executor.ClassAndPriority{PodQOSClass: pod.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(pod.Spec.Priority, 0)}
-					if !qosPriority.Greater(basicThrottleQosPriority) {
-						var throttlePod executor.ThrottlePod
-						throttlePod.PodTypes = types.NamespacedName{Namespace: pod.Namespace, Name: pod.Name}
-						throttlePod.CPUThrottle.MinCPURatio = uint64(action.Spec.Throttle.CPUThrottle.MinCPURatio)
-						throttlePod.CPUThrottle.StepCPURatio = uint64(action.Spec.Throttle.CPUThrottle.StepCPURatio)
-
-						throttlePod.PodCPUUsage, throttlePod.ContainerCPUUsages = s.getPodUsage(string(stypes.MetricNameContainerCpuTotalUsage), stateMap, pod)
-						throttlePod.PodCPUShare, throttlePod.ContainerCPUShares = s.getPodUsage(string(stypes.MetricNameContainerCpuLimit), stateMap, pod)
-						throttlePod.PodCPUQuota, throttlePod.ContainerCPUQuotas = s.getPodUsage(string(stypes.MetricNameContainerCpuQuota), stateMap, pod)
-						throttlePod.PodCPUPeriod, throttlePod.ContainerCPUPeriods = s.getPodUsage(string(stypes.MetricNameContainerCpuPeriod), stateMap, pod)
-						throttlePod.PodQOSPriority = qosPriority
-						throttlePods = append(throttlePods, throttlePod)
-					}
-				}
-			}
-		}
-	}
-
-	// combine the replicated pod
-	for _, t := range throttlePods {
-		if i := ae.ThrottleExecutor.ThrottleDownPods.Find(t.PodTypes); i == -1 {
-			ae.ThrottleExecutor.ThrottleDownPods = append(ae.ThrottleExecutor.ThrottleDownPods, t)
-		} else {
-			if t.CPUThrottle.MinCPURatio > ae.ThrottleExecutor.ThrottleDownPods[i].CPUThrottle.MinCPURatio {
-				ae.ThrottleExecutor.ThrottleDownPods[i].CPUThrottle.MinCPURatio = t.CPUThrottle.MinCPURatio
-			}
-
-			if t.CPUThrottle.StepCPURatio > ae.ThrottleExecutor.ThrottleDownPods[i].CPUThrottle.StepCPURatio {
-				ae.ThrottleExecutor.ThrottleDownPods[i].CPUThrottle.StepCPURatio = t.CPUThrottle.StepCPURatio
-			}
+		//step4 get and deduplicate evictPods
+		if action.Spec.Eviction != nil {
+			evictPods := s.getEvictPods(ac.Triggered, action)
+			// combine the replicated pod
+			combineEvictDuplicate(&ae.EvictExecutor, evictPods)
 		}
 	}
 
 	// sort the throttle executor by pod qos priority
 	sort.Sort(ae.ThrottleExecutor.ThrottleDownPods)
+	sort.Sort(sort.Reverse(ae.ThrottleExecutor.ThrottleUpPods))
 
-	if enableSchedule {
-		var throttleUpPods executor.ThrottlePods
-
-		for _, dc := range dcsFiltered {
-			if dc.Restored {
-				action, ok := avoidanceMaps[dc.ActionName]
-				if !ok {
-					klog.Warningf("DoMerge for detection,but the action %s not found", dc.ActionName)
-					continue
-				}
-
-				if action.Spec.Throttle != nil {
-					allPods, err := s.podLister.List(labels.Everything())
-					if err != nil {
-						klog.Errorf("Failed to list all pods: %v", err)
-						continue
-					}
-
-					for _, pod := range allPods {
-						var qosPriority = executor.ClassAndPriority{PodQOSClass: pod.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(pod.Spec.Priority, 0)}
-						var throttlePod executor.ThrottlePod
-						throttlePod.PodTypes = types.NamespacedName{Namespace: pod.Namespace, Name: pod.Name}
-						throttlePod.CPUThrottle.MinCPURatio = uint64(action.Spec.Throttle.CPUThrottle.MinCPURatio)
-						throttlePod.CPUThrottle.StepCPURatio = uint64(action.Spec.Throttle.CPUThrottle.StepCPURatio)
-						throttlePod.PodCPUUsage, throttlePod.ContainerCPUUsages = s.getPodUsage(string(stypes.MetricNameContainerCpuTotalUsage), stateMap, pod)
-						throttlePod.PodCPUShare, throttlePod.ContainerCPUShares = s.getPodUsage(string(stypes.MetricNameContainerCpuLimit), stateMap, pod)
-						throttlePod.PodCPUQuota, throttlePod.ContainerCPUQuotas = s.getPodUsage(string(stypes.MetricNameContainerCpuQuota), stateMap, pod)
-						throttlePod.PodCPUPeriod, throttlePod.ContainerCPUPeriods = s.getPodUsage(string(stypes.MetricNameContainerCpuPeriod), stateMap, pod)
-						throttlePod.PodQOSPriority = qosPriority
-						throttleUpPods = append(throttleUpPods, throttlePod)
-					}
-				}
-			}
-		}
-
-		// combine the replicated pod
-		for _, t := range throttleUpPods {
-
-			if i := ae.ThrottleExecutor.ThrottleUpPods.Find(t.PodTypes); i == -1 {
-				ae.ThrottleExecutor.ThrottleUpPods = append(ae.ThrottleExecutor.ThrottleUpPods, t)
-			} else {
-				if t.CPUThrottle.MinCPURatio > ae.ThrottleExecutor.ThrottleUpPods[i].CPUThrottle.MinCPURatio {
-					ae.ThrottleExecutor.ThrottleUpPods[i].CPUThrottle.MinCPURatio = t.CPUThrottle.MinCPURatio
-				}
-
-				if t.CPUThrottle.StepCPURatio > ae.ThrottleExecutor.ThrottleUpPods[i].CPUThrottle.StepCPURatio {
-					ae.ThrottleExecutor.ThrottleUpPods[i].CPUThrottle.StepCPURatio = t.CPUThrottle.StepCPURatio
-				}
-			}
-		}
-
-		// sort the throttle executor by pod qos priority()
-		sort.Sort(sort.Reverse(ae.ThrottleExecutor.ThrottleUpPods))
-	}
-
-	//step4 do Evict merge  FilterAndSortEvictPods
-	var basicEvictQosPriority = executor.ClassAndPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
-	var evictPods executor.EvictPods
-	for _, dc := range dcsFiltered {
-		if dc.Triggered {
-			action, ok := avoidanceMaps[dc.ActionName]
-			if !ok {
-				klog.Warningf("DoMerge for detection,but the action %s not found", dc.ActionName)
-				continue
-			}
-
-			if action.Spec.Eviction != nil {
-				allPods, err := s.podLister.List(labels.Everything())
-				if err != nil {
-					klog.Errorf("Failed to list all pods: %v.", err)
-					continue
-				}
-
-				for _, v := range allPods {
-					var classAndPriority = executor.ClassAndPriority{PodQOSClass: v.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(v.Spec.Priority, 0)}
-					if !classAndPriority.Greater(basicEvictQosPriority) {
-						evictPods = append(evictPods, executor.EvictPod{DeletionGracePeriodSeconds: uint32(utils.GetInt32withDefault(action.Spec.Eviction.TerminationGracePeriodSeconds, known.DefaultDeletionGracePeriodSeconds)),
-							PodKey: types.NamespacedName{Name: v.Name, Namespace: v.Namespace}, ClassAndPriority: classAndPriority})
-					}
-				}
-			}
-		}
-	}
-
-	// remove the replicated pod
-	for _, e := range evictPods {
-		if i := ae.EvictExecutor.EvictPods.Find(e.PodKey); i == -1 {
-			ae.EvictExecutor.EvictPods = append(ae.EvictExecutor.EvictPods, e)
-		} else {
-			if e.DeletionGracePeriodSeconds < ae.EvictExecutor.EvictPods[i].DeletionGracePeriodSeconds {
-				ae.EvictExecutor.EvictPods[i].DeletionGracePeriodSeconds = e.DeletionGracePeriodSeconds
-			} else {
-				// nothing to do,replicated filter the evictPod
-			}
-		}
-	}
-
-	// sort the evicting executor by pod qos priority
+	// sort the evict executor by pod qos priority
 	sort.Sort(ae.EvictExecutor.EvictPods)
 
 	return ae
 }
 
-func (s *AnormalyAnalyzer) logEvent(dc ecache.DetectionCondition, now time.Time) {
-	var key = strings.Join([]string{dc.Nep.Name, dc.ObjectiveEnsuranceName}, "/")
+func (s *AnormalyAnalyzer) logEvent(ac ecache.ActionContext, now time.Time) {
+	var key = strings.Join([]string{ac.Nep.Name, ac.ObjectiveEnsuranceName}, "/")
 
-	if !(dc.Triggered || dc.Restored) {
+	if !(ac.Triggered || ac.Restored) {
 		return
 	}
 
@@ -529,39 +322,24 @@ func (s *AnormalyAnalyzer) logEvent(dc ecache.DetectionCondition, now time.Time)
 
 	//step1 print log if the detection state is changed
 	//step2 produce event
-	if dc.Triggered {
-		klog.V(4).Infof("LOG: %s triggered action %s", key, dc.ActionName)
+	if ac.Triggered {
+		klog.V(4).Infof("LOG: %s triggered action %s", key, ac.ActionName)
 
 		// record an event about the objective ensurance triggered
-		s.recorder.Event(nodeRef, v1.EventTypeWarning, "AvoidanceTriggered", fmt.Sprintf("%s triggered action %s", key, dc.ActionName))
+		s.recorder.Event(nodeRef, v1.EventTypeWarning, "AvoidanceTriggered", fmt.Sprintf("%s triggered action %s", key, ac.ActionName))
 		s.actionEventStatus[key] = ecache.DetectionStatus{IsTriggered: true, LastTime: now}
 	}
 
-	if dc.Restored {
-		if s.actionTriggered(dc) {
-			klog.V(4).Infof("LOG: %s restored action %s", key, dc.ActionName)
+	if ac.Restored {
+		if s.actionTriggered(ac) {
+			klog.V(4).Infof("LOG: %s restored action %s", key, ac.ActionName)
 			// record an event about the objective ensurance restored
-			s.recorder.Event(nodeRef, v1.EventTypeNormal, "RestoreTriggered", fmt.Sprintf("%s restored action %s", key, dc.ActionName))
+			s.recorder.Event(nodeRef, v1.EventTypeNormal, "RestoreTriggered", fmt.Sprintf("%s restored action %s", key, ac.ActionName))
 			s.actionEventStatus[key] = ecache.DetectionStatus{IsTriggered: false, LastTime: now}
 		}
 	}
 
 	return
-}
-
-func (s *AnormalyAnalyzer) getMetricFromMap(metricName string, state []common.TimeSeries, selector *metav1.LabelSelector) (float64, error) {
-	// step1: get the value from map
-	for _, vv := range state {
-		if matched, err := utils.LabelSelectorMatched(common.Labels2Maps(vv.Labels), selector); err != nil {
-			return 0, err
-		} else if !matched {
-			continue
-		} else {
-			return vv.Samples[0].Value, nil
-		}
-	}
-
-	return 0, fmt.Errorf("metricName %s not found value", metricName)
 }
 
 func (s *AnormalyAnalyzer) getTimeSeriesFromMap(state []common.TimeSeries, selector *metav1.LabelSelector) []common.TimeSeries {
@@ -588,11 +366,11 @@ func (s *AnormalyAnalyzer) notify(as executor.AvoidanceExecutor) {
 	return
 }
 
-func (s *AnormalyAnalyzer) actionTriggered(dc ecache.DetectionCondition) bool {
-	var key = strings.Join([]string{dc.Nep.Name, dc.ObjectiveEnsuranceName}, "/")
+func (s *AnormalyAnalyzer) actionTriggered(ac ecache.ActionContext) bool {
+	var key = strings.Join([]string{ac.Nep.Name, ac.ObjectiveEnsuranceName}, "/")
 
 	if v, ok := s.actionEventStatus[key]; ok {
-		if dc.Restored {
+		if ac.Restored {
 			if v.IsTriggered {
 				return true
 			}
@@ -602,25 +380,133 @@ func (s *AnormalyAnalyzer) actionTriggered(dc ecache.DetectionCondition) bool {
 	return false
 }
 
-func (s *AnormalyAnalyzer) getPodUsage(metricName string, stateMap map[string][]common.TimeSeries, pod *v1.Pod) (float64, []executor.ContainerUsage) {
-	var podUsage = 0.0
-	var containerUsages []executor.ContainerUsage
-	var podMaps = map[string]string{common.LabelNamePodName: pod.Name, common.LabelNamePodNamespace: pod.Namespace, common.LabelNamePodUid: string(pod.UID)}
-	state, ok := stateMap[metricName]
-	if !ok {
-		return podUsage, containerUsages
+func (s *AnormalyAnalyzer) getThrottlePods(enableSchedule bool, ac ecache.ActionContext,
+	action *ensuranceapi.AvoidanceAction, stateMap map[string][]common.TimeSeries) ([]executor.ThrottlePod, []executor.ThrottlePod) {
+
+	throttlePods, throttleUpPods := []executor.ThrottlePod{}, []executor.ThrottlePod{}
+
+	allPods, err := s.podLister.List(labels.Everything())
+	if err != nil {
+		klog.Errorf("Failed to list all pods: %v", err)
+		return throttlePods, throttleUpPods
 	}
-	for _, vv := range state {
-		var labelMaps = common.Labels2Maps(vv.Labels)
-		if utils.ContainMaps(labelMaps, podMaps) {
-			if labelMaps[common.LabelNameContainerId] == "" {
-				podUsage = vv.Samples[0].Value
-			} else {
-				containerUsages = append(containerUsages, executor.ContainerUsage{ContainerId: labelMaps[common.LabelNameContainerId],
-					ContainerName: labelMaps[common.LabelNameContainerName], Value: vv.Samples[0].Value})
+
+	for _, pod := range allPods {
+		if ac.Triggered {
+			throttlePods = append(throttlePods, throttlePodConstruct(pod, stateMap, action))
+		}
+		if enableSchedule && ac.Restored {
+			throttleUpPods = append(throttleUpPods, throttlePodConstruct(pod, stateMap, action))
+		}
+	}
+
+	return throttlePods, throttleUpPods
+}
+
+func (s *AnormalyAnalyzer) getEvictPods(triggered bool, action *ensuranceapi.AvoidanceAction) []executor.EvictPod {
+	evictPods := []executor.EvictPod{}
+
+	if triggered {
+		allPods, err := s.podLister.List(labels.Everything())
+		if err != nil {
+			klog.Errorf("Failed to list all pods: %v.", err)
+			return evictPods
+		}
+
+		for _, v := range allPods {
+			var classAndPriority = executor.ClassAndPriority{PodQOSClass: v.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(v.Spec.Priority, 0)}
+			evictPods = append(evictPods, executor.EvictPod{DeletionGracePeriodSeconds: uint32(utils.GetInt32withDefault(action.Spec.Eviction.TerminationGracePeriodSeconds, known.DefaultDeletionGracePeriodSeconds)),
+				PodKey: types.NamespacedName{Name: v.Name, Namespace: v.Namespace}, ClassAndPriority: classAndPriority})
+		}
+	}
+	return evictPods
+}
+
+func (s *AnormalyAnalyzer) disableSchedulingMerge(acsFiltered []ecache.ActionContext, avoidanceMaps map[string]*ensuranceapi.AvoidanceAction, ae *executor.AvoidanceExecutor) (enableSchedule bool) {
+	var now = time.Now()
+	enableSchedule = false
+	for _, ac := range acsFiltered {
+		if ac.Triggered {
+			enableSchedule = false
+		}
+		if ac.Restored {
+			action, ok := avoidanceMaps[ac.ActionName]
+			if !ok {
+				klog.Warningf("DoMerge for detection,but the action %s not found", ac.ActionName)
+				continue
+			}
+			var schedulingCoolDown = utils.GetInt32withDefault(action.Spec.CoolDownSeconds, executor.DefaultCoolDownSeconds)
+			if !enableSchedule && now.After(s.lastTriggeredTime.Add(time.Duration(schedulingCoolDown)*time.Second)) {
+				enableSchedule = true
+				return
 			}
 		}
 	}
 
-	return podUsage, containerUsages
+	if enableSchedule {
+		ae.ScheduleExecutor.RestoreClassAndPriority = &executor.ClassAndPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
+	} else {
+		ae.ScheduleExecutor.DisableClassAndPriority = &executor.ClassAndPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
+	}
+	s.lastTriggeredTime = now
+	return
+}
+
+func throttlePodConstruct(pod *v1.Pod, stateMap map[string][]common.TimeSeries, action *ensuranceapi.AvoidanceAction) executor.ThrottlePod {
+	var throttlePod executor.ThrottlePod
+	var qosPriority = executor.ClassAndPriority{PodQOSClass: pod.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(pod.Spec.Priority, 0)}
+
+	throttlePod.PodTypes = types.NamespacedName{Namespace: pod.Namespace, Name: pod.Name}
+	throttlePod.CPUThrottle.MinCPURatio = uint64(action.Spec.Throttle.CPUThrottle.MinCPURatio)
+	throttlePod.CPUThrottle.StepCPURatio = uint64(action.Spec.Throttle.CPUThrottle.StepCPURatio)
+
+	throttlePod.PodCPUUsage, throttlePod.ContainerCPUUsages = executor.GetPodUsage(string(stypes.MetricNameContainerCpuTotalUsage), stateMap, pod)
+	throttlePod.PodCPUShare, throttlePod.ContainerCPUShares = executor.GetPodUsage(string(stypes.MetricNameContainerCpuLimit), stateMap, pod)
+	throttlePod.PodCPUQuota, throttlePod.ContainerCPUQuotas = executor.GetPodUsage(string(stypes.MetricNameContainerCpuQuota), stateMap, pod)
+	throttlePod.PodCPUPeriod, throttlePod.ContainerCPUPeriods = executor.GetPodUsage(string(stypes.MetricNameContainerCpuPeriod), stateMap, pod)
+	throttlePod.PodQOSPriority = qosPriority
+
+	return throttlePod
+}
+
+func combineThrottleDuplicate(e *executor.ThrottleExecutor, throttlePods, throttleUpPods executor.ThrottlePods) {
+	for _, t := range throttlePods {
+		if i := e.ThrottleDownPods.Find(t.PodTypes); i == -1 {
+			e.ThrottleDownPods = append(e.ThrottleDownPods, t)
+		} else {
+			if t.CPUThrottle.MinCPURatio > e.ThrottleDownPods[i].CPUThrottle.MinCPURatio {
+				e.ThrottleDownPods[i].CPUThrottle.MinCPURatio = t.CPUThrottle.MinCPURatio
+			}
+
+			if t.CPUThrottle.StepCPURatio > e.ThrottleDownPods[i].CPUThrottle.StepCPURatio {
+				e.ThrottleDownPods[i].CPUThrottle.StepCPURatio = t.CPUThrottle.StepCPURatio
+			}
+		}
+	}
+	for _, t := range throttleUpPods {
+
+		if i := e.ThrottleUpPods.Find(t.PodTypes); i == -1 {
+			e.ThrottleUpPods = append(e.ThrottleUpPods, t)
+		} else {
+			if t.CPUThrottle.MinCPURatio > e.ThrottleUpPods[i].CPUThrottle.MinCPURatio {
+				e.ThrottleUpPods[i].CPUThrottle.MinCPURatio = t.CPUThrottle.MinCPURatio
+			}
+
+			if t.CPUThrottle.StepCPURatio > e.ThrottleUpPods[i].CPUThrottle.StepCPURatio {
+				e.ThrottleUpPods[i].CPUThrottle.StepCPURatio = t.CPUThrottle.StepCPURatio
+			}
+		}
+	}
+}
+
+func combineEvictDuplicate(e *executor.EvictExecutor, evictPods executor.EvictPods) {
+	for _, ep := range evictPods {
+		if i := e.EvictPods.Find(ep.PodKey); i == -1 {
+			e.EvictPods = append(e.EvictPods, ep)
+		} else {
+			if ep.DeletionGracePeriodSeconds < e.EvictPods[i].DeletionGracePeriodSeconds {
+				e.EvictPods[i].DeletionGracePeriodSeconds = ep.DeletionGracePeriodSeconds
+			}
+		}
+	}
 }
