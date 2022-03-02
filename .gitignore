@@ -14,3 +14,7 @@
 # Dependency directories (remove the comment below to include it)
 vendor/
 .idea/
+
+pkg/web/build
+pkg/web/.env
+pkg/web/node_modules

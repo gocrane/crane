@@ -1,0 +1,86 @@
+{
+  "name": "crane-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "proxy": "http://localhost:3333",
+  "engines": {
+    "node": ">=14.17.0"
+  },
+  "scripts": {
+    "start": "NODE_ENV=development runtime-env-cra --config-name=./public/runtime-env.js && react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx --quiet",
+    "lint-fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "scan": "i18next-scanner"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "dependencies": {
+    "@reduxjs/toolkit": "^1.7.2",
+    "clsx": "^1.1.1",
+    "i18next": "^21.6.6",
+    "i18next-browser-languagedetector": "^6.1.3",
+    "i18next-icu": "^2.0.3",
+    "ifvisible.js": "^1.0.6",
+    "intersection-observer": "^0.12.0",
+    "intl-messageformat": "^9.11.1",
+    "moment": "^2.29.1",
+    "query-string": "^7.1.1",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "react-i18next": "^11.15.3",
+    "react-redux": "^7.2.6",
+    "react-router-dom": "^6.2.1",
+    "react-scripts": "5.0.0",
+    "redux": "^4.1.2",
+    "redux-thunk": "^2.4.1",
+    "runtime-env-cra": "^0.2.4",
+    "tea-component": "^2.7.3",
+    "typescript": "^4.5.5",
+    "uuid": "^8.3.2",
+    "web-vitals": "^2.1.0"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^5.14.1",
+    "@testing-library/react": "^12.0.0",
+    "@testing-library/user-event": "^13.2.1",
+    "@trivago/prettier-plugin-sort-imports": "^2.0.4",
+    "@types/i18next": "^13.0.0",
+    "@types/jest": "^27.0.1",
+    "@types/node": "^17.0.18",
+    "@types/react": "^17.0.20",
+    "@types/react-dom": "^17.0.9",
+    "@types/react-router-dom": "^5.3.2",
+    "@types/uuid": "^8.3.4",
+    "@typescript-eslint/eslint-plugin": "^5.12.0",
+    "@typescript-eslint/parser": "^5.12.0",
+    "cross-env": "^7.0.3",
+    "eslint": "^8.9.0",
+    "eslint-config-google": "^0.14.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-react": "^7.28.0",
+    "eslint-plugin-react-hooks": "^4.3.0",
+    "i18next-scanner": "^3.1.0",
+    "prettier": "^2.5.1",
+    "pretty-quick": "^3.1.3",
+    "redux-logger": "^3.0.6"
+  }
+}
