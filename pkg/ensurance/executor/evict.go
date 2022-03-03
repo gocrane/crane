@@ -40,7 +40,7 @@ func (e EvictPods) Find(key types.NamespacedName) int {
 }
 
 func (e *EvictExecutor) Avoid(ctx *ExecuteContext) error {
-	klog.V(6).Infof("EvictExecutor avoid, %v", *e)
+	klog.V(4).Infof("EvictExecutor avoid, %v", *e)
 
 	var bSucceed = true
 	var errPodKeys []string
@@ -68,7 +68,7 @@ func (e *EvictExecutor) Avoid(ctx *ExecuteContext) error {
 				return
 			}
 
-			klog.V(4).Infof("Pod %s is evicted", klog.KObj(pod))
+			klog.V(2).Infof("Pod %s is evicted", klog.KObj(pod))
 		}(e.EvictPods[i])
 	}
 

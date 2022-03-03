@@ -23,7 +23,7 @@ func InitGrpcConnection(endPoints []string) (*grpc.ClientConn, error) {
 
 	var conn *grpc.ClientConn
 	for idx, v := range endPoints {
-		klog.V(4).Infof("Connect using endpoint '%s' with '%s' timeout", v, defaultTimeout)
+		klog.V(2).Infof("Connect using endpoint '%s' with '%s' timeout", v, defaultTimeout)
 		addr, dialer, err := utils.GetAddressAndDialer(v)
 		if err != nil {
 			if idx == (len - 1) {

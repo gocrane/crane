@@ -33,7 +33,7 @@ func collectMemory(_ *nodeState) (map[string][]common.TimeSeries, error) {
 	usage := stat.Total - stat.Available
 	usagePercent := float64(usage) / float64(stat.Total) * types.MaxPercentage
 
-	klog.V(6).Infof("MemoryCollector collected, total %d, Free %d, Available %d, usagePercent %.2f, usageCore %d",
+	klog.V(4).Infof("MemoryCollector collected, total %d, Free %d, Available %d, usagePercent %.2f, usageCore %d",
 		stat.Total, stat.Free, stat.Available, usagePercent, usage)
 
 	var data = make(map[string][]common.TimeSeries, 2)

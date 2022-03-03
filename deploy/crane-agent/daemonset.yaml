@@ -33,7 +33,7 @@ spec:
           imagePullPolicy: Always
           command:
             - /crane-agent
-            - -v=4
+            - -v=2
             - --runtime-endpoint=unix:///rootvar/run/dockershim.sock
           name: crane-agent
           volumeMounts:

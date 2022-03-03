@@ -123,7 +123,7 @@ func (s *StateCollector) UpdateCollectors() {
 		}
 
 		if n.Spec.NodeQualityProbe.NodeLocalGet == nil {
-			klog.V(4).Infof("Probe type of NEP %s/%s is not node local, continue", n.Namespace, n.Name)
+			klog.V(2).Infof("Probe type of NEP %s/%s is not node local, continue", n.Namespace, n.Name)
 			continue
 		}
 

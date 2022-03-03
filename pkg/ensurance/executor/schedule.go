@@ -29,7 +29,7 @@ type ClassAndPriority struct {
 }
 
 func (b *ScheduleExecutor) Avoid(ctx *ExecuteContext) error {
-	klog.V(6).Info("DisableScheduledExecutor avoid, %v", *b)
+	klog.V(4).Info("DisableScheduledExecutor avoid, %v", *b)
 
 	if b.DisableClassAndPriority == nil {
 		return nil
@@ -51,7 +51,7 @@ func (b *ScheduleExecutor) Avoid(ctx *ExecuteContext) error {
 }
 
 func (b *ScheduleExecutor) Restore(ctx *ExecuteContext) error {
-	klog.V(10).Info("DisableScheduledExecutor restore, %v", *b)
+	klog.V(6).Info("DisableScheduledExecutor restore, %v", *b)
 
 	if b.RestoreClassAndPriority == nil {
 		return nil
@@ -111,7 +111,7 @@ func GetMaxQOSPriority(podLister corelisters.PodLister, podTypes []types.Namespa
 
 	for _, podNamespace := range podTypes {
 		if pod, err := podLister.Pods(podNamespace.Namespace).Get(podNamespace.Name); err != nil {
-			klog.V(6).Infof("Warning: getMaxQOSPriority get pod %s not found", podNamespace.String())
+			klog.V(4).Infof("Warning: getMaxQOSPriority get pod %s not found", podNamespace.String())
 			continue
 		} else {
 			var priority = ClassAndPriority{PodQOSClass: pod.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(pod.Spec.Priority, 0) - 1}

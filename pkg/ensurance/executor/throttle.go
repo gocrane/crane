@@ -106,7 +106,7 @@ func (t *ThrottleExecutor) Avoid(ctx *ExecuteContext) error {
 				continue
 			}
 
-			klog.V(4).Infof("ThrottleExecutor1 avoid container %s/%s", klog.KObj(pod), v.ContainerName)
+			klog.V(2).Infof("ThrottleExecutor1 avoid container %s/%s", klog.KObj(pod), v.ContainerName)
 
 			containerCPUQuota, err := GetUsageById(throttlePod.ContainerCPUQuotas, v.ContainerId)
 			if err != nil {
@@ -148,7 +148,7 @@ func (t *ThrottleExecutor) Avoid(ctx *ExecuteContext) error {
 				}
 			}
 
-			klog.V(6).Infof("Prior update container resources containerCPUQuotaNew %.2f, containerCPUQuota.Value %.2f,containerCPUPeriod %.2f",
+			klog.V(4).Infof("Prior update container resources containerCPUQuotaNew %.2f, containerCPUQuota.Value %.2f,containerCPUPeriod %.2f",
 				containerCPUQuotaNew, containerCPUQuota.Value, containerCPUPeriod.Value)
 
 			if !utils.AlmostEqual(containerCPUQuotaNew*containerCPUPeriod.Value, containerCPUQuota.Value) {
@@ -158,7 +158,7 @@ func (t *ThrottleExecutor) Avoid(ctx *ExecuteContext) error {
 					bSucceed = false
 					continue
 				} else {
-					klog.V(4).Infof("ThrottleExecutor avoid pod %s, container %s, set cpu quota %.2f.",
+					klog.V(2).Infof("ThrottleExecutor avoid pod %s, container %s, set cpu quota %.2f.",
 						klog.KObj(pod), v.ContainerName, containerCPUQuotaNew)
 				}
 			}
@@ -192,7 +192,7 @@ func (t *ThrottleExecutor) Restore(ctx *ExecuteContext) error {
 				continue
 			}
 
-			klog.V(6).Infof("ThrottleExecutor1 restore container %s/%s", klog.KObj(pod), v.ContainerName)
+			klog.V(4).Infof("ThrottleExecutor1 restore container %s/%s", klog.KObj(pod), v.ContainerName)
 
 			containerCPUQuota, err := GetUsageById(throttlePod.ContainerCPUQuotas, v.ContainerId)
 			if err != nil {
@@ -232,7 +232,7 @@ func (t *ThrottleExecutor) Restore(ctx *ExecuteContext) error {
 				}
 			}
 
-			klog.V(6).Infof("Prior update container resources containerCPUQuotaNew %.2f,containerCPUQuota %.2f,containerCPUPeriod %.2f",
+			klog.V(4).Infof("Prior update container resources containerCPUQuotaNew %.2f,containerCPUQuota %.2f,containerCPUPeriod %.2f",
 				klog.KObj(pod), containerCPUQuotaNew, containerCPUQuota.Value, containerCPUPeriod.Value)
 
 			if !utils.AlmostEqual(containerCPUQuotaNew*containerCPUPeriod.Value, containerCPUQuota.Value) {

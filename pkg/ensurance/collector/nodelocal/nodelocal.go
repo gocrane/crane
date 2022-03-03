@@ -55,7 +55,7 @@ func (n *NodeLocal) GetType() types.CollectType {
 }
 
 func (n *NodeLocal) Collect() (map[string][]common.TimeSeries, error) {
-	klog.V(6).Infof("Node local collecting")
+	klog.V(4).Infof("Node local collecting")
 
 	var status = make(map[string][]common.TimeSeries)
 	for name, collect := range collectFuncMap {
@@ -70,7 +70,7 @@ func (n *NodeLocal) Collect() (map[string][]common.TimeSeries, error) {
 		}
 	}
 
-	klog.V(10).Info("Node local collecting, status: %v", status)
+	klog.V(6).Info("Node local collecting, status: %v", status)
 
 	return status, nil
 }

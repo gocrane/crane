@@ -64,7 +64,7 @@ func collectCPU(nodeState *nodeState) (map[string][]common.TimeSeries, error) {
 	usagePercent := calculateBusy(nodeState.latestCpuState.stat, currentCpuState.stat)
 	usageCore := usagePercent * float64(nodeState.cpuCoreNumbers) * 1000 / types.MaxPercentage
 
-	klog.V(6).Infof("CpuCollector collected,usagePercent %v, usageCore %v", usagePercent, usageCore)
+	klog.V(4).Infof("CpuCollector collected,usagePercent %v, usageCore %v", usagePercent, usageCore)
 
 	nodeState.latestCpuState = currentCpuState
 
@@ -86,7 +86,7 @@ func collectCPULoad(_ *nodeState) (map[string][]common.TimeSeries, error) {
 		return nil, fmt.Errorf("cpu load stat is nil")
 	}
 
-	klog.V(6).Infof("LoadCollector collected 1minLoad %v, 5minLoad %v, 15minLoad %v", stat.Load1, stat.Load5, stat.Load15)
+	klog.V(4).Infof("LoadCollector collected 1minLoad %v, 5minLoad %v, 15minLoad %v", stat.Load1, stat.Load5, stat.Load15)
 
 	var data = make(map[string][]common.TimeSeries, 3)
 	data[string(types.MetricNameCpuLoad1Min)] = []common.TimeSeries{{Samples: []common.Sample{{Value: stat.Load1, Timestamp: now.Unix()}}}}

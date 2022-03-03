@@ -172,7 +172,7 @@ func (s *AnormalyAnalyzer) Analyze(state map[string][]common.TimeSeries) {
 		}
 	}
 
-	klog.V(6).Infof("Analyze actionContexts: %v", actionContexts)
+	klog.V(4).Infof("Analyze actionContexts: %v", actionContexts)
 
 	//step 3 : merge
 	avoidanceAction := s.merge(state, avoidanceMaps, actionContexts)
@@ -200,7 +200,7 @@ func (s *AnormalyAnalyzer) trigger(series []common.TimeSeries, object ensurancea
 	for _, ts := range series {
 		triggered = s.evaluator.EvalWithMetric(object.MetricRule.Name, float64(object.MetricRule.Value.Value()), ts.Samples[0].Value)
 
-		klog.V(6).Infof("Anormaly detection result %v, Name: %s, Value: %.2f, %s/%s", triggered,
+		klog.V(4).Infof("Anormaly detection result %v, Name: %s, Value: %.2f, %s/%s", triggered,
 			object.MetricRule.Name,
 			ts.Samples[0].Value,
 			common.GetValueByName(ts.Labels, common.LabelNamePodNamespace),
@@ -230,7 +230,7 @@ func (s *AnormalyAnalyzer) analyze(key string, object ensuranceapi.ObjectiveEnsu
 	//step2: check if triggered for NodeQOSEnsurance
 	threshold := s.trigger(series, object)
 
-	klog.V(4).Infof("for NodeQOS %s, metrics reach the threshold: %v", key, threshold)
+	klog.V(2).Infof("for NodeQOS %s, metrics reach the threshold: %v", key, threshold)
 
 	//step3: check is triggered action or restored, set the detection
 	s.computeActionContext(threshold, key, object, &ac)
@@ -323,7 +323,7 @@ func (s *AnormalyAnalyzer) logEvent(ac ecache.ActionContext, now time.Time) {
 	//step1 print log if the detection state is changed
 	//step2 produce event
 	if ac.Triggered {
-		klog.V(4).Infof("LOG: %s triggered action %s", key, ac.ActionName)
+		klog.V(2).Infof("LOG: %s triggered action %s", key, ac.ActionName)
 
 		// record an event about the objective ensurance triggered
 		s.recorder.Event(nodeRef, v1.EventTypeWarning, "AvoidanceTriggered", fmt.Sprintf("%s triggered action %s", key, ac.ActionName))
@@ -332,7 +332,7 @@ func (s *AnormalyAnalyzer) logEvent(ac ecache.ActionContext, now time.Time) {
 
 	if ac.Restored {
 		if s.actionTriggered(ac) {
-			klog.V(4).Infof("LOG: %s restored action %s", key, ac.ActionName)
+			klog.V(2).Infof("LOG: %s restored action %s", key, ac.ActionName)
 			// record an event about the objective ensurance restored
 			s.recorder.Event(nodeRef, v1.EventTypeNormal, "RestoreTriggered", fmt.Sprintf("%s restored action %s", key, ac.ActionName))
 			s.actionEventStatus[key] = ecache.DetectionStatus{IsTriggered: false, LastTime: now}

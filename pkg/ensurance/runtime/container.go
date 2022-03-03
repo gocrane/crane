@@ -80,14 +80,14 @@ func UpdateContainerResources(client pb.RuntimeServiceClient, containerId string
 		},
 	}
 
-	klog.V(6).Infof("UpdateContainerResourcesRequest: %v", request)
+	klog.V(4).Infof("UpdateContainerResourcesRequest: %v", request)
 
 	r, err := client.UpdateContainerResources(context.Background(), request)
 	if err != nil {
 		return err
 	}
 
-	klog.V(10).Infof("UpdateContainerResourcesResponse: %v", r)
+	klog.V(6).Infof("UpdateContainerResourcesResponse: %v", r)
 	return nil
 }
 
@@ -103,14 +103,14 @@ func RemoveContainer(client pb.RuntimeServiceClient, ContainerId string) error {
 		ContainerId: ContainerId,
 	}
 
-	klog.V(6).Infof("RemoveContainerRequest: %v", request)
+	klog.V(4).Infof("RemoveContainerRequest: %v", request)
 
 	r, err := client.RemoveContainer(context.Background(), request)
 	if err != nil {
 		return err
 	}
 
-	klog.V(10).Infof("RemoveContainerResponse: %v", r)
+	klog.V(6).Infof("RemoveContainerResponse: %v", r)
 	return nil
 }
 
@@ -166,14 +166,14 @@ func ListContainers(runtimeClient pb.RuntimeServiceClient, opts ListOptions) ([]
 		Filter: filter,
 	}
 
-	klog.V(6).Info("ListContainerRequest: %v", request)
+	klog.V(4).Info("ListContainerRequest: %v", request)
 
 	r, err := runtimeClient.ListContainers(context.Background(), request)
 	if err != nil {
 		return []*pb.Container{}, err
 	}
 
-	klog.V(10).Info("ListContainerResponse: %v", r)
+	klog.V(6).Info("ListContainerResponse: %v", r)
 
 	r.Containers = filterContainersList(r.GetContainers(), opts)
 
