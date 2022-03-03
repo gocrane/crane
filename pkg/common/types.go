@@ -1,6 +1,9 @@
 package common
 
-import "fmt"
+import (
+	"fmt"
+	"sort"
+)
 
 const (
 	LabelNamePodName       = "PodName"
@@ -55,6 +58,16 @@ func (ts *TimeSeries) AppendLabel(key, val string) {
 
 func (ts *TimeSeries) AppendSample(timestamp int64, val float64) {
 	ts.Samples = append(ts.Samples, Sample{Timestamp: timestamp, Value: val})
+}
+
+func (ts *TimeSeries) SortSampleAsc() {
+	sort.Slice(ts.Samples, func(i, j int) bool {
+		if ts.Samples[i].Timestamp < ts.Samples[j].Timestamp {
+			return true
+		} else {
+			return false
+		}
+	})
 }
 
 func NewTimeSeries() *TimeSeries {
