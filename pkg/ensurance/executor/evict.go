@@ -16,7 +16,7 @@ type EvictExecutor struct {
 }
 
 type EvictPod struct {
-	DeletionGracePeriodSeconds uint32
+	DeletionGracePeriodSeconds *int32
 	PodKey                     types.NamespacedName
 	ClassAndPriority           ClassAndPriority
 }

@@ -11,6 +11,8 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
+
+	"github.com/gocrane/crane/pkg/known"
 )
 
 // IsPodAvailable returns true if a pod is available; false otherwise.
@@ -62,9 +64,14 @@ func GetPodCondition(status *v1.PodStatus, conditionType v1.PodConditionType) (i
 }
 
 // EvictPodWithGracePeriod evict pod with grace period
-func EvictPodWithGracePeriod(client clientset.Interface, pod *v1.Pod, gracePeriodSeconds uint32) error {
+func EvictPodWithGracePeriod(client clientset.Interface, pod *v1.Pod, gracePeriodSeconds *int32) error {
 	if kubelettypes.IsCriticalPod(pod) {
 		return fmt.Errorf("Eviction manager: cannot evict a critical pod(%s)", klog.KObj(pod))
+	}
+
+	var grace = GetInt64withDefault(pod.Spec.TerminationGracePeriodSeconds, known.DefaultDeletionGracePeriodSeconds)
+	if gracePeriodSeconds != nil {
+		grace = int64(*gracePeriodSeconds)
 	}
 
 	e := &policyv1beta1.Eviction{
@@ -72,7 +79,7 @@ func EvictPodWithGracePeriod(client clientset.Interface, pod *v1.Pod, gracePerio
 			Name:      pod.Name,
 			Namespace: pod.Namespace,
 		},
-		DeleteOptions: metav1.NewDeleteOptions(int64(gracePeriodSeconds)),
+		DeleteOptions: metav1.NewDeleteOptions(grace),
 	}
 
 	return client.CoreV1().Pods(pod.Namespace).EvictV1beta1(context.Background(), e)

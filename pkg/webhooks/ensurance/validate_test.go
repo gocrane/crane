@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
-	"github.com/gocrane/crane/pkg/utils"
+	"github.com/gocrane/crane/pkg/known"
 )
 
 func TestValidateNodeQualityProbe(t *testing.T) {
@@ -28,14 +28,14 @@ func TestValidateNodeQualityProbe(t *testing.T) {
 		"valid NodeQualityProbe, node local set ": {
 			nodeProbe: ensuranceapi.NodeQualityProbe{
 				NodeLocalGet: &ensuranceapi.NodeLocalGet{
-					LocalCacheTTLSeconds: utils.Int32P(60)},
+					LocalCacheTTLSeconds: 60},
 			},
 			expectErr: false,
 		},
 		"invalid NodeQualityProbe, httpGet and nodeLocalGet can not set at the same time": {
 			nodeProbe: ensuranceapi.NodeQualityProbe{
 				NodeLocalGet: &ensuranceapi.NodeLocalGet{
-					LocalCacheTTLSeconds: utils.Int32P(60)},
+					LocalCacheTTLSeconds: 60},
 				HTTPGet: &corev1.HTTPGetAction{
 					Host: "127.0.0.1",
 				},
@@ -161,6 +161,8 @@ func TestValidateObjectiveEnsurances(t *testing.T) {
 		"object name is duplicate": {
 			objects: []ensuranceapi.ObjectiveEnsurance{{Name: "aaa",
 				AvoidanceActionName: "eviction",
+				AvoidanceThreshold:  known.DefaultAvoidedThreshold,
+				RestoreThreshold:    known.DefaultRestoredThreshold,
 				MetricRule: &ensuranceapi.MetricRule{
 					Name:  "cpu_total_usage",
 					Value: resource.MustParse("6000")}},
@@ -185,7 +187,8 @@ func TestValidateObjectiveEnsurances(t *testing.T) {
 			expectErr:     true,
 		},
 		"object metric rule is required": {
-			objects:       []ensuranceapi.ObjectiveEnsurance{{Name: "aaa", AvoidanceActionName: "eviction"}},
+			objects: []ensuranceapi.ObjectiveEnsurance{{Name: "aaa", AvoidanceActionName: "eviction",
+				AvoidanceThreshold: known.DefaultAvoidedThreshold, RestoreThreshold: known.DefaultRestoredThreshold}},
 			httpGetEnable: false,
 			errorType:     field.ErrorTypeRequired,
 			errorDetail:   "",
@@ -194,6 +197,8 @@ func TestValidateObjectiveEnsurances(t *testing.T) {
 		"object valid": {
 			objects: []ensuranceapi.ObjectiveEnsurance{{Name: "aaa",
 				AvoidanceActionName: "eviction",
+				AvoidanceThreshold:  known.DefaultAvoidedThreshold,
+				RestoreThreshold:    known.DefaultRestoredThreshold,
 				MetricRule: &ensuranceapi.MetricRule{
 					Name:  "cpu_total_usage",
 					Value: resource.MustParse("6000")}}},

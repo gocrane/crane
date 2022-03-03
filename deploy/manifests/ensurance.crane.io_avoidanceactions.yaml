@@ -38,7 +38,7 @@ spec:
               coolDownSeconds:
                 default: 300
                 description: CoolDownSeconds is the seconds for cool down when do
-                  avoidance default is 300s
+                  avoidance. Defaults to 300. Minimum value is 1.
                 format: int32
                 type: integer
               description:
@@ -50,10 +50,11 @@ spec:
                 description: Eviction describes the eviction action
                 properties:
                   terminationGracePeriodSeconds:
-                    default: 30
                     description: TerminationGracePeriodSeconds is the duration in
                       seconds the pod needs to terminate gracefully. May be decreased
-                      in delete request. Value must be non-negative integer. The value
+                      in delete request. If this value is nil, the pod's terminationGracePeriodSeconds
+                      will be used. Otherwise, this value overrides the value provided
+                      by the pod spec. Value must be non-negative integer. The value
                       zero indicates delete immediately.
                     format: int32
                     type: integer
@@ -65,8 +66,8 @@ spec:
                     properties:
                       minCPURatio:
                         description: 'MinCPURatio is the min of cpu ratio for low
-                          level pods. example: the pod limit is 4096, ratio is 10,
-                          the minimum is 409. MinCPURatio range [0,100]'
+                          level pods, for example: the pod limit is 4096, ratio is
+                          10, the minimum is 409. MinCPURatio range [0,100]'
                         format: int32
                         maximum: 100
                         minimum: 0
