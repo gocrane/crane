@@ -1,0 +1,27 @@
+.fullHeightCard {
+  height: 100%;
+}
+
+:global(.fullHeightCard .tea-card) {
+  height: 100%;
+}
+
+:global(.fullHeightCard .tea-card__body) {
+  height: 100%;
+}
+
+:global(.fullHeightCard .tea-card__content) {
+  height: 100%;
+}
+
+:global(.fullHeightCard .tea-card) {
+  height: 100%;
+}
+
+:global(.fullHeightCard .tea-card__body) {
+  height: 100%;
+}
+
+:global(.fullHeightCard .tea-card__content) {
+  height: 100%;
+}

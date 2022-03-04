@@ -1,0 +1,8 @@
+{
+  "singleQuote": true,
+  "printWidth": 120,
+  "arrowParens": "avoid",
+  "trailingComma": "none",
+  "importOrder": ["\\S.css$", "react|redux", "^@(.*)(/?)(.*)$", "(.*)/(.*)$", "^[./]"],
+  "importOrderSeparation": true
+}
