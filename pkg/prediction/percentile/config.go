@@ -2,7 +2,6 @@ package percentile
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	vpa "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/recommender/util"
@@ -12,11 +11,6 @@ import (
 
 	"github.com/gocrane/crane/pkg/utils"
 )
-
-//var metricToInternalConfigMap map[string]*internalConfig = map[string]*internalConfig{}
-var queryToInternalConfigMap map[string]*internalConfig = map[string]*internalConfig{}
-
-var mu = sync.Mutex{}
 
 var defaultMinSampleWeight float64 = 1e-5
 var defaultMarginFraction float64 = .25
@@ -142,61 +136,3 @@ func makeInternalConfig(p *v1alpha1.Percentile) (*internalConfig, error) {
 
 	return c, nil
 }
-
-//func getInternalConfig(queryExpr string) *internalConfig {
-//	mu.Lock()
-//	defer mu.Unlock()
-//
-//	config, exits := queryToInternalConfigMap[queryExpr]
-//	if !exits {
-//		klog.InfoS("Percentile internal config not found, using the default one.", "queryExpr", queryExpr)
-//		queryToInternalConfigMap[queryExpr] = &defaultInternalConfig
-//		return queryToInternalConfigMap[queryExpr]
-//	}
-//
-//	return config
-//}
-
-//var configUpdateEventReceiver config.Receiver
-//var configDeleteEventReceiver config.Receiver
-//
-//func init() {
-//	configUpdateEventReceiver = config.UpdateEventBroadcaster.Listen()
-//	configDeleteEventReceiver = config.DeleteEventBroadcaster.Listen()
-//
-//	go func() {
-//		for {
-//			cfg := configUpdateEventReceiver.Read().(*config.Config)
-//			if cfg.Percentile == nil {
-//				continue
-//			}
-//
-//			internalCfg, err := makeInternalConfig(cfg.Percentile)
-//			if err != nil {
-//				klog.ErrorS(err, "Failed to create interval config.")
-//				continue
-//			}
-//
-//			mu.Lock()
-//			if cfg.Expression != nil && len(cfg.Expression.Expression) > 0 {
-//				orig, exists := queryToInternalConfigMap[cfg.Expression.Expression]
-//				if !exists || !reflect.DeepEqual(orig, internalCfg) {
-//					queryToInternalConfigMap[cfg.Expression.Expression] = internalCfg
-//				}
-//			}
-//			mu.Unlock()
-//		}
-//	}()
-//
-//	go func() {
-//		for {
-//			cfg := configDeleteEventReceiver.Read().(*config.Config)
-//
-//			mu.Lock()
-//			if cfg.Expression != nil {
-//				delete(queryToInternalConfigMap, cfg.Expression.Expression)
-//			}
-//			mu.Unlock()
-//		}
-//	}()
-//}

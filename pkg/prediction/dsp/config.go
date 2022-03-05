@@ -12,8 +12,6 @@ import (
 
 var mu = sync.Mutex{}
 
-var queryToInternalConfigMap map[string]*internalConfig = map[string]*internalConfig{}
-
 var defaultInternalConfig = internalConfig{
 	historyResolution: time.Minute,
 	historyDuration:   time.Hour * 24 * 7,
