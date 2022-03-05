@@ -2,15 +2,12 @@ package dsp
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/gocrane/api/prediction/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/utils"
 )
-
-var mu = sync.Mutex{}
 
 var defaultInternalConfig = internalConfig{
 	historyResolution: time.Minute,
