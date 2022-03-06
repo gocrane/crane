@@ -1,6 +1,10 @@
 package executor
 
 import (
+	"time"
+
+	"github.com/gocrane/crane/pkg/known"
+	"github.com/gocrane/crane/pkg/metrics"
 	"google.golang.org/grpc"
 
 	coreinformers "k8s.io/client-go/informers/core/v1"
@@ -71,9 +75,15 @@ func (a *ActionExecutor) Run(stop <-chan struct{}) {
 		for {
 			select {
 			case as := <-a.noticeCh:
-				if err := a.execute(as, stop); err != nil {
-					// TODO: if it failed in action, how to retry
-					klog.Errorf("Failed to execute action: %v", err)
+				{
+					start := time.Now()
+					metrics.UpdateLastTime(string(known.ModuleActionExecutor), metrics.StepMain, start)
+
+					if err := a.execute(as, stop); err != nil {
+						// TODO: if it failed in action, how to retry
+						klog.Errorf("Failed to execute action: %v", err)
+					}
+					metrics.UpdateDurationFromStart(string(known.ModuleActionExecutor), metrics.StepMain, start)
 				}
 			case <-stop:
 				{
@@ -114,19 +124,25 @@ func (a *ActionExecutor) execute(ae AvoidanceExecutor, _ <-chan struct{}) error 
 }
 
 func avoid(ctx *ExecuteContext, ae AvoidanceExecutor) error {
+	var start = time.Now()
+	metrics.UpdateLastTime(string(known.ModuleActionExecutor), metrics.StepAvoid, start)
+	defer metrics.UpdateDurationFromStart(string(known.ModuleActionExecutor), metrics.StepRestore, start)
 
 	//step1 do DisableScheduled action
 	if err := ae.ScheduleExecutor.Avoid(ctx); err != nil {
+		metrics.ExecutorErrorCounterInc(metrics.SubComponentSchedule, metrics.StepAvoid)
 		return err
 	}
 
 	//step2 do Evict action
 	if err := ae.EvictExecutor.Avoid(ctx); err != nil {
+		metrics.ExecutorErrorCounterInc(metrics.SubComponentEvict, metrics.StepAvoid)
 		return err
 	}
 
 	//step3 do Throttle action
 	if err := ae.ThrottleExecutor.Avoid(ctx); err != nil {
+		metrics.ExecutorErrorCounterInc(metrics.SubComponentThrottle, metrics.StepAvoid)
 		return err
 	}
 
@@ -134,18 +150,25 @@ func avoid(ctx *ExecuteContext, ae AvoidanceExecutor) error {
 }
 
 func restore(ctx *ExecuteContext, ae AvoidanceExecutor) error {
+	var start = time.Now()
+	metrics.UpdateLastTime(string(known.ModuleActionExecutor), metrics.StepRestore, start)
+	defer metrics.UpdateDurationFromStart(string(known.ModuleActionExecutor), metrics.StepRestore, start)
+
 	//step1 do DisableScheduled action
 	if err := ae.ScheduleExecutor.Restore(ctx); err != nil {
+		metrics.ExecutorErrorCounterInc(metrics.SubComponentSchedule, metrics.StepRestore)
 		return err
 	}
 
 	//step2 do Evict action
 	if err := ae.EvictExecutor.Restore(ctx); err != nil {
+		metrics.ExecutorErrorCounterInc(metrics.SubComponentEvict, metrics.StepRestore)
 		return err
 	}
 
 	//step3 do Throttle action
 	if err := ae.ThrottleExecutor.Restore(ctx); err != nil {
+		metrics.ExecutorErrorCounterInc(metrics.SubComponentThrottle, metrics.StepRestore)
 		return err
 	}
 

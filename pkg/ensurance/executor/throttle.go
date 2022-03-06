@@ -3,6 +3,7 @@ package executor
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -10,6 +11,8 @@ import (
 
 	"github.com/gocrane/crane/pkg/common"
 	cruntime "github.com/gocrane/crane/pkg/ensurance/runtime"
+	"github.com/gocrane/crane/pkg/known"
+	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
@@ -87,6 +90,18 @@ func GetUsageById(usages []ContainerUsage, containerId string) (ContainerUsage, 
 }
 
 func (t *ThrottleExecutor) Avoid(ctx *ExecuteContext) error {
+	var start = time.Now()
+	metrics.UpdateLastTimeWithSubComponent(string(known.ModuleActionExecutor), string(metrics.SubComponentThrottle), metrics.StepAvoid, start)
+	defer metrics.UpdateDurationFromStartWithSubComponent(string(known.ModuleActionExecutor), string(metrics.SubComponentThrottle), metrics.StepAvoid, start)
+
+	klog.V(6).Info("ThrottleExecutor avoid, %v", *t)
+
+	if len(t.ThrottleDownPods) == 0 {
+		metrics.UpdateExecutorStatus(metrics.SubComponentThrottle, metrics.StepAvoid, 0)
+	} else {
+		metrics.UpdateExecutorStatus(metrics.SubComponentThrottle, metrics.StepAvoid, 1.0)
+		metrics.ExecutorStatusCounterInc(metrics.SubComponentThrottle, metrics.StepAvoid)
+	}
 
 	var bSucceed = true
 	var errPodKeys []string
@@ -173,6 +188,20 @@ func (t *ThrottleExecutor) Avoid(ctx *ExecuteContext) error {
 }
 
 func (t *ThrottleExecutor) Restore(ctx *ExecuteContext) error {
+	var start = time.Now()
+	metrics.UpdateLastTimeWithSubComponent(string(known.ModuleActionExecutor), string(metrics.SubComponentThrottle), metrics.StepRestore, start)
+	defer metrics.UpdateDurationFromStartWithSubComponent(string(known.ModuleActionExecutor), string(metrics.SubComponentThrottle), metrics.StepRestore, start)
+
+	klog.V(6).Info("ThrottleExecutor restore, %v", *t)
+
+	if len(t.ThrottleDownPods) == 0 {
+		metrics.UpdateExecutorStatus(metrics.SubComponentThrottle, metrics.StepRestore, 0)
+		return nil
+	}
+
+	metrics.UpdateExecutorStatus(metrics.SubComponentThrottle, metrics.StepRestore, 1.0)
+	metrics.ExecutorStatusCounterInc(metrics.SubComponentThrottle, metrics.StepRestore)
+
 	var bSucceed = true
 	var errPodKeys []string
 

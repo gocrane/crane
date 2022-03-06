@@ -1,6 +1,9 @@
 package executor
 
 import (
+	"time"
+
+	"github.com/gocrane/crane/pkg/metrics"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	corelisters "k8s.io/client-go/listers/core/v1"
@@ -29,11 +32,19 @@ type ClassAndPriority struct {
 }
 
 func (b *ScheduleExecutor) Avoid(ctx *ExecuteContext) error {
+	var start = time.Now()
+	metrics.UpdateLastTimeWithSubComponent(string(known.ModuleActionExecutor), string(metrics.SubComponentSchedule), metrics.StepAvoid, start)
+	defer metrics.UpdateDurationFromStartWithSubComponent(string(known.ModuleActionExecutor), string(metrics.SubComponentSchedule), metrics.StepAvoid, start)
+
 	klog.V(6).Info("DisableScheduledExecutor avoid, %v", *b)
 
 	if b.DisableClassAndPriority == nil {
+		metrics.UpdateExecutorStatus(metrics.SubComponentSchedule, metrics.StepAvoid, 0)
 		return nil
 	}
+
+	metrics.UpdateExecutorStatus(metrics.SubComponentSchedule, metrics.StepAvoid, 1.0)
+	metrics.ExecutorStatusCounterInc(metrics.SubComponentSchedule, metrics.StepAvoid)
 
 	// update node condition for block scheduled
 	if _, err := utils.UpdateNodeConditionsStatues(ctx.Client, ctx.NodeLister, ctx.NodeName,
@@ -51,11 +62,19 @@ func (b *ScheduleExecutor) Avoid(ctx *ExecuteContext) error {
 }
 
 func (b *ScheduleExecutor) Restore(ctx *ExecuteContext) error {
-	klog.V(10).Info("DisableScheduledExecutor restore, %v", *b)
+	var start = time.Now()
+	metrics.UpdateLastTimeWithSubComponent(string(known.ModuleActionExecutor), string(metrics.SubComponentSchedule), metrics.StepRestore, start)
+	defer metrics.UpdateDurationFromStartWithSubComponent(string(known.ModuleActionExecutor), string(metrics.SubComponentSchedule), metrics.StepRestore, start)
+
+	klog.V(6).Info("DisableScheduledExecutor restore, %v", *b)
 
 	if b.RestoreClassAndPriority == nil {
+		metrics.UpdateExecutorStatus(metrics.SubComponentSchedule, metrics.StepRestore, 0.0)
 		return nil
 	}
+
+	metrics.UpdateExecutorStatus(metrics.SubComponentSchedule, metrics.StepRestore, 1.0)
+	metrics.ExecutorStatusCounterInc(metrics.SubComponentSchedule, metrics.StepRestore)
 
 	// update node condition for restored scheduled
 	if _, err := utils.UpdateNodeConditionsStatues(ctx.Client, ctx.NodeLister, ctx.NodeName,

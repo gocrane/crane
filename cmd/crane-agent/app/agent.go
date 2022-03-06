@@ -23,6 +23,7 @@ import (
 
 	"github.com/gocrane/crane/cmd/crane-agent/app/options"
 	"github.com/gocrane/crane/pkg/agent"
+	"github.com/gocrane/crane/pkg/metrics"
 )
 
 var (
@@ -69,6 +70,9 @@ func NewAgentCommand(ctx context.Context) *cobra.Command {
 func Run(ctx context.Context, opts *options.Options) error {
 	hostname := getHostName(opts.HostnameOverride)
 
+	healthCheck := metrics.NewHealthCheck(opts.MaxInactivity)
+	metrics.RegisterCraneAgent()
+
 	kubeClient, craneClient, err := buildClient()
 	if err != nil {
 		return err
@@ -96,7 +100,8 @@ func Run(ctx context.Context, opts *options.Options) error {
 	nepInformer.Informer()
 	actionInformer.Informer()
 
-	agent, err := agent.NewAgent(ctx, hostname, opts.RuntimeEndpoint, kubeClient, craneClient, podInformer, nodeInformer, nepInformer, actionInformer, opts.Ifaces)
+	agent, err := agent.NewAgent(ctx, hostname, opts.RuntimeEndpoint, kubeClient, craneClient,
+		podInformer, nodeInformer, nepInformer, actionInformer, opts.Ifaces, healthCheck, opts.CollectInterval)
 	nepInformer.Informer()
 	actionInformer.Informer()
 
@@ -112,7 +117,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 	nodeInformerFactory.WaitForCacheSync(ctx.Done())
 	craneInformerFactory.WaitForCacheSync(ctx.Done())
 
-	agent.Run()
+	agent.Run(healthCheck, opts)
 	return nil
 }
 

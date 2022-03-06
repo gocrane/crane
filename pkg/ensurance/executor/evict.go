@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 
+	"github.com/gocrane/crane/pkg/known"
+	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
@@ -40,7 +43,19 @@ func (e EvictPods) Find(key types.NamespacedName) int {
 }
 
 func (e *EvictExecutor) Avoid(ctx *ExecuteContext) error {
+	var start = time.Now()
+	metrics.UpdateLastTimeWithSubComponent(string(known.ModuleActionExecutor), string(metrics.SubComponentEvict), metrics.StepAvoid, start)
+	defer metrics.UpdateDurationFromStartWithSubComponent(string(known.ModuleActionExecutor), string(metrics.SubComponentEvict), metrics.StepAvoid, start)
+
 	klog.V(6).Infof("EvictExecutor avoid, %v", *e)
+
+	if len(e.EvictPods) == 0 {
+		metrics.UpdateExecutorStatus(metrics.SubComponentEvict, metrics.StepAvoid, 0.0)
+		return nil
+	}
+
+	metrics.UpdateExecutorStatus(metrics.SubComponentEvict, metrics.StepAvoid, 1.0)
+	metrics.ExecutorStatusCounterInc(metrics.SubComponentEvict, metrics.StepAvoid)
 
 	var bSucceed = true
 	var errPodKeys []string
@@ -67,6 +82,8 @@ func (e *EvictExecutor) Avoid(ctx *ExecuteContext) error {
 				klog.Warningf("Failed to evict pod %s: %v", evictPod.PodKey.String(), err)
 				return
 			}
+
+			metrics.ExecutorEvictCountsInc()
 
 			klog.V(4).Infof("Pod %s is evicted", klog.KObj(pod))
 		}(e.EvictPods[i])

@@ -2,18 +2,24 @@ package agent
 
 import (
 	"context"
+	"net/http"
+	"time"
 
+	"github.com/gocrane/crane/pkg/metrics"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/apiserver/pkg/server/mux"
+	"k8s.io/apiserver/pkg/server/routes"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/component-base/metrics/legacyregistry"
 	"k8s.io/klog/v2"
 
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 	craneclientset "github.com/gocrane/api/pkg/generated/clientset/versioned"
 	"github.com/gocrane/api/pkg/generated/informers/externalversions/ensurance/v1alpha1"
-
+	"github.com/gocrane/crane/cmd/crane-agent/app/options"
 	"github.com/gocrane/crane/pkg/ensurance/analyzer"
 	"github.com/gocrane/crane/pkg/ensurance/collector"
 	"github.com/gocrane/crane/pkg/ensurance/executor"
@@ -37,13 +43,15 @@ func NewAgent(ctx context.Context,
 	nepInformer v1alpha1.NodeQOSEnsurancePolicyInformer,
 	actionInformer v1alpha1.AvoidanceActionInformer,
 	ifaces []string,
+	healthCheck *metrics.HealthCheck,
+	CollectInterval time.Duration,
 ) (*Agent, error) {
 	var managers []manager.Manager
 	var noticeCh = make(chan executor.AvoidanceExecutor)
 
 	utilruntime.Must(ensuranceapi.AddToScheme(scheme.Scheme))
 
-	stateCollector := collector.NewStateCollector(nodeName, nepInformer.Lister(), podInformer.Lister(), nodeInformer.Lister(), ifaces)
+	stateCollector := collector.NewStateCollector(nodeName, nepInformer.Lister(), podInformer.Lister(), nodeInformer.Lister(), ifaces, healthCheck, CollectInterval)
 	managers = append(managers, stateCollector)
 	analyzerManager := analyzer.NewAnormalyAnalyzer(kubeClient, nodeName, podInformer, nodeInformer, nepInformer, actionInformer, stateCollector.StateChann, noticeCh)
 	managers = append(managers, analyzerManager)
@@ -59,15 +67,31 @@ func NewAgent(ctx context.Context,
 	}, nil
 }
 
-func (a *Agent) Run() {
+func (a *Agent) Run(healthCheck *metrics.HealthCheck, opts *options.Options) {
 	klog.Infof("Crane agent %s is starting", a.name)
 
 	for _, m := range a.managers {
 		m.Run(a.ctx.Done())
 	}
 
-	<-a.ctx.Done()
+	healthCheck.StartMonitoring()
 
+	go func() {
+		pathRecorderMux := mux.NewPathRecorderMux("crane-agent")
+		defaultMetricsHandler := legacyregistry.Handler().ServeHTTP
+		pathRecorderMux.HandleFunc("/metrics", func(w http.ResponseWriter, req *http.Request) {
+			defaultMetricsHandler(w, req)
+		})
+
+		pathRecorderMux.HandleFunc("/health-check", healthCheck.ServeHTTP)
+		if opts.EnableProfiling {
+			routes.Profiling{}.Install(pathRecorderMux)
+		}
+		err := http.ListenAndServe(opts.BindAddr, pathRecorderMux)
+		klog.Fatalf("Failed to start metrics: %v", err)
+	}()
+
+	<-a.ctx.Done()
 }
 
 func getAgentName(nodeName string) string {
