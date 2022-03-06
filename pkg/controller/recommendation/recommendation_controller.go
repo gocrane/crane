@@ -51,7 +51,6 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	if recommendation.DeletionTimestamp != nil {
-		// todo stop prediction
 		return ctrl.Result{}, nil
 	}
 
@@ -114,7 +113,7 @@ func (c *Controller) DoRecommend(ctx context.Context, recommendation *analysisv1
 	proposed, err := recommender.Offer()
 	if err != nil {
 		c.Recorder.Event(recommendation, v1.EventTypeNormal, "FailedOfferRecommendation", err.Error())
-		msg := fmt.Sprintf("Failed to offer recommend, Recommendation %s error %v", klog.KObj(recommendation), err)
+		msg := fmt.Sprintf("Failed to offer recommend, Recommendation %s: %v", klog.KObj(recommendation), err)
 		klog.Errorf(msg)
 		setReadyCondition(newStatus, metav1.ConditionFalse, "FailedOfferRecommend", msg)
 		c.UpdateStatus(ctx, recommendation, newStatus)

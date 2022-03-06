@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 
+	"k8s.io/klog/v2"
+
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/providers"
@@ -16,26 +18,37 @@ const (
 	RealtimeProvider = "__realtime"
 )
 
+type Status string
+
+const (
+	StatusReady      Status = "Ready"
+	StatusNotStarted Status = "NotStarted"
+	StatusUnknown    Status = "Unknown"
+	StatusDeleted    Status = "Deleted"
+)
+
 type WithMetricEvent struct {
 	MetricName string
 	Conditions []common.QueryCondition
 }
 
 type GenericPrediction struct {
-	historyProvider      providers.Interface
-	realtimeProvider     providers.Interface
-	metricsMap           map[string][]common.QueryCondition
-	querySet             map[string]struct{}
-	withQueryBroadcaster config.Broadcaster
-	mu                   sync.Mutex
+	historyProvider  providers.Interface
+	realtimeProvider providers.Interface
+	metricsMap       map[string][]common.QueryCondition
+	querySet         map[string]struct{}
+	WithCh           chan QueryExprWithCaller
+	DelCh            chan QueryExprWithCaller
+	mutex            sync.Mutex
 }
 
-func NewGenericPrediction(withQueryBroadcaster config.Broadcaster) GenericPrediction {
+func NewGenericPrediction(withCh, delCh chan QueryExprWithCaller) GenericPrediction {
 	return GenericPrediction{
-		withQueryBroadcaster: withQueryBroadcaster,
-		mu:                   sync.Mutex{},
-		metricsMap:           map[string][]common.QueryCondition{},
-		querySet:             map[string]struct{}{},
+		WithCh:     withCh,
+		DelCh:      delCh,
+		mutex:      sync.Mutex{},
+		metricsMap: map[string][]common.QueryCondition{},
+		querySet:   map[string]struct{}{},
 	}
 }
 
@@ -57,27 +70,71 @@ func (p *GenericPrediction) WithProviders(providers map[string]providers.Interfa
 	}
 }
 
-func (p *GenericPrediction) WithQuery(query string) error {
-	if query == "" {
-		return fmt.Errorf("empty query")
+func (p *GenericPrediction) WithQuery(queryExpr string, caller string, config config.Config) error {
+	if queryExpr == "" {
+		return fmt.Errorf("empty query expression")
+	}
+	if caller == "" {
+		return fmt.Errorf("empty caller")
 	}
 
-	p.mu.Lock()
-	defer p.mu.Unlock()
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 
-	if _, exists := p.querySet[query]; !exists {
-		p.querySet[query] = struct{}{}
-		p.withQueryBroadcaster.Write(query)
+	q := QueryExprWithCaller{
+		QueryExpr: queryExpr,
+		Caller:    caller,
+		Config:    config,
+	}
+
+	if _, exists := p.querySet[q.String()]; !exists {
+		p.querySet[q.String()] = struct{}{}
+		klog.V(4).InfoS("Put tuple{query,caller,config} into with channel.", "query", q.QueryExpr, "caller", q.Caller)
+		p.WithCh <- q
 	}
 
 	return nil
 }
 
-func AggregateSignalKey(id string, labels []common.Label) string {
+func (p *GenericPrediction) DeleteQuery(queryExpr string, caller string) error {
+	if queryExpr == "" {
+		return fmt.Errorf("empty query expression")
+	}
+	if caller == "" {
+		return fmt.Errorf("empty caller")
+	}
+
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	q := QueryExprWithCaller{
+		QueryExpr: queryExpr,
+		Caller:    caller,
+	}
+
+	if _, exists := p.querySet[q.String()]; exists {
+		delete(p.querySet, q.String())
+		p.DelCh <- q
+	}
+
+	return nil
+}
+
+func AggregateSignalKey(labels []common.Label) string {
 	labelSet := make([]string, 0, len(labels))
 	for _, label := range labels {
 		labelSet = append(labelSet, label.Name+"="+label.Value)
 	}
 	sort.Strings(labelSet)
-	return id + "#" + strings.Join(labelSet, ",")
+	return strings.Join(labelSet, ",")
+}
+
+type QueryExprWithCaller struct {
+	QueryExpr string
+	Config    config.Config
+	Caller    string
+}
+
+func (q QueryExprWithCaller) String() string {
+	return fmt.Sprintf("%s####%s", q.Caller, q.QueryExpr)
 }

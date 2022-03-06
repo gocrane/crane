@@ -26,8 +26,6 @@ type EHPAAdvisor struct {
 func (a *EHPAAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 	p := a.Predictors[predictionapi.AlgorithmTypeDSP]
 
-	mc := &config.MetricContext{}
-
 	resourceCpu := corev1.ResourceCPU
 	namespace := a.Recommendation.Spec.TargetRef.Namespace
 	if len(namespace) == 0 {
@@ -45,14 +43,12 @@ func (a *EHPAAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 		return fmt.Errorf("EHPAAdvisor query historic metrics data is unexpected, List length is %d ", len(tsList))
 	}
 
-	err = p.WithQuery(cpuQueryExpr)
-	if err != nil {
-		return err
-	}
 	cpuConfig := getPredictionCpuConfig(cpuQueryExpr)
-	mc.WithConfig(cpuConfig)
-
-	tsListPrediction, err := p.QueryPredictedTimeSeries(cpuQueryExpr, timeNow, timeNow.Add(time.Hour*24*7))
+	tsListPrediction, err := utils.QueryPredictedTimeSeriesOnce(p, fmt.Sprintf(callerFormat, a.Recommendation.UID),
+		getPredictionCpuConfig(cpuQueryExpr),
+		cpuQueryExpr,
+		timeNow,
+		timeNow.Add(time.Hour*24*7))
 	if err != nil {
 		return fmt.Errorf("EHPAAdvisor query predicted time series failed: %v ", err)
 	}
@@ -163,7 +159,7 @@ func getPredictionCpuConfig(expr string) *config.Config {
 func ResourceToPromQueryExpr(namespace string, name string, resourceName *corev1.ResourceName) string {
 	switch *resourceName {
 	case corev1.ResourceCPU:
-		return fmt.Sprintf(config.WorkloadCpuUsagePromQLFmtStr, namespace, name, "1m")
+		return fmt.Sprintf(config.WorkloadCpuUsagePromQLFmtStr, namespace, name, "3m")
 	case corev1.ResourceMemory:
 		return fmt.Sprintf(config.WorkloadMemUsagePromQLFmtStr, namespace, name)
 	}
