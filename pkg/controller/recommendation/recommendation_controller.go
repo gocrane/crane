@@ -8,7 +8,6 @@ import (
 	"gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -44,10 +43,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	recommendation := &analysisv1alph1.Recommendation{}
 	err := c.Client.Get(ctx, req.NamespacedName, recommendation)
 	if err != nil {
-		if errors.IsNotFound(err) {
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{}, err
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	if recommendation.DeletionTimestamp != nil {

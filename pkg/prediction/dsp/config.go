@@ -106,4 +106,3 @@ func makeInternalConfig(d *v1alpha1.DSP) (*internalConfig, error) {
 
 	return &internalConfig{historyResolution, historyDuration, estimators}, nil
 }
-
