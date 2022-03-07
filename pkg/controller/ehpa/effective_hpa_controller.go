@@ -42,7 +42,7 @@ func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 	ehpa := &autoscalingapi.EffectiveHorizontalPodAutoscaler{}
 	err := c.Client.Get(ctx, req.NamespacedName, ehpa)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	RecordMetrics(ehpa)

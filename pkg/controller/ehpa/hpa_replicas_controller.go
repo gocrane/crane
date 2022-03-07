@@ -27,7 +27,7 @@ func (c *HPAReplicasController) Reconcile(ctx context.Context, req ctrl.Request)
 
 	hpa := &autoscalingv2.HorizontalPodAutoscaler{}
 	if err := c.Client.Get(ctx, req.NamespacedName, hpa); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	labels := map[string]string{

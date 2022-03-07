@@ -37,7 +37,7 @@ func (c *SubstituteController) Reconcile(ctx context.Context, req ctrl.Request) 
 	substitute := &autoscalingapi.Substitute{}
 	err := c.Client.Get(ctx, req.NamespacedName, substitute)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	if substitute.DeletionTimestamp != nil {

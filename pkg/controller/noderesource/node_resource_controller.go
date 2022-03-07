@@ -58,9 +58,7 @@ func (r *NodeResourceReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	// get TimeSeriesPrediction result
 	err := r.Client.Get(ctx, req.NamespacedName, tsp)
 	if err != nil {
-		r.Recorder.Event(tsp, v1.EventTypeNormal, "FailedGetTimeSeriesPrediction", err.Error())
-		klog.Errorf("Failed to get timeSeriesPrediction(%s/%s), %v", req.NamespacedName, req.Name, err)
-		return ctrl.Result{}, err
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	// get current node info
