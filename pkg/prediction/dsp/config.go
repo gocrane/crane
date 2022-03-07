@@ -11,7 +11,7 @@ import (
 
 var defaultInternalConfig = internalConfig{
 	historyResolution: time.Minute,
-	historyDuration:   time.Hour * 24 * 7,
+	historyDuration:   time.Hour * 24 * 15,
 	estimators:        defaultEstimators,
 }
 
