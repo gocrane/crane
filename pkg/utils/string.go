@@ -11,6 +11,16 @@ func ContainsString(slice []string, str string) bool {
 	return false
 }
 
+func RemoveString(slice []string, str string) (result []string) {
+	for _, s := range slice {
+		if s == str {
+			continue
+		}
+		result = append(result, s)
+	}
+	return
+}
+
 func ParseFloat(str string, defaultValue float64) (float64, error) {
 	if len(str) == 0 {
 		return defaultValue, nil

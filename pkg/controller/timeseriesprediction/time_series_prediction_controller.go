@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
@@ -14,7 +13,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
+
 	"github.com/gocrane/crane/pkg/prediction"
+	"github.com/gocrane/crane/pkg/utils"
+)
+
+const (
+	TSPFinalizer = "finalizer.prediction.crane.io"
 )
 
 type Controller struct {
@@ -54,16 +59,30 @@ func (tc *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Res
 		if errors.IsNotFound(err) {
 			if last, ok := tc.tsPredictionMap.Load(req.NamespacedName.String()); ok {
 				if tsp, ok := last.(*predictionapi.TimeSeriesPrediction); ok {
-					tc.removeTimeSeriesPrediction(tsp)
+					tc.stopPrediction(tsp)
 					return ctrl.Result{}, nil
 				}
 				return ctrl.Result{}, fmt.Errorf("assert tsp failed for tsp %v in map", req.String())
 			}
-			klog.V(4).Infof("Failed to load exist tsp %v", req.String())
-			return ctrl.Result{}, nil
+			klog.V(4).Infof("Failed to load cached tsp %v, maybe the craned is reboot", req.String())
+			return ctrl.Result{}, client.IgnoreNotFound(err)
 		}
 		klog.V(4).Infof("Failed to get TimeSeriesPrediction %v err: %v", klog.KObj(p), err)
 		return ctrl.Result{Requeue: true}, err
+	}
+
+	if !p.ObjectMeta.GetDeletionTimestamp().IsZero() {
+		// deleting & has finalizers, clear some state data for tsp
+		if err := tc.finalizePrediction(p); err != nil {
+			return ctrl.Result{}, err
+		}
+		// deleting & no finalizers, stop reconcile
+		return ctrl.Result{}, nil
+	}
+
+	// no deleting & no finalizers, add finalizer force
+	if err := tc.ensurePredictionFinalizer(p); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	return tc.syncTimeSeriesPrediction(ctx, p)
@@ -90,9 +109,7 @@ func (tc *Controller) syncTimeSeriesPrediction(ctx context.Context, tsp *predict
 			// predictor need a interface to query the config and then diff.
 			// now just diff the cache in the controller to decide, it can not cover all the cases when users modify the spec
 			for _, newMetricConf := range tsp.Spec.PredictionMetrics {
-				if !ExistsPredictionMetric(newMetricConf, old.Spec.PredictionMetrics) {
-					c.WithApiConfig(&newMetricConf)
-				}
+				c.WithApiConfig(&newMetricConf)
 			}
 			for _, oldMetricConf := range old.Spec.PredictionMetrics {
 				if !ExistsPredictionMetric(oldMetricConf, tsp.Spec.PredictionMetrics) {
@@ -110,7 +127,7 @@ func (tc *Controller) syncTimeSeriesPrediction(ctx context.Context, tsp *predict
 
 }
 
-func (tc *Controller) removeTimeSeriesPrediction(tsp *predictionapi.TimeSeriesPrediction) {
+func (tc *Controller) stopPrediction(tsp *predictionapi.TimeSeriesPrediction) {
 	klog.V(4).Infof("TimeSeriesPrediction %v deleted, delete metric config", klog.KObj(tsp))
 	c := NewMetricContext(tsp, tc.predictors)
 	c.DeleteApiConfigs(tsp.Spec.PredictionMetrics)
@@ -118,9 +135,34 @@ func (tc *Controller) removeTimeSeriesPrediction(tsp *predictionapi.TimeSeriesPr
 	tc.tsPredictionMap.Delete(key)
 }
 
+func (tc *Controller) finalizePrediction(p *predictionapi.TimeSeriesPrediction) error {
+	if utils.ContainsString(p.ObjectMeta.GetFinalizers(), TSPFinalizer) {
+		klog.V(4).Infof("TimeSeriesPrediction %v finalize prediction.", klog.KObj(p))
+		tc.stopPrediction(p)
+		p.ObjectMeta.SetFinalizers(utils.RemoveString(p.ObjectMeta.Finalizers, TSPFinalizer))
+		if err := tc.Update(context.Background(), p); err != nil {
+			klog.Errorf("TimeSeriesPrediction %v failed to finalizePrediction, err: %v", klog.KObj(p), err)
+			return err
+		}
+	}
+	return nil
+}
+
+func (tc *Controller) ensurePredictionFinalizer(p *predictionapi.TimeSeriesPrediction) error {
+	if !utils.ContainsString(p.ObjectMeta.GetFinalizers(), TSPFinalizer) {
+		klog.V(4).Infof("TimeSeriesPrediction %v ensurePredictionFinalizer.", klog.KObj(p))
+		p.ObjectMeta.SetFinalizers(append(p.ObjectMeta.Finalizers, TSPFinalizer))
+		if err := tc.Update(context.Background(), p); err != nil {
+			klog.Errorf("TimeSeriesPrediction %v failed to ensurePredictionFinalizer, err: %v", klog.KObj(p), err)
+			return err
+		}
+	}
+	return nil
+}
+
 func ExistsPredictionMetric(metric predictionapi.PredictionMetric, metrics []predictionapi.PredictionMetric) bool {
 	for _, m := range metrics {
-		if equality.Semantic.DeepEqual(&m, &metric) {
+		if m.ResourceIdentifier == metric.ResourceIdentifier {
 			return true
 		}
 	}
