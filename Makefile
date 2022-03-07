@@ -25,6 +25,7 @@ REGISTRY_PASSWORD?=""
 MANAGER_IMG ?= "${REGISTRY}/${REGISTRY_NAMESPACE}/craned:${GIT_VERSION}"
 AGENT_IMG ?= "${REGISTRY}/${REGISTRY_NAMESPACE}/crane-agent:${GIT_VERSION}"
 ADAPTER_IMG ?= "${REGISTRY}/${REGISTRY_NAMESPACE}/metric-adapter:${GIT_VERSION}"
+DASHBOARD_IMG ?= "${REGISTRY}/${REGISTRY_NAMESPACE}/dashboard:${GIT_VERSION}"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -111,7 +112,6 @@ build: craned crane-agent metric-adapter
 
 .PHONY: all
 all: generate test craned  crane-agent metric-adapter
-
 .PHONY: craned
 craned: ## Build binary with the crane manager.
 	CGO_ENABLED=0 GOOS=$(GOOS) go build -ldflags $(LDFLAGS) -o bin/craned cmd/craned/main.go
@@ -125,14 +125,18 @@ metric-adapter: ## Build binary with the metric adapter.
 	CGO_ENABLED=0 GOOS=$(GOOS) go build -ldflags $(LDFLAGS) -o bin/metric-adapter cmd/metric-adapter/main.go
 
 .PHONY: images
-images: image-craned image-crane-agent image-metric-adapter
+images: image-craned image-crane-agent image-metric-adapter image-dashboard
 
 .PHONY: image-craned
 image-craned: ## Build docker image with the crane manager.
 	docker build --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=craned -t ${MANAGER_IMG} .
 
+.PHONY: image-dashboard
+image-dashboard: ## Build docker image with the crane dashboard.
+	docker build --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=web -t ${DASHBOARD_IMG} ./pkg/web
+
 .PHONY: image-crane-agent
-image-crane-agent: ## Build docker image with the crane manager.
+image-crane-agent: ## Build docker image with the crane agent.
 	docker build --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=crane-agent -t ${AGENT_IMG} .
 
 .PHONY: image-metric-adapter
@@ -148,6 +152,13 @@ ifneq ($(REGISTRY_USER_NAME), "")
 	docker login -u $(REGISTRY_USER_NAME) -p $(REGISTRY_PASSWORD) ${REGISTRY}
 endif
 	docker push ${MANAGER_IMG}
+
+.PHONY: push-image-dashboard
+push-image-dashboard: ## Push images.
+ifneq ($(REGISTRY_USER_NAME), "")
+	docker login -u $(REGISTRY_USER_NAME) -p $(REGISTRY_PASSWORD) ${REGISTRY}
+endif
+	docker push ${DASHBOARD_IMG}
 
 .PHONY: push-image-crane-agent
 push-image-crane-agent: ## Push images.
