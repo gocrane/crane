@@ -236,7 +236,7 @@ ifeq (, $(shell which mockgen))
 	go install github.com/golang/mock/mockgen ;\
 	rm -rf $$GO_MOCKGEN_TMP_DIR ;\
 	}
-GO_IMPORTS=$(shell go env GOPATH)/bin/mockgen
+GO_MOCKGEN=$(shell go env GOPATH)/bin/mockgen
 else
-GO_IMPORTS=$(shell which mockgen)
+GO_MOCKGEN=$(shell which mockgen)
 endif

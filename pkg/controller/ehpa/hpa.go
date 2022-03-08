@@ -18,6 +18,7 @@ import (
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/known"
+	"github.com/gocrane/crane/pkg/metricprovider"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
@@ -243,7 +244,33 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 		metrics = append(metrics, customMetricsForPrediction...)
 	}
 
+	// Construct cron external metrics for cron scale
+	if IsCronEnabled(ehpa) {
+		metrics = append(metrics, GetCronMetricSpecsForHPA(ehpa)...)
+	}
+
 	return metrics, nil
+}
+
+// GetCronMetricSpecsForHPA return a hpa external metric specs from ehpa cron scale specs, this spec will be injected into hpa
+func GetCronMetricSpecsForHPA(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) []autoscalingv2.MetricSpec {
+	var metricSpecs []autoscalingv2.MetricSpec
+	for _, cronScale := range ehpa.Spec.Crons {
+		metricName := metricprovider.EHPACronMetricName(ehpa.Namespace, ehpa.Name, cronScale)
+		metricSpecs = append(metricSpecs, autoscalingv2.MetricSpec{
+			Type: autoscalingv2.ExternalMetricSourceType,
+			External: &autoscalingv2.ExternalMetricSource{
+				Metric: autoscalingv2.MetricIdentifier{
+					Name: metricName,
+				},
+				Target: autoscalingv2.MetricTarget{
+					Type:         autoscalingv2.AverageValueMetricType,
+					AverageValue: resource.NewQuantity(metricprovider.DefaultCronTargetMetricValue, resource.DecimalSI),
+				},
+			},
+		})
+	}
+	return metricSpecs
 }
 
 // GetPredictionMetricName return metric name used by prediction

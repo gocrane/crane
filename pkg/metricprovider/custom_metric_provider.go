@@ -22,6 +22,7 @@ import (
 	"sigs.k8s.io/custom-metrics-apiserver/pkg/provider"
 
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
+
 	"github.com/gocrane/crane/pkg/known"
 )
 
@@ -30,18 +31,18 @@ type metricValue struct {
 	value     float64
 }
 
-var _ provider.CustomMetricsProvider = &MetricProvider{}
+var _ provider.CustomMetricsProvider = &CustomMetricProvider{}
 
-// MetricProvider is an implementation of provider.MetricsProvider which provide predictive metric for resource
-type MetricProvider struct {
+// CustomMetricProvider is an implementation of provider.CustomMetricProvider which provide predictive metric for resource
+type CustomMetricProvider struct {
 	client        client.Client
 	remoteAdapter *RemoteAdapter
 	recorder      record.EventRecorder
 }
 
-// NewMetricProvider returns an instance of metricProvider
-func NewMetricProvider(client client.Client, remoteAdapter *RemoteAdapter, recorder record.EventRecorder) provider.CustomMetricsProvider {
-	provider := &MetricProvider{
+// NewCustomMetricProvider returns an instance of CustomMetricProvider
+func NewCustomMetricProvider(client client.Client, remoteAdapter *RemoteAdapter, recorder record.EventRecorder) provider.CustomMetricsProvider {
+	provider := &CustomMetricProvider{
 		client:        client,
 		remoteAdapter: remoteAdapter,
 		recorder:      recorder,
@@ -49,7 +50,7 @@ func NewMetricProvider(client client.Client, remoteAdapter *RemoteAdapter, recor
 	return provider
 }
 
-func (p *MetricProvider) GetMetricByName(ctx context.Context, name types.NamespacedName, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValue, error) {
+func (p *CustomMetricProvider) GetMetricByName(ctx context.Context, name types.NamespacedName, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValue, error) {
 	klog.Info(fmt.Sprintf("Get metric by name for custom metric, GroupResource %s namespacedName %s metric %s metricSelector %s", info.GroupResource.String(), name.String(), info.Metric, metricSelector.String()))
 
 	if !IsLocalMetric(info) {
@@ -64,7 +65,7 @@ func (p *MetricProvider) GetMetricByName(ctx context.Context, name types.Namespa
 }
 
 // GetMetricBySelector fetches metric for pod resources, get predictive metric from giving selector
-func (p *MetricProvider) GetMetricBySelector(ctx context.Context, namespace string, selector labels.Selector, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValueList, error) {
+func (p *CustomMetricProvider) GetMetricBySelector(ctx context.Context, namespace string, selector labels.Selector, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValueList, error) {
 	klog.Info(fmt.Sprintf("Get metric by selector for custom metric, Info %v namespace %s selector %s metricSelector %s", info, namespace, selector.String(), metricSelector.String()))
 
 	if !IsLocalMetric(info) {
@@ -168,7 +169,7 @@ func (p *MetricProvider) GetMetricBySelector(ctx context.Context, namespace stri
 }
 
 // ListAllMetrics returns all available custom metrics.
-func (p *MetricProvider) ListAllMetrics() []provider.CustomMetricInfo {
+func (p *CustomMetricProvider) ListAllMetrics() []provider.CustomMetricInfo {
 	klog.Info("List all custom metrics")
 
 	metricInfos := ListAllLocalMetrics()
@@ -202,7 +203,7 @@ func IsLocalMetric(metricInfo provider.CustomMetricInfo) bool {
 	return false
 }
 
-func (p *MetricProvider) GetPrediction(ctx context.Context, namespace string, metricSelector labels.Selector) (*predictionapi.TimeSeriesPrediction, error) {
+func (p *CustomMetricProvider) GetPrediction(ctx context.Context, namespace string, metricSelector labels.Selector) (*predictionapi.TimeSeriesPrediction, error) {
 	labelSelector, err := labels.ConvertSelectorToLabelsMap(metricSelector.String())
 	if err != nil {
 		klog.Error(err, "Failed to convert metric selectors to labels")
@@ -230,7 +231,7 @@ func (p *MetricProvider) GetPrediction(ctx context.Context, namespace string, me
 	return &predictionList.Items[0], nil
 }
 
-func (p *MetricProvider) GetPods(ctx context.Context, namespace string, selector labels.Selector) ([]v1.Pod, error) {
+func (p *CustomMetricProvider) GetPods(ctx context.Context, namespace string, selector labels.Selector) ([]v1.Pod, error) {
 	labelSelector, err := labels.ConvertSelectorToLabelsMap(selector.String())
 	if err != nil {
 		klog.Error(err, "Failed to convert selectors to labels")

@@ -37,6 +37,9 @@ spec:
         - name: craned
           image: docker.io/gocrane/craned:v0.2.0
           imagePullPolicy: IfNotPresent
+          env:
+            - name: TZ
+              value: Asia/Shanghai
           command:
             - /craned
             - --prometheus-address=PROMETHEUS_ADDRESS

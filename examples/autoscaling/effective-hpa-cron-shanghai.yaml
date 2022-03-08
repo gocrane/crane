@@ -1,0 +1,62 @@
+apiVersion: autoscaling.crane.io/v1alpha1
+kind: EffectiveHorizontalPodAutoscaler
+metadata:
+  name: php-apache-shanghai
+spec:
+  # ScaleTargetRef is the reference to the workload that should be scaled.
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: php-apache
+  minReplicas: 1        # MinReplicas is the lower limit replicas to the scale target which the autoscaler can scale down to.
+  maxReplicas: 10       # MaxReplicas is the upper limit replicas to the scale target which the autoscaler can scale up to.
+  scaleStrategy: Auto   # ScaleStrategy indicate the strategy to scaling target, value can be "Auto" and "Manual".
+  # Better to setting cron to fill the one complete time period such as one day, one week
+  # Below is one day cron scheduling, it
+  #100                  --------     ---------        ----------
+  #                    |       |    |        |       |         |
+  #1        ------------       -----         --------          ----------
+  #(time)   0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23
+  crons:
+    - name: "cron1"
+      timezone: "Asia/Shanghai"
+      description: "keep normal"
+      start: "0 0 ? * *"
+      end: "0 6 ? * *"
+      targetReplicas: 1
+    - name: "cron2"
+      timezone: "Asia/Shanghai"
+      description: "scale up"
+      start: "0 6 ? * *"
+      end: "0 9 ? * *"
+      targetReplicas: 100
+    - name: "cron3"
+      timezone: "Asia/Shanghai"
+      description: "scale down"
+      start: "00 9 ? * *"
+      end: "00 11 ? * *"
+      targetReplicas: 1
+    - name: "cron4"
+      timezone: "Asia/Shanghai"
+      description: "scale up"
+      start: "00 11 ? * *"
+      end: "00 14 ? * *"
+      targetReplicas: 100
+    - name: "cron5"
+      timezone: "Asia/Shanghai"
+      description: "scale down"
+      start: "00 14 ? * *"
+      end: "00 17 ? * *"
+      targetReplicas: 1
+    - name: "cron6"
+      timezone: "Asia/Shanghai"
+      description: "scale up"
+      start: "00 17 ? * *"
+      end: "00 20 ? * *"
+      targetReplicas: 100
+    - name: "cron7"
+      timezone: "Asia/Shanghai"
+      description: "keep normal"
+      start: "00 20 ? * *"
+      end: "00 00 ? * *"
+      targetReplicas: 1

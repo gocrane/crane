@@ -112,11 +112,12 @@ func Run(ctx context.Context, opts *options.Options) error {
 		return err
 	}
 
+	initializationControllers(ctx, mgr, opts)
+	klog.Info("Starting crane manager")
+
 	if opts.WebhookConfig.Enabled {
 		initializationWebhooks(mgr)
 	}
-	initializationControllers(ctx, mgr, opts)
-	klog.Info("Starting crane manager")
 
 	// initialization custom collector metrics
 	initializationMetricCollector(mgr)

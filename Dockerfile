@@ -20,8 +20,8 @@ COPY cmd cmd/
 
 # Build
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="${LDFLAGS}" -a -o ${PKGNAME} /go/src/github.com/gocrane/crane/cmd/${PKGNAME}/main.go
-
 FROM alpine:3.13.5
+RUN apk add --no-cache tzdata
 WORKDIR /
 ARG PKGNAME
 COPY --from=builder /go/src/github.com/gocrane/crane/${PKGNAME} .
