@@ -16,9 +16,9 @@ const (
 
 	// following is node exporter metric for node cpu/memory usage
 	// NodeCpuUsagePromQLFmtStr is used to query node cpu usage by promql,  param is node name which prometheus scrape, duration str
-	NodeCpuUsagePromQLFmtStr = `sum(count(node_cpu_seconds_total{mode="idle",instance=~"%s.*"}) by (mode, cpu)) - sum(irate(node_cpu_seconds_total{mode="idle",instance=~"%s.*"}[%s]))`
+	NodeCpuUsagePromQLFmtStr = `sum(count(node_cpu_seconds_total{mode="idle",instance=~"(%s)(:\\d+)?"}) by (mode, cpu)) - sum(irate(node_cpu_seconds_total{mode="idle",instance=~"(%s)(:\\d+)?"}[%s]))`
 	// NodeMemUsagePromQLFmtStr is used to query node cpu memory by promql,  param is node name, node name which prometheus scrape
-	NodeMemUsagePromQLFmtStr = `sum(node_memory_MemTotal_bytes{instance=~"^%s.*"} - node_memory_MemAvailable_bytes{instance=~"^%s.*"})`
+	NodeMemUsagePromQLFmtStr = `sum(node_memory_MemTotal_bytes{instance=~"(%s)(:\\d+)?"} - node_memory_MemAvailable_bytes{instance=~"(%s)(:\\d+)?"})`
 )
 
 //var UpdateEventBroadcaster Broadcaster = NewBroadcaster()
