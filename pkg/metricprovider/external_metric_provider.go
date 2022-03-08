@@ -49,11 +49,13 @@ func (p *ExternalMetricProvider) GetExternalMetric(ctx context.Context, namespac
 	}
 	// Find the cron metric scaler
 	var cronScaler *CronScaler
+outer:
 	for i := range ehpaList.Items {
 		cronScalers := GetCronScalersForEHPA(&ehpaList.Items[i])
 		for k := range cronScalers {
 			if cronScalers[k].Name() == info.Metric {
 				cronScaler = cronScalers[k]
+				break outer
 			}
 		}
 	}
