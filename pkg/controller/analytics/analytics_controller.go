@@ -151,16 +151,19 @@ func (c *Controller) DoAnalytics(ctx context.Context, analytics *analysisv1alph1
 		}
 	}
 
-	var refs []corev1.ObjectReference
+	var refs []analysisv1alph1.RecommendationReference
 
 	for k, id := range identities {
 		if r, exists := recommendationMap[k]; exists {
-			refs = append(refs, corev1.ObjectReference{
-				Kind:       recommendationMap[k].Kind,
-				Name:       recommendationMap[k].Name,
-				Namespace:  recommendationMap[k].Namespace,
-				APIVersion: recommendationMap[k].APIVersion,
-				UID:        recommendationMap[k].UID,
+			refs = append(refs, analysisv1alph1.RecommendationReference{
+				ObjectReference: corev1.ObjectReference{
+					Kind:       recommendationMap[k].Kind,
+					Name:       recommendationMap[k].Name,
+					Namespace:  recommendationMap[k].Namespace,
+					APIVersion: recommendationMap[k].APIVersion,
+					UID:        recommendationMap[k].UID,
+				},
+				TargetRef: recommendationMap[k].Spec.TargetRef,
 			})
 			found := false
 			for _, or := range r.OwnerReferences {
@@ -202,8 +205,9 @@ func (c *Controller) DoAnalytics(ctx context.Context, analytics *analysisv1alph1
 }
 
 func (c *Controller) CreateRecommendation(ctx context.Context, analytics *analysisv1alph1.Analytics,
-	id ObjectIdentity, refs *[]corev1.ObjectReference) error {
+	id ObjectIdentity, refs *[]analysisv1alph1.RecommendationReference) error {
 
+	targetRef := corev1.ObjectReference{Kind: id.Kind, APIVersion: id.APIVersion, Namespace: id.Namespace, Name: id.Name}
 	recommendation := &analysisv1alph1.Recommendation{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: fmt.Sprintf("%s-%s-", analytics.Name, strings.ToLower(string(analytics.Spec.Type))),
@@ -214,7 +218,7 @@ func (c *Controller) CreateRecommendation(ctx context.Context, analytics *analys
 			Labels: id.Labels,
 		},
 		Spec: analysisv1alph1.RecommendationSpec{
-			TargetRef:          corev1.ObjectReference{Kind: id.Kind, APIVersion: id.APIVersion, Namespace: id.Namespace, Name: id.Name},
+			TargetRef:          targetRef,
 			Type:               analytics.Spec.Type,
 			CompletionStrategy: analytics.Spec.CompletionStrategy,
 		},
@@ -227,12 +231,15 @@ func (c *Controller) CreateRecommendation(ctx context.Context, analytics *analys
 
 	klog.InfoS("Successful to create", "Recommendation", klog.KObj(recommendation), "Analytics", klog.KObj(analytics))
 
-	*refs = append(*refs, corev1.ObjectReference{
-		Kind:       recommendation.Kind,
-		Name:       recommendation.Name,
-		Namespace:  recommendation.Namespace,
-		APIVersion: recommendation.APIVersion,
-		UID:        recommendation.UID,
+	*refs = append(*refs, analysisv1alph1.RecommendationReference{
+		ObjectReference: corev1.ObjectReference{
+			Kind:       recommendation.Kind,
+			Name:       recommendation.Name,
+			Namespace:  recommendation.Namespace,
+			APIVersion: recommendation.APIVersion,
+			UID:        recommendation.UID,
+		},
+		TargetRef: targetRef,
 	})
 
 	return nil
