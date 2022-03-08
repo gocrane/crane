@@ -39,6 +39,15 @@ spec:
             description: RecommendationSpec describes the recommendation type and
               what the recommendation is for.
             properties:
+              adoptionType:
+                default: StatusAndAnnotation
+                description: AdoptionType indicate how to adopt recommendation value
+                  to target. the default AdoptionType is StatusAndAnnotation.
+                enum:
+                - Status
+                - StatusAndAnnotation
+                - Auto
+                type: string
               completionStrategy:
                 description: CompletionStrategy indicate how to complete a recommendation.
                   the default CompletionStrategy is Once.
