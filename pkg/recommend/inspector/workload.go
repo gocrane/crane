@@ -39,6 +39,16 @@ func (i *WorkloadInspector) Inspect() error {
 		return fmt.Errorf("Workload replicas %d should be larger than %d ", i.Context.Scale.Spec.Replicas, int32(workloadMinReplicas))
 	}
 
+	for _, container := range i.Context.PodTemplate.Spec.Containers {
+		if container.Resources.Requests.Cpu() == nil {
+			return fmt.Errorf("Container %s resource cpu request is empty ", container.Name)
+		}
+
+		if container.Resources.Limits.Cpu() == nil {
+			return fmt.Errorf("Container %s resource cpu limit is empty ", container.Name)
+		}
+	}
+
 	return nil
 }
 

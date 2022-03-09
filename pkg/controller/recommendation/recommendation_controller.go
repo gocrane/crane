@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -56,6 +55,11 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	}
 
+	// defaulting for TargetRef.Namespace
+	if recommendation.Spec.TargetRef.Namespace == "" {
+		recommendation.Spec.TargetRef.Namespace = recommendation.Namespace
+	}
+
 	c.DoRecommend(ctx, recommendation)
 
 	if recommendation.Spec.CompletionStrategy.CompletionStrategyType == analysisv1alph1.CompletionStrategyPeriodical {
@@ -98,7 +102,7 @@ func (c *Controller) DoRecommend(ctx context.Context, recommendation *analysisv1
 
 	recommender, err := recommend.NewRecommender(c.Client, c.RestMapper, c.ScaleClient, recommendation, c.Predictors, c.Provider, c.ConfigSet)
 	if err != nil {
-		c.Recorder.Event(recommendation, v1.EventTypeNormal, "FailedCreateRecommender", err.Error())
+		c.Recorder.Event(recommendation, v1.EventTypeWarning, "FailedCreateRecommender", err.Error())
 		msg := fmt.Sprintf("Failed to create recommender, Recommendation %s error %v", klog.KObj(recommendation), err)
 		klog.Errorf(msg)
 		setReadyCondition(newStatus, metav1.ConditionFalse, "FailedCreateRecommender", msg)
@@ -108,7 +112,7 @@ func (c *Controller) DoRecommend(ctx context.Context, recommendation *analysisv1
 
 	proposed, err := recommender.Offer()
 	if err != nil {
-		c.Recorder.Event(recommendation, v1.EventTypeNormal, "FailedOfferRecommendation", err.Error())
+		c.Recorder.Event(recommendation, v1.EventTypeWarning, "FailedOfferRecommendation", err.Error())
 		msg := fmt.Sprintf("Failed to offer recommend, Recommendation %s: %v", klog.KObj(recommendation), err)
 		klog.Errorf(msg)
 		setReadyCondition(newStatus, metav1.ConditionFalse, "FailedOfferRecommend", msg)
@@ -116,14 +120,14 @@ func (c *Controller) DoRecommend(ctx context.Context, recommendation *analysisv1
 		return
 	}
 
-	if proposed != nil {
-		if proposed.ResourceRequest != nil {
-			val, _ := yaml.Marshal(proposed.ResourceRequest)
-			newStatus.RecommendedValue = string(val)
-		} else if proposed.EffectiveHPA != nil {
-			val, _ := yaml.Marshal(proposed.EffectiveHPA)
-			newStatus.RecommendedValue = string(val)
-		}
+	err = c.UpdateRecommendation(ctx, recommendation, proposed, newStatus)
+	if err != nil {
+		c.Recorder.Event(recommendation, v1.EventTypeWarning, "FailedUpdateRecommendationValue", err.Error())
+		msg := fmt.Sprintf("Failed to update recommendation value, Recommendation %s: %v", klog.KObj(recommendation), err)
+		klog.Errorf(msg)
+		setReadyCondition(newStatus, metav1.ConditionFalse, "FailedUpdateRecommendationValue", msg)
+		c.UpdateStatus(ctx, recommendation, newStatus)
+		return
 	}
 
 	setReadyCondition(newStatus, metav1.ConditionTrue, "RecommendationReady", "Recommendation is ready")
@@ -132,15 +136,13 @@ func (c *Controller) DoRecommend(ctx context.Context, recommendation *analysisv1
 
 func (c *Controller) UpdateStatus(ctx context.Context, recommendation *analysisv1alph1.Recommendation, newStatus *analysisv1alph1.RecommendationStatus) {
 	if !equality.Semantic.DeepEqual(&recommendation.Status, newStatus) {
-		klog.V(4).Infof("Recommendation status should be updated, currentStatus %v newStatus %v", &recommendation.Status, newStatus)
-
 		recommendation.Status = *newStatus
 		timeNow := metav1.Now()
 		recommendation.Status.LastUpdateTime = &timeNow
 
 		err := c.Update(ctx, recommendation)
 		if err != nil {
-			c.Recorder.Event(recommendation, v1.EventTypeNormal, "FailedUpdateStatus", err.Error())
+			c.Recorder.Event(recommendation, v1.EventTypeWarning, "FailedUpdateStatus", err.Error())
 			klog.Errorf("Failed to update status, Recommendation %s error %v", klog.KObj(recommendation), err)
 			return
 		}

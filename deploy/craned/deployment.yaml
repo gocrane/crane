@@ -85,9 +85,16 @@ data:
     configs:
       - targets: []
         properties:
-          cpu-request-percentile: "0.98"
+          resource.cpu-request-percentile: "0.98"
           ehpa.deployment-min-replicas: "1"
           ehpa.statefulset-min-replicas: "1"
           ehpa.workload-min-replicas: "1"
           ehpa.pod-min-ready-seconds: "30"
           ehpa.pod-available-ratio: "0.5"
+          ehpa.default-min-replicas: "2"
+          ehpa.max-replicas-factor: "3"
+          ehpa.min-cpu-usage-threshold: "10"
+          ehpa.fluctuation-threshold: "3"
+          ehpa.min-cpu-target-utilization: "30"
+          ehpa.max-cpu-target-utilization: "75"
+          ehpa.reference-hpa: "true"

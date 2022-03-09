@@ -89,8 +89,6 @@ func (c *EffectiveHPAController) NewSubstituteObject(ehpa *autoscalingapi.Effect
 
 func (c *EffectiveHPAController) UpdateSubstituteIfNeed(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, substituteExist *autoscalingapi.Substitute, scale *autoscalingapiv1.Scale) (*autoscalingapi.Substitute, error) {
 	if !equality.Semantic.DeepEqual(&substituteExist.Spec.SubstituteTargetRef, &ehpa.Spec.ScaleTargetRef) {
-		klog.V(4).Infof("Substitute is unsynced according to EffectiveHorizontalPodAutoscaler, should be updated, currentTarget %v expectTarget %v", substituteExist.Spec.SubstituteTargetRef, ehpa.Spec.ScaleTargetRef)
-
 		substituteExist.Spec.SubstituteTargetRef = ehpa.Spec.ScaleTargetRef
 		err := c.Update(ctx, substituteExist)
 		if err != nil {

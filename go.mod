@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/go-echarts/go-echarts/v2 v2.2.4
-	github.com/gocrane/api v0.2.1-0.20220308075341-c4f28c1981e6
+	github.com/gocrane/api v0.2.1-0.20220309033244-699efd59d009
 	github.com/google/cadvisor v0.39.2
 	github.com/mjibson/go-dsp v0.0.0-20180508042940-11479a337f12
 	github.com/prometheus/client_golang v1.11.0
@@ -31,6 +31,22 @@ require (
 )
 
 require (
+	github.com/StackExchange/wmi v1.2.1 // indirect
+	github.com/gin-contrib/cors v1.3.1
+	github.com/gin-contrib/pprof v1.3.0
+	github.com/gin-gonic/gin v1.7.7
+	github.com/golang/mock v1.5.0
+	github.com/grafana-tools/sdk v0.0.0-20211220201350-966b3088eec9
+	github.com/montanaflynn/stats v0.6.6
+	github.com/tklauser/go-sysconf v0.3.9 // indirect
+	github.com/zsais/go-gin-prometheus v0.1.0
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	gopkg.in/gcfg.v1 v1.2.0
+	k8s.io/kube-openapi v0.0.0-20210817084001-7fbd8d59e5b8 // indirect
+)
+
+require (
+	github.com/Microsoft/go-winio v0.5.1 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
@@ -140,22 +156,7 @@ require (
 )
 
 require (
-	github.com/StackExchange/wmi v1.2.1 // indirect
-	github.com/gin-contrib/cors v1.3.1
-	github.com/gin-contrib/pprof v1.3.0
-	github.com/gin-gonic/gin v1.7.7
-	github.com/golang/mock v1.5.0
-	github.com/grafana-tools/sdk v0.0.0-20211220201350-966b3088eec9
-	github.com/tklauser/go-sysconf v0.3.9 // indirect
-	github.com/zsais/go-gin-prometheus v0.1.0
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	gopkg.in/gcfg.v1 v1.2.0
-	k8s.io/kube-openapi v0.0.0-20210817084001-7fbd8d59e5b8 // indirect
-)
-
-require (
 	cloud.google.com/go v0.84.0 // indirect
-	github.com/Microsoft/go-winio v0.5.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect

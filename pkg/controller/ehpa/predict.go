@@ -80,13 +80,11 @@ func (c *EffectiveHPAController) UpdatePredictionIfNeed(ctx context.Context, ehp
 	prediction, err := c.NewPredictionObject(ehpa)
 	if err != nil {
 		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreatePredictionObject", err.Error())
-		klog.Errorf("Failed to create object, TimeSeriesPrediction %s error %v", prediction, err)
+		klog.Errorf("Failed to create object, TimeSeriesPrediction %s error %v", klog.KObj(prediction), err)
 		return nil, err
 	}
 
 	if !equality.Semantic.DeepEqual(&predictionExist.Spec, &prediction.Spec) {
-		klog.V(4).Infof("TimeSeriesPrediction is unsynced according to EffectiveHorizontalPodAutoscaler, should be updated, currentTimeSeriesPrediction %v expectTimeSeriesPrediction %v", predictionExist.Spec, prediction.Spec)
-
 		predictionExist.Spec = prediction.Spec
 		err := c.Update(ctx, predictionExist)
 		if err != nil {

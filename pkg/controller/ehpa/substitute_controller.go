@@ -57,8 +57,6 @@ func (c *SubstituteController) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	if !equality.Semantic.DeepEqual(&substitute.Status, &newStatus) {
-		klog.V(4).Infof("Substitute status should be updated", "current %v new %v", substitute.Status, newStatus)
-
 		substitute.Status = newStatus
 		err := c.Status().Update(ctx, substitute)
 		if err != nil {

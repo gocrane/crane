@@ -18,6 +18,7 @@ import (
 	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
+	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/prediction"
 	"github.com/gocrane/crane/pkg/providers"
 	"github.com/gocrane/crane/pkg/recommend/advisor"
@@ -153,6 +154,40 @@ func GetContext(kubeClient client.Client, restMapper meta.RESTMapper,
 	}
 	if err != nil {
 		return nil, err
+	}
+
+	if recommendation.Spec.Type == analysisapi.AnalysisTypeHPA {
+		c.PodTemplate, err = utils.GetPodTemplate(context.TODO(),
+			recommendation.Spec.TargetRef.Namespace,
+			recommendation.Spec.TargetRef.Name,
+			recommendation.Spec.TargetRef.Kind,
+			recommendation.Spec.TargetRef.APIVersion,
+			kubeClient)
+		if err != nil {
+			return nil, err
+		}
+
+		hpaList := &autoscalingv2.HorizontalPodAutoscalerList{}
+		opts := []client.ListOption{
+			client.InNamespace(recommendation.Spec.TargetRef.Namespace),
+		}
+		err := kubeClient.List(context.TODO(), hpaList, opts...)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, hpa := range hpaList.Items {
+			// bypass hpa that controller by ehpa
+			if hpa.Labels != nil && hpa.Labels["app.kubernetes.io/managed-by"] == known.EffectiveHorizontalPodAutoscalerManagedBy {
+				continue
+			}
+
+			if hpa.Spec.ScaleTargetRef.Name == recommendation.Spec.TargetRef.Name &&
+				hpa.Spec.ScaleTargetRef.Kind == recommendation.Spec.TargetRef.APIVersion &&
+				hpa.Spec.ScaleTargetRef.APIVersion == recommendation.Spec.TargetRef.APIVersion {
+				c.HPA = &hpa
+			}
+		}
 	}
 
 	c.Pods = pods

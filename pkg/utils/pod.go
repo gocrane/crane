@@ -110,3 +110,17 @@ func GetPodContainerByName(pod *v1.Pod, containerName string) (v1.Container, err
 
 	return v1.Container{}, fmt.Errorf("container not found")
 }
+
+// CalculatePodTemplateRequests sum request total from podTemplate
+func CalculatePodTemplateRequests(podTemplate *v1.PodTemplateSpec, resource v1.ResourceName) (int64, error) {
+	var requests int64
+	for _, c := range podTemplate.Spec.Containers {
+		if containerRequest, ok := c.Resources.Requests[resource]; ok {
+			requests += containerRequest.MilliValue()
+		} else {
+			return 0, fmt.Errorf("missing request for %s", resource)
+		}
+	}
+
+	return requests, nil
+}
