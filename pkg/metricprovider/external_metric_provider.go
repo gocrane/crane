@@ -48,15 +48,7 @@ func (p *ExternalMetricProvider) GetExternalMetric(ctx context.Context, namespac
 		return &external_metrics.ExternalMetricValueList{}, err
 	}
 	// Find the cron metric scaler
-	var cronScaler *CronScaler
-	for i := range ehpaList.Items {
-		cronScalers := GetCronScalersForEHPA(&ehpaList.Items[i])
-		for k := range cronScalers {
-			if cronScalers[k].Name() == info.Metric {
-				cronScaler = cronScalers[k]
-			}
-		}
-	}
+	cronScaler := findCronScaler(ehpaList.Items, info)
 	if cronScaler == nil {
 		return &external_metrics.ExternalMetricValueList{}, fmt.Errorf("cron metric %v/%v not found", namespace, info.Metric)
 	}
@@ -74,6 +66,18 @@ func (p *ExternalMetricProvider) GetExternalMetric(ctx context.Context, namespac
 		Value:      *resource.NewQuantity(replicas, resource.DecimalSI),
 	}
 	return &external_metrics.ExternalMetricValueList{Items: []external_metrics.ExternalMetricValue{value}}, nil
+}
+
+func findCronScaler(ehpas []autoscalingapi.EffectiveHorizontalPodAutoscaler, info provider.ExternalMetricInfo) *CronScaler {
+	for i := range ehpas {
+		cronScalers := GetCronScalersForEHPA(&ehpas[i])
+		for k := range cronScalers {
+			if cronScalers[k].Name() == info.Metric {
+				return cronScalers[k]
+			}
+		}
+	}
+	return nil
 }
 
 // ListAllExternalMetrics return external cron metrics
