@@ -281,7 +281,7 @@ func (t *ThrottleExecutor) Restore(ctx *ExecuteContext) error {
 						bSucceed = false
 						continue
 					}
-					klog.V(2).Infof("restore kkkkkkkk")
+					klog.V(2).Infof("restore")
 				}
 			}
 		}

@@ -27,7 +27,7 @@ type StateCollector struct {
 	healthCheck     *metrics.HealthCheck
 	collectInterval time.Duration
 	ifaces          []string
-	collectors      *sync.Map
+	Collectors      *sync.Map
 	StateChann      chan map[string][]common.TimeSeries
 }
 
@@ -43,7 +43,7 @@ func NewStateCollector(nodeName string, nepLister ensuranceListers.NodeQOSEnsura
 		collectInterval: collectInterval,
 		ifaces:          ifaces,
 		StateChann:      stateChann,
-		collectors:      &sync.Map{},
+		Collectors:      &sync.Map{},
 	}
 }
 
@@ -107,7 +107,7 @@ func (s *StateCollector) Collect() {
 	var data = make(map[string][]common.TimeSeries)
 	var mux sync.Mutex
 
-	s.collectors.Range(func(key, value interface{}) bool {
+	s.Collectors.Range(func(key, value interface{}) bool {
 		c := value.(Collector)
 
 		wg.Add(1)
@@ -157,15 +157,15 @@ func (s *StateCollector) UpdateCollectors() {
 
 		nodeLocal = true
 
-		if _, exists := s.collectors.Load(types.NodeLocalCollectorType); !exists {
+		if _, exists := s.Collectors.Load(types.NodeLocalCollectorType); !exists {
 			nc := nodelocal.NewNodeLocal(s.ifaces)
-			s.collectors.Store(types.NodeLocalCollectorType, nc)
+			s.Collectors.Store(types.NodeLocalCollectorType, nc)
 		}
 
-		if _, exists := s.collectors.Load(types.CadvisorCollectorType); !exists {
+		if _, exists := s.Collectors.Load(types.CadvisorCollectorType); !exists {
 			c := cadvisor.NewCadvisor(s.podLister)
 			if c != nil {
-				s.collectors.Store(types.CadvisorCollectorType, c)
+				s.Collectors.Store(types.CadvisorCollectorType, c)
 			}
 		}
 		break
@@ -175,8 +175,8 @@ func (s *StateCollector) UpdateCollectors() {
 		stopCollectors := []types.CollectType{types.NodeLocalCollectorType, types.CadvisorCollectorType}
 
 		for _, collector := range stopCollectors {
-			if value, exists := s.collectors.Load(collector); exists {
-				s.collectors.Delete(collector)
+			if value, exists := s.Collectors.Load(collector); exists {
+				s.Collectors.Delete(collector)
 				c := value.(Collector)
 				if err = c.Stop(); err != nil {
 					klog.Errorf("Failed to stop the %s manager.", collector)
@@ -191,8 +191,8 @@ func (s *StateCollector) UpdateCollectors() {
 func (s *StateCollector) StopCollectors() {
 	klog.Infof("StopCollectors")
 
-	s.collectors.Range(func(key, value interface{}) bool {
-		s.collectors.Delete(key)
+	s.Collectors.Range(func(key, value interface{}) bool {
+		s.Collectors.Delete(key)
 		if key == types.CadvisorCollectorType {
 			c := value.(Collector)
 			if err := c.Stop(); err != nil {

@@ -19,11 +19,13 @@ import (
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 	craneclientset "github.com/gocrane/api/pkg/generated/clientset/versioned"
 	"github.com/gocrane/api/pkg/generated/informers/externalversions/ensurance/v1alpha1"
+	predictionv1 "github.com/gocrane/api/pkg/generated/informers/externalversions/prediction/v1alpha1"
 	"github.com/gocrane/crane/cmd/crane-agent/app/options"
 	"github.com/gocrane/crane/pkg/ensurance/analyzer"
 	"github.com/gocrane/crane/pkg/ensurance/collector"
 	"github.com/gocrane/crane/pkg/ensurance/executor"
 	"github.com/gocrane/crane/pkg/ensurance/manager"
+	"github.com/gocrane/crane/pkg/ensurance/offline"
 )
 
 type Agent struct {
@@ -42,6 +44,7 @@ func NewAgent(ctx context.Context,
 	nodeInformer coreinformers.NodeInformer,
 	nepInformer v1alpha1.NodeQOSEnsurancePolicyInformer,
 	actionInformer v1alpha1.AvoidanceActionInformer,
+	tspInformer predictionv1.TimeSeriesPredictionInformer,
 	ifaces []string,
 	healthCheck *metrics.HealthCheck,
 	CollectInterval time.Duration,
@@ -57,6 +60,8 @@ func NewAgent(ctx context.Context,
 	managers = append(managers, analyzerManager)
 	avoidanceManager := executor.NewActionExecutor(kubeClient, nodeName, podInformer, nodeInformer, noticeCh, runtimeEndpoint)
 	managers = append(managers, avoidanceManager)
+	offlineManager := offline.NewOfflineManager(kubeClient, nodeName, podInformer, nodeInformer, tspInformer, runtimeEndpoint, stateCollector.StateChann, stateCollector.Collectors)
+	managers = append(managers, offlineManager)
 
 	return &Agent{
 		ctx:         ctx,
