@@ -4,10 +4,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gocrane/crane/pkg/known"
-	"github.com/gocrane/crane/pkg/metrics"
-
 	"k8s.io/apimachinery/pkg/labels"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog/v2"
 
@@ -16,34 +14,43 @@ import (
 	"github.com/gocrane/crane/pkg/ensurance/collector/cadvisor"
 	"github.com/gocrane/crane/pkg/ensurance/collector/nodelocal"
 	"github.com/gocrane/crane/pkg/ensurance/collector/types"
+	"github.com/gocrane/crane/pkg/features"
+	"github.com/gocrane/crane/pkg/known"
+	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
 type StateCollector struct {
-	nodeName        string
-	nepLister       ensuranceListers.NodeQOSEnsurancePolicyLister
-	podLister       corelisters.PodLister
-	nodeLister      corelisters.NodeLister
-	healthCheck     *metrics.HealthCheck
-	collectInterval time.Duration
-	ifaces          []string
-	collectors      *sync.Map
-	StateChann      chan map[string][]common.TimeSeries
+	nodeName          string
+	nepLister         ensuranceListers.NodeQOSEnsurancePolicyLister
+	podLister         corelisters.PodLister
+	nodeLister        corelisters.NodeLister
+	healthCheck       *metrics.HealthCheck
+	collectInterval   time.Duration
+	ifaces            []string
+	collectors        *sync.Map
+	AnalyzerChann     chan map[string][]common.TimeSeries
+	NodeResourceChann chan map[string][]common.TimeSeries
+	PodResourceChann  chan map[string][]common.TimeSeries
 }
 
 func NewStateCollector(nodeName string, nepLister ensuranceListers.NodeQOSEnsurancePolicyLister, podLister corelisters.PodLister,
 	nodeLister corelisters.NodeLister, ifaces []string, healthCheck *metrics.HealthCheck, collectInterval time.Duration) *StateCollector {
-	stateChann := make(chan map[string][]common.TimeSeries)
+	analyzerChann := make(chan map[string][]common.TimeSeries)
+	nodeResourceChann := make(chan map[string][]common.TimeSeries)
+	podResourceChann := make(chan map[string][]common.TimeSeries)
 	return &StateCollector{
-		nodeName:        nodeName,
-		nepLister:       nepLister,
-		podLister:       podLister,
-		nodeLister:      nodeLister,
-		healthCheck:     healthCheck,
-		collectInterval: collectInterval,
-		ifaces:          ifaces,
-		StateChann:      stateChann,
-		collectors:      &sync.Map{},
+		nodeName:          nodeName,
+		nepLister:         nepLister,
+		podLister:         podLister,
+		nodeLister:        nodeLister,
+		healthCheck:       healthCheck,
+		collectInterval:   collectInterval,
+		ifaces:            ifaces,
+		AnalyzerChann:     analyzerChann,
+		NodeResourceChann: nodeResourceChann,
+		PodResourceChann:  podResourceChann,
+		collectors:        &sync.Map{},
 	}
 }
 
@@ -124,7 +131,15 @@ func (s *StateCollector) Collect() {
 
 	wg.Wait()
 
-	s.StateChann <- data
+	s.AnalyzerChann <- data
+
+	if nodeResource := utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResource); nodeResource {
+		s.NodeResourceChann <- data
+	}
+
+	if podResource := utilfeature.DefaultFeatureGate.Enabled(features.CranePodResource); podResource {
+		s.PodResourceChann <- data
+	}
 }
 
 func (s *StateCollector) UpdateCollectors() {
@@ -179,6 +194,10 @@ func (s *StateCollector) UpdateCollectors() {
 	}
 
 	return
+}
+
+func (s *StateCollector) GetCollectors() *sync.Map {
+	return s.collectors
 }
 
 func (s *StateCollector) StopCollectors() {

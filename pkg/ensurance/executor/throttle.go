@@ -256,9 +256,14 @@ func (t *ThrottleExecutor) Restore(ctx *ExecuteContext) error {
 					containerCPUQuotaNew = float64(limitCPU.MilliValue()) / CpuQuotaCoefficient
 				}
 			} else {
-				if containerCPUQuotaNew > MaxUpQuota*containerCPUPeriod.Value/CpuQuotaCoefficient {
+				usage, hasExtRes := utils.GetExtCpuRes(container)
+				if hasExtRes {
+					containerCPUQuotaNew = float64(usage.MilliValue()) / CpuQuotaCoefficient
+				}
+				if !hasExtRes && containerCPUQuotaNew > MaxUpQuota*containerCPUPeriod.Value/CpuQuotaCoefficient {
 					containerCPUQuotaNew = -1
 				}
+
 			}
 
 			klog.V(6).Infof("Prior update container resources containerCPUQuotaNew %.2f,containerCPUQuota %.2f,containerCPUPeriod %.2f",
@@ -281,7 +286,6 @@ func (t *ThrottleExecutor) Restore(ctx *ExecuteContext) error {
 						bSucceed = false
 						continue
 					}
-					klog.V(2).Infof("restore kkkkkkkk")
 				}
 			}
 		}

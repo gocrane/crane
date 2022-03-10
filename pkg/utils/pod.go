@@ -3,16 +3,22 @@ package utils
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 
 	"github.com/gocrane/crane/pkg/known"
+)
+
+const (
+	ExtResourcePrefixFormat = "gocrane.io/%s"
 )
 
 // IsPodAvailable returns true if a pod is available; false otherwise.
@@ -123,4 +129,32 @@ func CalculatePodTemplateRequests(podTemplate *v1.PodTemplateSpec, resource v1.R
 	}
 
 	return requests, nil
+}
+
+// GetExtCpuRes get container's gocrane.io/cpu usage
+func GetExtCpuRes(container v1.Container) (resource.Quantity, bool) {
+	for res, val := range container.Resources.Limits {
+		if strings.HasPrefix(res.String(), fmt.Sprintf(ExtResourcePrefixFormat, v1.ResourceCPU)) {
+			return val, true
+		}
+	}
+	return resource.Quantity{}, false
+}
+
+func GetContainerStatus(pod *v1.Pod, container v1.Container) v1.ContainerState {
+	for _, cs := range pod.Status.ContainerStatuses {
+		if cs.Name == container.Name {
+			return cs.State
+		}
+	}
+	return v1.ContainerState{}
+}
+
+func GetContainerIdFromPod(pod *v1.Pod, containerName string) string {
+	for _, cs := range pod.Status.ContainerStatuses {
+		if cs.Name == containerName {
+			return GetContainerIdFromKey(cs.ContainerID)
+		}
+	}
+	return ""
 }

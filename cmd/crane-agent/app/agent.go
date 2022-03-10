@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -63,6 +64,8 @@ func NewAgentCommand(ctx context.Context) *cobra.Command {
 
 	cmd.Flags().AddGoFlagSet(flag.CommandLine)
 	opts.AddFlags(cmd.Flags())
+	utilfeature.DefaultMutableFeatureGate.AddFlag(cmd.Flags())
+
 	return cmd
 }
 
@@ -90,19 +93,14 @@ func Run(ctx context.Context, opts *options.Options) error {
 	)
 	podInformer := podInformerFactory.Core().V1().Pods()
 	nodeInformer := nodeInformerFactory.Core().V1().Nodes()
-	podInformer.Informer()
-	nodeInformer.Informer()
 
 	craneInformerFactory := craneinformers.NewSharedInformerFactory(craneClient, informerSyncPeriod)
 	nepInformer := craneInformerFactory.Ensurance().V1alpha1().NodeQOSEnsurancePolicies()
 	actionInformer := craneInformerFactory.Ensurance().V1alpha1().AvoidanceActions()
-	nepInformer.Informer()
-	actionInformer.Informer()
+	tspInformer := craneInformerFactory.Prediction().V1alpha1().TimeSeriesPredictions()
 
 	agent, err := agent.NewAgent(ctx, hostname, opts.RuntimeEndpoint, kubeClient, craneClient,
-		podInformer, nodeInformer, nepInformer, actionInformer, opts.Ifaces, healthCheck, opts.CollectInterval)
-	nepInformer.Informer()
-	actionInformer.Informer()
+		podInformer, nodeInformer, nepInformer, actionInformer, tspInformer, opts.Ifaces, healthCheck, opts.CollectInterval)
 
 	if err != nil {
 		return err
