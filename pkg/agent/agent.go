@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gocrane/crane/pkg/metrics"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apiserver/pkg/server/mux"
@@ -19,11 +18,11 @@ import (
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 	craneclientset "github.com/gocrane/api/pkg/generated/clientset/versioned"
 	"github.com/gocrane/api/pkg/generated/informers/externalversions/ensurance/v1alpha1"
-	"github.com/gocrane/crane/cmd/crane-agent/app/options"
 	"github.com/gocrane/crane/pkg/ensurance/analyzer"
 	"github.com/gocrane/crane/pkg/ensurance/collector"
 	"github.com/gocrane/crane/pkg/ensurance/executor"
 	"github.com/gocrane/crane/pkg/ensurance/manager"
+	"github.com/gocrane/crane/pkg/metrics"
 )
 
 type Agent struct {
@@ -67,7 +66,7 @@ func NewAgent(ctx context.Context,
 	}, nil
 }
 
-func (a *Agent) Run(healthCheck *metrics.HealthCheck, opts *options.Options) {
+func (a *Agent) Run(healthCheck *metrics.HealthCheck, enableProfiling bool, bindAddr string) {
 	klog.Infof("Crane agent %s is starting", a.name)
 
 	for _, m := range a.managers {
@@ -84,10 +83,10 @@ func (a *Agent) Run(healthCheck *metrics.HealthCheck, opts *options.Options) {
 		})
 
 		pathRecorderMux.HandleFunc("/health-check", healthCheck.ServeHTTP)
-		if opts.EnableProfiling {
+		if enableProfiling {
 			routes.Profiling{}.Install(pathRecorderMux)
 		}
-		err := http.ListenAndServe(opts.BindAddr, pathRecorderMux)
+		err := http.ListenAndServe(bindAddr, pathRecorderMux)
 		klog.Fatalf("Failed to start metrics: %v", err)
 	}()
 

@@ -75,24 +75,20 @@ func (a *ActionExecutor) Run(stop <-chan struct{}) {
 		for {
 			select {
 			case as := <-a.noticeCh:
-				{
-					start := time.Now()
-					metrics.UpdateLastTime(string(known.ModuleActionExecutor), metrics.StepMain, start)
+				start := time.Now()
+				metrics.UpdateLastTime(string(known.ModuleActionExecutor), metrics.StepMain, start)
+				if err := a.execute(as, stop); err != nil {
+					// TODO: if it failed in action, how to retry
+					klog.Errorf("Failed to execute action: %v", err)
+				}
+				metrics.UpdateDurationFromStart(string(known.ModuleActionExecutor), metrics.StepMain, start)
 
-					if err := a.execute(as, stop); err != nil {
-						// TODO: if it failed in action, how to retry
-						klog.Errorf("Failed to execute action: %v", err)
-					}
-					metrics.UpdateDurationFromStart(string(known.ModuleActionExecutor), metrics.StepMain, start)
-				}
 			case <-stop:
-				{
-					klog.Infof("Exiting action executor.")
-					if err := cgrpc.CloseGrpcConnection(a.runtimeConn); err != nil {
-						klog.Errorf("Failed to close grpc connection: %v", err)
-					}
-					return
+				klog.Infof("Exiting action executor.")
+				if err := cgrpc.CloseGrpcConnection(a.runtimeConn); err != nil {
+					klog.Errorf("Failed to close grpc connection: %v", err)
 				}
+				return
 			}
 		}
 	}()
