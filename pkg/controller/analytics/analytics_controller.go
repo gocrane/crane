@@ -358,8 +358,6 @@ func (c *Controller) GetIdentities(ctx context.Context, analytics *analysisv1alp
 
 func (c *Controller) UpdateStatus(ctx context.Context, analytics *analysisv1alph1.Analytics, newStatus *analysisv1alph1.AnalyticsStatus) {
 	if !equality.Semantic.DeepEqual(&analytics.Status, newStatus) {
-		klog.V(4).Infof("Analytics status should be updated, currentStatus %v newStatus %v", &analytics.Status, newStatus)
-
 		analytics.Status = *newStatus
 		err := c.Update(ctx, analytics)
 		if err != nil {

@@ -1,7 +1,6 @@
 package types
 
 import (
-	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingapiv1 "k8s.io/api/autoscaling/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
@@ -9,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 
 	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
+	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/prediction"
@@ -26,6 +26,8 @@ type Context struct {
 	Deployment       *appsv1.Deployment
 	StatefulSet      *appsv1.StatefulSet
 	Pods             []corev1.Pod
+	PodTemplate      *corev1.PodTemplateSpec
+	HPA              *autoscalingv2.HorizontalPodAutoscaler
 	ReadyPodNumber   int
 }
 
@@ -39,19 +41,19 @@ type ProposedRecommendation struct {
 }
 
 type EffectiveHorizontalPodAutoscalerRecommendation struct {
-	MinReplicas *int32                     `yaml:"minReplicas,omitempty"`
-	MaxReplicas *int32                     `yaml:"maxReplicas,omitempty"`
-	Metrics     []autoscalingv2.MetricSpec `yaml:"metrics,omitempty"`
-	Prediction  *autoscalingapi.Prediction `yaml:"prediction,omitempty"`
+	MinReplicas *int32                     `json:"minReplicas,omitempty"`
+	MaxReplicas *int32                     `json:"maxReplicas,omitempty"`
+	Metrics     []autoscalingv2.MetricSpec `json:"metrics,omitempty"`
+	Prediction  *autoscalingapi.Prediction `json:"prediction,omitempty"`
 }
 
 type ResourceRequestRecommendation struct {
-	Containers []ContainerRecommendation `yaml:"containers,omitempty"`
+	Containers []ContainerRecommendation `json:"containers,omitempty"`
 }
 
 type ContainerRecommendation struct {
-	ContainerName string       `yaml:"containerName,omitempty"`
-	Target        ResourceList `yaml:"target,omitempty"`
+	ContainerName string       `json:"containerName,omitempty"`
+	Target        ResourceList `json:"target,omitempty"`
 }
 
 type ResourceList map[corev1.ResourceName]string

@@ -62,7 +62,7 @@ func (c *EffectiveHPAController) CreateHPA(ctx context.Context, ehpa *autoscalin
 	hpa, err := c.NewHPAObject(ctx, ehpa, substitute)
 	if err != nil {
 		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreateHPAObject", err.Error())
-		klog.Errorf("Failed to create object, HorizontalPodAutoscaler %s error %v", hpa, err)
+		klog.Errorf("Failed to create object, HorizontalPodAutoscaler %s error %v", klog.KObj(hpa), err)
 		return nil, err
 	}
 
@@ -160,8 +160,6 @@ func (c *EffectiveHPAController) UpdateHPAIfNeed(ctx context.Context, ehpa *auto
 	}
 
 	if needUpdate {
-		klog.V(4).Infof("HorizontalPodAutoscaler is unsynced according to EffectiveHorizontalPodAutoscaler, should be updated, currentHPA %v expectHPA %v", hpaExist, hpa)
-
 		err := c.Update(ctx, hpaExist)
 		if err != nil {
 			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedUpdateHPA", err.Error())

@@ -1,0 +1,120 @@
+package recommendation
+
+import (
+	"context"
+	"fmt"
+
+	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
+
+	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
+	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
+
+	"github.com/gocrane/crane/pkg/known"
+	"github.com/gocrane/crane/pkg/recommend/types"
+	"github.com/gocrane/crane/pkg/utils"
+)
+
+func (c *Controller) UpdateRecommendation(ctx context.Context, recommendation *analysisapi.Recommendation, proposed *types.ProposedRecommendation, status *analysisapi.RecommendationStatus) error {
+	var value string
+	if proposed.ResourceRequest != nil {
+		valueBytes, err := yaml.Marshal(proposed.ResourceRequest)
+		if err != nil {
+			return err
+		}
+		value = string(valueBytes)
+	} else if proposed.EffectiveHPA != nil {
+		valueBytes, err := yaml.Marshal(proposed.EffectiveHPA)
+		if err != nil {
+			return err
+		}
+		value = string(valueBytes)
+	}
+
+	status.RecommendedValue = value
+	if recommendation.Spec.AdoptionType == analysisapi.AdoptionTypeStatus {
+		return nil
+	}
+
+	unstructed := &unstructured.Unstructured{}
+	unstructed.SetAPIVersion(recommendation.Spec.TargetRef.APIVersion)
+	unstructed.SetKind(recommendation.Spec.TargetRef.Kind)
+	err := c.Client.Get(ctx, client.ObjectKey{Name: recommendation.Spec.TargetRef.Name, Namespace: recommendation.Spec.TargetRef.Namespace}, unstructed)
+	if err != nil {
+		return fmt.Errorf("Get target object failed: %v. ", err)
+	}
+
+	if recommendation.Spec.AdoptionType == analysisapi.AdoptionTypeStatusAndAnnotation || recommendation.Spec.AdoptionType == analysisapi.AdoptionTypeAuto {
+		annotation := unstructed.GetAnnotations()
+		if annotation == nil {
+			annotation = map[string]string{}
+		}
+
+		annotation[known.RecommendationValueAnnotation] = value
+		unstructed.SetAnnotations(annotation)
+		err = c.Client.Update(ctx, unstructed)
+		if err != nil {
+			return fmt.Errorf("Update target annotation failed: %v. ", err)
+		}
+	}
+
+	// Only support Auto Type for EHPA recommendation
+	if recommendation.Spec.AdoptionType == analysisapi.AdoptionTypeAuto && proposed.EffectiveHPA != nil {
+		ehpa, err := utils.GetEHPAFromScaleTarget(ctx, c.Client, recommendation.Namespace, recommendation.Spec.TargetRef)
+		if err != nil {
+			return fmt.Errorf("Get EHPA from target failed: %v. ", err)
+		}
+		if ehpa == nil {
+			ehpa = &autoscalingapi.EffectiveHorizontalPodAutoscaler{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: recommendation.Spec.TargetRef.Namespace,
+					Name:      recommendation.Spec.TargetRef.Name,
+				},
+				Spec: autoscalingapi.EffectiveHorizontalPodAutoscalerSpec{
+					MinReplicas:   proposed.EffectiveHPA.MinReplicas,
+					MaxReplicas:   *proposed.EffectiveHPA.MaxReplicas,
+					Metrics:       proposed.EffectiveHPA.Metrics,
+					ScaleStrategy: autoscalingapi.ScaleStrategyPreview,
+					Prediction:    proposed.EffectiveHPA.Prediction,
+					ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
+						Kind:       recommendation.Spec.TargetRef.Kind,
+						APIVersion: recommendation.Spec.TargetRef.APIVersion,
+						Name:       recommendation.Spec.TargetRef.Name,
+					},
+				},
+			}
+
+			err = c.Client.Create(ctx, ehpa)
+			if err == nil {
+				c.Recorder.Event(ehpa, v1.EventTypeNormal, "UpdateValue", "Created EffectiveHorizontalPodAutoscaler.")
+				klog.Infof("Create EffectiveHorizontalPodAutoscaler successfully, recommendation %s", klog.KObj(recommendation))
+			}
+			return err
+		} else {
+			// we don't override ScaleStrategy, because we always use preview to be the default version,
+			// if user change it, we don't want to override it.
+			// The reason for Prediction is the same.
+			ehpaUpdate := ehpa.DeepCopy()
+			ehpaUpdate.Spec.MinReplicas = proposed.EffectiveHPA.MinReplicas
+			ehpaUpdate.Spec.MaxReplicas = *proposed.EffectiveHPA.MaxReplicas
+			ehpaUpdate.Spec.Metrics = proposed.EffectiveHPA.Metrics
+
+			if !equality.Semantic.DeepEqual(&ehpaUpdate.Spec, &ehpa.Spec) {
+				err = c.Client.Update(ctx, ehpaUpdate)
+				if err == nil {
+					c.Recorder.Event(ehpa, v1.EventTypeNormal, "UpdateValue", "Updated EffectiveHorizontalPodAutoscaler.")
+					klog.Infof("Update EffectiveHorizontalPodAutoscaler successfully, recommendation %s", klog.KObj(recommendation))
+				}
+				return err
+			}
+		}
+	}
+
+	return nil
+}

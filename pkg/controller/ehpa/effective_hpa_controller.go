@@ -128,8 +128,6 @@ func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 
 func (c *EffectiveHPAController) UpdateStatus(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, newStatus *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus) {
 	if !equality.Semantic.DeepEqual(&ehpa.Status, newStatus) {
-		klog.V(4).Infof("EffectiveHorizontalPodAutoscaler status should be updated, currentStatus %v newStatus %v", &ehpa.Status, newStatus)
-
 		ehpa.Status = *newStatus
 		err := c.Status().Update(ctx, ehpa)
 		if err != nil {

@@ -1,4 +1,4 @@
-package ehpa
+package utils
 
 import (
 	"testing"
@@ -6,8 +6,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/gocrane/crane/pkg/utils"
 )
 
 func TestCalculatePodRequests(t *testing.T) {
@@ -80,9 +78,64 @@ func TestCalculatePodRequests(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		requests, err := utils.CalculatePodRequests(pods, test.resource)
+		requests, err := CalculatePodRequests(pods, test.resource)
 		if err != nil {
 			t.Errorf("Failed to calculatePodRequests: %v", err)
+		}
+		if requests != test.expect {
+			t.Errorf("expect requests %d actual requests %d", test.expect, requests)
+		}
+	}
+
+}
+
+func TestCalculatePodTemplateRequests(t *testing.T) {
+	podTemplate := &v1.PodTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "podTemplateTest",
+		},
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{{
+				Name: "container1",
+				Resources: v1.ResourceRequirements{
+					Requests: map[v1.ResourceName]resource.Quantity{
+						v1.ResourceCPU:    *resource.NewQuantity(1, resource.DecimalSI),
+						v1.ResourceMemory: *resource.NewQuantity(10, resource.DecimalSI),
+					},
+				},
+			}, {
+				Name: "container2",
+				Resources: v1.ResourceRequirements{
+					Requests: map[v1.ResourceName]resource.Quantity{
+						v1.ResourceCPU:    *resource.NewQuantity(1, resource.DecimalSI),
+						v1.ResourceMemory: *resource.NewQuantity(10, resource.DecimalSI),
+					},
+				},
+			}},
+		},
+	}
+
+	tests := []struct {
+		description string
+		resource    v1.ResourceName
+		expect      int64
+	}{
+		{
+			description: "calculate cpu request total",
+			resource:    v1.ResourceCPU,
+			expect:      2000,
+		},
+		{
+			description: "calculate memory request total",
+			resource:    v1.ResourceMemory,
+			expect:      20000,
+		},
+	}
+
+	for _, test := range tests {
+		requests, err := CalculatePodTemplateRequests(podTemplate, test.resource)
+		if err != nil {
+			t.Errorf("Failed to CalculatePodTemplateRequests: %v", err)
 		}
 		if requests != test.expect {
 			t.Errorf("expect requests %d actual requests %d", test.expect, requests)

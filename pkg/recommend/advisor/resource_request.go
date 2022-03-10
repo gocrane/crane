@@ -30,15 +30,15 @@ type ResourceRequestAdvisor struct {
 }
 
 func makeCpuConfig(props map[string]string) *config.Config {
-	sampleInterval, exists := props["cpu-sample-interval"]
+	sampleInterval, exists := props["resource.cpu-sample-interval"]
 	if !exists {
 		sampleInterval = "1m"
 	}
-	percentile, exists := props["cpu-request-percentile"]
+	percentile, exists := props["resource.cpu-request-percentile"]
 	if !exists {
 		percentile = "0.99"
 	}
-	marginFraction, exists := props["cpu-request-margin-fraction"]
+	marginFraction, exists := props["resource.cpu-request-margin-fraction"]
 	if !exists {
 		marginFraction = "0.15"
 	}
@@ -59,15 +59,15 @@ func makeCpuConfig(props map[string]string) *config.Config {
 }
 
 func makeMemConfig(props map[string]string) *config.Config {
-	sampleInterval, exists := props["mem-sample-interval"]
+	sampleInterval, exists := props["resource.mem-sample-interval"]
 	if !exists {
 		sampleInterval = "1m"
 	}
-	percentile, exists := props["mem-request-percentile"]
+	percentile, exists := props["resource.mem-request-percentile"]
 	if !exists {
 		percentile = "0.99"
 	}
-	marginFraction, exists := props["mem-request-margin-fraction"]
+	marginFraction, exists := props["resource.mem-request-margin-fraction"]
 	if !exists {
 		marginFraction = "0.15"
 	}
