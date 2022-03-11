@@ -11,8 +11,8 @@ import (
 var ClocksPerSec = float64(100)
 
 const (
-	MAX_PERCENTAGE   = 100
-	MIN_PERCENTAGE   = 0
+	MAX_PERCENTAGE = 100
+	MIN_PERCENTAGE = 0
 )
 
 type TimesStat struct {
@@ -177,7 +177,7 @@ func (c TimesStat) Total() float64 {
 	return total
 }
 
-func (c TimesStat)CalculateBtOffline(stat2 TimesStat) (float64, float64) {
+func (c TimesStat) CalculateBtOffline(stat2 TimesStat) (float64, float64) {
 	stat1All, stat1Offline := c.getAllOffline()
 	stat2All, stat2Offline := stat2.getAllOffline()
 	if stat2Offline <= stat1Offline {
@@ -190,7 +190,7 @@ func (c TimesStat)CalculateBtOffline(stat2 TimesStat) (float64, float64) {
 	return stat2Offline - stat1Offline, math.Min(MAX_PERCENTAGE, math.Max(MIN_PERCENTAGE, (stat2Offline-stat1Offline)/(stat2All-stat1All)*100))
 }
 
-func (c TimesStat)getAllOffline() (float64, float64) {
+func (c TimesStat) getAllOffline() (float64, float64) {
 	busy := c.User + c.System + c.Nice + c.Iowait + c.Irq + c.Softirq + c.Steal
 	return busy + c.Idle, c.Offline
 }

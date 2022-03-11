@@ -36,13 +36,13 @@ func RegisterResourceMetrics(nodeName string, cpuStateProvider *utils.CpuStatePr
 // NewResourceMetricsCollector returns a metrics.StableCollector which exports resource metrics
 func NewResourceMetricsCollector(nodeName string, cpuStateProvider *utils.CpuStateProvider) prometheus.Collector {
 	return &resourceMetricsCollector{
-		node:        nodeName,
+		node:             nodeName,
 		cpuStateProvider: cpuStateProvider,
 	}
 }
 
 type resourceMetricsCollector struct {
-	node        string
+	node             string
 	cpuStateProvider *utils.CpuStateProvider
 }
 
@@ -76,7 +76,7 @@ func (rc *resourceMetricsCollector) Collect(ch chan<- prometheus.Metric) {
 
 	atomic.AddUint64(&cpuUsageCounter, offlineCpuUsageIncrease)
 	rc.collectNodeExtCPUMetrics(ch, &lastTime)
-	rc.collectCpuCoresCanBeReusedMetrics(ch, cpuIdleCanBeReused + offlineCpuUsageAvg)
+	rc.collectCpuCoresCanBeReusedMetrics(ch, cpuIdleCanBeReused+offlineCpuUsageAvg)
 }
 
 func (rc *resourceMetricsCollector) collectCpuCoresCanBeReusedMetrics(ch chan<- prometheus.Metric, value float64) {

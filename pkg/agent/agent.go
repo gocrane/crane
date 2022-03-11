@@ -34,13 +34,13 @@ const (
 )
 
 type Agent struct {
-	ctx         context.Context
-	name        string
-	host         string
-	kubeClient  kubernetes.Interface
-	craneClient craneclientset.Interface
-	managers    []manager.Manager
-	cadvisorManager      cmanager.Manager
+	ctx             context.Context
+	name            string
+	host            string
+	kubeClient      kubernetes.Interface
+	craneClient     craneclientset.Interface
+	managers        []manager.Manager
+	cadvisorManager cmanager.Manager
 }
 
 func NewAgent(ctx context.Context,
@@ -59,11 +59,11 @@ func NewAgent(ctx context.Context,
 	var managers []manager.Manager
 	var noticeCh = make(chan executor.AvoidanceExecutor)
 	agent := &Agent{
-		ctx:          ctx,
-		name:         getAgentName(nodeName),
-		host:         nodeName,
-		kubeClient:   kubeClient,
-		craneClient:  craneClient,
+		ctx:         ctx,
+		name:        getAgentName(nodeName),
+		host:        nodeName,
+		kubeClient:  kubeClient,
+		craneClient: craneClient,
 	}
 	cadvisorManager, err := utils.NewCadvisorManager()
 	if err != nil {
