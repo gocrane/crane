@@ -134,7 +134,7 @@ func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) 
 			return fmt.Errorf("no value retured for queryExpr: %s", queryExpr)
 		}
 		v = int64(tsList[0].Samples[0].Value)
-		cr.Target[corev1.ResourceMemory] = resource.NewMilliQuantity(v, resource.BinarySI).String()
+		cr.Target[corev1.ResourceMemory] = resource.NewQuantity(v, resource.BinarySI).String()
 
 		r.Containers = append(r.Containers, cr)
 	}
