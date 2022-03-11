@@ -47,6 +47,12 @@ const (
 	MetricNameContainerCpuQuota          MetricName = "container_cpu_quota"
 	MetricNameContainerCpuPeriod         MetricName = "container_cpu_period"
 	MetricNameContainerSchedRunQueueTime MetricName = "container_sched_run_queue_time"
+
+	MetricNameExtCpuTotalDistribute MetricName = "ext_cpu_total_distribute"
+)
+
+const (
+	NodeResourceCollectorType CollectType = "node-resource"
 )
 
 func GetCgroupPath(p *v1.Pod) string {

@@ -2,7 +2,9 @@ package utils
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"k8s.io/apimachinery/pkg/types"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -83,6 +85,66 @@ func EvictPodWithGracePeriod(client clientset.Interface, pod *v1.Pod, gracePerio
 	}
 
 	return client.CoreV1().Pods(pod.Namespace).EvictV1beta1(context.Background(), e)
+}
+
+func EvictPodForExtResource(client clientset.Interface, pod *v1.Pod) error {
+	ref := metav1.GetControllerOfNoCopy(pod)
+	deleteLabel := "gocrane.io/specified-delete"
+	if ref != nil {
+		if ref.Kind == "CloneSet" {
+			deleteLabel = "apps.kruise.io/specified-delete"
+		}
+	}
+
+	deletePath := map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"labels": map[string]interface{}{
+				deleteLabel: "true",
+			},
+		},
+	}
+	jsonPatch, err := json.Marshal(deletePath)
+	if err != nil {
+		klog.Errorf("Failed to generate jsonPatch, %v", err)
+		return err
+	}
+	klog.V(4).Infof("jsonPatch: %s", jsonPatch)
+
+	// patch pod delete-label info
+	if _, err := client.CoreV1().Pods(pod.Namespace).Patch(context.TODO(), pod.Name, types.MergePatchType, jsonPatch, metav1.PatchOptions{}, "status"); err != nil {
+		klog.Errorf("Failed to patch pod %s's delete-label, %v", pod.Name, err)
+		return err
+	}
+	return nil
+}
+
+func CalculatePodRequestExtResource(pod *v1.Pod, resourceName string) (int64, bool) {
+	var extCpu int64 = 0
+	useExtCpu := false
+	for _, container := range pod.Spec.Containers {
+		if quantity, ok := container.Resources.Requests[v1.ResourceName(resourceName)]; ok {
+			useExtCpu = true
+			extCpu += quantity.Value()
+		}
+	}
+	return extCpu, useExtCpu
+}
+
+func IsPodDeleting(pod *v1.Pod) bool {
+	if pod.DeletionTimestamp != nil {
+		return true
+	}
+	ref := metav1.GetControllerOfNoCopy(pod)
+	deleteLabel := "gocrane.io/specified-delete"
+	if ref != nil {
+		if ref.Kind == "CloneSet" {
+			deleteLabel = "apps.kruise.io/specified-delete"
+		}
+	}
+	if _, ok := pod.Labels[deleteLabel]; ok {
+		return true
+	}
+	return false
 }
 
 // CalculatePodRequests sum request total from pods

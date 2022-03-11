@@ -140,7 +140,12 @@ func avoid(ctx *ExecuteContext, ae AvoidanceExecutor) error {
 		return err
 	}
 
-	//step3 do Throttle action
+	//steb3 do EvictExtResourceExecutor
+	if err := ae.EvictExtResourceExecutor.Avoid(ctx); err != nil {
+		return err
+	}
+
+	//step4 do Throttle action
 	if err := ae.ThrottleExecutor.Avoid(ctx); err != nil {
 		metrics.ExecutorErrorCounterInc(metrics.SubComponentThrottle, metrics.StepAvoid)
 		return err
@@ -166,7 +171,12 @@ func restore(ctx *ExecuteContext, ae AvoidanceExecutor) error {
 		return err
 	}
 
-	//step3 do Throttle action
+	//step3 do EvictExtResourceExecutor
+	if err := ae.EvictExtResourceExecutor.Restore(ctx); err != nil {
+		return err
+	}
+
+	//step4 do Throttle action
 	if err := ae.ThrottleExecutor.Restore(ctx); err != nil {
 		metrics.ExecutorErrorCounterInc(metrics.SubComponentThrottle, metrics.StepRestore)
 		return err

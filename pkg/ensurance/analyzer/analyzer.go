@@ -2,6 +2,8 @@ package analyzer
 
 import (
 	"fmt"
+	noderesourceMamager "github.com/gocrane/crane/pkg/noderesource"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"sort"
 	"strings"
 	"time"
@@ -31,6 +33,8 @@ import (
 	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/utils"
 )
+
+const evictionExtResourceActionName = "eviction-extresource"
 
 type AnormalyAnalyzer struct {
 	nodeName string
@@ -311,6 +315,10 @@ func (s *AnormalyAnalyzer) merge(stateMap map[string][]common.TimeSeries, avoida
 			// combine the replicated pod
 			combineEvictDuplicate(&ae.EvictExecutor, evictPods)
 		}
+
+		if ac.ActionName == evictionExtResourceActionName {
+			combineEvictExtResourceDuplicate(&ae.EvictExtResourceExecutor, s.getEvictExtResourcePods(ac.Triggered, ac))
+		}
 	}
 
 	// sort the throttle executor by pod qos priority
@@ -319,7 +327,7 @@ func (s *AnormalyAnalyzer) merge(stateMap map[string][]common.TimeSeries, avoida
 
 	// sort the evict executor by pod qos priority
 	sort.Sort(ae.EvictExecutor.EvictPods)
-
+	sort.Sort(ae.EvictExtResourceExecutor.EvictPods)
 	return ae
 }
 
@@ -434,6 +442,57 @@ func (s *AnormalyAnalyzer) getEvictPods(triggered bool, action *ensuranceapi.Avo
 	return evictPods
 }
 
+func (s *AnormalyAnalyzer) getEvictExtResourcePods(triggered bool, ac ecache.ActionContext) []executor.EvictPod {
+	//step5 do EvictExtResource merge  FilterAndSortEvictPods
+	var evictResourcePods executor.EvictPods
+	if triggered {
+		allPods, err := s.podLister.List(labels.Everything())
+		if err != nil {
+			klog.Errorf("Failed to list all pods: %v.", err)
+			return evictResourcePods
+		}
+		var objectiveEnsurance *ensuranceapi.ObjectiveEnsurance
+		for _, oe := range ac.Nep.Spec.ObjectiveEnsurances {
+			if oe.Name == ac.ObjectiveEnsuranceName {
+				objectiveEnsurance = oe.DeepCopy()
+				break
+			}
+		}
+		if objectiveEnsurance == nil {
+			return evictResourcePods
+		}
+		node, err := s.nodeLister.Get(s.nodeName)
+		if err != nil {
+			klog.Errorf("Failed to get node: %v.", err)
+			return evictResourcePods
+		}
+		allExtCpu := node.Status.Allocatable.Name(v1.ResourceName(fmt.Sprintf(noderesourceMamager.ExtResourcePrefix, v1.ResourceCPU.String())), resource.DecimalSI).Value()
+		targetPercent := objectiveEnsurance.MetricRule.Value.Value()
+		targetValue := float64(allExtCpu) * (float64(targetPercent) / 100)
+		sort.Slice(allPods, func(i, j int) bool {
+			p1 := executor.ComparablePod{Pod: allPods[i]}
+			p2 := executor.ComparablePod{Pod: allPods[j]}
+			return p1.Less(p2)
+		})
+
+		for _, v := range allPods {
+			podUseExtCpuValue, podUseExtCpuBool := utils.CalculatePodRequestExtResource(v, fmt.Sprintf(noderesourceMamager.ExtResourcePrefix, v1.ResourceCPU.String()))
+			if !podUseExtCpuBool {
+				continue
+			}
+			if utils.IsPodDeleting(v) {
+				continue
+			}
+			if targetValue <= float64(podUseExtCpuValue) {
+				evictResourcePods = append(evictResourcePods, executor.EvictPod{PodKey: types.NamespacedName{Name: v.Name, Namespace: v.Namespace}, ClassAndPriority: executor.ClassAndPriority{PodQOSClass: v.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(v.Spec.Priority, 0)}})
+				continue
+			}
+			targetValue -= float64(podUseExtCpuValue)
+		}
+	}
+	return evictResourcePods
+}
+
 func (s *AnormalyAnalyzer) disableSchedulingMerge(acsFiltered []ecache.ActionContext, avoidanceMaps map[string]*ensuranceapi.AvoidanceAction, ae *executor.AvoidanceExecutor) bool {
 	var now = time.Now()
 
@@ -542,6 +601,16 @@ func combineEvictDuplicate(e *executor.EvictExecutor, evictPods executor.EvictPo
 				(*(e.EvictPods[i].DeletionGracePeriodSeconds) > *(ep.DeletionGracePeriodSeconds))) {
 				e.EvictPods[i].DeletionGracePeriodSeconds = ep.DeletionGracePeriodSeconds
 			}
+		}
+	}
+}
+
+func combineEvictExtResourceDuplicate(e *executor.EvictExtResourceExecutor, evictPods executor.EvictPods) {
+	for _, ep := range evictPods {
+		if i := e.EvictPods.Find(ep.PodKey); i == -1 {
+			e.EvictPods = append(e.EvictPods, ep)
+		} else {
+			// nothing to do,replicated filter the evictPod
 		}
 	}
 }
