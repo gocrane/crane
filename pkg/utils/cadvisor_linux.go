@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	CManager cmanager.Manager
+	CManager     cmanager.Manager
 	cManagerOnce sync.Once
 )
 
@@ -29,7 +29,7 @@ type CadvisorProvider struct {
 }
 
 func NewCadvisorManager() (cmanager.Manager, error) {
-	cManagerOnce.Do(func(){
+	cManagerOnce.Do(func() {
 		klog.Infof("CManager is nil")
 		var includedMetrics = cadvisorcontainer.MetricSet{
 			cadvisorcontainer.CpuUsageMetrics:         struct{}{},
@@ -233,4 +233,3 @@ func GetCgroupPath(p *v1.Pod) string {
 	}
 	return strings.Join(pathArrays, "/")
 }
-

@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	MAX_PERCENTAGE   = 100
-	MIN_PERCENTAGE   = 0
+	MAX_PERCENTAGE    = 100
+	MIN_PERCENTAGE    = 0
 	ExtResourcePrefix = "ext-resource.node.gocrane.io/%s"
 )
 
@@ -33,7 +33,7 @@ type BtCpuTimeStampState struct {
 	timestamp time.Time
 }
 
-func NewCpuStateProvider(cmanager cmanager.Manager, podLister corelisters.PodLister, useBt bool, exclusiveCPUSet func()cpuset.CPUSet) *CpuStateProvider{
+func NewCpuStateProvider(cmanager cmanager.Manager, podLister corelisters.PodLister, useBt bool, exclusiveCPUSet func() cpuset.CPUSet) *CpuStateProvider {
 	var cpuCoreNumbers uint64
 	if cpuInfos, err := cpu.Info(); err != nil {
 		klog.Errorf("Get Cpu info with error: %v", err)
@@ -52,15 +52,15 @@ func NewCpuStateProvider(cmanager cmanager.Manager, podLister corelisters.PodLis
 }
 
 type CpuStateProvider struct {
-	podLister   corelisters.PodLister
-	provider    *CadvisorProvider
-	mu          sync.RWMutex
-	extPodState map[summary.PodReference]summary.PodStats
-	cpuState    *CpuTimeStampState
-	btCpuState  *BtCpuTimeStampState
-	exclusiveCPUSet func()cpuset.CPUSet
-	useBt       bool
-	cpuCoreNumbers uint64
+	podLister       corelisters.PodLister
+	provider        *CadvisorProvider
+	mu              sync.RWMutex
+	extPodState     map[summary.PodReference]summary.PodStats
+	cpuState        *CpuTimeStampState
+	btCpuState      *BtCpuTimeStampState
+	exclusiveCPUSet func() cpuset.CPUSet
+	useBt           bool
+	cpuCoreNumbers  uint64
 }
 
 func (rc *CpuStateProvider) GetExtCpuUsage() (uint64, float64) {
@@ -98,7 +98,7 @@ func (rc *CpuStateProvider) getExtCpuUsageFromBt() (uint64, float64) {
 	return uint64(offlineIncrease * float64(time.Second)), offlinePercent * float64(rc.cpuCoreNumbers) / 100
 }
 
-func (rc *CpuStateProvider) getExtCpuUsageFromK8s() (uint64, float64){
+func (rc *CpuStateProvider) getExtCpuUsageFromK8s() (uint64, float64) {
 	var increaseUseTotal uint64 = 0
 	var currentUse float64 = 0
 	statsSummary, err := rc.provider.GetCPUAndMemoryStats()
@@ -222,11 +222,11 @@ func (rc *CpuStateProvider) CollectCpuCoresCanBeReused() float64 {
 	}
 
 	cpuSet := rc.exclusiveCPUSet()
-	for cpuId, stat := range nowCpuState.stat{
+	for cpuId, stat := range nowCpuState.stat {
 		if cpuSet.Contains(cpuId) {
 			continue
 		}
-		if oldStat, ok := rc.cpuState.stat[cpuId];ok {
+		if oldStat, ok := rc.cpuState.stat[cpuId]; ok {
 			idle += calculateIdle(oldStat, stat)
 		}
 	}
@@ -237,7 +237,7 @@ func (rc *CpuStateProvider) CollectCpuCoresCanBeReused() float64 {
 }
 
 func calculateIdle(stat1 cpu.TimesStat, stat2 cpu.TimesStat) float64 {
-	stat1All, stat1Idle :=  getAllIdle(stat1)
+	stat1All, stat1Idle := getAllIdle(stat1)
 	stat2All, stat2Idle := getAllIdle(stat2)
 	if stat2Idle <= stat1Idle {
 		return MIN_PERCENTAGE

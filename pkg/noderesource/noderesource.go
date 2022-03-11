@@ -76,7 +76,7 @@ func NewNodeResource(
 	reserveMemoryPercentStr string,
 	collectorNames []string,
 	cpuStateProvider *utils.CpuStateProvider,
-	tspName    string,
+	tspName string,
 ) *NodeResource {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartStructuredLogging(0)
@@ -192,7 +192,7 @@ func (nr *NodeResource) Analyze(state map[string][]MetricTimeSeries) {
 			for _, timeSeries := range metricTimeSeries.TimeSeriesList {
 				for _, sample := range timeSeries.Samples {
 					if lowerLimitResourceNameMap[resourceName] < sample.Value*0.9 {
-						lowerLimitResourceNameMap[resourceName] = sample.Value*0.9
+						lowerLimitResourceNameMap[resourceName] = sample.Value * 0.9
 					}
 				}
 			}
@@ -208,7 +208,7 @@ func (nr *NodeResource) Analyze(state map[string][]MetricTimeSeries) {
 					}
 					nextIdle = &sample.Value
 					if lowerLimitResource, ok := lowerLimitResourceNameMap[resourceName]; ok {
-						if *nextIdle < lowerLimitResource{
+						if *nextIdle < lowerLimitResource {
 							klog.V(4).Infof("The predicted sample of resource %s is lower than the lowerLimitValue, sampleValue: %f, lowerLimitValue: %f", resourceName, nextIdle, lowerLimitResource)
 							continue
 						}

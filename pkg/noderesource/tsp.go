@@ -99,7 +99,7 @@ func (r *TimeSeriesPredictionCollector) collect(tsp *predictionapi.TimeSeriesPre
 	klog.V(4).Infof("tsp start collect")
 	stateMap := make(map[string][]MetricTimeSeries, 0)
 	idToResourceMap := map[string]v1.ResourceName{
-		v1.ResourceCPU.String(): v1.ResourceCPU,
+		v1.ResourceCPU.String():    v1.ResourceCPU,
 		v1.ResourceMemory.String(): v1.ResourceMemory,
 	}
 

@@ -43,15 +43,15 @@ func NewRealTimeCollection(context *CollectContext) (Collector, error) {
 	updateCycle := 10 * time.Second
 
 	return &RealTimeCollector{
-		stateMap:       make(map[string][]common.TimeSeries),
-		updateCycle:    updateCycle,
+		stateMap:         make(map[string][]common.TimeSeries),
+		updateCycle:      updateCycle,
 		cpuStateProvider: context.CpuStateProvider,
 	}, nil
 }
 
 type RealTimeCollector struct {
-	stateMap       map[string][]common.TimeSeries
-	updateCycle    time.Duration
+	stateMap    map[string][]common.TimeSeries
+	updateCycle time.Duration
 	sync.RWMutex
 	cpuStateProvider *utils.CpuStateProvider
 }
