@@ -28,12 +28,14 @@ type StateCollector struct {
 	collectInterval time.Duration
 	ifaces          []string
 	Collectors      *sync.Map
-	StateChann      chan map[string][]common.TimeSeries
+	AnalyzerChann   chan map[string][]common.TimeSeries
+	OfflineChann    chan map[string][]common.TimeSeries
 }
 
 func NewStateCollector(nodeName string, nepLister ensuranceListers.NodeQOSEnsurancePolicyLister, podLister corelisters.PodLister,
 	nodeLister corelisters.NodeLister, ifaces []string, healthCheck *metrics.HealthCheck, collectInterval time.Duration) *StateCollector {
-	stateChann := make(chan map[string][]common.TimeSeries)
+	analyzerChann := make(chan map[string][]common.TimeSeries)
+	offlineChann := make(chan map[string][]common.TimeSeries)
 	return &StateCollector{
 		nodeName:        nodeName,
 		nepLister:       nepLister,
@@ -42,7 +44,8 @@ func NewStateCollector(nodeName string, nepLister ensuranceListers.NodeQOSEnsura
 		healthCheck:     healthCheck,
 		collectInterval: collectInterval,
 		ifaces:          ifaces,
-		StateChann:      stateChann,
+		AnalyzerChann:   analyzerChann,
+		OfflineChann:    offlineChann,
 		Collectors:      &sync.Map{},
 	}
 }
@@ -131,7 +134,8 @@ func (s *StateCollector) Collect() {
 
 	wg.Wait()
 
-	s.StateChann <- data
+	s.AnalyzerChann <- data
+	s.OfflineChann <- data
 }
 
 func (s *StateCollector) UpdateCollectors() {
