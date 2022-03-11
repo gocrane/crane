@@ -15,7 +15,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f
 	google.golang.org/grpc v1.43.0
-	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/api v0.22.3
 	k8s.io/apimachinery v0.22.3
 	k8s.io/apiserver v0.22.3
@@ -152,7 +152,7 @@ require (
 	k8s.io/utils v0.0.0-20210819203725-bdf08cb9a70a // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.22 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.1.2 // indirect
-	sigs.k8s.io/yaml v1.2.0 // indirect
+	sigs.k8s.io/yaml v1.2.0
 )
 
 require (
@@ -170,6 +170,19 @@ require (
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/tools v0.1.8 // indirect
 	google.golang.org/genproto v0.0.0-20211208223120-3a66f561d7aa // indirect
+	k8s.io/klog v0.3.0
+	k8s.io/kubelet v0.0.0
+)
+
+require (
+	golang.org/x/mod v0.5.1 // indirect
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
+	k8s.io/cli-runtime v0.22.3 // indirect
+	k8s.io/cluster-bootstrap v0.22.3 // indirect
+	k8s.io/code-generator v0.22.3 // indirect
+	k8s.io/controller-manager v0.22.3 // indirect
+	k8s.io/csi-translation-lib v0.22.3 // indirect
+	k8s.io/gengo v0.0.0-20201214224949-b6c5ce23f027 // indirect
 )
 
 replace (

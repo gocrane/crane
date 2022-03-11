@@ -2,6 +2,9 @@ package agent
 
 import (
 	"context"
+	"github.com/gocrane/crane/pkg/ensurance/cm"
+	"github.com/gocrane/crane/pkg/utils"
+	cmanager "github.com/google/cadvisor/manager"
 	"net/http"
 	"time"
 
@@ -26,12 +29,18 @@ import (
 	"github.com/gocrane/crane/pkg/ensurance/manager"
 )
 
+const (
+	defaultMetricsEndpoint = "/metrics"
+)
+
 type Agent struct {
 	ctx         context.Context
 	name        string
+	host         string
 	kubeClient  kubernetes.Interface
 	craneClient craneclientset.Interface
 	managers    []manager.Manager
+	cadvisorManager      cmanager.Manager
 }
 
 func NewAgent(ctx context.Context,
@@ -45,10 +54,22 @@ func NewAgent(ctx context.Context,
 	ifaces []string,
 	healthCheck *metrics.HealthCheck,
 	CollectInterval time.Duration,
+	useBt bool,
 ) (*Agent, error) {
 	var managers []manager.Manager
 	var noticeCh = make(chan executor.AvoidanceExecutor)
-
+	agent := &Agent{
+		ctx:          ctx,
+		name:         getAgentName(nodeName),
+		host:         nodeName,
+		kubeClient:   kubeClient,
+		craneClient:  craneClient,
+	}
+	cadvisorManager, err := utils.NewCadvisorManager()
+	if err != nil {
+		return nil, err
+	}
+	agent.cadvisorManager = cadvisorManager
 	utilruntime.Must(ensuranceapi.AddToScheme(scheme.Scheme))
 
 	stateCollector := collector.NewStateCollector(nodeName, nepInformer.Lister(), podInformer.Lister(), nodeInformer.Lister(), ifaces, healthCheck, CollectInterval)
@@ -57,6 +78,9 @@ func NewAgent(ctx context.Context,
 	managers = append(managers, analyzerManager)
 	avoidanceManager := executor.NewActionExecutor(kubeClient, nodeName, podInformer, nodeInformer, noticeCh, runtimeEndpoint)
 	managers = append(managers, avoidanceManager)
+	cpuManager := cm.NewAdvancedCpuManager(kubeClient, nodeName, podInformer, nodeInformer, runtimeEndpoint, cadvisorManager)
+	managers = append(managers, cpuManager)
+	metrics.RegisterResourceMetrics(agent.host, utils.NewCpuStateProvider(cadvisorManager, podInformer.Lister(), useBt, cpuManager.GetExclusiveCpu))
 
 	return &Agent{
 		ctx:         ctx,

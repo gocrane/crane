@@ -97,11 +97,13 @@ func Run(ctx context.Context, opts *options.Options) error {
 	craneInformerFactory := craneinformers.NewSharedInformerFactory(craneClient, informerSyncPeriod)
 	nepInformer := craneInformerFactory.Ensurance().V1alpha1().NodeQOSEnsurancePolicies()
 	actionInformer := craneInformerFactory.Ensurance().V1alpha1().AvoidanceActions()
+	tspInformer := craneInformerFactory.Prediction().V1alpha1().TimeSeriesPredictions()
 	nepInformer.Informer()
 	actionInformer.Informer()
+	tspInformer.Informer()
 
 	agent, err := agent.NewAgent(ctx, hostname, opts.RuntimeEndpoint, kubeClient, craneClient,
-		podInformer, nodeInformer, nepInformer, actionInformer, opts.Ifaces, healthCheck, opts.CollectInterval)
+		podInformer, nodeInformer, nepInformer, actionInformer, opts.Ifaces, healthCheck, opts.CollectInterval, opts.UseBt)
 	nepInformer.Informer()
 	actionInformer.Informer()
 

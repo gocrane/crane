@@ -22,6 +22,8 @@ type Options struct {
 	MaxInactivity time.Duration
 	// Ifaces is the network devices to collect metric
 	Ifaces []string
+	//UseBt is the flag of if use bt_stat
+	UseBt bool
 }
 
 // NewOptions builds an empty options.
@@ -48,4 +50,5 @@ func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.DurationVar(&o.CollectInterval, "collect-interval", 10*time.Second, "period for the state collector to collect metrics, default: 10s")
 	flags.StringArrayVar(&o.Ifaces, "ifaces", []string{"eth0"}, "The network devices to collect metric, use comma to separated, default: eth0")
 	flags.DurationVar(&o.MaxInactivity, "max-inactivity", 5*time.Minute, "Maximum time from last recorded activity before automatic restart, default: 5min")
+	flags.BoolVar(&o.UseBt, "bt-enabled", false, "Enable bt scheduled.")
 }
