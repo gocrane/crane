@@ -1,15 +1,14 @@
 package analyzer
 
 import (
+	"container/heap"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/types"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -25,8 +24,8 @@ import (
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/ensurance/analyzer/evaluator"
 	ecache "github.com/gocrane/crane/pkg/ensurance/cache"
-	stypes "github.com/gocrane/crane/pkg/ensurance/collector/types"
 	"github.com/gocrane/crane/pkg/ensurance/executor"
+	podinfo "github.com/gocrane/crane/pkg/ensurance/executor/pod-info"
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/utils"
@@ -74,6 +73,7 @@ func NewAnormalyAnalyzer(kubeClient *kubernetes.Clientset,
 	eventBroadcaster.StartStructuredLogging(0)
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "crane-agent"})
+
 	return &AnormalyAnalyzer{
 		nodeName:              nodeName,
 		evaluator:             expressionEvaluator,
@@ -180,7 +180,7 @@ func (s *AnormalyAnalyzer) Analyze(state map[string][]common.TimeSeries) {
 		}
 	}
 
-	klog.V(6).Infof("Analyze actionContexts: %v", actionContexts)
+	klog.V(6).Infof("Analyze actionContexts: %#v", actionContexts)
 
 	//step 3 : merge
 	avoidanceAction := s.merge(state, avoidanceMaps, actionContexts)
@@ -189,7 +189,7 @@ func (s *AnormalyAnalyzer) Analyze(state map[string][]common.TimeSeries) {
 		return
 	}
 
-	//step 4 :notice the enforcer manager
+	//step 4 : notice the enforcer manager
 	s.notify(avoidanceAction)
 
 	return
@@ -208,7 +208,7 @@ func (s *AnormalyAnalyzer) trigger(series []common.TimeSeries, object ensurancea
 	for _, ts := range series {
 		triggered = s.evaluator.EvalWithMetric(object.MetricRule.Name, float64(object.MetricRule.Value.Value()), ts.Samples[0].Value)
 
-		klog.V(6).Infof("Anormaly detection result %v, Name: %s, Value: %.2f, %s/%s", triggered,
+		klog.V(4).Infof("Anormaly detection result %v, Name: %s, Value: %.2f, %s/%s", triggered,
 			object.MetricRule.Name,
 			ts.Samples[0].Value,
 			common.GetValueByName(ts.Labels, common.LabelNamePodNamespace),
@@ -238,7 +238,7 @@ func (s *AnormalyAnalyzer) analyze(key string, object ensuranceapi.ObjectiveEnsu
 	//step2: check if triggered for NodeQOSEnsurance
 	threshold := s.trigger(series, object)
 
-	klog.V(4).Infof("for NodeQOS %s, metrics reach the threshold: %v", key, threshold)
+	klog.V(4).Infof("For NodeQOS %s, metrics reach the threshold: %v", key, threshold)
 
 	//step3: check is triggered action or restored, set the detection
 	s.computeActionContext(threshold, key, object, &ac)
@@ -297,24 +297,26 @@ func (s *AnormalyAnalyzer) merge(stateMap map[string][]common.TimeSeries, avoida
 		//step3 get and deduplicate throttlePods, throttleUpPods
 		if action.Spec.Throttle != nil {
 			throttlePods, throttleUpPods := s.getThrottlePods(enableSchedule, ac, action, stateMap)
+
+			// combine the throttle waterline
+			combineThrottleWaterLine(&ae.ThrottleExecutor, ac, enableSchedule)
 			// combine the replicated pod
 			combineThrottleDuplicate(&ae.ThrottleExecutor, throttlePods, throttleUpPods)
 		}
 
 		//step4 get and deduplicate evictPods
 		if action.Spec.Eviction != nil {
-			evictPods := s.getEvictPods(ac.Triggered, action)
+			evictPods := s.getEvictPods(ac.Triggered, action, stateMap)
+
+			// combine the evict waterline
+			combineEvictWaterLine(&ae.EvictExecutor, ac)
 			// combine the replicated pod
 			combineEvictDuplicate(&ae.EvictExecutor, evictPods)
 		}
 	}
+	ae.StateMap = stateMap
 
-	// sort the throttle executor by pod qos priority
-	sort.Sort(ae.ThrottleExecutor.ThrottleDownPods)
-	sort.Sort(sort.Reverse(ae.ThrottleExecutor.ThrottleUpPods))
-
-	// sort the evict executor by pod qos priority
-	sort.Sort(ae.EvictExecutor.EvictPods)
+	klog.V(6).Infof("ThrottleExecutor is %#v, EvictExecutor is %#v", ae.ThrottleExecutor, ae.EvictExecutor)
 
 	return ae
 }
@@ -367,9 +369,7 @@ func (s *AnormalyAnalyzer) getTimeSeriesFromMap(state []common.TimeSeries, selec
 }
 
 func (s *AnormalyAnalyzer) notify(as executor.AvoidanceExecutor) {
-	//step1: check need to notice enforcer manager
-
-	//step2: notice by channel
+	//step1: notice by channel
 	s.actionCh <- as
 	return
 }
@@ -389,9 +389,13 @@ func (s *AnormalyAnalyzer) actionTriggered(ac ecache.ActionContext) bool {
 }
 
 func (s *AnormalyAnalyzer) getThrottlePods(enableSchedule bool, ac ecache.ActionContext,
-	action *ensuranceapi.AvoidanceAction, stateMap map[string][]common.TimeSeries) ([]executor.ThrottlePod, []executor.ThrottlePod) {
+	action *ensuranceapi.AvoidanceAction, stateMap map[string][]common.TimeSeries) ([]podinfo.PodContext, []podinfo.PodContext) {
 
-	throttlePods, throttleUpPods := []executor.ThrottlePod{}, []executor.ThrottlePod{}
+	throttlePods, throttleUpPods := []podinfo.PodContext{}, []podinfo.PodContext{}
+
+	if !ac.Triggered && !(enableSchedule && ac.Restored) {
+		return throttlePods, throttleUpPods
+	}
 
 	allPods, err := s.podLister.List(labels.Everything())
 	if err != nil {
@@ -401,18 +405,18 @@ func (s *AnormalyAnalyzer) getThrottlePods(enableSchedule bool, ac ecache.Action
 
 	for _, pod := range allPods {
 		if ac.Triggered {
-			throttlePods = append(throttlePods, throttlePodConstruct(pod, stateMap, action))
+			throttlePods = append(throttlePods, podinfo.BuildPodBasicInfo(pod, stateMap, action, podinfo.ThrottleDown))
 		}
 		if enableSchedule && ac.Restored {
-			throttleUpPods = append(throttleUpPods, throttlePodConstruct(pod, stateMap, action))
+			throttleUpPods = append(throttleUpPods, podinfo.BuildPodBasicInfo(pod, stateMap, action, podinfo.ThrottleUp))
 		}
 	}
 
 	return throttlePods, throttleUpPods
 }
 
-func (s *AnormalyAnalyzer) getEvictPods(triggered bool, action *ensuranceapi.AvoidanceAction) []executor.EvictPod {
-	evictPods := []executor.EvictPod{}
+func (s *AnormalyAnalyzer) getEvictPods(triggered bool, action *ensuranceapi.AvoidanceAction, stateMap map[string][]common.TimeSeries) []podinfo.PodContext {
+	evictPods := []podinfo.PodContext{}
 
 	if triggered {
 		allPods, err := s.podLister.List(labels.Everything())
@@ -421,10 +425,8 @@ func (s *AnormalyAnalyzer) getEvictPods(triggered bool, action *ensuranceapi.Avo
 			return evictPods
 		}
 
-		for _, v := range allPods {
-			var classAndPriority = executor.ClassAndPriority{PodQOSClass: v.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(v.Spec.Priority, 0)}
-			evictPods = append(evictPods, executor.EvictPod{DeletionGracePeriodSeconds: action.Spec.Eviction.TerminationGracePeriodSeconds,
-				PodKey: types.NamespacedName{Name: v.Name, Namespace: v.Namespace}, ClassAndPriority: classAndPriority})
+		for _, pod := range allPods {
+			evictPods = append(evictPods, podinfo.BuildPodBasicInfo(pod, stateMap, action, podinfo.Evict))
 		}
 	}
 	return evictPods
@@ -435,7 +437,7 @@ func (s *AnormalyAnalyzer) disableSchedulingMerge(acsFiltered []ecache.ActionCon
 
 	// If any rules are triggered, the avoidance is true，otherwise the avoidance is false.
 	// If all rules are not triggered and some rules are restored, the restore is true，otherwise the restore is false.
-	// If the restore is true and the cool downtime  reached, the enableScheduling is true，otherwise the enableScheduling is false.
+	// If the restore is true and the cool downtime reached, the enableScheduling is true，otherwise the enableScheduling is false.
 	var enableScheduling, avoidance, restore bool
 
 	defer func() {
@@ -472,36 +474,19 @@ func (s *AnormalyAnalyzer) disableSchedulingMerge(acsFiltered []ecache.ActionCon
 
 	if avoidance {
 		s.lastTriggeredTime = now
-		ae.ScheduleExecutor.DisableClassAndPriority = &executor.ClassAndPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
+		ae.ScheduleExecutor.DisableClassAndPriority = &podinfo.ClassAndPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
 	}
 
 	if enableScheduling {
-		ae.ScheduleExecutor.RestoreClassAndPriority = &executor.ClassAndPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
+		ae.ScheduleExecutor.RestoreClassAndPriority = &podinfo.ClassAndPriority{PodQOSClass: v1.PodQOSBestEffort, PriorityClassValue: 0}
 	}
 
 	return enableScheduling
 }
 
-func throttlePodConstruct(pod *v1.Pod, stateMap map[string][]common.TimeSeries, action *ensuranceapi.AvoidanceAction) executor.ThrottlePod {
-	var throttlePod executor.ThrottlePod
-	var qosPriority = executor.ClassAndPriority{PodQOSClass: pod.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(pod.Spec.Priority, 0)}
-
-	throttlePod.PodTypes = types.NamespacedName{Namespace: pod.Namespace, Name: pod.Name}
-	throttlePod.CPUThrottle.MinCPURatio = uint64(action.Spec.Throttle.CPUThrottle.MinCPURatio)
-	throttlePod.CPUThrottle.StepCPURatio = uint64(action.Spec.Throttle.CPUThrottle.StepCPURatio)
-
-	throttlePod.PodCPUUsage, throttlePod.ContainerCPUUsages = executor.GetPodUsage(string(stypes.MetricNameContainerCpuTotalUsage), stateMap, pod)
-	throttlePod.PodCPUShare, throttlePod.ContainerCPUShares = executor.GetPodUsage(string(stypes.MetricNameContainerCpuLimit), stateMap, pod)
-	throttlePod.PodCPUQuota, throttlePod.ContainerCPUQuotas = executor.GetPodUsage(string(stypes.MetricNameContainerCpuQuota), stateMap, pod)
-	throttlePod.PodCPUPeriod, throttlePod.ContainerCPUPeriods = executor.GetPodUsage(string(stypes.MetricNameContainerCpuPeriod), stateMap, pod)
-	throttlePod.PodQOSPriority = qosPriority
-
-	return throttlePod
-}
-
 func combineThrottleDuplicate(e *executor.ThrottleExecutor, throttlePods, throttleUpPods executor.ThrottlePods) {
 	for _, t := range throttlePods {
-		if i := e.ThrottleDownPods.Find(t.PodTypes); i == -1 {
+		if i := e.ThrottleDownPods.Find(t.PodKey); i == -1 {
 			e.ThrottleDownPods = append(e.ThrottleDownPods, t)
 		} else {
 			if t.CPUThrottle.MinCPURatio > e.ThrottleDownPods[i].CPUThrottle.MinCPURatio {
@@ -513,9 +498,9 @@ func combineThrottleDuplicate(e *executor.ThrottleExecutor, throttlePods, thrott
 			}
 		}
 	}
-	for _, t := range throttleUpPods {
 
-		if i := e.ThrottleUpPods.Find(t.PodTypes); i == -1 {
+	for _, t := range throttleUpPods {
+		if i := e.ThrottleUpPods.Find(t.PodKey); i == -1 {
 			e.ThrottleUpPods = append(e.ThrottleUpPods, t)
 		} else {
 			if t.CPUThrottle.MinCPURatio > e.ThrottleUpPods[i].CPUThrottle.MinCPURatio {
@@ -539,5 +524,70 @@ func combineEvictDuplicate(e *executor.EvictExecutor, evictPods executor.EvictPo
 				e.EvictPods[i].DeletionGracePeriodSeconds = ep.DeletionGracePeriodSeconds
 			}
 		}
+	}
+}
+
+func combineThrottleWaterLine(e *executor.ThrottleExecutor, ac ecache.ActionContext, enableSchedule bool) {
+	if !ac.Triggered && !(enableSchedule && ac.Restored) {
+		return
+	}
+
+	if ac.Triggered {
+		for _, ensurance := range ac.Nep.Spec.ObjectiveEnsurances {
+			if ensurance.Name == ac.ObjectiveEnsuranceName {
+				if e.ThrottleDownWaterLine == nil {
+					e.ThrottleDownWaterLine = make(map[executor.WaterLineMetric]*executor.WaterLine)
+				}
+				// Use a heap here, so we don't need to use <nepName>-<MetricRuleName> as value, just use <MetricRuleName>
+				if e.ThrottleDownWaterLine[executor.WaterLineMetric(ensurance.MetricRule.Name)] == nil {
+					e.ThrottleDownWaterLine[executor.WaterLineMetric(ensurance.MetricRule.Name)] = &executor.WaterLine{}
+				}
+				heap.Push(e.ThrottleDownWaterLine[executor.WaterLineMetric(ensurance.MetricRule.Name)], ensurance.MetricRule.Value)
+			}
+		}
+	}
+
+	for waterLineMetric, waterlines := range e.ThrottleDownWaterLine {
+		klog.V(6).Infof("ThrottleDownWaterLine info: metric: %s, value: %#v", waterLineMetric, waterlines)
+	}
+
+	if enableSchedule && ac.Restored {
+		for _, ensurance := range ac.Nep.Spec.ObjectiveEnsurances {
+			if ensurance.Name == ac.ObjectiveEnsuranceName {
+				if e.ThrottleUpWaterLine == nil {
+					e.ThrottleUpWaterLine = make(map[executor.WaterLineMetric]*executor.WaterLine)
+				}
+				if e.ThrottleUpWaterLine[executor.WaterLineMetric(ensurance.MetricRule.Name)] == nil {
+					e.ThrottleUpWaterLine[executor.WaterLineMetric(ensurance.MetricRule.Name)] = &executor.WaterLine{}
+				}
+				heap.Push(e.ThrottleUpWaterLine[executor.WaterLineMetric(ensurance.MetricRule.Name)], ensurance.MetricRule.Value)
+			}
+		}
+	}
+
+	for waterLineMetric, waterlines := range e.ThrottleUpWaterLine {
+		klog.V(6).Infof("ThrottleUpWaterLine info: metric: %s, value: %#v", waterLineMetric, waterlines)
+	}
+}
+
+func combineEvictWaterLine(e *executor.EvictExecutor, ac ecache.ActionContext) {
+	if !ac.Triggered {
+		return
+	}
+
+	for _, ensurance := range ac.Nep.Spec.ObjectiveEnsurances {
+		if ensurance.Name == ac.ObjectiveEnsuranceName {
+			if e.EvictWaterLine == nil {
+				e.EvictWaterLine = make(map[executor.WaterLineMetric]*executor.WaterLine)
+			}
+			if e.EvictWaterLine[executor.WaterLineMetric(ensurance.MetricRule.Name)] == nil {
+				e.EvictWaterLine[executor.WaterLineMetric(ensurance.MetricRule.Name)] = &executor.WaterLine{}
+			}
+			heap.Push(e.EvictWaterLine[executor.WaterLineMetric(ensurance.MetricRule.Name)], ensurance.MetricRule.Value)
+		}
+	}
+
+	for waterLineMetric, waterlines := range e.EvictWaterLine {
+		klog.V(6).Infof("EvictWaterLine info: metric: %s, value: %#v", waterLineMetric, waterlines)
 	}
 }

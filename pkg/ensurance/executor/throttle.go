@@ -5,15 +5,13 @@ import (
 	"strings"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 
-	"github.com/gocrane/crane/pkg/common"
-	cruntime "github.com/gocrane/crane/pkg/ensurance/runtime"
+	podinfo "github.com/gocrane/crane/pkg/ensurance/executor/pod-info"
+	execsort "github.com/gocrane/crane/pkg/ensurance/executor/sort"
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/metrics"
-	"github.com/gocrane/crane/pkg/utils"
 )
 
 const (
@@ -25,19 +23,16 @@ const (
 type ThrottleExecutor struct {
 	ThrottleDownPods ThrottlePods
 	ThrottleUpPods   ThrottlePods
+	// All metrics(not only metrics that can be quantified) metioned in triggerd NodeQOSEnsurancePolicy and their corresponding waterlines
+	ThrottleDownWaterLine WaterLines
+	ThrottleUpWaterLine   WaterLines
 }
 
-type ThrottlePods []ThrottlePod
-
-func (t ThrottlePods) Len() int      { return len(t) }
-func (t ThrottlePods) Swap(i, j int) { t[i], t[j] = t[j], t[i] }
-func (t ThrottlePods) Less(i, j int) bool {
-	return t[i].PodQOSPriority.Less(t[j].PodQOSPriority)
-}
+type ThrottlePods []podinfo.PodContext
 
 func (t ThrottlePods) Find(podTypes types.NamespacedName) int {
 	for i, v := range t {
-		if v.PodTypes == podTypes {
+		if v.PodKey == podTypes {
 			return i
 		}
 	}
@@ -45,48 +40,13 @@ func (t ThrottlePods) Find(podTypes types.NamespacedName) int {
 	return -1
 }
 
-type CPURatio struct {
-	//the min of cpu ratio for pods
-	MinCPURatio uint64 `json:"minCPURatio,omitempty"`
-
-	//the step of cpu share and limit for once down-size (1-100)
-	StepCPURatio uint64 `json:"stepCPURatio,omitempty"`
-}
-
-type MemoryThrottleExecutor struct {
-	// to force gc the page cache of low level pods
-	ForceGC bool `json:"forceGC,omitempty"`
-}
-
-type ThrottlePod struct {
-	CPUThrottle         CPURatio
-	MemoryThrottle      MemoryThrottleExecutor
-	PodTypes            types.NamespacedName
-	PodCPUUsage         float64
-	ContainerCPUUsages  []ContainerUsage
-	PodCPUShare         float64
-	ContainerCPUShares  []ContainerUsage
-	PodCPUQuota         float64
-	ContainerCPUQuotas  []ContainerUsage
-	PodCPUPeriod        float64
-	ContainerCPUPeriods []ContainerUsage
-	PodQOSPriority      ClassAndPriority
-}
-
-type ContainerUsage struct {
-	ContainerName string
-	ContainerId   string
-	Value         float64
-}
-
-func GetUsageById(usages []ContainerUsage, containerId string) (ContainerUsage, error) {
-	for _, v := range usages {
-		if v.ContainerId == containerId {
-			return v, nil
-		}
+func Reverse(t ThrottlePods) []podinfo.PodContext {
+	throttle := []podinfo.PodContext(t)
+	l := len(throttle)
+	for i := 0; i < l/2; i++ {
+		throttle[i], throttle[l-i-1] = throttle[l-i-1], throttle[i]
 	}
-
-	return ContainerUsage{}, fmt.Errorf("containerUsage not found")
+	return throttle
 }
 
 func (t *ThrottleExecutor) Avoid(ctx *ExecuteContext) error {
@@ -94,7 +54,7 @@ func (t *ThrottleExecutor) Avoid(ctx *ExecuteContext) error {
 	metrics.UpdateLastTimeWithSubComponent(string(known.ModuleActionExecutor), string(metrics.SubComponentThrottle), metrics.StepAvoid, start)
 	defer metrics.UpdateDurationFromStartWithSubComponent(string(known.ModuleActionExecutor), string(metrics.SubComponentThrottle), metrics.StepAvoid, start)
 
-	klog.V(6).Info("ThrottleExecutor avoid, %v", *t)
+	klog.V(6).Infof("ThrottleExecutor avoid, %#v", *t)
 
 	if len(t.ThrottleDownPods) == 0 {
 		metrics.UpdateExecutorStatus(metrics.SubComponentThrottle, metrics.StepAvoid, 0)
@@ -103,88 +63,79 @@ func (t *ThrottleExecutor) Avoid(ctx *ExecuteContext) error {
 		metrics.ExecutorStatusCounterInc(metrics.SubComponentThrottle, metrics.StepAvoid)
 	}
 
-	var bSucceed = true
-	var errPodKeys []string
+	var errPodKeys, errKeys []string
+	// TODO: totalReleasedResource used for prom metrics
+	totalReleased := ReleaseResource{}
 
-	for _, throttlePod := range t.ThrottleDownPods {
+	/* The step to throttle:
+	1. If ThrottleDownWaterLine has metrics that can't be quantified, select a throttleable metric which has the highest action priority, use its throttlefunc to throttle all ThrottleDownPods, then return
+	2. Get the gaps between current usage and waterlines
+		2.1 If there is a metric that can't get current usage, select a throttleable metric which has the highest action priority, use its throttlefunc to throttle all ThrottleDownPods, then return
+		2.2 Traverse metrics that can be quantified, if there is a gap for the metric, then sort candidate pods by its SortFunc if exists, otherwise use GeneralSorter by default.
+	       Then throttle sorted pods one by one util there is no gap to waterline
+	*/
+	metricsThrottleQuantified, MetricsNotThrottleQuantified := t.ThrottleDownWaterLine.DivideMetricsByThrottleQuantified()
 
-		pod, err := ctx.PodLister.Pods(throttlePod.PodTypes.Namespace).Get(throttlePod.PodTypes.Name)
-		if err != nil {
-			bSucceed = false
-			errPodKeys = append(errPodKeys, fmt.Sprintf("pod %s not found", throttlePod.PodTypes.String()))
-			continue
+	// There is a metric that can't be ThrottleQuantified, so throttle all selected pods
+	if len(MetricsNotThrottleQuantified) != 0 {
+		klog.V(6).Info("ThrottleDown: There is a metric that can't be ThrottleQuantified")
+
+		highestPriorityMetric := t.ThrottleDownWaterLine.GetHighestPriorityThrottleAbleMetric()
+		if highestPriorityMetric != "" {
+			klog.V(6).Infof("The highestPriorityMetric is %s", highestPriorityMetric)
+			errPodKeys = t.throttlePods(ctx, &totalReleased, highestPriorityMetric)
 		}
+	} else {
+		ctx.ThrottoleDownGapToWaterLines, _, _ = buildGapToWaterLine(ctx.stateMap, *t, EvictExecutor{}, ctx.executeExcessPercent)
 
-		for _, v := range throttlePod.ContainerCPUUsages {
-			// pause container to skip
-			if v.ContainerName == "" {
-				continue
+		if ctx.ThrottoleDownGapToWaterLines.HasUsageMissedMetric() {
+			klog.V(6).Info("There is a metric usage missed")
+			highestPriorityMetric := t.ThrottleDownWaterLine.GetHighestPriorityThrottleAbleMetric()
+			if highestPriorityMetric != "" {
+				errPodKeys = t.throttlePods(ctx, &totalReleased, highestPriorityMetric)
 			}
-
-			klog.V(4).Infof("ThrottleExecutor1 avoid container %s/%s", klog.KObj(pod), v.ContainerName)
-
-			containerCPUQuota, err := GetUsageById(throttlePod.ContainerCPUQuotas, v.ContainerId)
-			if err != nil {
-				bSucceed = false
-				errPodKeys = append(errPodKeys, err.Error(), throttlePod.PodTypes.String())
-				continue
-			}
-
-			containerCPUPeriod, err := GetUsageById(throttlePod.ContainerCPUPeriods, v.ContainerId)
-			if err != nil {
-				bSucceed = false
-				errPodKeys = append(errPodKeys, err.Error(), throttlePod.PodTypes.String())
-				continue
-			}
-
-			container, err := utils.GetPodContainerByName(pod, v.ContainerName)
-			if err != nil {
-				bSucceed = false
-				errPodKeys = append(errPodKeys, err.Error(), throttlePod.PodTypes.String())
-				continue
-			}
-
-			var containerCPUQuotaNew float64
-			if utils.AlmostEqual(containerCPUQuota.Value, -1.0) || utils.AlmostEqual(containerCPUQuota.Value, 0.0) {
-				containerCPUQuotaNew = v.Value * (1.0 - float64(throttlePod.CPUThrottle.StepCPURatio)/MaxRatio)
-			} else {
-				containerCPUQuotaNew = containerCPUQuota.Value / containerCPUPeriod.Value * (1.0 - float64(throttlePod.CPUThrottle.StepCPURatio)/MaxRatio)
-			}
-
-			if requestCPU, ok := container.Resources.Requests[v1.ResourceCPU]; ok {
-				if float64(requestCPU.MilliValue())/CpuQuotaCoefficient > containerCPUQuotaNew {
-					containerCPUQuotaNew = float64(requestCPU.MilliValue()) / CpuQuotaCoefficient
-				}
-			}
-
-			if limitCPU, ok := container.Resources.Limits[v1.ResourceCPU]; ok {
-				if float64(limitCPU.MilliValue())/CpuQuotaCoefficient*float64(throttlePod.CPUThrottle.MinCPURatio)/MaxRatio > containerCPUQuotaNew {
-					containerCPUQuotaNew = float64(limitCPU.MilliValue()) * float64(throttlePod.CPUThrottle.MinCPURatio) / CpuQuotaCoefficient
-				}
-			}
-
-			klog.V(6).Infof("Prior update container resources containerCPUQuotaNew %.2f, containerCPUQuota.Value %.2f,containerCPUPeriod %.2f",
-				containerCPUQuotaNew, containerCPUQuota.Value, containerCPUPeriod.Value)
-
-			if !utils.AlmostEqual(containerCPUQuotaNew*containerCPUPeriod.Value, containerCPUQuota.Value) {
-				err = cruntime.UpdateContainerResources(ctx.RuntimeClient, v.ContainerId, cruntime.UpdateOptions{CPUQuota: int64(containerCPUQuotaNew * containerCPUPeriod.Value)})
-				if err != nil {
-					errPodKeys = append(errPodKeys, fmt.Sprintf("failed to updateResource for %s/%s, error: %v", throttlePod.PodTypes.String(), v.ContainerName, err))
-					bSucceed = false
-					continue
+		} else {
+			// The metrics in ThrottoleDownGapToWaterLines are all in WaterLineMetricsCanBeQuantified and has current usage, then throttle precisely
+			var released ReleaseResource
+			for _, m := range metricsThrottleQuantified {
+				klog.V(6).Infof("ThrottleDown precisely on metric %s", m)
+				if metricMap[m].SortAble {
+					metricMap[m].SortFunc(t.ThrottleDownPods)
 				} else {
-					klog.V(4).Infof("ThrottleExecutor avoid pod %s, container %s, set cpu quota %.2f.",
-						klog.KObj(pod), v.ContainerName, containerCPUQuotaNew)
+					execsort.GeneralSorter(t.ThrottleDownPods)
+				}
+
+				klog.V(6).Info("After sort, the sequence to throttle is ")
+				for _, pc := range t.ThrottleDownPods {
+					klog.V(6).Info(pc.PodKey.String(), pc.ContainerCPUUsages)
+				}
+
+				for index := 0; !ctx.ThrottoleDownGapToWaterLines.TargetGapsRemoved(m) && index < len(t.ThrottleDownPods); index++ {
+					klog.V(6).Infof("For metric %s, there is still gap to waterlines: %f", m, ctx.ThrottoleDownGapToWaterLines[m])
+
+					errKeys, released = metricMap[m].ThrottleFunc(ctx, index, t.ThrottleDownPods, &totalReleased)
+					klog.V(6).Infof("ThrottleDown pods %s, released %f resource", t.ThrottleDownPods[index].PodKey, released[m])
+					errPodKeys = append(errPodKeys, errKeys...)
+
+					ctx.ThrottoleDownGapToWaterLines[m] -= released[m]
 				}
 			}
 		}
 	}
 
-	if !bSucceed {
+	if len(errPodKeys) != 0 {
 		return fmt.Errorf("some pod throttle failed,err: %s", strings.Join(errPodKeys, ";"))
 	}
 
 	return nil
+}
+
+func (t *ThrottleExecutor) throttlePods(ctx *ExecuteContext, totalReleasedResource *ReleaseResource, m WaterLineMetric) (errPodKeys []string) {
+	for i := range t.ThrottleDownPods {
+		errKeys, _ := metricMap[m].ThrottleFunc(ctx, i, t.ThrottleDownPods, totalReleasedResource)
+		errPodKeys = append(errPodKeys, errKeys...)
+	}
+	return
 }
 
 func (t *ThrottleExecutor) Restore(ctx *ExecuteContext) error {
@@ -194,7 +145,7 @@ func (t *ThrottleExecutor) Restore(ctx *ExecuteContext) error {
 
 	klog.V(6).Info("ThrottleExecutor restore, %v", *t)
 
-	if len(t.ThrottleDownPods) == 0 {
+	if len(t.ThrottleUpPods) == 0 {
 		metrics.UpdateExecutorStatus(metrics.SubComponentThrottle, metrics.StepRestore, 0)
 		return nil
 	}
@@ -202,121 +153,78 @@ func (t *ThrottleExecutor) Restore(ctx *ExecuteContext) error {
 	metrics.UpdateExecutorStatus(metrics.SubComponentThrottle, metrics.StepRestore, 1.0)
 	metrics.ExecutorStatusCounterInc(metrics.SubComponentThrottle, metrics.StepRestore)
 
-	var bSucceed = true
-	var errPodKeys []string
+	var errPodKeys, errKeys []string
+	// TODO: totalReleasedResource used for prom metrics
+	totalReleased := ReleaseResource{}
 
-	for _, throttlePod := range t.ThrottleUpPods {
+	/* The step to restore:
+	1. If ThrottleUpWaterLine has metrics that can't be quantified, select a throttleable metric which has the highest action priority, use its RestoreFunc to restore all ThrottleUpPods, then return
+	2. Get the gaps between current usage and waterlines
+		2.1 If there is a metric that can't get current usage, select a throttleable metric which has the highest action priority, use its RestoreFunc to restore all ThrottleUpPods, then return
+		2.2 Traverse metrics that can be quantified, if there is a gap for the metric, then sort candidate pods by its SortFunc if exists, otherwise use GeneralSorter by default.
+	       Then restore sorted pods one by one util there is no gap to waterline
+	*/
+	metricsThrottleQuantified, MetricsNotThrottleQuantified := t.ThrottleUpWaterLine.DivideMetricsByThrottleQuantified()
 
-		pod, err := ctx.PodLister.Pods(throttlePod.PodTypes.Namespace).Get(throttlePod.PodTypes.Name)
-		if err != nil {
-			bSucceed = false
-			errPodKeys = append(errPodKeys, "not found ", throttlePod.PodTypes.String())
-			continue
+	// There is a metric that can't be ThrottleQuantified, so restore all selected pods
+	if len(MetricsNotThrottleQuantified) != 0 {
+		klog.V(6).Info("ThrottleUp: There is a metric that can't be ThrottleQuantified")
+
+		highestPrioriyMetric := t.ThrottleUpWaterLine.GetHighestPriorityThrottleAbleMetric()
+		if highestPrioriyMetric != "" {
+			klog.V(6).Infof("The highestPrioriyMetric is %s", highestPrioriyMetric)
+			errPodKeys = t.restorePods(ctx, &totalReleased, highestPrioriyMetric)
 		}
+	} else {
+		_, ctx.ThrottoleUpGapToWaterLines, _ = buildGapToWaterLine(ctx.stateMap, *t, EvictExecutor{}, ctx.executeExcessPercent)
 
-		for _, v := range throttlePod.ContainerCPUUsages {
-
-			// pause container to skip
-			if v.ContainerName == "" {
-				continue
+		if ctx.ThrottoleUpGapToWaterLines.HasUsageMissedMetric() {
+			klog.V(6).Info("There is a metric usage missed")
+			highestPrioriyMetric := t.ThrottleUpWaterLine.GetHighestPriorityThrottleAbleMetric()
+			if highestPrioriyMetric != "" {
+				errPodKeys = t.restorePods(ctx, &totalReleased, highestPrioriyMetric)
 			}
-
-			klog.V(6).Infof("ThrottleExecutor1 restore container %s/%s", klog.KObj(pod), v.ContainerName)
-
-			containerCPUQuota, err := GetUsageById(throttlePod.ContainerCPUQuotas, v.ContainerId)
-			if err != nil {
-				bSucceed = false
-				errPodKeys = append(errPodKeys, err.Error(), throttlePod.PodTypes.String())
-				continue
-			}
-
-			containerCPUPeriod, err := GetUsageById(throttlePod.ContainerCPUPeriods, v.ContainerId)
-			if err != nil {
-				bSucceed = false
-				errPodKeys = append(errPodKeys, err.Error(), throttlePod.PodTypes.String())
-				continue
-			}
-
-			container, err := utils.GetPodContainerByName(pod, v.ContainerName)
-			if err != nil {
-				bSucceed = false
-				errPodKeys = append(errPodKeys, err.Error(), throttlePod.PodTypes.String())
-				continue
-			}
-
-			var containerCPUQuotaNew float64
-			if utils.AlmostEqual(containerCPUQuota.Value, -1.0) || utils.AlmostEqual(containerCPUQuota.Value, 0.0) {
-				continue
-			} else {
-				containerCPUQuotaNew = containerCPUQuota.Value / containerCPUPeriod.Value * (1.0 + float64(throttlePod.CPUThrottle.StepCPURatio)/MaxRatio)
-			}
-
-			if limitCPU, ok := container.Resources.Limits[v1.ResourceCPU]; ok {
-				if float64(limitCPU.MilliValue())/CpuQuotaCoefficient < containerCPUQuotaNew {
-					containerCPUQuotaNew = float64(limitCPU.MilliValue()) / CpuQuotaCoefficient
-				}
-			} else {
-				usage, hasExtRes := utils.GetExtCpuRes(container)
-				if hasExtRes {
-					containerCPUQuotaNew = float64(usage.MilliValue()) / CpuQuotaCoefficient
-				}
-				if !hasExtRes && containerCPUQuotaNew > MaxUpQuota*containerCPUPeriod.Value/CpuQuotaCoefficient {
-					containerCPUQuotaNew = -1
-				}
-
-			}
-
-			klog.V(6).Infof("Prior update container resources containerCPUQuotaNew %.2f,containerCPUQuota %.2f,containerCPUPeriod %.2f",
-				klog.KObj(pod), containerCPUQuotaNew, containerCPUQuota.Value, containerCPUPeriod.Value)
-
-			if !utils.AlmostEqual(containerCPUQuotaNew*containerCPUPeriod.Value, containerCPUQuota.Value) {
-
-				if utils.AlmostEqual(containerCPUQuotaNew, -1) {
-					err = cruntime.UpdateContainerResources(ctx.RuntimeClient, v.ContainerId, cruntime.UpdateOptions{CPUQuota: int64(-1)})
-					if err != nil {
-						errPodKeys = append(errPodKeys, fmt.Sprintf("Failed to updateResource, err %s", err.Error()), throttlePod.PodTypes.String())
-						bSucceed = false
-						continue
-					}
+		} else {
+			// The metrics in ThrottoleUpGapToWaterLines are all in WaterLineMetricsCanBeQuantified and has current usage, then throttle precisely
+			var released ReleaseResource
+			for _, m := range metricsThrottleQuantified {
+				klog.V(6).Infof("ThrottleUp precisely on metric %s", m)
+				if metricMap[m].SortAble {
+					metricMap[m].SortFunc(t.ThrottleUpPods)
 				} else {
-					err = cruntime.UpdateContainerResources(ctx.RuntimeClient, v.ContainerId, cruntime.UpdateOptions{CPUQuota: int64(containerCPUQuotaNew * containerCPUPeriod.Value)})
-					if err != nil {
-						klog.Errorf("Failed to updateResource, err %s", err.Error())
-						errPodKeys = append(errPodKeys, fmt.Sprintf("Failed to updateResource, err %s", err.Error()), throttlePod.PodTypes.String())
-						bSucceed = false
-						continue
-					}
+					execsort.GeneralSorter(t.ThrottleUpPods)
+				}
+				//t.ThrottleUpPods = Reverse(t.ThrottleUpPods)
+
+				klog.V(6).Info("After sort, the sequence to throttle is ")
+				for _, pc := range t.ThrottleUpPods {
+					klog.V(6).Info(pc.PodKey.String())
+				}
+
+				for index := 0; !ctx.ThrottoleUpGapToWaterLines.TargetGapsRemoved(m) && index < len(t.ThrottleUpPods); index++ {
+					klog.V(6).Infof("For metric %s, there is still gap to waterlines: %f", m, ctx.ThrottoleUpGapToWaterLines[m])
+
+					errKeys, released = metricMap[m].RestoreFunc(ctx, index, t.ThrottleUpPods, &totalReleased)
+					klog.V(6).Infof("ThrottleUp pods %s, released %f resource", t.ThrottleUpPods[index].PodKey, released[m])
+					errPodKeys = append(errPodKeys, errKeys...)
+
+					ctx.ThrottoleUpGapToWaterLines[m] -= released[m]
 				}
 			}
 		}
 	}
 
-	if !bSucceed {
+	if len(errPodKeys) != 0 {
 		return fmt.Errorf("some pod throttle restore failed,err: %s", strings.Join(errPodKeys, ";"))
 	}
 
 	return nil
 }
 
-func GetPodUsage(metricName string, stateMap map[string][]common.TimeSeries, pod *v1.Pod) (float64, []ContainerUsage) {
-	var podUsage = 0.0
-	var containerUsages []ContainerUsage
-	var podMaps = map[string]string{common.LabelNamePodName: pod.Name, common.LabelNamePodNamespace: pod.Namespace, common.LabelNamePodUid: string(pod.UID)}
-	state, ok := stateMap[metricName]
-	if !ok {
-		return podUsage, containerUsages
+func (t *ThrottleExecutor) restorePods(ctx *ExecuteContext, totalReleasedResource *ReleaseResource, m WaterLineMetric) (errPodKeys []string) {
+	for i := range t.ThrottleUpPods {
+		errKeys, _ := metricMap[m].RestoreFunc(ctx, i, t.ThrottleDownPods, totalReleasedResource)
+		errPodKeys = append(errPodKeys, errKeys...)
 	}
-	for _, vv := range state {
-		var labelMaps = common.Labels2Maps(vv.Labels)
-		if utils.ContainMaps(labelMaps, podMaps) {
-			if labelMaps[common.LabelNameContainerId] == "" {
-				podUsage = vv.Samples[0].Value
-			} else {
-				containerUsages = append(containerUsages, ContainerUsage{ContainerId: labelMaps[common.LabelNameContainerId],
-					ContainerName: labelMaps[common.LabelNameContainerName], Value: vv.Samples[0].Value})
-			}
-		}
-	}
-
-	return podUsage, containerUsages
+	return
 }
