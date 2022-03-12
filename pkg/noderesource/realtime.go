@@ -1,16 +1,14 @@
 package noderesource
 
 import (
+	"sync"
+	"time"
+
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/utils"
-	"github.com/gocrane/crane/pkg/utils/bt"
-	cadvisorapiv2 "github.com/google/cadvisor/info/v2"
-	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/mem"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
-	"sync"
-	"time"
 )
 
 const (
@@ -20,21 +18,6 @@ const (
 func init() {
 	klog.Infof("init RealtimeCollector")
 	registerMetrics(realtimeCollectorName, NewRealTimeCollection)
-}
-
-type CpuTimeStampState struct {
-	stat      map[int]cpu.TimesStat
-	timestamp time.Time
-}
-
-type BtCpuTimeStampState struct {
-	stat      bt.TimesStat
-	timestamp time.Time
-}
-
-type CgroupState struct {
-	stat      cadvisorapiv2.ContainerInfo
-	timestamp time.Time
 }
 
 func NewRealTimeCollection(context *CollectContext) (Collector, error) {

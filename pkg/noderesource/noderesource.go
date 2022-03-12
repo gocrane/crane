@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
+	"strings"
+
 	craneclientset "github.com/gocrane/api/pkg/generated/clientset/versioned"
 	predictionv1alpha1 "github.com/gocrane/api/pkg/generated/informers/externalversions/prediction/v1alpha1"
 	"github.com/gocrane/crane/pkg/common"
@@ -21,8 +24,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-	"math"
-	"strings"
 )
 
 const (
@@ -229,14 +230,20 @@ func (nr *NodeResource) Analyze(state map[string][]MetricTimeSeries) {
 
 	if !equality.Semantic.DeepEqual(&node.Status, &nodeCopy.Status) {
 		var jsonPatch []byte
+		var oldJson []byte
+		var newJson []byte
+		var err error
 		effectDataSources, _ := json.Marshal(effectDataSourceNameMap)
 		nr.recorder.Event(utils.GetNodeRef(nr.nodeName), v1.EventTypeNormal, "RecommendExtendResource", fmt.Sprintf("Recommend Node Extend Resource Success: %s", effectDataSources))
-		oldJson, err := json.Marshal(node)
-		newJson, err := json.Marshal(nodeCopy)
+		oldJson, err = json.Marshal(node)
 		if err == nil {
-			jsonPatch, err = strategicpatch.CreateTwoWayMergePatch(oldJson, newJson, nodeCopy)
-			klog.V(4).Infof("jsonPatch: %s", jsonPatch)
+			newJson, err = json.Marshal(nodeCopy)
+			if err == nil {
+				jsonPatch, err = strategicpatch.CreateTwoWayMergePatch(oldJson, newJson, nodeCopy)
+				klog.V(4).Infof("jsonPatch: %s", jsonPatch)
+			}
 		}
+
 		if err != nil {
 			// update Node status extend-resource info directly
 			if _, err := nr.Client.CoreV1().Nodes().UpdateStatus(context.TODO(), nodeCopy, metav1.UpdateOptions{}); err != nil {
