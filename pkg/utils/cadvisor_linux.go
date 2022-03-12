@@ -1,6 +1,11 @@
 package utils
 
 import (
+	"net/http"
+	"strings"
+	"sync"
+	"time"
+
 	cmemory "github.com/google/cadvisor/cache/memory"
 	cadvisorcontainer "github.com/google/cadvisor/container"
 	cadvisorapiv2 "github.com/google/cadvisor/info/v2"
@@ -12,10 +17,6 @@ import (
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog/v2"
 	statsapi "k8s.io/kubelet/pkg/apis/stats/v1alpha1"
-	"net/http"
-	"strings"
-	"sync"
-	"time"
 )
 
 var (

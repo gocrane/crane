@@ -86,7 +86,7 @@ func NewAdvancedCpuManager(client clientset.Interface, nodeName string, podInfor
 			for _, container := range pod.Spec.Containers {
 				err := m.Allocate(pod, &container)
 				if err == nil {
-					wait.PollImmediate(100*time.Millisecond, 2*time.Second,
+					_ = wait.PollImmediate(100*time.Millisecond, 2*time.Second,
 						func() (bool, error) {
 							return m.AddContainer(pod, &container) == nil, nil
 						})
@@ -126,7 +126,7 @@ func (m *AdvancedCpuManager) Run(stop <-chan struct{}) {
 }
 
 func (m *AdvancedCpuManager) Allocate(p *v1.Pod, c *v1.Container) error {
-	wait.PollImmediateUntil(100*time.Millisecond, func() (bool, error) { return m.isStarted, nil }, wait.NeverStop)
+	_ = wait.PollImmediateUntil(100*time.Millisecond, func() (bool, error) { return m.isStarted, nil }, wait.NeverStop)
 	// Garbage collect any stranded resources before allocating CPUs.
 	m.syncState(false)
 	m.Lock()

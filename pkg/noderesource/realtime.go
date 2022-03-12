@@ -136,7 +136,6 @@ func (r *RealTimeCollector) collectMemoryTimeSeries() []common.TimeSeries {
 
 func (r *RealTimeCollector) collectCpuTimeSeries() []common.TimeSeries {
 	var cpuIdleCanBeReused float64 = 0
-	var offlineCpuUsageIncrease uint64 = 0
 	var offlineCpuUsageAvg float64 = 0
 	wg := sync.WaitGroup{}
 	wg.Add(2)
@@ -146,7 +145,7 @@ func (r *RealTimeCollector) collectCpuTimeSeries() []common.TimeSeries {
 	}()
 	go func() {
 		defer wg.Done()
-		offlineCpuUsageIncrease, offlineCpuUsageAvg = r.cpuStateProvider.GetExtCpuUsage()
+		_, offlineCpuUsageAvg = r.cpuStateProvider.GetExtCpuUsage()
 	}()
 	lastTime := time.Now()
 	wg.Wait()
