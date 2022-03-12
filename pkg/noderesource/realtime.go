@@ -1,16 +1,14 @@
 package noderesource
 
 import (
+	"sync"
+	"time"
+
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/utils"
-	"github.com/gocrane/crane/pkg/utils/bt"
-	cadvisorapiv2 "github.com/google/cadvisor/info/v2"
-	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/mem"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
-	"sync"
-	"time"
 )
 
 const (
@@ -20,21 +18,6 @@ const (
 func init() {
 	klog.Infof("init RealtimeCollector")
 	registerMetrics(realtimeCollectorName, NewRealTimeCollection)
-}
-
-type CpuTimeStampState struct {
-	stat      map[int]cpu.TimesStat
-	timestamp time.Time
-}
-
-type BtCpuTimeStampState struct {
-	stat      bt.TimesStat
-	timestamp time.Time
-}
-
-type CgroupState struct {
-	stat      cadvisorapiv2.ContainerInfo
-	timestamp time.Time
 }
 
 func NewRealTimeCollection(context *CollectContext) (Collector, error) {
@@ -136,7 +119,6 @@ func (r *RealTimeCollector) collectMemoryTimeSeries() []common.TimeSeries {
 
 func (r *RealTimeCollector) collectCpuTimeSeries() []common.TimeSeries {
 	var cpuIdleCanBeReused float64 = 0
-	var offlineCpuUsageIncrease uint64 = 0
 	var offlineCpuUsageAvg float64 = 0
 	wg := sync.WaitGroup{}
 	wg.Add(2)
@@ -146,7 +128,7 @@ func (r *RealTimeCollector) collectCpuTimeSeries() []common.TimeSeries {
 	}()
 	go func() {
 		defer wg.Done()
-		offlineCpuUsageIncrease, offlineCpuUsageAvg = r.cpuStateProvider.GetExtCpuUsage()
+		_, offlineCpuUsageAvg = r.cpuStateProvider.GetExtCpuUsage()
 	}()
 	lastTime := time.Now()
 	wg.Wait()

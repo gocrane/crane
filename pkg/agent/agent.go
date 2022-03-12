@@ -3,16 +3,17 @@ package agent
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/gocrane/crane/pkg/ensurance/cm"
 	"github.com/gocrane/crane/pkg/noderesource"
 	"github.com/gocrane/crane/pkg/utils"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"strings"
-	"time"
 
 	"github.com/gocrane/crane/pkg/metrics"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"

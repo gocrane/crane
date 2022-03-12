@@ -2,6 +2,12 @@ package utils
 
 import (
 	"fmt"
+	"math"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/gocrane/crane/pkg/utils/bt"
 	cmanager "github.com/google/cadvisor/manager"
 	"github.com/shirou/gopsutil/cpu"
@@ -10,11 +16,6 @@ import (
 	"k8s.io/klog/v2"
 	summary "k8s.io/kubelet/pkg/apis/stats/v1alpha1"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
-	"math"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
 )
 
 const (
