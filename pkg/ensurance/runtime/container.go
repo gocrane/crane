@@ -41,6 +41,8 @@ type ListOptions struct {
 	podID string
 	// Regular expression pattern to match pod or container
 	nameRegexp string
+	// Regular expression pattern to match the pod namespace
+	podNamespaceRegexp string
 	// state of the sandbox
 	state string
 	// labels are selectors for the sandbox
@@ -209,4 +211,16 @@ func filterContainersList(containersList []*pb.Container, opts ListOptions) []*p
 	}(n, len(filtered))
 
 	return filtered[:n]
+}
+
+func matchesRegex(pattern, target string) bool {
+	if pattern == "" {
+		return true
+	}
+	matched, err := regexp.MatchString(pattern, target)
+	if err != nil {
+		// Assume it's not a match if an error occurs.
+		return false
+	}
+	return matched
 }

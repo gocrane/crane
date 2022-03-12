@@ -22,11 +22,26 @@ type Options struct {
 	MaxInactivity time.Duration
 	// Ifaces is the network devices to collect metric
 	Ifaces []string
+	//NodeResourceOptions is the options of nodeResource
+	NodeResourceOptions NodeResourceOptions
+	//UseBt is the flag of if use bt_stat
+	UseBt bool
+}
+
+type NodeResourceOptions struct {
+	Enabled                 bool
+	CollectorNames          []string
+	ReserveCpuPercentStr    string
+	ReserveMemoryPercentStr string
 }
 
 // NewOptions builds an empty options.
 func NewOptions() *Options {
-	return &Options{}
+	return &Options{
+		NodeResourceOptions: NodeResourceOptions{
+			CollectorNames: []string{},
+		},
+	}
 }
 
 // Complete completes all the required options.
@@ -48,4 +63,9 @@ func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.DurationVar(&o.CollectInterval, "collect-interval", 10*time.Second, "period for the state collector to collect metrics, default: 10s")
 	flags.StringArrayVar(&o.Ifaces, "ifaces", []string{"eth0"}, "The network devices to collect metric, use comma to separated, default: eth0")
 	flags.DurationVar(&o.MaxInactivity, "max-inactivity", 5*time.Minute, "Maximum time from last recorded activity before automatic restart, default: 5min")
+	flags.StringSliceVar(&o.NodeResourceOptions.CollectorNames, "noderesource-collector-names", []string{}, "The collectors of noderesource.")
+	flags.StringVar(&o.NodeResourceOptions.ReserveCpuPercentStr, "reserve-cpu-percent", "", "reserve cpu percentage of node.")
+	flags.StringVar(&o.NodeResourceOptions.ReserveMemoryPercentStr, "reserve-memory-percent", "", "reserve memory percentage of node.")
+	flags.BoolVar(&o.NodeResourceOptions.Enabled, "noderesource-enabled", false, "Enable NodeResourceManager.")
+	flags.BoolVar(&o.UseBt, "bt-enabled", false, "Enable bt scheduled.")
 }

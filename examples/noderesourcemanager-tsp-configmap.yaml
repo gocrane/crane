@@ -1,0 +1,25 @@
+apiVersion: v1
+data:
+  spec: |
+    predictionMetrics:
+    - algorithm:
+        algorithmType: dsp
+        dsp:
+          estimators:
+            fft:
+            - highFrequencyThreshold: "0.05"
+              lowAmplitudeThreshold: "1.0"
+              marginFraction: "0.2"
+              maxNumOfSpectrumItems: 20
+              minNumOfSpectrumItems: 10
+          historyLength: 3d
+          sampleInterval: 60s
+      resourceIdentifier: cpu
+      type: ExpressionQuery
+      expressionQuery:
+        expression: 'node_cpu_can_be_reused_seconds{node=~"({{nodename}})(:\\d+)?"}'
+    predictionWindowSeconds: 180
+kind: ConfigMap
+metadata:
+  name: noderesource-tsp-template
+  namespace: default

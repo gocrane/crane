@@ -1,0 +1,9 @@
+apiVersion: ensurance.crane.io/v1alpha1
+kind: AvoidanceAction
+metadata:
+  name: eviction-extresource
+  labels:
+    app: system
+spec:
+  coolDownSeconds: 300
+  description: "evict extresource"

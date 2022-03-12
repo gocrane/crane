@@ -4,6 +4,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gocrane/crane/pkg/ensurance/collector/noderesource"
+
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/metrics"
 
@@ -166,6 +168,12 @@ func (s *StateCollector) UpdateCollectors() {
 			c := cadvisor.NewCadvisor(s.podLister)
 			if c != nil {
 				s.collectors.Store(types.CadvisorCollectorType, c)
+			}
+		}
+		if _, exists := s.collectors.Load(types.NodeResourceCollectorType); !exists {
+			c := noderesource.NewNodeResourceCollector(s.nodeName, s.nodeLister, s.podLister)
+			if c != nil {
+				s.collectors.Store(types.NodeResourceCollectorType, c)
 			}
 		}
 		break
