@@ -13,7 +13,7 @@ const (
 	CPUSetShare     CPUSetPolicy = "share"
 )
 
-func podCPUSetType(pod *v1.Pod, container *v1.Container) CPUSetPolicy {
+func podCPUSetType(pod *v1.Pod, _ *v1.Container) CPUSetPolicy {
 	csp := CPUSetPolicy(pod.GetAnnotations()[CPUSetAnnotation])
 	if csp == "" {
 		return CPUSetNone

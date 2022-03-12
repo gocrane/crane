@@ -2,11 +2,12 @@ package agent
 
 import (
 	"context"
+	"net/http"
+	"time"
+
 	"github.com/gocrane/crane/pkg/ensurance/cm"
 	"github.com/gocrane/crane/pkg/utils"
 	cmanager "github.com/google/cadvisor/manager"
-	"net/http"
-	"time"
 
 	"github.com/gocrane/crane/pkg/metrics"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -27,10 +28,6 @@ import (
 	"github.com/gocrane/crane/pkg/ensurance/collector"
 	"github.com/gocrane/crane/pkg/ensurance/executor"
 	"github.com/gocrane/crane/pkg/ensurance/manager"
-)
-
-const (
-	defaultMetricsEndpoint = "/metrics"
 )
 
 type Agent struct {

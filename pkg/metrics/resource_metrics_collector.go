@@ -1,13 +1,14 @@
 package metrics
 
 import (
+	"sync"
+	"sync/atomic"
+	"time"
+
 	"github.com/gocrane/crane/pkg/utils"
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/component-base/metrics"
 	"k8s.io/component-base/metrics/legacyregistry"
-	"sync"
-	"sync/atomic"
-	"time"
 )
 
 var (
