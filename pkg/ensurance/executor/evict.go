@@ -18,19 +18,7 @@ type EvictExecutor struct {
 	EvictPods EvictPods
 }
 
-type EvictPod struct {
-	DeletionGracePeriodSeconds *int32
-	PodKey                     types.NamespacedName
-	ClassAndPriority           ClassAndPriority
-}
-
-type EvictPods []EvictPod
-
-func (e EvictPods) Len() int      { return len(e) }
-func (e EvictPods) Swap(i, j int) { e[i], e[j] = e[j], e[i] }
-func (e EvictPods) Less(i, j int) bool {
-	return e[i].ClassAndPriority.Less(e[j].ClassAndPriority)
-}
+type EvictPods []PodContext
 
 func (e EvictPods) Find(key types.NamespacedName) int {
 	for i, v := range e {
@@ -65,7 +53,7 @@ func (e *EvictExecutor) Avoid(ctx *ExecuteContext) error {
 	for i := range e.EvictPods {
 		wg.Add(1)
 
-		go func(evictPod EvictPod) {
+		go func(evictPod PodContext) {
 			defer wg.Done()
 
 			pod, err := ctx.PodLister.Pods(evictPod.PodKey.Namespace).Get(evictPod.PodKey.Name)

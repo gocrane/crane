@@ -2,14 +2,12 @@ package analyzer
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/types"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -24,8 +22,8 @@ import (
 	ensurancelisters "github.com/gocrane/api/pkg/generated/listers/ensurance/v1alpha1"
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/ensurance/analyzer/evaluator"
+	execsort "github.com/gocrane/crane/pkg/ensurance/analyzer/sort"
 	ecache "github.com/gocrane/crane/pkg/ensurance/cache"
-	stypes "github.com/gocrane/crane/pkg/ensurance/collector/types"
 	"github.com/gocrane/crane/pkg/ensurance/executor"
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/metrics"
@@ -74,6 +72,7 @@ func NewAnormalyAnalyzer(kubeClient *kubernetes.Clientset,
 	eventBroadcaster.StartStructuredLogging(0)
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "crane-agent"})
+
 	return &AnormalyAnalyzer{
 		nodeName:              nodeName,
 		evaluator:             expressionEvaluator,
@@ -303,18 +302,19 @@ func (s *AnormalyAnalyzer) merge(stateMap map[string][]common.TimeSeries, avoida
 
 		//step4 get and deduplicate evictPods
 		if action.Spec.Eviction != nil {
-			evictPods := s.getEvictPods(ac.Triggered, action)
+			evictPods := s.getEvictPods(ac.Triggered, action, stateMap)
 			// combine the replicated pod
 			combineEvictDuplicate(&ae.EvictExecutor, evictPods)
 		}
 	}
 
 	// sort the throttle executor by pod qos priority
-	sort.Sort(ae.ThrottleExecutor.ThrottleDownPods)
-	sort.Sort(sort.Reverse(ae.ThrottleExecutor.ThrottleUpPods))
+	execsort.CpuMetricsSorter(ae.ThrottleExecutor.ThrottleDownPods)
+	execsort.CpuMetricsSorter(ae.ThrottleExecutor.ThrottleUpPods)
+	ae.ThrottleExecutor.ThrottleUpPods = executor.Reverse(ae.ThrottleExecutor.ThrottleUpPods)
 
 	// sort the evict executor by pod qos priority
-	sort.Sort(ae.EvictExecutor.EvictPods)
+	execsort.CpuMetricsSorter(ae.EvictExecutor.EvictPods)
 
 	return ae
 }
@@ -389,9 +389,7 @@ func (s *AnormalyAnalyzer) actionTriggered(ac ecache.ActionContext) bool {
 }
 
 func (s *AnormalyAnalyzer) getThrottlePods(enableSchedule bool, ac ecache.ActionContext,
-	action *ensuranceapi.AvoidanceAction, stateMap map[string][]common.TimeSeries) ([]executor.ThrottlePod, []executor.ThrottlePod) {
-
-	throttlePods, throttleUpPods := []executor.ThrottlePod{}, []executor.ThrottlePod{}
+	action *ensuranceapi.AvoidanceAction, stateMap map[string][]common.TimeSeries) (throttlePods []executor.PodContext, throttleUpPods []executor.PodContext) {
 
 	allPods, err := s.podLister.List(labels.Everything())
 	if err != nil {
@@ -401,18 +399,18 @@ func (s *AnormalyAnalyzer) getThrottlePods(enableSchedule bool, ac ecache.Action
 
 	for _, pod := range allPods {
 		if ac.Triggered {
-			throttlePods = append(throttlePods, throttlePodConstruct(pod, stateMap, action))
+			throttlePods = append(throttlePods, executor.BuildPodBasicInfo(pod, stateMap, action, executor.Throttle))
 		}
 		if enableSchedule && ac.Restored {
-			throttleUpPods = append(throttleUpPods, throttlePodConstruct(pod, stateMap, action))
+			throttleUpPods = append(throttleUpPods, executor.BuildPodBasicInfo(pod, stateMap, action, executor.Throttle))
 		}
 	}
 
 	return throttlePods, throttleUpPods
 }
 
-func (s *AnormalyAnalyzer) getEvictPods(triggered bool, action *ensuranceapi.AvoidanceAction) []executor.EvictPod {
-	evictPods := []executor.EvictPod{}
+func (s *AnormalyAnalyzer) getEvictPods(triggered bool, action *ensuranceapi.AvoidanceAction, stateMap map[string][]common.TimeSeries) []executor.PodContext {
+	evictPods := []executor.PodContext{}
 
 	if triggered {
 		allPods, err := s.podLister.List(labels.Everything())
@@ -421,10 +419,9 @@ func (s *AnormalyAnalyzer) getEvictPods(triggered bool, action *ensuranceapi.Avo
 			return evictPods
 		}
 
-		for _, v := range allPods {
-			var classAndPriority = executor.ClassAndPriority{PodQOSClass: v.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(v.Spec.Priority, 0)}
-			evictPods = append(evictPods, executor.EvictPod{DeletionGracePeriodSeconds: action.Spec.Eviction.TerminationGracePeriodSeconds,
-				PodKey: types.NamespacedName{Name: v.Name, Namespace: v.Namespace}, ClassAndPriority: classAndPriority})
+		for _, pod := range allPods {
+			evictPods = append(evictPods, executor.BuildPodBasicInfo(pod, stateMap, action, executor.Evict))
+
 		}
 	}
 	return evictPods
@@ -482,26 +479,9 @@ func (s *AnormalyAnalyzer) disableSchedulingMerge(acsFiltered []ecache.ActionCon
 	return enableScheduling
 }
 
-func throttlePodConstruct(pod *v1.Pod, stateMap map[string][]common.TimeSeries, action *ensuranceapi.AvoidanceAction) executor.ThrottlePod {
-	var throttlePod executor.ThrottlePod
-	var qosPriority = executor.ClassAndPriority{PodQOSClass: pod.Status.QOSClass, PriorityClassValue: utils.GetInt32withDefault(pod.Spec.Priority, 0)}
-
-	throttlePod.PodTypes = types.NamespacedName{Namespace: pod.Namespace, Name: pod.Name}
-	throttlePod.CPUThrottle.MinCPURatio = uint64(action.Spec.Throttle.CPUThrottle.MinCPURatio)
-	throttlePod.CPUThrottle.StepCPURatio = uint64(action.Spec.Throttle.CPUThrottle.StepCPURatio)
-
-	throttlePod.PodCPUUsage, throttlePod.ContainerCPUUsages = executor.GetPodUsage(string(stypes.MetricNameContainerCpuTotalUsage), stateMap, pod)
-	throttlePod.PodCPUShare, throttlePod.ContainerCPUShares = executor.GetPodUsage(string(stypes.MetricNameContainerCpuLimit), stateMap, pod)
-	throttlePod.PodCPUQuota, throttlePod.ContainerCPUQuotas = executor.GetPodUsage(string(stypes.MetricNameContainerCpuQuota), stateMap, pod)
-	throttlePod.PodCPUPeriod, throttlePod.ContainerCPUPeriods = executor.GetPodUsage(string(stypes.MetricNameContainerCpuPeriod), stateMap, pod)
-	throttlePod.PodQOSPriority = qosPriority
-
-	return throttlePod
-}
-
 func combineThrottleDuplicate(e *executor.ThrottleExecutor, throttlePods, throttleUpPods executor.ThrottlePods) {
 	for _, t := range throttlePods {
-		if i := e.ThrottleDownPods.Find(t.PodTypes); i == -1 {
+		if i := e.ThrottleDownPods.Find(t.PodKey); i == -1 {
 			e.ThrottleDownPods = append(e.ThrottleDownPods, t)
 		} else {
 			if t.CPUThrottle.MinCPURatio > e.ThrottleDownPods[i].CPUThrottle.MinCPURatio {
@@ -515,7 +495,7 @@ func combineThrottleDuplicate(e *executor.ThrottleExecutor, throttlePods, thrott
 	}
 	for _, t := range throttleUpPods {
 
-		if i := e.ThrottleUpPods.Find(t.PodTypes); i == -1 {
+		if i := e.ThrottleUpPods.Find(t.PodKey); i == -1 {
 			e.ThrottleUpPods = append(e.ThrottleUpPods, t)
 		} else {
 			if t.CPUThrottle.MinCPURatio > e.ThrottleUpPods[i].CPUThrottle.MinCPURatio {

@@ -74,3 +74,21 @@ func AlmostEqual(a, b float64) bool {
 func StringPtr(str string) *string {
 	return &str
 }
+
+func TransBool2Uint(b bool) uint {
+	if b {
+		return 1
+	} else {
+		return 0
+	}
+}
+
+func CmpFloat(p1, p2 float64) int32 {
+	if AlmostEqual(p1, p2) {
+		return 0
+	}
+	if p1 < p2 {
+		return -1
+	}
+	return 1
+}

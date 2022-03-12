@@ -3,10 +3,7 @@ package executor
 import (
 	"time"
 
-	"github.com/gocrane/crane/pkg/known"
-	"github.com/gocrane/crane/pkg/metrics"
 	"google.golang.org/grpc"
-
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	corelisters "k8s.io/client-go/listers/core/v1"
@@ -16,6 +13,8 @@ import (
 
 	cgrpc "github.com/gocrane/crane/pkg/ensurance/grpc"
 	cruntime "github.com/gocrane/crane/pkg/ensurance/runtime"
+	"github.com/gocrane/crane/pkg/known"
+	"github.com/gocrane/crane/pkg/metrics"
 )
 
 type ActionExecutor struct {

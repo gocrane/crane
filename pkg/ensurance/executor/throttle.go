@@ -27,22 +27,25 @@ type ThrottleExecutor struct {
 	ThrottleUpPods   ThrottlePods
 }
 
-type ThrottlePods []ThrottlePod
-
-func (t ThrottlePods) Len() int      { return len(t) }
-func (t ThrottlePods) Swap(i, j int) { t[i], t[j] = t[j], t[i] }
-func (t ThrottlePods) Less(i, j int) bool {
-	return t[i].PodQOSPriority.Less(t[j].PodQOSPriority)
-}
+type ThrottlePods []PodContext
 
 func (t ThrottlePods) Find(podTypes types.NamespacedName) int {
 	for i, v := range t {
-		if v.PodTypes == podTypes {
+		if v.PodKey == podTypes {
 			return i
 		}
 	}
 
 	return -1
+}
+
+func Reverse(t ThrottlePods) []PodContext {
+	throttle := []PodContext(t)
+	l := len(throttle)
+	for i := 0; i < l/2; i++ {
+		throttle[i], throttle[l-i-1] = throttle[l-i-1], throttle[i]
+	}
+	return throttle
 }
 
 type CPURatio struct {
@@ -56,21 +59,6 @@ type CPURatio struct {
 type MemoryThrottleExecutor struct {
 	// to force gc the page cache of low level pods
 	ForceGC bool `json:"forceGC,omitempty"`
-}
-
-type ThrottlePod struct {
-	CPUThrottle         CPURatio
-	MemoryThrottle      MemoryThrottleExecutor
-	PodTypes            types.NamespacedName
-	PodCPUUsage         float64
-	ContainerCPUUsages  []ContainerUsage
-	PodCPUShare         float64
-	ContainerCPUShares  []ContainerUsage
-	PodCPUQuota         float64
-	ContainerCPUQuotas  []ContainerUsage
-	PodCPUPeriod        float64
-	ContainerCPUPeriods []ContainerUsage
-	PodQOSPriority      ClassAndPriority
 }
 
 type ContainerUsage struct {
@@ -108,10 +96,10 @@ func (t *ThrottleExecutor) Avoid(ctx *ExecuteContext) error {
 
 	for _, throttlePod := range t.ThrottleDownPods {
 
-		pod, err := ctx.PodLister.Pods(throttlePod.PodTypes.Namespace).Get(throttlePod.PodTypes.Name)
+		pod, err := ctx.PodLister.Pods(throttlePod.PodKey.Namespace).Get(throttlePod.PodKey.Name)
 		if err != nil {
 			bSucceed = false
-			errPodKeys = append(errPodKeys, fmt.Sprintf("pod %s not found", throttlePod.PodTypes.String()))
+			errPodKeys = append(errPodKeys, fmt.Sprintf("pod %s not found", throttlePod.PodKey.String()))
 			continue
 		}
 
@@ -126,21 +114,21 @@ func (t *ThrottleExecutor) Avoid(ctx *ExecuteContext) error {
 			containerCPUQuota, err := GetUsageById(throttlePod.ContainerCPUQuotas, v.ContainerId)
 			if err != nil {
 				bSucceed = false
-				errPodKeys = append(errPodKeys, err.Error(), throttlePod.PodTypes.String())
+				errPodKeys = append(errPodKeys, err.Error(), throttlePod.PodKey.String())
 				continue
 			}
 
 			containerCPUPeriod, err := GetUsageById(throttlePod.ContainerCPUPeriods, v.ContainerId)
 			if err != nil {
 				bSucceed = false
-				errPodKeys = append(errPodKeys, err.Error(), throttlePod.PodTypes.String())
+				errPodKeys = append(errPodKeys, err.Error(), throttlePod.PodKey.String())
 				continue
 			}
 
 			container, err := utils.GetPodContainerByName(pod, v.ContainerName)
 			if err != nil {
 				bSucceed = false
-				errPodKeys = append(errPodKeys, err.Error(), throttlePod.PodTypes.String())
+				errPodKeys = append(errPodKeys, err.Error(), throttlePod.PodKey.String())
 				continue
 			}
 
@@ -169,7 +157,7 @@ func (t *ThrottleExecutor) Avoid(ctx *ExecuteContext) error {
 			if !utils.AlmostEqual(containerCPUQuotaNew*containerCPUPeriod.Value, containerCPUQuota.Value) {
 				err = cruntime.UpdateContainerResources(ctx.RuntimeClient, v.ContainerId, cruntime.UpdateOptions{CPUQuota: int64(containerCPUQuotaNew * containerCPUPeriod.Value)})
 				if err != nil {
-					errPodKeys = append(errPodKeys, fmt.Sprintf("failed to updateResource for %s/%s, error: %v", throttlePod.PodTypes.String(), v.ContainerName, err))
+					errPodKeys = append(errPodKeys, fmt.Sprintf("failed to updateResource for %s/%s, error: %v", throttlePod.PodKey.String(), v.ContainerName, err))
 					bSucceed = false
 					continue
 				} else {
@@ -207,10 +195,10 @@ func (t *ThrottleExecutor) Restore(ctx *ExecuteContext) error {
 
 	for _, throttlePod := range t.ThrottleUpPods {
 
-		pod, err := ctx.PodLister.Pods(throttlePod.PodTypes.Namespace).Get(throttlePod.PodTypes.Name)
+		pod, err := ctx.PodLister.Pods(throttlePod.PodKey.Namespace).Get(throttlePod.PodKey.Name)
 		if err != nil {
 			bSucceed = false
-			errPodKeys = append(errPodKeys, "not found ", throttlePod.PodTypes.String())
+			errPodKeys = append(errPodKeys, "not found ", throttlePod.PodKey.String())
 			continue
 		}
 
@@ -226,21 +214,21 @@ func (t *ThrottleExecutor) Restore(ctx *ExecuteContext) error {
 			containerCPUQuota, err := GetUsageById(throttlePod.ContainerCPUQuotas, v.ContainerId)
 			if err != nil {
 				bSucceed = false
-				errPodKeys = append(errPodKeys, err.Error(), throttlePod.PodTypes.String())
+				errPodKeys = append(errPodKeys, err.Error(), throttlePod.PodKey.String())
 				continue
 			}
 
 			containerCPUPeriod, err := GetUsageById(throttlePod.ContainerCPUPeriods, v.ContainerId)
 			if err != nil {
 				bSucceed = false
-				errPodKeys = append(errPodKeys, err.Error(), throttlePod.PodTypes.String())
+				errPodKeys = append(errPodKeys, err.Error(), throttlePod.PodKey.String())
 				continue
 			}
 
 			container, err := utils.GetPodContainerByName(pod, v.ContainerName)
 			if err != nil {
 				bSucceed = false
-				errPodKeys = append(errPodKeys, err.Error(), throttlePod.PodTypes.String())
+				errPodKeys = append(errPodKeys, err.Error(), throttlePod.PodKey.String())
 				continue
 			}
 
@@ -274,7 +262,7 @@ func (t *ThrottleExecutor) Restore(ctx *ExecuteContext) error {
 				if utils.AlmostEqual(containerCPUQuotaNew, -1) {
 					err = cruntime.UpdateContainerResources(ctx.RuntimeClient, v.ContainerId, cruntime.UpdateOptions{CPUQuota: int64(-1)})
 					if err != nil {
-						errPodKeys = append(errPodKeys, fmt.Sprintf("Failed to updateResource, err %s", err.Error()), throttlePod.PodTypes.String())
+						errPodKeys = append(errPodKeys, fmt.Sprintf("Failed to updateResource, err %s", err.Error()), throttlePod.PodKey.String())
 						bSucceed = false
 						continue
 					}
@@ -282,7 +270,7 @@ func (t *ThrottleExecutor) Restore(ctx *ExecuteContext) error {
 					err = cruntime.UpdateContainerResources(ctx.RuntimeClient, v.ContainerId, cruntime.UpdateOptions{CPUQuota: int64(containerCPUQuotaNew * containerCPUPeriod.Value)})
 					if err != nil {
 						klog.Errorf("Failed to updateResource, err %s", err.Error())
-						errPodKeys = append(errPodKeys, fmt.Sprintf("Failed to updateResource, err %s", err.Error()), throttlePod.PodTypes.String())
+						errPodKeys = append(errPodKeys, fmt.Sprintf("Failed to updateResource, err %s", err.Error()), throttlePod.PodKey.String())
 						bSucceed = false
 						continue
 					}
