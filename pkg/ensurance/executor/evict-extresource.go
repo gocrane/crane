@@ -2,10 +2,11 @@ package executor
 
 import (
 	"fmt"
-	"github.com/gocrane/crane/pkg/utils"
-	"k8s.io/klog/v2"
 	"strings"
 	"sync"
+
+	"github.com/gocrane/crane/pkg/utils"
+	"k8s.io/klog/v2"
 )
 
 type EvictExtResourceExecutor struct {

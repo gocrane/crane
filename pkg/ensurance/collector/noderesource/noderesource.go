@@ -2,6 +2,8 @@ package noderesource
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/ensurance/collector/types"
 	noderesourceMamager "github.com/gocrane/crane/pkg/noderesource"
@@ -10,7 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	v1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog/v2"
-	"time"
 )
 
 type NodeResource struct {

@@ -1,9 +1,10 @@
 package collector
 
 import (
-	"github.com/gocrane/crane/pkg/ensurance/collector/noderesource"
 	"sync"
 	"time"
+
+	"github.com/gocrane/crane/pkg/ensurance/collector/noderesource"
 
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/metrics"

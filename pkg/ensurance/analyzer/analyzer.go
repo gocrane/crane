@@ -2,11 +2,12 @@ package analyzer
 
 import (
 	"fmt"
-	noderesourceMamager "github.com/gocrane/crane/pkg/noderesource"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"sort"
 	"strings"
 	"time"
+
+	noderesourceMamager "github.com/gocrane/crane/pkg/noderesource"
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
