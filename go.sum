@@ -310,6 +310,8 @@ github.com/gocrane/api v0.2.1-0.20220307082411-6171d03c2dc5 h1:Q8ZYSeMCoz8VLor5n
 github.com/gocrane/api v0.2.1-0.20220307082411-6171d03c2dc5/go.mod h1:GxI+t9AW8+NsHkz2JkPBIJN//9eLUjTZl1ScYAbXMbk=
 github.com/gocrane/api v0.2.1-0.20220309033244-699efd59d009 h1:xd175jH+TT03ea52N4187vD5uoZmHQUAvMWTUPOIj2Y=
 github.com/gocrane/api v0.2.1-0.20220309033244-699efd59d009/go.mod h1:GxI+t9AW8+NsHkz2JkPBIJN//9eLUjTZl1ScYAbXMbk=
+github.com/gocrane/api v0.2.1-0.20220311091718-54464ca2d930 h1:rJMo2ink4ECIUAVqVLcniB4BtWXTqkhnbRPgKvcDZdU=
+github.com/gocrane/api v0.2.1-0.20220311091718-54464ca2d930/go.mod h1:GxI+t9AW8+NsHkz2JkPBIJN//9eLUjTZl1ScYAbXMbk=
 github.com/godbus/dbus/v5 v5.0.3/go.mod h1:xhWf0FNVPg57R7Z0UbKHbJfkEywrmjJnf7w5xrFpKfA=
 github.com/godbus/dbus/v5 v5.0.4 h1:9349emZab16e7zQvpmsbtjc18ykshndd8y2PG3sgJbA=
 github.com/godbus/dbus/v5 v5.0.4/go.mod h1:xhWf0FNVPg57R7Z0UbKHbJfkEywrmjJnf7w5xrFpKfA=
