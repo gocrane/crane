@@ -23,7 +23,6 @@ import (
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
-
 	"github.com/gocrane/crane/cmd/craned/app/options"
 	"github.com/gocrane/crane/pkg/controller/analytics"
 	"github.com/gocrane/crane/pkg/controller/cnp"

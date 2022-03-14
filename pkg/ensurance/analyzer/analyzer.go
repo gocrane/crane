@@ -116,14 +116,10 @@ func (s *AnormalyAnalyzer) Run(stop <-chan struct{}) {
 		for {
 			select {
 			case state := <-s.stateChann:
-				{
-					start := time.Now()
-					metrics.UpdateLastTime(string(known.ModuleAnormalyAnalyzer), metrics.StepMain, start)
-
-					s.Analyze(state)
-
-					metrics.UpdateDurationFromStart(string(known.ModuleAnormalyAnalyzer), metrics.StepMain, start)
-				}
+				start := time.Now()
+				metrics.UpdateLastTime(string(known.ModuleAnormalyAnalyzer), metrics.StepMain, start)
+				s.Analyze(state)
+				metrics.UpdateDurationFromStart(string(known.ModuleAnormalyAnalyzer), metrics.StepMain, start)
 			case <-stop:
 				klog.Infof("AnormalyAnalyzer exit")
 				return

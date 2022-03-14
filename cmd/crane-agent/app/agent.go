@@ -20,7 +20,6 @@ import (
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 	craneclientset "github.com/gocrane/api/pkg/generated/clientset/versioned"
 	craneinformers "github.com/gocrane/api/pkg/generated/informers/externalversions"
-
 	"github.com/gocrane/crane/cmd/crane-agent/app/options"
 	"github.com/gocrane/crane/pkg/agent"
 	"github.com/gocrane/crane/pkg/metrics"
@@ -117,7 +116,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 	nodeInformerFactory.WaitForCacheSync(ctx.Done())
 	craneInformerFactory.WaitForCacheSync(ctx.Done())
 
-	agent.Run(healthCheck, opts)
+	agent.Run(healthCheck, opts.EnableProfiling, opts.BindAddr)
 	return nil
 }
 

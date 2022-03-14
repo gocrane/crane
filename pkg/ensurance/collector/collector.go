@@ -58,14 +58,11 @@ func (s *StateCollector) Run(stop <-chan struct{}) {
 		for {
 			select {
 			case <-updateTicker.C:
-				{
-					start := time.Now()
-					metrics.UpdateLastTime(string(known.ModuleStateCollector), metrics.StepUpdateConfig, start)
-					s.healthCheck.UpdateLastConfigUpdate(start)
-
-					s.UpdateCollectors()
-					metrics.UpdateDurationFromStart(string(known.ModuleStateCollector), metrics.StepUpdateConfig, start)
-				}
+				start := time.Now()
+				metrics.UpdateLastTime(string(known.ModuleStateCollector), metrics.StepUpdateConfig, start)
+				s.healthCheck.UpdateLastConfigUpdate(start)
+				s.UpdateCollectors()
+				metrics.UpdateDurationFromStart(string(known.ModuleStateCollector), metrics.StepUpdateConfig, start)
 			case <-stop:
 				s.StopCollectors()
 				klog.Infof("StateCollector config updater exit")
@@ -81,15 +78,11 @@ func (s *StateCollector) Run(stop <-chan struct{}) {
 		for {
 			select {
 			case <-updateTicker.C:
-				{
-					start := time.Now()
-					metrics.UpdateLastTime(string(known.ModuleStateCollector), metrics.StepMain, start)
-					s.healthCheck.UpdateLastActivity(start)
-
-					s.Collect()
-
-					metrics.UpdateDurationFromStart(string(known.ModuleStateCollector), metrics.StepMain, start)
-				}
+				start := time.Now()
+				metrics.UpdateLastTime(string(known.ModuleStateCollector), metrics.StepMain, start)
+				s.healthCheck.UpdateLastActivity(start)
+				s.Collect()
+				metrics.UpdateDurationFromStart(string(known.ModuleStateCollector), metrics.StepMain, start)
 			case <-stop:
 				klog.Infof("StateCollector exit")
 				return

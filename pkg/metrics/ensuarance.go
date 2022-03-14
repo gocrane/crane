@@ -63,7 +63,8 @@ const (
 )
 
 var (
-	/**** Metrics related to crane-agent execution ****/
+
+	// LastActivity records the last activity time of each steps
 	lastActivity = k8smetrics.NewGaugeVec(
 		&k8smetrics.GaugeOpts{
 			Namespace:      CraneNamespace,
@@ -74,6 +75,7 @@ var (
 		}, []string{"module", "subcomponent", "step"},
 	)
 
+	//StepDuration records the time cost of each steps
 	stepDuration = k8smetrics.NewHistogramVec(
 		&k8smetrics.HistogramOpts{
 			Namespace:      CraneNamespace,
@@ -96,6 +98,7 @@ var (
 		}, []string{"module", "subcomponent", "step"},
 	)
 
+	//AnalyzerStatus records the status of analyzer module
 	analyzerStatus = k8smetrics.NewGaugeVec(
 		&k8smetrics.GaugeOpts{
 			Namespace:      CraneNamespace,
@@ -116,6 +119,7 @@ var (
 		}, []string{"key", "type"},
 	)
 
+	//ExecutorStatus records the status of executor module
 	executorStatus = k8smetrics.NewGaugeVec(
 		&k8smetrics.GaugeOpts{
 			Namespace:      CraneNamespace,
@@ -136,6 +140,7 @@ var (
 		}, []string{"subcomponent", "step"},
 	)
 
+	//ExecutorErrorCounts records the number of errors when execute actions
 	executorErrorCounts = k8smetrics.NewCounterVec(
 		&k8smetrics.CounterOpts{
 			Namespace:      CraneNamespace,
@@ -146,6 +151,7 @@ var (
 		}, []string{"subcomponent", "step"},
 	)
 
+	//ExecutorEvictCounts records the number of pods evicted by executor module
 	executorEvictCounts = k8smetrics.NewCounter(
 		&k8smetrics.CounterOpts{
 			Namespace:      CraneNamespace,
