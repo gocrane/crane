@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gocrane/crane/pkg/metricnaming"
 	"github.com/gocrane/crane/pkg/providers/csv"
 	"github.com/stretchr/testify/assert"
 )
@@ -30,7 +31,8 @@ func TestPreProcessTimeSeries(t *testing.T) {
 	prov, err := csv.NewProvider(strings.NewReader(buf.String()))
 	assert.NoError(t, err)
 
-	tsList, err := prov.GetTimeSeries("", nil, end.Add(-3*time.Hour), end, time.Minute)
+	namer := &metricnaming.GeneralMetricNamer{}
+	tsList, err := prov.QueryTimeSeries(namer, end.Add(-3*time.Hour), end, time.Minute)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(tsList))
 

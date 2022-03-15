@@ -7,14 +7,19 @@ import (
 	"time"
 
 	"github.com/montanaflynn/stats"
+	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/autoscaling/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog/v2"
 
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/common"
+	"github.com/gocrane/crane/pkg/metricnaming"
+	"github.com/gocrane/crane/pkg/metricquery"
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/recommend/types"
 	"github.com/gocrane/crane/pkg/utils"
@@ -27,18 +32,28 @@ type EHPAAdvisor struct {
 }
 
 func (a *EHPAAdvisor) Advise(proposed *types.ProposedRecommendation) error {
-	p := a.Predictors[predictionapi.AlgorithmTypeDSP]
+	p := a.PredictorMgr.GetPredictor(predictionapi.AlgorithmTypeDSP)
+	if p == nil {
+		return fmt.Errorf("predictor %v not found", predictionapi.AlgorithmTypeDSP)
+	}
 
 	resourceCpu := corev1.ResourceCPU
-	namespace := a.Recommendation.Spec.TargetRef.Namespace
-	if len(namespace) == 0 {
-		namespace = DefaultNamespace
+	target := a.Recommendation.Spec.TargetRef.DeepCopy()
+	if len(target.Namespace) == 0 {
+		target.Namespace = DefaultNamespace
 	}
-	cpuQueryExpr := ResourceToPromQueryExpr(namespace, a.Recommendation.Spec.TargetRef.Name, &resourceCpu)
 
-	klog.V(4).Infof("EHPAAdvisor CpuQuery %s Recommendation %s", cpuQueryExpr, klog.KObj(a.Recommendation))
+	labelSelector, err := GetTargetLabelSelector(target, a.Scale, a.DaemonSet)
+	if err != nil {
+		return err
+	}
+	metricNamer := ResourceToWorkloadMetricNamer(target, &resourceCpu, labelSelector)
+	if err := metricNamer.Validate(); err != nil {
+		return err
+	}
+	klog.V(4).Infof("EHPAAdvisor CpuQuery %s Recommendation %s", metricNamer.BuildUniqueKey(), klog.KObj(a.Recommendation))
 	timeNow := time.Now()
-	tsList, err := a.DataSource.QueryTimeSeries(cpuQueryExpr, timeNow.Add(-time.Hour*24*7), timeNow, time.Minute)
+	tsList, err := a.DataSource.QueryTimeSeries(metricNamer, timeNow.Add(-time.Hour*24*7), timeNow, time.Minute)
 	if err != nil {
 		return fmt.Errorf("EHPAAdvisor query historic metrics failed: %v ", err)
 	}
@@ -46,10 +61,10 @@ func (a *EHPAAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 		return fmt.Errorf("EHPAAdvisor query historic metrics data is unexpected, List length is %d ", len(tsList))
 	}
 
-	cpuConfig := getPredictionCpuConfig(cpuQueryExpr)
+	cpuConfig := getPredictionCpuConfig()
 	tsListPrediction, err := utils.QueryPredictedTimeSeriesOnce(p, fmt.Sprintf(callerFormat, a.Recommendation.UID),
-		getPredictionCpuConfig(cpuQueryExpr),
-		cpuQueryExpr,
+		getPredictionCpuConfig(),
+		metricNamer,
 		timeNow,
 		timeNow.Add(time.Hour*24*7))
 	if err != nil {
@@ -245,23 +260,23 @@ func (a *EHPAAdvisor) proposeTargetUtilization() (int32, int64, error) {
 		return 0, 0, err
 	}
 
-	percentilePredictor := a.Predictors[predictionapi.AlgorithmTypePercentile]
+	percentilePredictor := a.PredictorMgr.GetPredictor(predictionapi.AlgorithmTypePercentile)
 
 	var cpuUsage float64
 	// use percentile algo to get the 99 percentile cpu usage for this target
 	for _, container := range a.PodTemplate.Spec.Containers {
-		queryExpr := fmt.Sprintf(cpuQueryExprTemplate, container.Name, a.Recommendation.Spec.TargetRef.Namespace, a.Recommendation.Spec.TargetRef.Name)
+		metricNamer := ResourceToContainerMetricNamer(a.Recommendation.Spec.TargetRef.Namespace, a.Recommendation.Spec.TargetRef.Name, container.Name, corev1.ResourceCPU)
 		cpuConfig := makeCpuConfig(a.ConfigProperties)
 		tsList, err := utils.QueryPredictedValuesOnce(a.Recommendation,
 			percentilePredictor,
 			fmt.Sprintf(callerFormat, a.Recommendation.UID),
 			cpuConfig,
-			queryExpr)
+			metricNamer)
 		if err != nil {
 			return 0, 0, err
 		}
 		if len(tsList) < 1 || len(tsList[0].Samples) < 1 {
-			return 0, 0, fmt.Errorf("no value retured for queryExpr: %s", queryExpr)
+			return 0, 0, fmt.Errorf("no value retured for queryExpr: %s", metricNamer.BuildUniqueKey())
 		}
 		cpuUsage += tsList[0].Samples[0].Value
 	}
@@ -344,20 +359,49 @@ func (a *EHPAAdvisor) proposeMaxReplicas(cpuUsages []float64, targetUtilization 
 	return maxReplicas, nil
 }
 
-func getPredictionCpuConfig(expr string) *config.Config {
+func getPredictionCpuConfig() *config.Config {
 	return &config.Config{
-		Expression: &predictionapi.ExpressionQuery{Expression: expr},
-		DSP:        &predictionapi.DSP{}, // use default DSP config will let prediction tuning by itself
+		DSP: &predictionapi.DSP{
+			SampleInterval: "1m",
+			HistoryLength:  "5d",
+			Estimators: predictionapi.Estimators{
+				FFTEstimators: []*predictionapi.FFTEstimator{
+					{MarginFraction: "0.05", LowAmplitudeThreshold: "1.0", HighFrequencyThreshold: "0.05"},
+				},
+			},
+		},
 	}
 }
 
-func ResourceToPromQueryExpr(namespace string, name string, resourceName *corev1.ResourceName) string {
-	switch *resourceName {
-	case corev1.ResourceCPU:
-		return fmt.Sprintf(config.WorkloadCpuUsagePromQLFmtStr, namespace, name, "5m")
-	case corev1.ResourceMemory:
-		return fmt.Sprintf(config.WorkloadMemUsagePromQLFmtStr, namespace, name)
+func GetTargetLabelSelector(target *corev1.ObjectReference, scale *v1.Scale, ds *appsv1.DaemonSet) (labels.Selector, error) {
+	if target.Kind != "DaemonSet" {
+		labelsMap, err := labels.ConvertSelectorToLabelsMap(scale.Status.Selector)
+		if err != nil {
+			return nil, err
+		}
+		return labelsMap.AsSelector(), nil
+	} else {
+		if ds != nil {
+			labelsMap := labels.SelectorFromSet(ds.Spec.Selector.MatchLabels)
+			return labelsMap, nil
+		}
+		return nil, fmt.Errorf("no daemonset specified")
 	}
+}
 
-	return ""
+func ResourceToWorkloadMetricNamer(target *corev1.ObjectReference, resourceName *corev1.ResourceName, workloadLabelSelector labels.Selector) metricnaming.MetricNamer {
+	// workload
+	return &metricnaming.GeneralMetricNamer{
+		Metric: &metricquery.Metric{
+			Type:       metricquery.WorkloadMetricType,
+			MetricName: resourceName.String(),
+			Workload: &metricquery.WorkloadNamerInfo{
+				Namespace:  target.Namespace,
+				Kind:       target.Kind,
+				APIVersion: target.APIVersion,
+				Name:       target.Name,
+				Selector:   workloadLabelSelector,
+			},
+		},
+	}
 }

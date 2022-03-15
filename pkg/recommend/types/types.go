@@ -9,22 +9,22 @@ import (
 
 	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
-	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
-	"github.com/gocrane/crane/pkg/prediction"
+	predictormgr "github.com/gocrane/crane/pkg/predictor"
 	"github.com/gocrane/crane/pkg/providers"
 )
 
 // Context includes all resource used in recommendation progress
 type Context struct {
 	ConfigProperties map[string]string
-	Predictors       map[predictionapi.AlgorithmType]prediction.Interface
-	DataSource       providers.Interface
+	PredictorMgr     predictormgr.Manager
+	DataSource       providers.History
 	Recommendation   *analysisapi.Recommendation
 	Scale            *autoscalingapiv1.Scale
 	RestMapping      *meta.RESTMapping
 	Deployment       *appsv1.Deployment
 	StatefulSet      *appsv1.StatefulSet
+	DaemonSet        *appsv1.DaemonSet
 	Pods             []corev1.Pod
 	PodTemplate      *corev1.PodTemplateSpec
 	HPA              *autoscalingv2.HorizontalPodAutoscaler

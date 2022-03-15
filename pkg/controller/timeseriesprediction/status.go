@@ -122,12 +122,15 @@ func (tc *Controller) isPredictionDataOutDated(windowStart, windowEnd time.Time,
 func (tc *Controller) getPredictor(algorithmType predictionapi.AlgorithmType) prediction.Interface {
 	tc.lock.Lock()
 	defer tc.lock.Unlock()
-	return tc.predictors[algorithmType]
+	return tc.predictorMgr.GetPredictor(algorithmType)
 }
 
 func (tc *Controller) doPredict(tsPrediction *predictionapi.TimeSeriesPrediction, start, end time.Time) ([]predictionapi.PredictionMetricStatus, error) {
 	var result []predictionapi.PredictionMetricStatus
-	c := NewMetricContext(tsPrediction, tc.predictors)
+	c, err := NewMetricContext(tc.TargetFetcher, tsPrediction, tc.predictorMgr)
+	if err != nil {
+		return nil, err
+	}
 	for _, metric := range tsPrediction.Spec.PredictionMetrics {
 		predictor := tc.getPredictor(metric.Algorithm.AlgorithmType)
 		if predictor == nil {
@@ -135,14 +138,14 @@ func (tc *Controller) doPredict(tsPrediction *predictionapi.TimeSeriesPrediction
 		}
 
 		internalConf := c.ConvertApiMetric2InternalConfig(&metric)
-		queryExpr := c.GetQueryStr(&metric)
-		err := predictor.WithQuery(queryExpr, c.GetCaller(), *internalConf)
+		namer := c.GetMetricNamer(&metric)
+		err := predictor.WithQuery(namer, c.GetCaller(), *internalConf)
 		if err != nil {
 			return result, err
 		}
 		var data []*common.TimeSeries
 		// percentile is ok for time series
-		data, err = predictor.QueryPredictedTimeSeries(context.TODO(), queryExpr, start, end)
+		data, err = predictor.QueryPredictedTimeSeries(context.TODO(), namer, start, end)
 		if err != nil {
 			return result, err
 		}
@@ -150,7 +153,7 @@ func (tc *Controller) doPredict(tsPrediction *predictionapi.TimeSeriesPrediction
 		if klog.V(6).Enabled() {
 			apiDataBytes, err1 := json.Marshal(predictedData)
 			dataBytes, err2 := json.Marshal(data)
-			klog.V(6).Infof("DoPredict predicted data details, key: %v, queryExpr: %v, apiData: %v, predictData: %v, errs: %+v", klog.KObj(tsPrediction), queryExpr, string(apiDataBytes), string(dataBytes), []error{err1, err2})
+			klog.V(6).Infof("DoPredict predicted data details, key: %v, queryExpr: %v, apiData: %v, predictData: %v, errs: %+v", klog.KObj(tsPrediction), namer.BuildUniqueKey(), string(apiDataBytes), string(dataBytes), []error{err1, err2})
 		}
 		result = append(result, predictionapi.PredictionMetricStatus{ResourceIdentifier: metric.ResourceIdentifier, Prediction: predictedData})
 	}

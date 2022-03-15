@@ -28,7 +28,7 @@ type Options struct {
 
 	PredictionUpdateFrequency time.Duration
 	// DataSource is the datasource of the predictor, such as prometheus, nodelocal, etc.
-	DataSource string
+	DataSource []string
 	// DataSourcePromConfig is the prometheus datasource config
 	DataSourcePromConfig providers.PromConfig
 	// DataSourceMockConfig is the mock data provider
@@ -90,7 +90,7 @@ func (o *Options) AddFlags(flags *pflag.FlagSet) {
 
 	flags.DurationVar(&o.PredictionUpdateFrequency, "prediction-update-frequency-duration", 30*time.Second,
 		"Specifies the update frequency of the prediction.")
-	flags.StringVar(&o.DataSource, "datasource", "prom", "data source of the predictor, prom, mock is available")
+	flags.StringSliceVar(&o.DataSource, "datasource", []string{"prom"}, "data source of the predictor, prom, mock is available")
 	flags.StringVar(&o.DataSourcePromConfig.Address, "prometheus-address", "", "prometheus address")
 	flags.StringVar(&o.DataSourcePromConfig.Auth.Username, "prometheus-auth-username", "", "prometheus auth username")
 	flags.StringVar(&o.DataSourcePromConfig.Auth.Password, "prometheus-auth-password", "", "prometheus auth password")

@@ -9,6 +9,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/gocrane/crane/pkg/common"
+	"github.com/gocrane/crane/pkg/metricnaming"
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/providers"
 )
@@ -33,8 +34,8 @@ type WithMetricEvent struct {
 }
 
 type GenericPrediction struct {
-	historyProvider  providers.Interface
-	realtimeProvider providers.Interface
+	historyProvider  providers.History
+	realtimeProvider providers.RealTime
 	metricsMap       map[string][]common.QueryCondition
 	querySet         map[string]struct{}
 	WithCh           chan QueryExprWithCaller
@@ -42,38 +43,27 @@ type GenericPrediction struct {
 	mutex            sync.Mutex
 }
 
-func NewGenericPrediction(withCh, delCh chan QueryExprWithCaller) GenericPrediction {
+func NewGenericPrediction(realtimeProvider providers.RealTime, historyProvider providers.History, withCh, delCh chan QueryExprWithCaller) GenericPrediction {
 	return GenericPrediction{
-		WithCh:     withCh,
-		DelCh:      delCh,
-		mutex:      sync.Mutex{},
-		metricsMap: map[string][]common.QueryCondition{},
-		querySet:   map[string]struct{}{},
+		WithCh:           withCh,
+		DelCh:            delCh,
+		mutex:            sync.Mutex{},
+		metricsMap:       map[string][]common.QueryCondition{},
+		querySet:         map[string]struct{}{},
+		realtimeProvider: realtimeProvider,
+		historyProvider:  historyProvider,
 	}
 }
 
-func (p *GenericPrediction) GetHistoryProvider() providers.Interface {
+func (p *GenericPrediction) GetHistoryProvider() providers.History {
 	return p.historyProvider
 }
 
-func (p *GenericPrediction) GetRealtimeProvider() providers.Interface {
+func (p *GenericPrediction) GetRealtimeProvider() providers.RealTime {
 	return p.realtimeProvider
 }
 
-func (p *GenericPrediction) WithProviders(providers map[string]providers.Interface) {
-	for k, v := range providers {
-		if k == HistoryProvider {
-			p.historyProvider = v
-		} else if k == RealtimeProvider {
-			p.realtimeProvider = v
-		}
-	}
-}
-
-func (p *GenericPrediction) WithQuery(queryExpr string, caller string, config config.Config) error {
-	if queryExpr == "" {
-		return fmt.Errorf("empty query expression")
-	}
+func (p *GenericPrediction) WithQuery(namer metricnaming.MetricNamer, caller string, config config.Config) error {
 	if caller == "" {
 		return fmt.Errorf("empty caller")
 	}
@@ -82,24 +72,21 @@ func (p *GenericPrediction) WithQuery(queryExpr string, caller string, config co
 	defer p.mutex.Unlock()
 
 	q := QueryExprWithCaller{
-		QueryExpr: queryExpr,
-		Caller:    caller,
-		Config:    config,
+		MetricNamer: namer,
+		Caller:      caller,
+		Config:      config,
 	}
 
 	if _, exists := p.querySet[q.String()]; !exists {
 		p.querySet[q.String()] = struct{}{}
-		klog.V(4).InfoS("Put tuple{query,caller,config} into with channel.", "query", q.QueryExpr, "caller", q.Caller)
+		klog.V(4).InfoS("Put tuple{query,caller,config} into with channel.", "query", q.MetricNamer.BuildUniqueKey(), "caller", q.Caller)
 		p.WithCh <- q
 	}
 
 	return nil
 }
 
-func (p *GenericPrediction) DeleteQuery(queryExpr string, caller string) error {
-	if queryExpr == "" {
-		return fmt.Errorf("empty query expression")
-	}
+func (p *GenericPrediction) DeleteQuery(namer metricnaming.MetricNamer, caller string) error {
 	if caller == "" {
 		return fmt.Errorf("empty caller")
 	}
@@ -108,8 +95,8 @@ func (p *GenericPrediction) DeleteQuery(queryExpr string, caller string) error {
 	defer p.mutex.Unlock()
 
 	q := QueryExprWithCaller{
-		QueryExpr: queryExpr,
-		Caller:    caller,
+		MetricNamer: namer,
+		Caller:      caller,
 	}
 
 	if _, exists := p.querySet[q.String()]; exists {
@@ -130,11 +117,11 @@ func AggregateSignalKey(labels []common.Label) string {
 }
 
 type QueryExprWithCaller struct {
-	QueryExpr string
-	Config    config.Config
-	Caller    string
+	MetricNamer metricnaming.MetricNamer
+	Config      config.Config
+	Caller      string
 }
 
 func (q QueryExprWithCaller) String() string {
-	return fmt.Sprintf("%s####%s", q.Caller, q.QueryExpr)
+	return fmt.Sprintf("%s####%s", q.Caller, q.MetricNamer.BuildUniqueKey())
 }

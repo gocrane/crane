@@ -16,10 +16,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
-	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/known"
-	"github.com/gocrane/crane/pkg/prediction"
+	predictormgr "github.com/gocrane/crane/pkg/predictor"
 	"github.com/gocrane/crane/pkg/providers"
 	"github.com/gocrane/crane/pkg/recommend/advisor"
 	"github.com/gocrane/crane/pkg/recommend/inspector"
@@ -29,9 +28,9 @@ import (
 
 func NewRecommender(kubeClient client.Client, restMapper meta.RESTMapper,
 	scaleClient scale.ScalesGetter, recommendation *analysisapi.Recommendation,
-	predictors map[predictionapi.AlgorithmType]prediction.Interface, dataSource providers.Interface,
+	predictorMgr predictormgr.Manager, dataSource providers.History,
 	configSet *analysisapi.ConfigSet) (*Recommender, error) {
-	c, err := GetContext(kubeClient, restMapper, scaleClient, recommendation, predictors, dataSource, configSet)
+	c, err := GetContext(kubeClient, restMapper, scaleClient, recommendation, predictorMgr, dataSource, configSet)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +92,7 @@ func (r *Recommender) Offer() (proposed *types.ProposedRecommendation, err error
 
 func GetContext(kubeClient client.Client, restMapper meta.RESTMapper,
 	scaleClient scale.ScalesGetter, recommendation *analysisapi.Recommendation,
-	predictors map[predictionapi.AlgorithmType]prediction.Interface, dataSource providers.Interface,
+	predictorMgr predictormgr.Manager, dataSource providers.History,
 	configSet *analysisapi.ConfigSet) (*types.Context, error) {
 	c := &types.Context{}
 
@@ -150,6 +149,11 @@ func GetContext(kubeClient client.Client, restMapper meta.RESTMapper,
 	if recommendation.Spec.TargetRef.Kind != "DaemonSet" {
 		pods, err = utils.GetPodsFromScale(kubeClient, scale)
 	} else {
+		var daemonSet appsv1.DaemonSet
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructured.UnstructuredContent(), &daemonSet); err != nil {
+			return nil, err
+		}
+		c.DaemonSet = &daemonSet
 		pods, err = getDaemonSetPods(kubeClient, recommendation.Spec.TargetRef.Namespace, recommendation.Spec.TargetRef.Name)
 	}
 	if err != nil {
@@ -191,7 +195,7 @@ func GetContext(kubeClient client.Client, restMapper meta.RESTMapper,
 	}
 
 	c.Pods = pods
-	c.Predictors = predictors
+	c.PredictorMgr = predictorMgr
 	c.DataSource = dataSource
 	c.Recommendation = recommendation
 
