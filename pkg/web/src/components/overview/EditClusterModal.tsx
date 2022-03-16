@@ -1,8 +1,9 @@
-import { t } from 'i18next';
-import { Modal, Button, Text, Form, Card, Input, Alert } from 'tea-component';
+import clsx from 'clsx';
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useDispatch } from 'react-redux';
+import { Alert, Button, Dialog, Form, Input, Tabs } from 'tdesign-react';
 
 import { clusterApi } from '../../apis/clusterApi';
 import { useSelector } from '../../hooks';
@@ -12,8 +13,10 @@ import { getErrorMsg } from '../../utils/getErrorMsg';
 type Validation = { error: boolean; msg: string };
 
 export const EditClusterModal = React.memo(() => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
 
+  const editingClusterId = useSelector(state => state.editCluster.editingClusterId);
   const mode = useSelector(state => state.editCluster.mode);
   const visible = useSelector(state => state.editCluster.modalVisible);
   const clusters = useSelector(state => state.editCluster.clusters);
@@ -37,6 +40,12 @@ export const EditClusterModal = React.memo(() => {
   }, [dispatch]);
 
   React.useEffect(() => {
+    if (!visible) {
+      dispatch(editClusterActions.resetCluster());
+    }
+  }, [dispatch, visible]);
+
+  React.useEffect(() => {
     if (addClusterMutationOptions.isSuccess && mode === 'create') {
       dispatch(editClusterActions.resetCluster());
       dispatch(editClusterActions.modalVisible(false));
@@ -49,18 +58,6 @@ export const EditClusterModal = React.memo(() => {
       dispatch(editClusterActions.modalVisible(false));
     }
   }, [dispatch, mode, updateClusterMutationOptions.isSuccess]);
-
-  const validateClusterId = (id: string) => {
-    const res = { error: !clusters.find(cluster => cluster.id === id)?.clusterId, msg: t('集群ID不能为空') };
-    setValidation(validation => ({
-      ...validation,
-      [id]: {
-        ...validation[id],
-        clusterId: res
-      }
-    }));
-    return res;
-  };
 
   const validateClusterName = (id: string) => {
     const res = { error: !clusters.find(cluster => cluster.id === id)?.clusterName, msg: t('集群名称不能为空') };
@@ -101,17 +98,21 @@ export const EditClusterModal = React.memo(() => {
     if (mode === 'create') {
       return (
         addClusterMutationOptions.isError && (
-          <Alert className="tea-mt-3n tea-mb-0" type="error">
-            {getErrorMsg(addClusterMutationOptions.error)}
-          </Alert>
+          <Alert
+            message={getErrorMsg(addClusterMutationOptions.error)}
+            style={{ marginBottom: 0, marginTop: '1rem' }}
+            theme="error"
+          />
         )
       );
     } else if (mode === 'update') {
       return (
         updateClusterMutationOptions.isError && (
-          <Alert className="tea-mt-3n tea-mb-0" type="error">
-            {getErrorMsg(updateClusterMutationOptions.error)}
-          </Alert>
+          <Alert
+            message={getErrorMsg(updateClusterMutationOptions.error)}
+            style={{ marginBottom: 0, marginTop: '1rem' }}
+            theme="error"
+          />
         )
       );
     } else return null;
@@ -126,113 +127,123 @@ export const EditClusterModal = React.memo(() => {
 
   const handleSubmit = () => {
     let error = false;
+    let firstErrorClusterId = null;
 
     for (const cluster of clusters) {
-      const clusterIdRes = validateClusterId(cluster.id);
       const clusterNameRes = validateClusterName(cluster.id);
       const craneUrlRes = validateCraneUrl(cluster.id);
 
-      error = error || clusterIdRes.error || clusterNameRes.error || craneUrlRes.error;
+      error = error || clusterNameRes.error || craneUrlRes.error;
+
+      if (error && !firstErrorClusterId) {
+        firstErrorClusterId = cluster.id;
+      }
     }
 
-    if (!error) {
-      if (mode === 'create') {
-        addClustersMutation({
-          data: {
-            clusters: (clusters ?? []).map(cluster => {
-              return {
-                id: cluster.clusterId,
-                name: cluster.clusterName,
-                craneUrl: cluster.craneUrl
-              };
-            })
-          }
-        });
-      } else if (mode === 'update') {
-        updateClusterMutation({
-          data: {
-            id: clusters[0].clusterId,
-            name: clusters[0].clusterName,
-            craneUrl: clusters[0].craneUrl
-          }
-        });
-      }
+    if (error) {
+      dispatch(editClusterActions.editingClusterId(firstErrorClusterId));
+    } else if (mode === 'create') {
+      addClustersMutation({
+        data: {
+          clusters: (clusters ?? []).map(cluster => {
+            return {
+              name: cluster.clusterName,
+              craneUrl: cluster.craneUrl
+            };
+          })
+        }
+      });
+    } else if (mode === 'update') {
+      updateClusterMutation({
+        data: {
+          id: clusters[0].id,
+          name: clusters[0].clusterName,
+          craneUrl: clusters[0].craneUrl
+        }
+      });
     }
   };
 
   return (
-    <Modal
-      caption={mode === 'create' ? t('添加集群') : t('更新集群')}
-      size="l"
+    <Dialog
+      footer={
+        <>
+          <Button
+            theme="default"
+            onClick={() => {
+              handleClose();
+            }}
+          >
+            {t('取消')}
+          </Button>
+          <Button
+            loading={isLoading}
+            onClick={() => {
+              handleSubmit();
+            }}
+          >
+            {t('确定')}
+          </Button>
+        </>
+      }
+      header={mode === 'create' ? t('添加集群') : t('更新集群')}
       visible={visible}
+      width="50%"
       onClose={() => {
         handleClose();
       }}
     >
-      <Modal.Body>
-        <Text parent="div" style={{ marginBottom: 10 }} theme="text">
-          {t('请输入一个可访问的CRANE Endpoint，以获得新集群的相关成本数据')}
-        </Text>
-        {clusters.map(cluster => {
-          return (
-            <Card
-              bordered={false}
-              key={cluster.id}
-              style={{ marginBottom: 5, padding: 15, backgroundColor: '#f3f4f7' }}
-            >
-              <Card.Body
-                operation={
-                  mode === 'create' ? (
-                    <Button
-                      type="link"
-                      onClick={() => {
-                        dispatch(editClusterActions.deleteCluster({ id: cluster.id }));
-                      }}
-                    >
-                      {t('删除')}
-                    </Button>
-                  ) : null
+      <div style={{ marginBottom: 10 }}>{t('请输入一个可访问的CRANE Endpoint，以获得新集群的相关成本数据')}</div>
+      <Form>
+        <Tabs
+          addable={mode === 'create'}
+          style={{ border: '1px solid var(--td-component-stroke)' }}
+          theme="card"
+          value={editingClusterId}
+          onAdd={
+            mode === 'create'
+              ? () => {
+                  dispatch(editClusterActions.addCluster());
                 }
-                style={{ padding: 10 }}
-                title={t('集群配置')}
+              : null
+          }
+          onChange={(tabId: string) => {
+            dispatch(editClusterActions.editingClusterId(tabId));
+          }}
+          onRemove={option => {
+            dispatch(editClusterActions.deleteCluster({ id: option.value + '' }));
+          }}
+        >
+          {clusters.map((cluster, index) => {
+            return (
+              <Tabs.TabPanel
+                destroyOnHide={false}
+                key={cluster.id}
+                label={t('集群') + (index + 1)}
+                removable={mode === 'create' ? clusters.length !== 1 : false}
+                value={cluster.id}
               >
-                <Form>
-                  <Form.Item
-                    label={t('集群ID')}
-                    message={validation[cluster.id]?.clusterId?.error ? validation[cluster.id]?.clusterId?.msg : null}
-                    status={validation[cluster.id]?.clusterId?.error ? 'error' : null}
-                  >
-                    <Input
-                      disabled={mode === 'update'}
-                      size="l"
-                      value={cluster.clusterId}
-                      onBlur={() => {
-                        validateClusterId(cluster.id);
-                      }}
-                      onChange={clusterId => {
-                        dispatch(
-                          editClusterActions.updateCluster({
-                            id: cluster.id,
-                            data: { clusterId }
-                          })
-                        );
-                      }}
-                    />
-                  </Form.Item>
-                  <Form.Item
-                    label={t('集群名称')}
-                    message={
-                      validation[cluster.id]?.clusterName?.error ? validation[cluster.id]?.clusterName?.msg : null
+                <div style={{ padding: '24px' }}>
+                  <Form.FormItem
+                    className={clsx({ isError: validation[cluster.id]?.clusterName?.error })}
+                    help={
+                      (
+                        <span style={{ color: 'var(--td-error-color)' }}>
+                          {validation[cluster.id]?.clusterName?.error ? validation[cluster.id]?.clusterName?.msg : null}
+                        </span>
+                      ) as any
                     }
-                    status={validation[cluster.id]?.clusterName?.error ? 'error' : null}
+                    initialData={cluster.clusterName}
+                    label={t('集群名称')}
+                    name={`clusters[${index}].clusterName`}
+                    requiredMark
                   >
                     <Input
-                      size="l"
                       value={cluster.clusterName}
                       onBlur={() => {
                         validateClusterName(cluster.id);
                       }}
-                      onChange={clusterName => {
+                      onChange={(clusterName: string) => {
                         dispatch(
                           editClusterActions.updateCluster({
                             id: cluster.id,
@@ -241,19 +252,26 @@ export const EditClusterModal = React.memo(() => {
                         );
                       }}
                     />
-                  </Form.Item>
-                  <Form.Item
+                  </Form.FormItem>
+                  <Form.FormItem
+                    className={clsx({ isError: validation[cluster.id]?.craneUrl?.error })}
+                    help={
+                      (
+                        <span style={{ color: 'var(--td-error-color)' }}>
+                          {validation[cluster.id]?.craneUrl?.error ? validation[cluster.id]?.craneUrl?.msg : null}
+                        </span>
+                      ) as any
+                    }
+                    initialData={cluster.craneUrl}
                     label={t('CRANE URL')}
-                    message={validation[cluster.id]?.craneUrl?.error ? validation[cluster.id]?.craneUrl?.msg : null}
-                    status={validation[cluster.id]?.craneUrl?.error ? 'error' : null}
+                    name={`clusters[${index}].craneUrl`}
                   >
                     <Input
-                      size="l"
                       value={cluster.craneUrl}
                       onBlur={() => {
                         validateCraneUrl(cluster.id);
                       }}
-                      onChange={craneUrl => {
+                      onChange={(craneUrl: string) => {
                         dispatch(
                           editClusterActions.updateCluster({
                             id: cluster.id,
@@ -262,43 +280,14 @@ export const EditClusterModal = React.memo(() => {
                         );
                       }}
                     />
-                  </Form.Item>
-                </Form>
-              </Card.Body>
-            </Card>
-          );
-        })}
-        {mode === 'create' ? (
-          <Button
-            style={{ width: '100%', marginTop: '1rem' }}
-            onClick={() => {
-              dispatch(editClusterActions.addCluster());
-            }}
-          >
-            {t('添加')}
-          </Button>
-        ) : null}
-        {renderErrorContent()}
-      </Modal.Body>
-      <Modal.Footer>
-        <Button
-          loading={isLoading}
-          type="primary"
-          onClick={() => {
-            handleSubmit();
-          }}
-        >
-          {t('确定')}
-        </Button>
-        <Button
-          type="weak"
-          onClick={() => {
-            handleClose();
-          }}
-        >
-          {t('取消')}
-        </Button>
-      </Modal.Footer>
-    </Modal>
+                  </Form.FormItem>
+                </div>
+              </Tabs.TabPanel>
+            );
+          })}
+        </Tabs>
+      </Form>
+      {renderErrorContent()}
+    </Dialog>
   );
 });

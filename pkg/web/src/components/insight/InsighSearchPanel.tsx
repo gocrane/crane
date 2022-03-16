@@ -1,20 +1,16 @@
-import moment from 'moment';
-import { Card, DatePicker, Form, InputNumber, Segment, Select, Text } from 'tea-component';
-
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDispatch } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { DatePicker, InputNumber, Radio, Select } from 'tdesign-react';
 
 import { grafanaApi } from '../../apis/grafanaApi';
 import { namespaceApi } from '../../apis/namespaceApi';
-import { useSelector } from '../../hooks';
-import { useClusterId } from '../../hooks/useClusterId';
-import { useExternalCraneUrl } from '../../hooks/useExternalCraneUrl';
-import { useIsNeedSelectNamespace } from '../../hooks/useIsNeedSelectNamespace';
+import { useSelector, useCraneUrl, useIsNeedSelectNamespace } from '../../hooks';
 import { QueryWindow, QueryWindowOptions } from '../../models';
 import { insightAction } from '../../store/insightSlice';
 import { rangeMap } from '../../utils/rangeMap';
+import { Card } from '../common/Card';
 
 export const InsightSearchPanel = React.memo(() => {
   const dispatch = useDispatch();
@@ -27,12 +23,12 @@ export const InsightSearchPanel = React.memo(() => {
   const window = useSelector(state => state.insight.window);
   const selectedNamespace = useSelector(state => state.insight.selectedNamespace);
   const discount = useSelector(state => state.insight.discount);
+  const clusterId = useSelector(state => state.insight.selectedClusterId);
 
   const isNeedSelectNamespace = useIsNeedSelectNamespace();
-  const clusterId = useClusterId();
-  const craneUrl = useExternalCraneUrl();
+  const craneUrl = useCraneUrl();
 
-  const dashboardList = grafanaApi.useFetchDashboardListQuery({ craneUrl }); // crane url will be null, if it's using current cluster
+  const dashboardList = grafanaApi.useFetchDashboardListQuery({ craneUrl }, { skip: !craneUrl });
   const namespaceList = namespaceApi.useFetchNamespaceListQuery(
     { clusterId },
     { skip: !clusterId || !isNeedSelectNamespace }
@@ -40,14 +36,14 @@ export const InsightSearchPanel = React.memo(() => {
 
   const dashboardOptions = React.useMemo(() => {
     return (dashboardList?.data ?? []).map(dashboard => ({
-      text: dashboard.title,
+      label: dashboard.title,
       value: dashboard.uid
     }));
   }, [dashboardList?.data]);
 
   const namespaceOptions = React.useMemo(() => {
     return (namespaceList?.data?.data?.items ?? []).map(namespace => ({
-      text: namespace,
+      label: namespace,
       value: namespace
     }));
   }, [namespaceList?.data?.data?.items]);
@@ -70,32 +66,47 @@ export const InsightSearchPanel = React.memo(() => {
   }, [dispatch, isNeedSelectNamespace, namespaceList.isSuccess, namespaceOptions]);
 
   return (
-    <Card>
-      <Card.Body>
-        <Form className="insight-search-panel" layout="inline">
-          <Form.Item
-            label={<Text style={{ minWidth: 'auto', paddingRight: '0.5rem' }}>{t('Dashboard')}</Text>}
-            style={{ paddingBottom: 0 }}
-          >
-            <Select
-              appearance="button"
-              matchButtonWidth
-              options={dashboardOptions}
-              size="l"
-              style={{ paddingBottom: 0 }}
-              value={selectedDashboard?.uid}
-              onChange={(value: string) => {
-                dispatch(
-                  insightAction.selectedDashboard({
-                    uid: value,
-                    title: (dashboardList?.data ?? []).find(data => data.uid === value)?.title
-                  })
-                );
-              }}
-            />
-          </Form.Item>
-          <Segment
-            options={QueryWindowOptions}
+    <Card style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginRight: '1rem',
+          marginTop: 5,
+          marginBottom: 5
+        }}
+      >
+        <div style={{ marginRight: '1rem', width: '70px' }}>{t('Dashboard')}</div>
+        <Select
+          empty={t('暂无数据')}
+          options={dashboardOptions}
+          placeholder={t('请选择Dashboard')}
+          style={{ paddingBottom: 0, width: '250px' }}
+          value={selectedDashboard?.uid}
+          onChange={(value: string) => {
+            dispatch(
+              insightAction.selectedDashboard({
+                uid: value,
+                title: (dashboardList?.data ?? []).find(data => data.uid === value)?.title
+              })
+            );
+          }}
+        />
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginRight: '1rem',
+          marginTop: 5,
+          marginBottom: 5
+        }}
+      >
+        <div style={{ marginRight: '0.5rem', width: '70px' }}>{t('时间范围')}</div>
+        <div style={{ marginRight: '0.5rem' }}>
+          <Radio.Group
             value={window}
             onChange={(value: QueryWindow) => {
               dispatch(insightAction.window(value));
@@ -104,50 +115,87 @@ export const InsightSearchPanel = React.memo(() => {
                 insightAction.customRange({ start: start.toDate().toISOString(), end: end.toDate().toISOString() })
               );
             }}
-          />
-          <DatePicker.RangePicker
-            showTime
-            style={{ marginRight: '1rem' }}
-            value={[
-              customRange?.start ? moment(customRange.start) : null,
-              customRange?.end ? moment(customRange.end) : null
-            ]}
-            onChange={([start, end]) => {
-              dispatch(insightAction.window(null));
-              dispatch(
-                insightAction.customRange({
-                  start: start.toDate().toISOString(),
-                  end: end.toDate().toISOString()
-                })
+          >
+            {QueryWindowOptions.map(option => {
+              return (
+                <Radio.Button key={option.value} value={option.value}>
+                  {option.text}
+                </Radio.Button>
               );
+            })}
+          </Radio.Group>
+        </div>
+        <DatePicker
+          mode="date"
+          style={{ marginRight: '0.5rem' }}
+          value={customRange?.start}
+          onChange={(start: string) => {
+            dispatch(insightAction.window(null));
+            dispatch(
+              insightAction.customRange({
+                ...customRange,
+                start
+              })
+            );
+          }}
+        />
+        <DatePicker
+          mode="date"
+          style={{ marginRight: '0.5rem' }}
+          value={customRange?.end ?? null}
+          onChange={(end: string) => {
+            dispatch(insightAction.window(null));
+            dispatch(
+              insightAction.customRange({
+                ...customRange,
+                end
+              })
+            );
+          }}
+        />
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginRight: '1rem',
+          marginTop: 5,
+          marginBottom: 5
+        }}
+      >
+        <div style={{ marginRight: '1rem', width: '70px' }}>{t('Discount')}</div>
+        <InputNumber
+          min={0}
+          theme="column"
+          value={discount}
+          onChange={value => {
+            dispatch(insightAction.discount(value));
+          }}
+        />
+      </div>
+      {isNeedSelectNamespace && (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginRight: '1rem',
+            marginTop: 5,
+            marginBottom: 5
+          }}
+        >
+          <div style={{ marginRight: '1rem', width: '80px' }}>{t('命名空间')}</div>
+          <Select
+            options={namespaceOptions}
+            placeholder={t('命名空间')}
+            value={selectedNamespace ?? null}
+            onChange={(value: string) => {
+              dispatch(insightAction.selectedNamespace(value));
             }}
           />
-          <Form.Item label={<Text style={{ minWidth: 'auto', marginRight: '0.5rem' }}>{t('Discount')}</Text>}>
-            <InputNumber
-              min={0}
-              value={discount}
-              onChange={value => {
-                dispatch(insightAction.discount(value));
-              }}
-            />
-          </Form.Item>
-          {isNeedSelectNamespace && (
-            <Form.Item label={<Text style={{ minWidth: 'auto', marginRight: '0.5rem' }}>{t('命名空间')}</Text>}>
-              <Select
-                appearance="button"
-                matchButtonWidth
-                options={namespaceOptions}
-                placeholder={t('命名空间')}
-                size="m"
-                value={selectedNamespace ?? null}
-                onChange={value => {
-                  dispatch(insightAction.selectedNamespace(value));
-                }}
-              />
-            </Form.Item>
-          )}
-        </Form>
-      </Card.Body>
+        </div>
+      )}
     </Card>
   );
 });

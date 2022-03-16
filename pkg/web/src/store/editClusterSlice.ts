@@ -6,7 +6,9 @@ export interface EditClusterState {
   mode: 'update' | 'create';
   modalVisible: boolean;
 
-  clusters: Array<{ id: string; clusterId: string; clusterName: string; craneUrl: string }>;
+  clusters: Array<{ id: string; clusterName: string; craneUrl: string }>;
+
+  editingClusterId: string | null;
 }
 
 type Cluster = EditClusterState['clusters'][0];
@@ -14,10 +16,10 @@ type Cluster = EditClusterState['clusters'][0];
 const initialEditClusterState: EditClusterState = {
   mode: 'create',
   modalVisible: false,
+  editingClusterId: null,
   clusters: [
     {
       id: v4(),
-      clusterId: '',
       clusterName: '',
       craneUrl: ''
     }
@@ -28,6 +30,9 @@ const slice = createSlice({
   name: 'editCluster',
   initialState: initialEditClusterState,
   reducers: {
+    editingClusterId: (state, action: PayloadAction<string>) => {
+      state.editingClusterId = action.payload;
+    },
     setClusters: (state, action: PayloadAction<Cluster[]>) => {
       state.clusters = action.payload;
     },
@@ -39,7 +44,6 @@ const slice = createSlice({
         ...(state.clusters ?? []),
         {
           id: v4(),
-          clusterId: '',
           clusterName: '',
           craneUrl: ''
         }

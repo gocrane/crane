@@ -4,7 +4,7 @@ import { ClusterSimpleInfo } from '../models';
 
 interface AddClusterArgs {
   data: {
-    clusters: Array<{ id: string; name: string; craneUrl: string }>;
+    clusters: Array<{ name: string; craneUrl: string }>;
   };
 }
 
@@ -30,7 +30,8 @@ export const clusterApi = createApi({
   reducerPath: 'clusterApi',
   tagTypes: ['clusterList'],
   baseQuery: fetchBaseQuery({
-    baseUrl: '/api/v1/cluster',
+    cache: 'no-cache',
+    baseUrl: `/api/v1/cluster`,
     prepareHeaders: (headers, api) => {
       headers.set('Content-Type', 'application/json');
       return headers;

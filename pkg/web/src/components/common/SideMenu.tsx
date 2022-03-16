@@ -1,33 +1,34 @@
-import { Menu } from 'tea-component';
-
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { Routes, useNavigate } from 'react-router-dom';
+import { Menu } from 'tdesign-react';
 
 import { useSideMenuSelection } from '../../hooks/useSideMenuSelection';
 import { RoutesEnum } from '../../routes/routeEnum';
 
-export const SideMenu = () => {
+export const SideMenu: React.FC = () => {
   const { t } = useTranslation();
   const selection = useSideMenuSelection();
   const navigate = useNavigate();
 
   return (
-    <Menu theme="dark" title={t('成本大师')}>
-      <Menu.Item
-        selected={selection === RoutesEnum.OVERVIEW}
-        title={t('成本概览')}
+    <Menu style={{ minHeight: '100%' }} theme="dark" value={selection}>
+      <Menu.MenuItem
+        value={RoutesEnum.OVERVIEW}
         onClick={() => {
           navigate(RoutesEnum.OVERVIEW);
         }}
-      />
-      <Menu.Item
-        selected={selection === RoutesEnum.INSIGHT}
-        title={t('成本洞察')}
+      >
+        {t('成本概览')}
+      </Menu.MenuItem>
+      <Menu.MenuItem
+        value={RoutesEnum.INSIGHT}
         onClick={() => {
           navigate(RoutesEnum.INSIGHT);
         }}
-      />
+      >
+        {t('成本洞察')}
+      </Menu.MenuItem>
     </Menu>
   );
 };
