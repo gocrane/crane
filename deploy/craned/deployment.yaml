@@ -94,7 +94,7 @@ data:
           ehpa.default-min-replicas: "2"
           ehpa.max-replicas-factor: "3"
           ehpa.min-cpu-usage-threshold: "10"
-          ehpa.fluctuation-threshold: "3"
+          ehpa.fluctuation-threshold: "1.5"
           ehpa.min-cpu-target-utilization: "30"
           ehpa.max-cpu-target-utilization: "75"
           ehpa.reference-hpa: "true"

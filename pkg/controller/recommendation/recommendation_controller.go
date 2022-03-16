@@ -96,7 +96,7 @@ func (c *Controller) ShouldRecommend(recommendation *analysisv1alph1.Recommendat
 }
 
 func (c *Controller) DoRecommend(ctx context.Context, recommendation *analysisv1alph1.Recommendation) {
-	klog.V(4).Info("Starting to process Recommendation %s", klog.KObj(recommendation))
+	klog.V(4).Infof("Starting to process Recommendation %s", klog.KObj(recommendation))
 
 	newStatus := recommendation.Status.DeepCopy()
 

@@ -56,7 +56,13 @@ func (c *Controller) UpdateRecommendation(ctx context.Context, recommendation *a
 			annotation = map[string]string{}
 		}
 
-		annotation[known.RecommendationValueAnnotation] = value
+		switch recommendation.Spec.Type {
+		case analysisapi.AnalysisTypeResource:
+			annotation[known.ResourceRecommendationValueAnnotation] = value
+		case analysisapi.AnalysisTypeHPA:
+			annotation[known.HPARecommendationValueAnnotation] = value
+		}
+
 		unstructed.SetAnnotations(annotation)
 		err = c.Client.Update(ctx, unstructed)
 		if err != nil {

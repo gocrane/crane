@@ -50,9 +50,11 @@ func TestCheckFluctuation(t *testing.T) {
 		},
 	}
 
+	medianMin, medianMax, _ := a.minMaxMedians(tsList)
+
 	for _, test := range tests {
 		a.Context.ConfigProperties["ehpa.fluctuation-threshold"] = test.threshold
-		err := a.checkFluctuation(tsList)
+		err := a.checkFluctuation(medianMin, medianMax)
 		if err != nil && !test.expectError {
 			t.Errorf("Failed to checkFluctuation: %v", err)
 		}
