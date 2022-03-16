@@ -47,17 +47,12 @@ type resourceMetricsCollector struct {
 	cpuStateProvider *utils.CpuStateProvider
 }
 
-// DescribeWithStability implements metrics.StableCollector
 func (rc *resourceMetricsCollector) Describe(ch chan<- *prometheus.Desc) {
 	//ch <- containerExtCPUUsageDesc
 	ch <- nodeExtCPUUsageDesc
 	ch <- nodeCPUCanBeReusedDesc
 }
 
-// CollectWithStability implements metrics.StableCollector
-// Since new containers are frequently created and removed, using the Gauge would
-// leak metric collectors for containers or pods that no longer exist.  Instead, implement
-// custom collector in a way that only collects metrics for active containers.
 func (rc *resourceMetricsCollector) Collect(ch chan<- prometheus.Metric) {
 	var cpuIdleCanBeReused float64 = 0
 	var offlineCpuUsageIncrease uint64 = 0
