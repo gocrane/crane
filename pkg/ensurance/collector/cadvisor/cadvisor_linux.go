@@ -45,8 +45,7 @@ type CadvisorCollector struct {
 	latestContainersStates map[string]ContainerState
 }
 
-func NewCadvisor(podLister corelisters.PodLister) *CadvisorCollector {
-
+func NewCadvisorManager() cmanager.Manager {
 	var includedMetrics = cadvisorcontainer.MetricSet{
 		cadvisorcontainer.CpuUsageMetrics:         struct{}{},
 		cadvisorcontainer.ProcessSchedulerMetrics: struct{}{},
@@ -64,16 +63,18 @@ func NewCadvisor(podLister corelisters.PodLister) *CadvisorCollector {
 		return nil
 	}
 
+	if err := m.Start(); err != nil {
+		klog.Errorf("Failed to start cadvisor manager: %v", err)
+		return nil
+	}
+	return m
+}
+
+func NewCadvisor(podLister corelisters.PodLister, m cmanager.Manager) *CadvisorCollector {
 	c := CadvisorCollector{
 		Manager:   m,
 		podLister: podLister,
 	}
-
-	if err := c.Manager.Start(); err != nil {
-		klog.Errorf("Failed to start cadvisor manager: %v", err)
-		return nil
-	}
-
 	return &c
 }
 

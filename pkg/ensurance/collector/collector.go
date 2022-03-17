@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	cmanager "github.com/google/cadvisor/manager"
 	"k8s.io/apimachinery/pkg/labels"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	corelisters "k8s.io/client-go/listers/core/v1"
@@ -29,6 +30,7 @@ type StateCollector struct {
 	collectInterval   time.Duration
 	ifaces            []string
 	collectors        *sync.Map
+	cadvisorManager   cmanager.Manager
 	AnalyzerChann     chan map[string][]common.TimeSeries
 	NodeResourceChann chan map[string][]common.TimeSeries
 	PodResourceChann  chan map[string][]common.TimeSeries
@@ -39,6 +41,7 @@ func NewStateCollector(nodeName string, nepLister ensuranceListers.NodeQOSEnsura
 	analyzerChann := make(chan map[string][]common.TimeSeries)
 	nodeResourceChann := make(chan map[string][]common.TimeSeries)
 	podResourceChann := make(chan map[string][]common.TimeSeries)
+	c := cadvisor.NewCadvisorManager()
 	return &StateCollector{
 		nodeName:          nodeName,
 		nepLister:         nepLister,
@@ -51,6 +54,7 @@ func NewStateCollector(nodeName string, nepLister ensuranceListers.NodeQOSEnsura
 		NodeResourceChann: nodeResourceChann,
 		PodResourceChann:  podResourceChann,
 		collectors:        &sync.Map{},
+		cadvisorManager:   c,
 	}
 }
 
@@ -171,10 +175,8 @@ func (s *StateCollector) UpdateCollectors() {
 		}
 
 		if _, exists := s.collectors.Load(types.CadvisorCollectorType); !exists {
-			c := cadvisor.NewCadvisor(s.podLister)
-			if c != nil {
-				s.collectors.Store(types.CadvisorCollectorType, c)
-			}
+			cadvisorCollector := cadvisor.NewCadvisor(s.podLister, s.GetCadvisorManager())
+			s.collectors.Store(types.CadvisorCollectorType, cadvisorCollector)
 		}
 		break
 	}
@@ -198,6 +200,10 @@ func (s *StateCollector) UpdateCollectors() {
 
 func (s *StateCollector) GetCollectors() *sync.Map {
 	return s.collectors
+}
+
+func (s *StateCollector) GetCadvisorManager() cmanager.Manager {
+	return s.cadvisorManager
 }
 
 func (s *StateCollector) StopCollectors() {
