@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apiserver/pkg/server/mux"
 	"k8s.io/apiserver/pkg/server/routes"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -18,11 +19,14 @@ import (
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 	craneclientset "github.com/gocrane/api/pkg/generated/clientset/versioned"
 	"github.com/gocrane/api/pkg/generated/informers/externalversions/ensurance/v1alpha1"
+	predictionv1 "github.com/gocrane/api/pkg/generated/informers/externalversions/prediction/v1alpha1"
 	"github.com/gocrane/crane/pkg/ensurance/analyzer"
 	"github.com/gocrane/crane/pkg/ensurance/collector"
 	"github.com/gocrane/crane/pkg/ensurance/executor"
 	"github.com/gocrane/crane/pkg/ensurance/manager"
+	"github.com/gocrane/crane/pkg/features"
 	"github.com/gocrane/crane/pkg/metrics"
+	"github.com/gocrane/crane/pkg/resource"
 )
 
 type Agent struct {
@@ -41,6 +45,7 @@ func NewAgent(ctx context.Context,
 	nodeInformer coreinformers.NodeInformer,
 	nepInformer v1alpha1.NodeQOSEnsurancePolicyInformer,
 	actionInformer v1alpha1.AvoidanceActionInformer,
+	tspInformer predictionv1.TimeSeriesPredictionInformer,
 	ifaces []string,
 	healthCheck *metrics.HealthCheck,
 	CollectInterval time.Duration,
@@ -52,10 +57,20 @@ func NewAgent(ctx context.Context,
 
 	stateCollector := collector.NewStateCollector(nodeName, nepInformer.Lister(), podInformer.Lister(), nodeInformer.Lister(), ifaces, healthCheck, CollectInterval)
 	managers = append(managers, stateCollector)
-	analyzerManager := analyzer.NewAnormalyAnalyzer(kubeClient, nodeName, podInformer, nodeInformer, nepInformer, actionInformer, stateCollector.StateChann, noticeCh)
+	analyzerManager := analyzer.NewAnormalyAnalyzer(kubeClient, nodeName, podInformer, nodeInformer, nepInformer, actionInformer, stateCollector.AnalyzerChann, noticeCh)
 	managers = append(managers, analyzerManager)
 	avoidanceManager := executor.NewActionExecutor(kubeClient, nodeName, podInformer, nodeInformer, noticeCh, runtimeEndpoint)
 	managers = append(managers, avoidanceManager)
+
+	if nodeResource := utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResource); nodeResource {
+		nodeResourceManager := resource.NewNodeResourceManager(kubeClient, nodeName, podInformer, nodeInformer, tspInformer, runtimeEndpoint, stateCollector.NodeResourceChann)
+		managers = append(managers, nodeResourceManager)
+	}
+
+	if podResource := utilfeature.DefaultFeatureGate.Enabled(features.CranePodResource); podResource {
+		podResourceManager :=  resource.NewPodResourceManager(kubeClient, nodeName, podInformer, runtimeEndpoint, stateCollector.PodResourceChann, stateCollector.GetCollectors())
+		managers = append(managers, podResourceManager)
+	}
 
 	return &Agent{
 		ctx:         ctx,

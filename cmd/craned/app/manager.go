@@ -27,7 +27,6 @@ import (
 	"github.com/gocrane/crane/pkg/controller/analytics"
 	"github.com/gocrane/crane/pkg/controller/cnp"
 	"github.com/gocrane/crane/pkg/controller/ehpa"
-	"github.com/gocrane/crane/pkg/controller/noderesource"
 	"github.com/gocrane/crane/pkg/controller/recommendation"
 	"github.com/gocrane/crane/pkg/controller/timeseriesprediction"
 	"github.com/gocrane/crane/pkg/features"
@@ -173,7 +172,6 @@ func initializationWebhooks(mgr ctrl.Manager) {
 // initializationControllers setup controllers with manager
 func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *options.Options) {
 	autoscaling := utilfeature.DefaultFeatureGate.Enabled(features.CraneAutoscaling)
-	nodeResource := utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResource)
 	clusterNodePrediction := utilfeature.DefaultFeatureGate.Enabled(features.CraneClusterNodePrediction)
 	analysis := utilfeature.DefaultMutableFeatureGate.Enabled(features.CraneAnalysis)
 	timeseriespredict := utilfeature.DefaultFeatureGate.Enabled(features.CraneTimeSeriesPrediction)
@@ -300,16 +298,6 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 			Provider:    dataSource,
 		}).SetupWithManager(mgr); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "RecommendationController")
-		}
-	}
-
-	// NodeResourceController
-	if nodeResource {
-		if err := (&noderesource.NodeResourceReconciler{
-			Client:   mgr.GetClient(),
-			Recorder: mgr.GetEventRecorderFor("node-resource-controller"),
-		}).SetupWithManager(mgr); err != nil {
-			klog.Exit(err, "unable to create controller", "controller", "NodeResourceController")
 		}
 	}
 

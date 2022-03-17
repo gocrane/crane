@@ -19,30 +19,38 @@ const (
 	StepDurationSeconds         = "step_duration_seconds"
 	StepDurationQuantileSummary = "step_duration_quantile_summary"
 
-	AnalyzerStatus      = "analyzer_status"
-	AnalyzerStatusTotal = "analyzer_status_total"
-	ExecutorStatus      = "executor_status"
-	ExecutorStatusTotal = "executor_status_total"
-	ExecutorErrorTotal  = "executor_error_total"
-	ExecutorEvictTotal  = "executor_evict_total"
+	AnalyzerStatus        = "analyzer_status"
+	AnalyzerStatusTotal   = "analyzer_status_total"
+	ExecutorStatus        = "executor_status"
+	ExecutorStatusTotal   = "executor_status_total"
+	ExecutorErrorTotal    = "executor_error_total"
+	ExecutorEvictTotal    = "executor_evict_total"
+	PodResourceErrorTotal = "pod_resource_error_total"
 )
 
 type StepLabel string
 
 const (
-	StepMain         StepLabel = "main"
-	StepCollect      StepLabel = "collect"
-	StepAvoid        StepLabel = "avoid"
-	StepRestore      StepLabel = "restore"
-	StepUpdateConfig StepLabel = "updateConfig"
+	StepMain               StepLabel = "main"
+	StepCollect            StepLabel = "collect"
+	StepAvoid              StepLabel = "avoid"
+	StepRestore            StepLabel = "restore"
+	StepUpdateConfig       StepLabel = "updateConfig"
+	StepUpdateNodeResource StepLabel = "updateNodeResource"
+	StepUpdatePodResource  StepLabel = "updatePodResource"
+
+	// Step for pod resource manager
+	StepGetPeriod   StepLabel = "getPeriod"
+	StepUpdateQuota StepLabel = "updateQuota"
 )
 
 type SubComponent string
 
 const (
-	SubComponentSchedule SubComponent = "schedule"
-	SubComponentThrottle SubComponent = "throttle"
-	SubComponentEvict    SubComponent = "evict"
+	SubComponentSchedule    SubComponent = "schedule"
+	SubComponentThrottle    SubComponent = "throttle"
+	SubComponentEvict       SubComponent = "evict"
+	SubComponentPodResource SubComponent = "pod-resource-manager"
 )
 
 type AnalyzeType string
@@ -161,6 +169,17 @@ var (
 			StabilityLevel: k8smetrics.ALPHA,
 		},
 	)
+
+	//podResourceUpdateErrorCounts records the number of errors when update pod's ext resource to quota
+	podResourceUpdateErrorCounts = k8smetrics.NewCounterVec(
+		&k8smetrics.CounterOpts{
+			Namespace:      CraneNamespace,
+			Subsystem:      CraneAgentSubsystem,
+			Name:           PodResourceErrorTotal,
+			Help:           "The error times for pod resource manager to update.",
+			StabilityLevel: k8smetrics.ALPHA,
+		}, []string{"subcomponent", "step"},
+	)
 )
 
 var registerCraneAgentMetricsOnce sync.Once
@@ -230,6 +249,10 @@ func ExecutorStatusCounterInc(subComponent SubComponent, stepName StepLabel) {
 
 func ExecutorErrorCounterInc(subComponent SubComponent, stepName StepLabel) {
 	executorErrorCounts.With(prometheus.Labels{"subcomponent": string(subComponent), "step": string(stepName)}).Inc()
+}
+
+func PodResourceUpdateErrorCounterInc(subComponent SubComponent, stepName StepLabel) {
+	podResourceUpdateErrorCounts.With(prometheus.Labels{"subcomponent": string(subComponent), "step": string(stepName)}).Inc()
 }
 
 func ExecutorEvictCountsInc() {
