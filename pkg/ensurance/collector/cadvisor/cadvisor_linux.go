@@ -39,15 +39,16 @@ type ContainerState struct {
 
 //CadvisorCollector is the collector to collect container state
 type CadvisorCollector struct {
-	cmanager.Manager
-	podLister corelisters.PodLister
-
+	podLister              corelisters.PodLister
+	Manager                Manager
 	latestContainersStates map[string]ContainerState
 }
 
-var _ Interface = new(CadvisorCollector)
+type CadvisorManager struct {
+	cmanager.Manager
+}
 
-func NewCadvisor(podLister corelisters.PodLister) Interface {
+func NewCadvisor(podLister corelisters.PodLister) *CadvisorCollector {
 
 	var includedMetrics = cadvisorcontainer.MetricSet{
 		cadvisorcontainer.CpuUsageMetrics:         struct{}{},
@@ -93,14 +94,6 @@ func (c *CadvisorCollector) Stop() error {
 
 func (c *CadvisorCollector) GetType() types.CollectType {
 	return types.CadvisorCollectorType
-}
-
-func (c *CadvisorCollector) ContainerInfo(containerName string, query *info.ContainerInfoRequest) (*info.ContainerInfo, error) {
-	return c.GetContainerInfo(containerName, query)
-}
-
-func (c *CadvisorCollector) ContainerInfoV2(containerName string, options cadvisorapiv2.RequestOptions) (map[string]cadvisorapiv2.ContainerInfo, error) {
-	return c.GetContainerInfoV2(containerName, options)
 }
 
 func (c *CadvisorCollector) Collect() (map[string][]common.TimeSeries, error) {

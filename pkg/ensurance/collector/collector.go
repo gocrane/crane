@@ -29,7 +29,8 @@ type StateCollector struct {
 	collectInterval   time.Duration
 	ifaces            []string
 	collectors        *sync.Map
-	cadvisorCollector cadvisor.Interface
+	cadvisorManager   cadvisor.Manager
+	cadvisorCollect   Collector
 	AnalyzerChann     chan map[string][]common.TimeSeries
 	NodeResourceChann chan map[string][]common.TimeSeries
 	PodResourceChann  chan map[string][]common.TimeSeries
@@ -40,7 +41,9 @@ func NewStateCollector(nodeName string, nepLister ensuranceListers.NodeQOSEnsura
 	analyzerChann := make(chan map[string][]common.TimeSeries)
 	nodeResourceChann := make(chan map[string][]common.TimeSeries)
 	podResourceChann := make(chan map[string][]common.TimeSeries)
+
 	c := cadvisor.NewCadvisor(podLister)
+
 	return &StateCollector{
 		nodeName:          nodeName,
 		nepLister:         nepLister,
@@ -53,7 +56,8 @@ func NewStateCollector(nodeName string, nepLister ensuranceListers.NodeQOSEnsura
 		NodeResourceChann: nodeResourceChann,
 		PodResourceChann:  podResourceChann,
 		collectors:        &sync.Map{},
-		cadvisorCollector: c,
+		cadvisorManager:   &c.Manager,
+		cadvisorCollect:   c,
 	}
 }
 
@@ -174,8 +178,9 @@ func (s *StateCollector) UpdateCollectors() {
 		}
 
 		if _, exists := s.collectors.Load(types.CadvisorCollectorType); !exists {
-			s.collectors.Store(types.CadvisorCollectorType, s.GetCadvisorCollector())
+			s.collectors.Store(types.CadvisorCollectorType, s.cadvisorCollect)
 		}
+
 		break
 	}
 
@@ -183,12 +188,8 @@ func (s *StateCollector) UpdateCollectors() {
 		stopCollectors := []types.CollectType{types.NodeLocalCollectorType, types.CadvisorCollectorType}
 
 		for _, collector := range stopCollectors {
-			if value, exists := s.collectors.Load(collector); exists {
+			if _, exists := s.collectors.Load(collector); exists {
 				s.collectors.Delete(collector)
-				c := value.(Collector)
-				if err = c.Stop(); err != nil {
-					klog.Errorf("Failed to stop the %s manager.", collector)
-				}
 			}
 		}
 	}
@@ -200,8 +201,8 @@ func (s *StateCollector) GetCollectors() *sync.Map {
 	return s.collectors
 }
 
-func (s *StateCollector) GetCadvisorCollector() cadvisor.Interface {
-	return s.cadvisorCollector
+func (s *StateCollector) GetCadvisorManager() cadvisor.Manager {
+	return s.cadvisorManager
 }
 
 func (s *StateCollector) StopCollectors() {
@@ -209,14 +210,14 @@ func (s *StateCollector) StopCollectors() {
 
 	s.collectors.Range(func(key, value interface{}) bool {
 		s.collectors.Delete(key)
-		if key == types.CadvisorCollectorType {
-			c := value.(Collector)
-			if err := c.Stop(); err != nil {
-				klog.Errorf("Failed to stop the cadvisor manager.")
-			}
-		}
 		return true
 	})
+
+	if s.cadvisorCollect != nil {
+		if err := s.cadvisorCollect.Stop(); err != nil {
+			klog.Errorf("Failed to stop the cadvisor manager.")
+		}
+	}
 
 	return
 }
