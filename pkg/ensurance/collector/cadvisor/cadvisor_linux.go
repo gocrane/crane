@@ -39,13 +39,15 @@ type ContainerState struct {
 
 //CadvisorCollector is the collector to collect container state
 type CadvisorCollector struct {
-	Manager   cmanager.Manager
+	cmanager.Manager
 	podLister corelisters.PodLister
 
 	latestContainersStates map[string]ContainerState
 }
 
-func NewCadvisor(podLister corelisters.PodLister) *CadvisorCollector {
+var _ Interface = new(CadvisorCollector)
+
+func NewCadvisor(podLister corelisters.PodLister) Interface {
 
 	var includedMetrics = cadvisorcontainer.MetricSet{
 		cadvisorcontainer.CpuUsageMetrics:         struct{}{},
@@ -93,6 +95,14 @@ func (c *CadvisorCollector) GetType() types.CollectType {
 	return types.CadvisorCollectorType
 }
 
+func (c *CadvisorCollector) ContainerInfo(containerName string, query *info.ContainerInfoRequest) (*info.ContainerInfo, error) {
+	return c.GetContainerInfo(containerName, query)
+}
+
+func (c *CadvisorCollector) ContainerInfoV2(containerName string, options cadvisorapiv2.RequestOptions) (map[string]cadvisorapiv2.ContainerInfo, error) {
+	return c.GetContainerInfoV2(containerName, options)
+}
+
 func (c *CadvisorCollector) Collect() (map[string][]common.TimeSeries, error) {
 	var containerStates = make(map[string]ContainerState)
 
@@ -105,7 +115,7 @@ func (c *CadvisorCollector) Collect() (map[string][]common.TimeSeries, error) {
 	var stateMap = make(map[string][]common.TimeSeries)
 	for _, pod := range allPods {
 		var now = time.Now()
-		containers, err := c.Manager.GetContainerInfoV2(types.GetCgroupPath(pod), cadvisorapiv2.RequestOptions{
+		containers, err := c.ContainerInfoV2(types.GetCgroupPath(pod), cadvisorapiv2.RequestOptions{
 			IdType:    cadvisorapiv2.TypeName,
 			Count:     1,
 			Recursive: true,
