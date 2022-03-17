@@ -39,14 +39,27 @@ type ContainerState struct {
 
 //CadvisorCollector is the collector to collect container state
 type CadvisorCollector struct {
-	Manager   cmanager.Manager
+	Manager   Manager
 	podLister corelisters.PodLister
 
 	latestContainersStates map[string]ContainerState
 }
 
-func NewCadvisor(podLister corelisters.PodLister) *CadvisorCollector {
+type CadvisorManager struct {
+	cmanager.Manager
+}
 
+var _ Manager = new(CadvisorManager)
+
+func NewCadvisorCollector(podLister corelisters.PodLister, manager Manager) *CadvisorCollector {
+	c := CadvisorCollector{
+		Manager:   manager,
+		podLister: podLister,
+	}
+	return &c
+}
+
+func NewCadvisorManager() Manager {
 	var includedMetrics = cadvisorcontainer.MetricSet{
 		cadvisorcontainer.CpuUsageMetrics:         struct{}{},
 		cadvisorcontainer.ProcessSchedulerMetrics: struct{}{},
@@ -64,28 +77,18 @@ func NewCadvisor(podLister corelisters.PodLister) *CadvisorCollector {
 		return nil
 	}
 
-	c := CadvisorCollector{
-		Manager:   m,
-		podLister: podLister,
-	}
-
-	if err := c.Manager.Start(); err != nil {
+	if err := m.Start(); err != nil {
 		klog.Errorf("Failed to start cadvisor manager: %v", err)
 		return nil
 	}
 
-	return &c
+	return &CadvisorManager{
+		m,
+	}
 }
 
 // Stop cadvisor and clear existing factory
 func (c *CadvisorCollector) Stop() error {
-	if err := c.Manager.Stop(); err != nil {
-		return err
-	}
-
-	// clear existing factory
-	cadvisorcontainer.ClearContainerHandlerFactories()
-
 	return nil
 }
 

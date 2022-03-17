@@ -23,7 +23,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 
 	"github.com/gocrane/crane/pkg/ensurance/collector/cadvisor"
-	"github.com/gocrane/crane/pkg/ensurance/collector/types"
 	cruntime "github.com/gocrane/crane/pkg/ensurance/runtime"
 )
 
@@ -64,10 +63,10 @@ type AdvancedCpuManager struct {
 	// stateFileDirectory holds the directory where the state file for checkpoints is held.
 	stateFileDirectory string
 
-	collectors *sync.Map
+	cadvisor.Manager
 }
 
-func NewAdvancedCpuManager(podInformer coreinformers.PodInformer, runtimeEndpoint string, collectors *sync.Map) *AdvancedCpuManager {
+func NewAdvancedCpuManager(podInformer coreinformers.PodInformer, runtimeEndpoint string, cadvisorManager cadvisor.Manager) *AdvancedCpuManager {
 	runtimeClient, runtimeConn, err := cruntime.GetRuntimeClient(runtimeEndpoint, true)
 	if err != nil {
 		klog.Errorf("GetRuntimeClient failed %s", err.Error())
@@ -81,7 +80,7 @@ func NewAdvancedCpuManager(podInformer coreinformers.PodInformer, runtimeEndpoin
 		runtimeConn:        runtimeConn,
 		reconcilePeriod:    cpusetReconcilePeriod,
 		stateFileDirectory: stateFilePath,
-		collectors:         collectors,
+		Manager:            cadvisorManager,
 	}
 	//pod add actions need to handle quickly, delete/update can handle in loop laterly
 	podInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -107,13 +106,7 @@ func (m *AdvancedCpuManager) Name() string {
 
 func (m *AdvancedCpuManager) Run(stop <-chan struct{}) {
 	klog.Infof("Starting advanced cpu manager")
-	value, exists := m.collectors.Load(types.CadvisorCollectorType)
-	if !exists {
-		klog.Errorf("GetCadvisorCollector failed, %+v", m.collectors)
-		return
-	}
-	c := value.(*cadvisor.CadvisorCollector)
-	machineInfo, err := c.Manager.GetMachineInfo()
+	machineInfo, err := m.Manager.GetMachineInfo()
 	if err != nil {
 		klog.Errorf("GetMachineInfo failed %s", err.Error())
 		return
