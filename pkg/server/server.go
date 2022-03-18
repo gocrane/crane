@@ -67,15 +67,15 @@ func (s *apiServer) installGenericAPIs() {
 	}
 
 	// install healthz handler
-	s.GET("/healthz", func(c *gin.Context) {
+	s.GET("/api/healthz", func(c *gin.Context) {
 		ginwrapper.WriteResponse(c, nil, map[string]string{"status": "ok"})
 	})
 	// install version handler
-	s.GET("/version", func(c *gin.Context) {
+	s.GET("/api/version", func(c *gin.Context) {
 		ginwrapper.WriteResponse(c, nil, version.GetVersionInfo())
 	})
 
-	s.GET("/klog", func(c *gin.Context) {
+	s.GET("/api/klog", func(c *gin.Context) {
 		v := c.Query("v")
 		if v != "" {
 			err := flag.Lookup("v").Value.Set(v)
