@@ -30,30 +30,31 @@ func (a *aggregateSignals) Add(qc prediction.QueryExprWithCaller) bool {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
 
+	QueryExpr := qc.MetricNamer.BuildUniqueKey()
 	if qc.Config.DSP != nil {
 		cfg, err := makeInternalConfig(qc.Config.DSP)
 		if err != nil {
-			klog.ErrorS(err, "Failed to make internal config.", "queryExpr", qc.QueryExpr)
+			klog.ErrorS(err, "Failed to make internal config.", "queryExpr", QueryExpr)
 		} else {
-			a.configMap[qc.QueryExpr] = cfg
+			a.configMap[QueryExpr] = cfg
 		}
 	}
 
-	if _, exists := a.callerMap[qc.QueryExpr]; !exists {
-		a.callerMap[qc.QueryExpr] = map[string]struct{}{}
+	if _, exists := a.callerMap[QueryExpr]; !exists {
+		a.callerMap[QueryExpr] = map[string]struct{}{}
 	}
 
-	if status, exists := a.statusMap[qc.QueryExpr]; !exists || status == prediction.StatusDeleted {
-		a.statusMap[qc.QueryExpr] = prediction.StatusNotStarted
+	if status, exists := a.statusMap[QueryExpr]; !exists || status == prediction.StatusDeleted {
+		a.statusMap[QueryExpr] = prediction.StatusNotStarted
 	}
 
-	if _, exists := a.callerMap[qc.QueryExpr][qc.Caller]; exists {
+	if _, exists := a.callerMap[QueryExpr][qc.Caller]; exists {
 		return false
 	}
-	a.callerMap[qc.QueryExpr][qc.Caller] = struct{}{}
+	a.callerMap[QueryExpr][qc.Caller] = struct{}{}
 
-	if _, exists := a.signalMap[qc.QueryExpr]; !exists {
-		a.signalMap[qc.QueryExpr] = map[string]*aggregateSignal{}
+	if _, exists := a.signalMap[QueryExpr]; !exists {
+		a.signalMap[QueryExpr] = map[string]*aggregateSignal{}
 		return true
 	}
 
@@ -64,19 +65,20 @@ func (a *aggregateSignals) Delete(qc prediction.QueryExprWithCaller) bool /*need
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
 
-	if _, exists := a.callerMap[qc.QueryExpr]; !exists {
+	QueryExpr := qc.MetricNamer.BuildUniqueKey()
+	if _, exists := a.callerMap[QueryExpr]; !exists {
 		return true
 	}
 
-	delete(a.callerMap[qc.QueryExpr], qc.Caller)
-	if len(a.callerMap[qc.QueryExpr]) > 0 {
+	delete(a.callerMap[QueryExpr], qc.Caller)
+	if len(a.callerMap[QueryExpr]) > 0 {
 		return false
 	}
 
-	delete(a.callerMap, qc.QueryExpr)
-	delete(a.signalMap, qc.QueryExpr)
-	delete(a.configMap, qc.QueryExpr)
-	a.statusMap[qc.QueryExpr] = prediction.StatusDeleted
+	delete(a.callerMap, QueryExpr)
+	delete(a.signalMap, QueryExpr)
+	delete(a.configMap, QueryExpr)
+	a.statusMap[QueryExpr] = prediction.StatusDeleted
 	return true
 }
 

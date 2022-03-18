@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gocrane/crane/pkg/common"
+	"github.com/gocrane/crane/pkg/metricnaming"
 	"github.com/gocrane/crane/pkg/providers"
 )
 
@@ -29,12 +30,12 @@ func NewProvider(r io.Reader) (providers.Interface, error) {
 }
 
 // GetTimeSeries GetTimeSeries
-func (f *file) GetTimeSeries(_ string, _ []common.QueryCondition, start time.Time, end time.Time, step time.Duration) ([]*common.TimeSeries, error) {
+func (f *file) GetTimeSeries(_ metricnaming.MetricNamer, _ []common.QueryCondition, start time.Time, end time.Time, step time.Duration) ([]*common.TimeSeries, error) {
 	return []*common.TimeSeries{f.ts}, nil
 }
 
 // GetLatestTimeSeries GetLatestTimeSeries
-func (f *file) GetLatestTimeSeries(_ string, _ []common.QueryCondition) ([]*common.TimeSeries, error) {
+func (f *file) GetLatestTimeSeries(_ metricnaming.MetricNamer, _ []common.QueryCondition) ([]*common.TimeSeries, error) {
 	n := len(f.ts.Samples)
 	ts := &common.TimeSeries{
 		Labels:  f.ts.Labels,
@@ -44,12 +45,12 @@ func (f *file) GetLatestTimeSeries(_ string, _ []common.QueryCondition) ([]*comm
 }
 
 // QueryTimeSeries QueryTimeSeries
-func (f *file) QueryTimeSeries(_ string, _ time.Time, _ time.Time, _ time.Duration) ([]*common.TimeSeries, error) {
+func (f *file) QueryTimeSeries(_ metricnaming.MetricNamer, _ time.Time, _ time.Time, _ time.Duration) ([]*common.TimeSeries, error) {
 	return []*common.TimeSeries{f.ts}, nil
 }
 
 // QueryLatestTimeSeries QueryLatestTimeSeries
-func (f *file) QueryLatestTimeSeries(_ string) ([]*common.TimeSeries, error) {
+func (f *file) QueryLatestTimeSeries(_ metricnaming.MetricNamer) ([]*common.TimeSeries, error) {
 	n := len(f.ts.Samples)
 	ts := &common.TimeSeries{
 		Labels:  f.ts.Labels,

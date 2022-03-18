@@ -11,8 +11,6 @@ type AlgorithmModelConfig struct {
 }
 
 type Config struct {
-	Metric     *v1alpha1.MetricQuery
-	Expression *v1alpha1.ExpressionQuery
 	DSP        *v1alpha1.DSP
 	Percentile *v1alpha1.Percentile
 }

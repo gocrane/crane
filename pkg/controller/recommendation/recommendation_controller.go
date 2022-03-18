@@ -17,9 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
-	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
-
-	"github.com/gocrane/crane/pkg/prediction"
+	predictormgr "github.com/gocrane/crane/pkg/predictor"
 	"github.com/gocrane/crane/pkg/providers"
 	"github.com/gocrane/crane/pkg/recommend"
 )
@@ -27,13 +25,13 @@ import (
 // Controller is responsible for reconcile Recommendation
 type Controller struct {
 	client.Client
-	ConfigSet   *analysisv1alph1.ConfigSet
-	Scheme      *runtime.Scheme
-	Recorder    record.EventRecorder
-	RestMapper  meta.RESTMapper
-	ScaleClient scale.ScalesGetter
-	Predictors  map[predictionapi.AlgorithmType]prediction.Interface
-	Provider    providers.Interface
+	ConfigSet    *analysisv1alph1.ConfigSet
+	Scheme       *runtime.Scheme
+	Recorder     record.EventRecorder
+	RestMapper   meta.RESTMapper
+	ScaleClient  scale.ScalesGetter
+	PredictorMgr predictormgr.Manager
+	Provider     providers.History
 }
 
 func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -100,7 +98,7 @@ func (c *Controller) DoRecommend(ctx context.Context, recommendation *analysisv1
 
 	newStatus := recommendation.Status.DeepCopy()
 
-	recommender, err := recommend.NewRecommender(c.Client, c.RestMapper, c.ScaleClient, recommendation, c.Predictors, c.Provider, c.ConfigSet)
+	recommender, err := recommend.NewRecommender(c.Client, c.RestMapper, c.ScaleClient, recommendation, c.PredictorMgr, c.Provider, c.ConfigSet)
 	if err != nil {
 		c.Recorder.Event(recommendation, v1.EventTypeWarning, "FailedCreateRecommender", err.Error())
 		msg := fmt.Sprintf("Failed to create recommender, Recommendation %s error %v", klog.KObj(recommendation), err)

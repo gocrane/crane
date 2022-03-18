@@ -1,6 +1,7 @@
 package config
 
 import (
+	predictormgr "github.com/gocrane/crane/pkg/predictor"
 	"k8s.io/client-go/rest"
 
 	"github.com/gocrane/crane/pkg/server/service/dashboard"
@@ -19,6 +20,8 @@ type Config struct {
 
 	KubeRestConfig *rest.Config `json:"KubeRestConfig"`
 	StoreType      string       `json:"storeType"`
+
+	PredictorMgr predictormgr.Manager
 }
 
 func NewServerConfig() *Config {
