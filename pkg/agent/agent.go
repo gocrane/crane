@@ -68,7 +68,7 @@ func NewAgent(ctx context.Context,
 	}
 
 	if podResource := utilfeature.DefaultFeatureGate.Enabled(features.CranePodResource); podResource {
-		podResourceManager :=  resource.NewPodResourceManager(kubeClient, nodeName, podInformer, runtimeEndpoint, stateCollector.PodResourceChann, stateCollector.GetCollectors())
+		podResourceManager :=  resource.NewPodResourceManager(kubeClient, nodeName, podInformer, runtimeEndpoint, stateCollector.PodResourceChann, stateCollector.GetCadvisorManager())
 		managers = append(managers, podResourceManager)
 	}
 
