@@ -39,14 +39,27 @@ type ContainerState struct {
 
 //CadvisorCollector is the collector to collect container state
 type CadvisorCollector struct {
-	Manager   cmanager.Manager
+	Manager Manager
 	podLister corelisters.PodLister
 
 	latestContainersStates map[string]ContainerState
 }
 
-func NewCadvisor(podLister corelisters.PodLister) *CadvisorCollector {
+type CadvisorManager struct {
+	Manager cmanager.Manager
+}
 
+var _ Manager = new(CadvisorManager)
+
+func NewCadvisorCollector(podLister corelisters.PodLister, manager Manager) *CadvisorCollector {
+	c := CadvisorCollector{
+		Manager:   manager,
+		podLister: podLister,
+	}
+	return &c
+}
+
+func NewCadvisorManager() Manager {
 	var includedMetrics = cadvisorcontainer.MetricSet{
 		cadvisorcontainer.CpuUsageMetrics:         struct{}{},
 		cadvisorcontainer.ProcessSchedulerMetrics: struct{}{},
@@ -64,33 +77,31 @@ func NewCadvisor(podLister corelisters.PodLister) *CadvisorCollector {
 		return nil
 	}
 
-	c := CadvisorCollector{
-		Manager:   m,
-		podLister: podLister,
-	}
-
-	if err := c.Manager.Start(); err != nil {
+	if err := m.Start(); err != nil {
 		klog.Errorf("Failed to start cadvisor manager: %v", err)
 		return nil
 	}
 
-	return &c
+	return &CadvisorManager{
+		m,
+	}
 }
 
 // Stop cadvisor and clear existing factory
 func (c *CadvisorCollector) Stop() error {
-	if err := c.Manager.Stop(); err != nil {
-		return err
-	}
-
-	// clear existing factory
-	cadvisorcontainer.ClearContainerHandlerFactories()
-
 	return nil
 }
 
 func (c *CadvisorCollector) GetType() types.CollectType {
 	return types.CadvisorCollectorType
+}
+
+func (c *CadvisorManager) ContainerInfo(containerName string, query *info.ContainerInfoRequest) (*info.ContainerInfo, error) {
+	return c.Manager.GetContainerInfo(containerName, query)
+}
+
+func (c *CadvisorManager) ContainerInfoV2(containerName string, options cadvisorapiv2.RequestOptions) (map[string]cadvisorapiv2.ContainerInfo, error) {
+	return c.Manager.GetContainerInfoV2(containerName, options)
 }
 
 func (c *CadvisorCollector) Collect() (map[string][]common.TimeSeries, error) {
@@ -105,7 +116,7 @@ func (c *CadvisorCollector) Collect() (map[string][]common.TimeSeries, error) {
 	var stateMap = make(map[string][]common.TimeSeries)
 	for _, pod := range allPods {
 		var now = time.Now()
-		containers, err := c.Manager.GetContainerInfoV2(types.GetCgroupPath(pod), cadvisorapiv2.RequestOptions{
+		containers, err := c.Manager.ContainerInfoV2(types.GetCgroupPath(pod), cadvisorapiv2.RequestOptions{
 			IdType:    cadvisorapiv2.TypeName,
 			Count:     1,
 			Recursive: true,
@@ -126,7 +137,7 @@ func (c *CadvisorCollector) Collect() (map[string][]common.TimeSeries, error) {
 			// We used GetContainerInfo instead
 			// issue https://github.com/google/cadvisor/issues/3040
 			var query = info.ContainerInfoRequest{}
-			containerInfoV1, err := c.Manager.GetContainerInfo(key, &query)
+			containerInfoV1, err := c.Manager.ContainerInfo(key, &query)
 			if err != nil {
 				klog.Errorf("ContainerInfoRequest failed: %v", err)
 				continue

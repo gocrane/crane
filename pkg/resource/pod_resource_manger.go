@@ -3,7 +3,6 @@ package resource
 import (
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	info "github.com/google/cadvisor/info/v1"
@@ -19,7 +18,6 @@ import (
 
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/ensurance/collector/cadvisor"
-	"github.com/gocrane/crane/pkg/ensurance/collector/types"
 	stypes "github.com/gocrane/crane/pkg/ensurance/collector/types"
 	"github.com/gocrane/crane/pkg/ensurance/executor"
 	cgrpc "github.com/gocrane/crane/pkg/ensurance/grpc"
@@ -45,11 +43,11 @@ type PodResourceManager struct {
 	// Updated when get new data from stateChann, used to determine whether state has expired
 	lastStateTime time.Time
 
-	collectors *sync.Map
+	cadvisor.Manager
 }
 
 func NewPodResourceManager(client clientset.Interface, nodeName string, podInformer coreinformers.PodInformer,
-	runtimeEndpoint string, stateChann chan map[string][]common.TimeSeries, collectors *sync.Map) *PodResourceManager {
+	runtimeEndpoint string, stateChann chan map[string][]common.TimeSeries, cadvisorManager cadvisor.Manager) *PodResourceManager {
 	runtimeClient, runtimeConn, err := cruntime.GetRuntimeClient(runtimeEndpoint, true)
 	if err != nil {
 		klog.Errorf("GetRuntimeClient failed %s", err.Error())
@@ -64,7 +62,7 @@ func NewPodResourceManager(client clientset.Interface, nodeName string, podInfor
 		runtimeClient: runtimeClient,
 		runtimeConn:   runtimeConn,
 		stateChann:    stateChann,
-		collectors:    collectors,
+		Manager: cadvisorManager,
 	}
 	podInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
 		// Focused on pod belonged to this node
@@ -188,16 +186,12 @@ func (o *PodResourceManager) updatePodExtResToCgroup(pod *v1.Pod) {
 	metrics.UpdateDurationFromStart(string(known.ModulePodResourceManager), metrics.StepUpdatePodResource, start)
 }
 
-// Get cpu period from local if cadvisor collector exists and state is not expired;
+// Get cpu period from local state is not expired;
 // Otherwise, get value from CRI
 func (o *PodResourceManager) getCPUPeriod(pod *v1.Pod, containerId string) float64 {
-	value, exists := o.collectors.Load(types.CadvisorCollectorType)
-	if !exists {
-		return 0.0
-	}
 	now := time.Now()
 
-	if exists && o.state != nil && !now.After(o.lastStateTime.Add(StateExpiration)) {
+	if o.state != nil && !now.After(o.lastStateTime.Add(StateExpiration)) {
 		_, containerCPUPeriods := executor.GetPodUsage(string(stypes.MetricNameContainerCpuPeriod), o.state, pod)
 		for _, period := range containerCPUPeriods {
 			if period.ContainerId == containerId {
@@ -207,9 +201,8 @@ func (o *PodResourceManager) getCPUPeriod(pod *v1.Pod, containerId string) float
 	}
 
 	// Use CRI to get cpu period directly
-	c := value.(*cadvisor.CadvisorCollector)
 	var query = info.ContainerInfoRequest{}
-	containerInfoV1, err := c.Manager.GetContainerInfo(containerId, &query)
+	containerInfoV1, err := o.Manager.ContainerInfo(containerId, &query)
 	if err != nil {
 		metrics.PodResourceUpdateErrorCounterInc(metrics.SubComponentPodResource, metrics.StepGetPeriod)
 		klog.Errorf("ContainerInfoRequest failed for container %s: %v ", containerId, err)
