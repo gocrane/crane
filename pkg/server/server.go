@@ -17,6 +17,7 @@ import (
 
 	"github.com/gocrane/crane/pkg/server/config"
 	"github.com/gocrane/crane/pkg/server/ginwrapper"
+	"github.com/gocrane/crane/pkg/server/handler/prediction"
 	"github.com/gocrane/crane/pkg/server/middleware"
 	clustersrv "github.com/gocrane/crane/pkg/server/service/cluster"
 	dashboardsrv "github.com/gocrane/crane/pkg/server/service/dashboard"
@@ -54,6 +55,15 @@ func NewServer(cfg *config.Config) (*apiServer, error) {
 	return server, nil
 }
 
+func (s *apiServer) installPredictionDebugAPIs(ctx context.Context) {
+	debugHandler := prediction.NewDebugHandler(ctx)
+
+	debug := s.Group("/api/prediction/debug")
+	{
+		debug.GET(":namespace/:tsp", debugHandler.Display)
+	}
+}
+
 func (s *apiServer) installGenericAPIs() {
 	// install metric handler
 	if s.config.EnableMetrics {
@@ -83,7 +93,7 @@ func (s *apiServer) installGenericAPIs() {
 				ginwrapper.WriteResponse(c, err, nil)
 				return
 			}
-			klog.Infof("set log level to %v", v)
+			klog.Infof("Set log level to %v.", v)
 		}
 		ginwrapper.WriteResponse(c, nil, map[string]string{"status": "ok"})
 	})
@@ -91,7 +101,7 @@ func (s *apiServer) installGenericAPIs() {
 
 func (s *apiServer) installDefaultMiddlewares() {
 	for m, mw := range middleware.Middlewares {
-		klog.Infof("install crane api server middleware: %s", m)
+		klog.Infof("Install crane api server middleware: %s.", m)
 		s.Use(mw)
 	}
 }
@@ -136,7 +146,7 @@ func (s *apiServer) Run(ctx context.Context) {
 	s.installDefaultMiddlewares()
 	s.installGenericAPIs()
 	s.initRouter()
-
+	s.installPredictionDebugAPIs(ctx)
 	s.startGracefulShutDownManager(ctx)
 
 	go func() {

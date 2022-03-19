@@ -96,12 +96,37 @@ There are three types of the metric query:
 Now we only support prometheus as data source. We define the `MetricType` to orthogonal with the datasource. but now maybe some datasources do not support the metricType.
 
 ### Algorithm
-`Algorithm` define the algorithm type and params to do predict for the metric. Now there are two kinds of algorithms:
-
- - `dsp` is an algorithm to forcasting a time series, it is based on FFT(Fast Fourier Transform), it is good at predicting some time series with seasonality and periods.
- - `percentile` is an algorithm to estimate a time series, and find a recommended value to represent the past time series, it is based on exponentially-decaying weights historgram statistics. it is used to estimate a time series, it is not good at to predict a time sequences, although the percentile can output a time series predicted data, but it is all the same value. so if you want to predict a time sequences, dsp is a better choice.
+`Algorithm` defines the algorithm type and the corresponding parameters. Currently, crane provides two built-in prediction algorithms:
+ - `dsp` borrows some techniques from 'digital signal processing', such as FFT(Fast Fourier Transform), for periodicity identification and time series forecasting. It is good at predicting the time series that follow some cyclic patterns.
+ - `percentile` is an algorithm for finding a recommended value based on the historical data. It uses an exponentially-decaying weights histogram to hold the historical statistics information. As its name implies, this algorithm gives a predicted value according to a percentile (such as 99th) of the historical values in a time series.
+u
  
 
 #### dsp params
+Below 
+```yaml
+apiVersion: prediction.crane.io/v1alpha1
+kind: TimeSeriesPrediction
+metadata:
+  name: test
+  namespace: default
+spec:
+  predictionMetrics:
+    - resourceIdentifier: node-cpu
+      type: ResourceQuery
+      resourceQuery: cpu
+      algorithm:
+        algorithmType: "percentile"
+        percentile:
+          sampleInterval: "1m"
+          minSampleWeight: "1.0"
+          histogram:
+            maxValue: "10000.0"
+            epsilon: "1e-10"
+            halfLife: "12h"
+            bucketSize: "10"
+            firstBucketSize: "40"
+            bucketSizeGrowthRatio: "1.5"
+```
 
 #### percentile params 

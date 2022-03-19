@@ -14,11 +14,6 @@ import (
 	"github.com/gocrane/crane/pkg/providers"
 )
 
-const (
-	HistoryProvider  = "__history"
-	RealtimeProvider = "__realtime"
-)
-
 type Status string
 
 const (

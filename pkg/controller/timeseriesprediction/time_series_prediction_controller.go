@@ -56,7 +56,7 @@ func NewController(
 
 // Reconcile reconcile the time series prediction
 func (tc *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	klog.V(4).Infof("Got a time series prediction %v", req.NamespacedName)
+	klog.V(6).Infof("Got a time series prediction %v", req.NamespacedName)
 
 	p := &predictionapi.TimeSeriesPrediction{}
 	err := tc.Client.Get(ctx, req.NamespacedName, p)
