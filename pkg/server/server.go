@@ -54,6 +54,12 @@ func NewServer(cfg *config.Config) (*apiServer, error) {
 	return server, nil
 }
 
+func (s *apiServer) installPredictionDebugAPIs() {
+	s.GET("/api/prediction/dsp", func(c *gin.Context) {
+		c.Query()
+	})
+}
+
 func (s *apiServer) installGenericAPIs() {
 	// install metric handler
 	if s.config.EnableMetrics {
@@ -83,7 +89,7 @@ func (s *apiServer) installGenericAPIs() {
 				ginwrapper.WriteResponse(c, err, nil)
 				return
 			}
-			klog.Infof("set log level to %v", v)
+			klog.Infof("Set log level to %v.", v)
 		}
 		ginwrapper.WriteResponse(c, nil, map[string]string{"status": "ok"})
 	})
@@ -91,7 +97,7 @@ func (s *apiServer) installGenericAPIs() {
 
 func (s *apiServer) installDefaultMiddlewares() {
 	for m, mw := range middleware.Middlewares {
-		klog.Infof("install crane api server middleware: %s", m)
+		klog.Infof("Install crane api server middleware: %s.", m)
 		s.Use(mw)
 	}
 }
