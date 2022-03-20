@@ -73,7 +73,7 @@ func Debug(predictor *prediction.GenericPrediction, namer metricnaming.MetricNam
 	return nil, nil, nil, fmt.Errorf("no prediction result")
 }
 
-func queryHistoryTimeSeries(predictor prediction.GenericPrediction, namer metricnaming.MetricNamer, config *internalConfig) ([]*common.TimeSeries, error) {
+func queryHistoryTimeSeries(predictor *prediction.GenericPrediction, namer metricnaming.MetricNamer, config *internalConfig) ([]*common.TimeSeries, error) {
 	p := predictor.GetHistoryProvider()
 	if p == nil {
 		return nil, fmt.Errorf("history provider not provisioned")
