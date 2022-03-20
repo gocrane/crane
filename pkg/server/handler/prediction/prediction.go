@@ -6,6 +6,7 @@ import (
 	"github.com/gocrane/crane/pkg/prediction"
 	"github.com/gocrane/crane/pkg/prediction/dsp"
 	"net/http"
+	"unsafe"
 
 	"github.com/gin-gonic/gin"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -76,12 +77,15 @@ func (dh *DebugHandler) Display(c *gin.Context) {
 				ginwrapper.WriteResponse(c, err, nil)
 				return
 			}
-
+klog.Infof("WWWW MetricContext: %v", mc)
 			internalConf := mc.ConvertApiMetric2InternalConfig(&tsp.Spec.PredictionMetrics[0])
+klog.Infof("WWWW InternalConf: %v", internalConf)
 			namer := mc.GetMetricNamer(&tsp.Spec.PredictionMetrics[0])
-			predictor := interface{}(dh.predictorManager.GetPredictor(v1alpha1.AlgorithmTypeDSP)).(prediction.GenericPrediction)
+klog.Infof("WWWW namer: %v", namer)
+			p := dh.predictorManager.GetPredictor(v1alpha1.AlgorithmTypeDSP)
+			gp := (*prediction.GenericPrediction)(unsafe.Pointer(&p))
 klog.Infof("WWWWWW aaaaa")
-			history, test, estimate, err := dsp.Debug(predictor, namer, internalConf)
+			history, test, estimate, err := dsp.Debug(gp, namer, internalConf)
 			if err != nil {
 				ginwrapper.WriteResponse(c, err, nil)
 				return

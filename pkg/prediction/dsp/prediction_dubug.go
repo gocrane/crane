@@ -31,7 +31,7 @@ import (
 //targetSelectorFetcher := target.NewSelectorFetcher(mgr.GetScheme(), mgr.GetRESTMapper(), scaleClient, mgr.GetClient())
 
 
-func Debug(predictor prediction.GenericPrediction, namer metricnaming.MetricNamer, config *config.Config) (*Signal, *Signal, *Signal, error) {
+func Debug(predictor *prediction.GenericPrediction, namer metricnaming.MetricNamer, config *config.Config) (*Signal, *Signal, *Signal, error) {
 	internalConfig, err := makeInternalConfig(config.DSP)
 	if err != nil {
 		return nil, nil, nil, err
