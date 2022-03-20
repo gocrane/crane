@@ -2,16 +2,13 @@ package prediction
 
 import (
 	"context"
-	"github.com/go-echarts/go-echarts/v2/components"
-	"github.com/gocrane/crane/pkg/prediction"
-	"github.com/gocrane/crane/pkg/prediction/dsp"
-	"net/http"
-	"unsafe"
-
 	"github.com/gin-gonic/gin"
+	"github.com/go-echarts/go-echarts/v2/components"
+	"github.com/gocrane/crane/pkg/prediction/dsp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
+	"net/http"
 
 	craneclientset "github.com/gocrane/api/pkg/generated/clientset/versioned"
 	"github.com/gocrane/api/prediction/v1alpha1"
@@ -82,10 +79,10 @@ klog.Infof("WWWW MetricContext: %v", mc)
 klog.Infof("WWWW InternalConf: %v", *internalConf)
 			namer := mc.GetMetricNamer(&tsp.Spec.PredictionMetrics[0])
 klog.Infof("WWWW namer: %v", namer)
-			p := dh.predictorManager.GetPredictor(v1alpha1.AlgorithmTypeDSP)
-			gp := (*prediction.GenericPrediction)(unsafe.Pointer(&p))
-klog.Infof("WWWWWW gp: %v", gp)
-			history, test, estimate, err := dsp.Debug(gp, namer, internalConf)
+			pred := dh.predictorManager.GetPredictor(v1alpha1.AlgorithmTypeDSP)
+			//gp := (*prediction.GenericPrediction)(unsafe.Pointer(p))
+klog.Infof("WWWWWW p: %v", pred)
+			history, test, estimate, err := dsp.Debug(pred, namer, internalConf)
 			if err != nil {
 				ginwrapper.WriteResponse(c, err, nil)
 				return
