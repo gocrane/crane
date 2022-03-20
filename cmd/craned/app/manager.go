@@ -346,6 +346,22 @@ func runAll(ctx context.Context, mgr ctrl.Manager, predictorMgr predictor.Manage
 		if err != nil {
 			klog.Exit(err)
 		}
+
+		discoveryClientSet, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
+		if err != nil {
+			klog.Exit(err, "Unable to create discover client")
+		}
+
+		scaleKindResolver := scale.NewDiscoveryScaleKindResolver(discoveryClientSet)
+		scaleClient := scale.New(
+			discoveryClientSet.RESTClient(), mgr.GetRESTMapper(),
+			dynamic.LegacyAPIPathResolverFunc,
+			scaleKindResolver,
+		)
+		selectorFetcher := target.NewSelectorFetcher(mgr.GetScheme(), mgr.GetRESTMapper(), scaleClient, mgr.GetClient())
+
+		ctx = context.WithValue(ctx, "predictorManager", predictorMgr)
+		ctx = context.WithValue(ctx, "selectorFetcher", selectorFetcher)
 		craneServer.Run(ctx)
 		return nil
 	})

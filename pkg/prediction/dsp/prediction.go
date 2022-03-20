@@ -274,9 +274,9 @@ func (p *periodicSignalPrediction) updateAggregateSignals(queryExpr string, hist
 	var predictedTimeSeriesList []*common.TimeSeries
 
 	for _, ts := range historyTimeSeriesList {
-		if klog.V(6).Enabled() {
+		if klog.V(8).Enabled() {
 			sampleData, err := json.Marshal(ts.Samples)
-			klog.V(6).Infof("Got time series, queryExpr: %s, samples: %v, labels: %v, err: %v", queryExpr, string(sampleData), ts.Labels, err)
+			klog.V(8).Infof("Got time series, queryExpr: %s, samples: %v, labels: %v, err: %v", queryExpr, string(sampleData), ts.Labels, err)
 		}
 		var chosenEstimator Estimator
 		var signal *Signal
