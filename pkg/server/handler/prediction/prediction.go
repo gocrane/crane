@@ -79,12 +79,12 @@ func (dh *DebugHandler) Display(c *gin.Context) {
 			}
 klog.Infof("WWWW MetricContext: %v", mc)
 			internalConf := mc.ConvertApiMetric2InternalConfig(&tsp.Spec.PredictionMetrics[0])
-klog.Infof("WWWW InternalConf: %v", internalConf)
+klog.Infof("WWWW InternalConf: %v", *internalConf)
 			namer := mc.GetMetricNamer(&tsp.Spec.PredictionMetrics[0])
 klog.Infof("WWWW namer: %v", namer)
 			p := dh.predictorManager.GetPredictor(v1alpha1.AlgorithmTypeDSP)
 			gp := (*prediction.GenericPrediction)(unsafe.Pointer(&p))
-klog.Infof("WWWWWW aaaaa")
+klog.Infof("WWWWWW gp: %v", gp)
 			history, test, estimate, err := dsp.Debug(gp, namer, internalConf)
 			if err != nil {
 				ginwrapper.WriteResponse(c, err, nil)

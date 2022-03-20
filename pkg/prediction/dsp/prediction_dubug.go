@@ -36,7 +36,7 @@ func Debug(predictor *prediction.GenericPrediction, namer metricnaming.MetricNam
 	if err != nil {
 		return nil, nil, nil, err
 	}
-
+klog.Infof("WWWW internalConfig:%v", *internalConfig)
 	historyTimeSeriesList, err := queryHistoryTimeSeries(predictor, namer, internalConfig)
 	if err != nil {
 		return nil, nil, nil, err
@@ -78,17 +78,18 @@ func queryHistoryTimeSeries(predictor *prediction.GenericPrediction, namer metri
 	if p == nil {
 		return nil, fmt.Errorf("history provider not provisioned")
 	}
-
+klog.Infof("WWWW history: %v", p)
 	end := time.Now().Truncate(config.historyResolution)
 	start := end.Add(-config.historyDuration - time.Hour)
-
-	tsList, err := p.QueryTimeSeries(namer, start, end, config.historyResolution)
-	if err != nil {
-		klog.ErrorS(err, "Failed to query history time series.")
-		return nil, err
-	}
-
-	klog.V(6).InfoS("DSP debug | queryHistoryTimeSeries", "timeSeriesList", tsList, "config", *config)
-
-	return preProcessTimeSeriesList(tsList, config)
+klog.Infof("WWWW start: %v, end:%v", start, end)
+	//tsList, err := p.QueryTimeSeries(namer, start, end, config.historyResolution)
+	//if err != nil {
+	//	klog.ErrorS(err, "Failed to query history time series.")
+	//	return nil, err
+	//}
+	//
+	//klog.V(6).InfoS("DSP debug | queryHistoryTimeSeries", "timeSeriesList", tsList, "config", *config)
+	//
+	//return preProcessTimeSeriesList(tsList, config)
+	return []*common.TimeSeries{}, fmt.Errorf("dummy error")
 }
