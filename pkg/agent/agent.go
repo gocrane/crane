@@ -3,7 +3,6 @@ package agent
 import (
 	"context"
 	"fmt"
-	"github.com/gocrane/crane/pkg/ensurance/collector/cadvisor"
 	"net/http"
 	"strings"
 	"time"
@@ -33,6 +32,7 @@ import (
 	"github.com/gocrane/crane/pkg/ensurance/analyzer"
 	"github.com/gocrane/crane/pkg/ensurance/cm"
 	"github.com/gocrane/crane/pkg/ensurance/collector"
+	"github.com/gocrane/crane/pkg/ensurance/collector/cadvisor"
 	"github.com/gocrane/crane/pkg/ensurance/executor"
 	"github.com/gocrane/crane/pkg/ensurance/manager"
 	"github.com/gocrane/crane/pkg/features"

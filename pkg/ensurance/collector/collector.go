@@ -1,7 +1,6 @@
 package collector
 
 import (
-	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 	"sync"
 	"time"
 
@@ -9,6 +8,7 @@ import (
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog/v2"
+	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 
 	ensuranceListers "github.com/gocrane/api/pkg/generated/listers/ensurance/v1alpha1"
 	"github.com/gocrane/crane/pkg/common"
