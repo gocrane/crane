@@ -175,6 +175,21 @@ func (c *clusters) ListClusters(ctx context.Context) (*store.ClusterList, error)
 	return listClusterInSecret(secret)
 }
 
+func (c *clusters) ListNamespaces(ctx context.Context, clusterid string) (*store.NamespaceList, error) {
+	ns := &store.NamespaceList{}
+
+	namespaces, err := c.k8s.client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return ns, err
+	}
+	for _, namespace := range namespaces.Items {
+		ns.Items = append(ns.Items, namespace.Name)
+	}
+	ns.TotalCount = len(ns.Items)
+
+	return ns, nil
+}
+
 func NewClusters(datastore *datastore) store.ClusterStore {
 	return &clusters{k8s: datastore}
 }

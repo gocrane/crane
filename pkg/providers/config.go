@@ -45,3 +45,11 @@ func (auth *ClientAuth) Apply(req *http.Request) {
 type MockConfig struct {
 	SeedFile string
 }
+
+type DataSourceType string
+
+const (
+	MockDataSource         DataSourceType = "mock"
+	PrometheusDataSource   DataSourceType = "prom"
+	MetricServerDataSource DataSourceType = "metricserver"
+)

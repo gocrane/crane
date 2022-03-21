@@ -46,24 +46,46 @@ func (ch *ClusterHandler) AddClusters(c *gin.Context) {
 		return
 	}
 
-	clustersMap := map[string]*store.Cluster{}
+	if len(r.Clusters) == 0 {
+		ginwrapper.WriteResponse(c, fmt.Errorf("req is empty, check your input para"), nil)
+		return
+	}
+
+	clustersMap, err := ch.getClusterMap()
+	if err != nil {
+		ginwrapper.WriteResponse(c, err, nil)
+		return
+	}
 
 	for _, cluster := range r.Clusters {
-		if cluster.CraneUrl == "" || cluster.Id == "" || cluster.Name == "" {
-			err := fmt.Errorf("cluster CraneUrl, Id, Name field must not be empty")
+		if cluster.CraneUrl == "" || cluster.Name == "" {
+			err := fmt.Errorf("cluster CraneUrl, Name field must not be empty")
 			ginwrapper.WriteResponse(c, err, nil)
 			return
 		}
+
 		if !IsUrl(cluster.CraneUrl) {
 			err := fmt.Errorf("cluster CraneUrl %v is not valid url", cluster.CraneUrl)
 			ginwrapper.WriteResponse(c, err, nil)
 			return
 		}
+
+		if cluster.Id == "" {
+			cluster.Id = store.GenerateClusterName("cls")
+		}
+
 		if _, ok := clustersMap[cluster.Id]; ok {
 			err := fmt.Errorf("cluster id %v duplicated", cluster.Id)
 			ginwrapper.WriteResponse(c, err, nil)
 			return
 		}
+
+		if cluster.CraneUrlDuplicated(clustersMap) {
+			err := fmt.Errorf("cluster CraneUlr %v duplicated", cluster.CraneUrl)
+			ginwrapper.WriteResponse(c, err, nil)
+			return
+		}
+
 		clustersMap[cluster.Id] = cluster
 	}
 
@@ -92,6 +114,18 @@ func (ch *ClusterHandler) UpdateCluster(c *gin.Context) {
 	old.Name = r.Name
 	old.GrafanaUrl = r.GrafanaUrl
 	old.CraneUrl = r.CraneUrl
+
+	clustersMap, err := ch.getClusterMap()
+	if err != nil {
+		ginwrapper.WriteResponse(c, err, nil)
+		return
+	}
+
+	if r.CraneUrlDuplicated(clustersMap) {
+		err := fmt.Errorf("cluster CraneUlr %v duplicated", r.CraneUrl)
+		ginwrapper.WriteResponse(c, err, nil)
+		return
+	}
 
 	err = ch.clusterSrv.UpdateCluster(context.TODO(), old)
 	if err != nil {
@@ -123,7 +157,31 @@ func (ch *ClusterHandler) GetCluster(c *gin.Context) {
 	ginwrapper.WriteResponse(c, nil, getCluster)
 }
 
+// GetNamespaces return namespaces in specified cluster
+func (ch *ClusterHandler) ListNamespaces(c *gin.Context) {
+	getNamespaces, err := ch.clusterSrv.ListNamespaces(context.TODO(), c.Param("clusterid"))
+	if err != nil {
+		ginwrapper.WriteResponse(c, err, nil)
+		return
+	}
+	ginwrapper.WriteResponse(c, nil, getNamespaces)
+}
+
 func IsUrl(str string) bool {
 	u, err := url.Parse(str)
 	return err == nil && u.Scheme != "" && u.Host != ""
+}
+
+func (ch *ClusterHandler) getClusterMap() (map[string]*store.Cluster, error) {
+	clustersMap := map[string]*store.Cluster{}
+
+	clusterList, err := ch.clusterSrv.ListClusters(context.TODO())
+	if err != nil {
+		return nil, fmt.Errorf("list cluster err: %v", err)
+	}
+
+	for _, clu := range clusterList.Items {
+		clustersMap[clu.Id] = clu
+	}
+	return clustersMap, nil
 }

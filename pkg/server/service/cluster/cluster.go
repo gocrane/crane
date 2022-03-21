@@ -12,6 +12,7 @@ type Service interface {
 	UpdateCluster(ctx context.Context, cluster *store.Cluster) error
 	GetCluster(ctx context.Context, clusterid string) (*store.Cluster, error)
 	ListClusters(ctx context.Context) (*store.ClusterList, error)
+	ListNamespaces(ctx context.Context, clusterid string) (*store.NamespaceList, error)
 }
 
 type clusterService struct {
@@ -40,4 +41,8 @@ func (s *clusterService) GetCluster(ctx context.Context, clusterid string) (*sto
 
 func (s *clusterService) ListClusters(ctx context.Context) (*store.ClusterList, error) {
 	return s.datastore.Clusters().ListClusters(ctx)
+}
+
+func (s *clusterService) ListNamespaces(ctx context.Context, clusterid string) (*store.NamespaceList, error) {
+	return s.datastore.Clusters().ListNamespaces(ctx, clusterid)
 }

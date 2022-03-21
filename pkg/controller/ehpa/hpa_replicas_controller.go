@@ -23,7 +23,7 @@ type HPAReplicasController struct {
 }
 
 func (c *HPAReplicasController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	klog.Infof("Got hpa %s", req.NamespacedName)
+	klog.V(8).Infof("Got hpa %s", req.NamespacedName)
 
 	hpa := &autoscalingv2.HorizontalPodAutoscaler{}
 	if err := c.Client.Get(ctx, req.NamespacedName, hpa); err != nil {

@@ -5,18 +5,16 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog/v2"
 
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
+	"github.com/gocrane/crane/pkg/metricnaming"
+	"github.com/gocrane/crane/pkg/metricquery"
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/recommend/types"
 	"github.com/gocrane/crane/pkg/utils"
-)
-
-const (
-	cpuQueryExprTemplate = `irate(container_cpu_usage_seconds_total{container="%s",namespace="%s",pod=~"^%s.*$"}[3m])`
-	memQueryExprTemplate = `container_memory_working_set_bytes{container="%s",namespace="%s",pod=~"^%s.*$"}`
 )
 
 const callerFormat = "RecommendationCaller-%s"
@@ -90,7 +88,10 @@ func makeMemConfig(props map[string]string) *config.Config {
 func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 	r := &types.ResourceRequestRecommendation{}
 
-	p := a.Predictors[predictionapi.AlgorithmTypePercentile]
+	p := a.PredictorMgr.GetPredictor(predictionapi.AlgorithmTypePercentile)
+	if p == nil {
+		return fmt.Errorf("predictor %v not found", predictionapi.AlgorithmTypePercentile)
+	}
 
 	if len(a.Pods) == 0 {
 		return fmt.Errorf("pod not found")
@@ -98,8 +99,6 @@ func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) 
 
 	pod := a.Pods[0]
 	namespace := pod.Namespace
-	// todo
-	podNamePrefix := pod.OwnerReferences[0].Name + "-"
 
 	var queryExpr string
 	for _, c := range pod.Spec.Containers {
@@ -108,11 +107,11 @@ func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) 
 			Target:        map[corev1.ResourceName]string{},
 		}
 
-		queryExpr = fmt.Sprintf(cpuQueryExprTemplate, c.Name, namespace, podNamePrefix)
-		klog.V(8).Infof("CPU query for resource request recommendation: %s", queryExpr)
+		mericNamer := ResourceToContainerMetricNamer(namespace, pod.Name, c.Name, corev1.ResourceCPU)
+		klog.V(8).Infof("CPU query for resource request recommendation: %s", mericNamer.BuildUniqueKey())
 		cpuConfig := makeCpuConfig(a.ConfigProperties)
 		tsList, err := utils.QueryPredictedValuesOnce(a.Recommendation, p,
-			fmt.Sprintf(callerFormat, a.Recommendation.UID), cpuConfig, queryExpr)
+			fmt.Sprintf(callerFormat, a.Recommendation.UID), cpuConfig, mericNamer)
 		if err != nil {
 			return err
 		}
@@ -122,11 +121,11 @@ func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) 
 		v := int64(tsList[0].Samples[0].Value * 1000)
 		cr.Target[corev1.ResourceCPU] = resource.NewMilliQuantity(v, resource.DecimalSI).String()
 
-		queryExpr = fmt.Sprintf(memQueryExprTemplate, c.Name, namespace, podNamePrefix)
-		klog.V(8).Infof("Memory query for resource request recommendation: %s", queryExpr)
+		mericNamer = ResourceToContainerMetricNamer(namespace, pod.Name, c.Name, corev1.ResourceMemory)
+		klog.V(8).Infof("Memory query for resource request recommendation: %s", mericNamer.BuildUniqueKey())
 		memConfig := makeMemConfig(a.ConfigProperties)
 		tsList, err = utils.QueryPredictedValuesOnce(a.Recommendation, p,
-			fmt.Sprintf(callerFormat, a.Recommendation.UID), memConfig, queryExpr)
+			fmt.Sprintf(callerFormat, a.Recommendation.UID), memConfig, mericNamer)
 		if err != nil {
 			return err
 		}
@@ -145,4 +144,20 @@ func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) 
 
 func (a *ResourceRequestAdvisor) Name() string {
 	return "ResourceRequestAdvisor"
+}
+
+func ResourceToContainerMetricNamer(namespace, podname, containername string, resourceName corev1.ResourceName) metricnaming.MetricNamer {
+	// container
+	return &metricnaming.GeneralMetricNamer{
+		Metric: &metricquery.Metric{
+			Type:       metricquery.ContainerMetricType,
+			MetricName: resourceName.String(),
+			Container: &metricquery.ContainerNamerInfo{
+				Namespace:     namespace,
+				PodName:       podname,
+				ContainerName: containername,
+				Selector:      labels.Everything(),
+			},
+		},
+	}
 }

@@ -13,7 +13,7 @@ func (s *apiServer) installHandler() {
 
 	clusterHandler := clusters.NewClusterHandler(s.clusterSrv)
 
-	v1 := s.Group("/v1")
+	v1 := s.Group("/api/v1")
 	{
 		//dashboard panels
 		if s.config.EnableGrafana {
@@ -35,6 +35,12 @@ func (s *apiServer) installHandler() {
 			clustersv1.DELETE(":clusterid", clusterHandler.DeleteCluster)
 			clustersv1.PUT(":clusterid", clusterHandler.UpdateCluster)
 			clustersv1.GET(":clusterid", clusterHandler.GetCluster)
+		}
+
+		// namespaces
+		nsv1 := v1.Group("/namespaces")
+		{
+			nsv1.GET(":clusterid", clusterHandler.ListNamespaces)
 		}
 	}
 
