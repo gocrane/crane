@@ -111,14 +111,12 @@ func (pc *prometheusRateLimitClient) URL(ep string, args map[string]string) *url
 // Do implements prometheus client interface, wrapped with an auth info
 func (pc *prometheusRateLimitClient) Do(ctx gocontext.Context, req *http.Request) (*http.Response, []byte, error) {
 	pc.auth.Apply(req)
-	fmt.Println(pc.Runtime())
 	klog.V(4).InfoS("Prometheus rate limit", "ratelimit", pc.Runtime())
 	// block wait until at least one InFlight request finished if current inflighting requests reach the max limit, avoid many time consuming requests hit the prometheus.
 	// we use inflight to record the number of inflighting requests, because prometheus query is time-consuming when the range is large
 	// Caller will be blocked by lock if it reached maxFlight. so caller should set timeout for context and cancel it.
 	pc.increaseInFightWait()
 	defer pc.decreaseInFlightSignal()
-	fmt.Println(pc.Runtime())
 	return pc.client.Do(ctx, req)
 }
 

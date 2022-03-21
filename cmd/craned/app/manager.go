@@ -34,15 +34,15 @@ import (
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/oom"
-	"github.com/gocrane/crane/pkg/prediction"
-	"github.com/gocrane/crane/pkg/prediction/dsp"
-	"github.com/gocrane/crane/pkg/prediction/percentile"
+	"github.com/gocrane/crane/pkg/predictor"
 	"github.com/gocrane/crane/pkg/providers"
+	"github.com/gocrane/crane/pkg/providers/metricserver"
 	"github.com/gocrane/crane/pkg/providers/mock"
 	"github.com/gocrane/crane/pkg/providers/prom"
 	"github.com/gocrane/crane/pkg/recommend"
 	"github.com/gocrane/crane/pkg/server"
 	serverconfig "github.com/gocrane/crane/pkg/server/config"
+	"github.com/gocrane/crane/pkg/utils/target"
 	"github.com/gocrane/crane/pkg/webhooks"
 )
 
@@ -102,12 +102,16 @@ func Run(ctx context.Context, opts *options.Options) error {
 		klog.Error(err, "failed to add health check endpoint")
 		return err
 	}
+	// initialize data sources and predictor
+	realtimeDataSources, histroyDataSources, _ := initializationDataSource(mgr, opts)
+	predictorMgr := initializationPredictorManager(opts, realtimeDataSources, histroyDataSources)
 
 	initializationScheme()
 	initializationWebhooks(mgr, opts)
-	initializationControllers(ctx, mgr, opts)
+	initializationControllers(ctx, mgr, opts, predictorMgr, histroyDataSources[providers.PrometheusDataSource])
+	// initialization custom collector metrics
 	initializationMetricCollector(mgr)
-	runAll(ctx, mgr, opts)
+	runAll(ctx, mgr, predictorMgr, opts)
 
 	return nil
 }
@@ -152,8 +156,46 @@ func initializationWebhooks(mgr ctrl.Manager, opts *options.Options) {
 	}
 }
 
+func initializationDataSource(mgr ctrl.Manager, opts *options.Options) (map[providers.DataSourceType]providers.RealTime, map[providers.DataSourceType]providers.History, map[providers.DataSourceType]providers.Interface) {
+	realtimeDataSources := make(map[providers.DataSourceType]providers.RealTime)
+	historyDataSources := make(map[providers.DataSourceType]providers.History)
+	hybridDataSources := make(map[providers.DataSourceType]providers.Interface)
+	for _, datasource := range opts.DataSource {
+		switch strings.ToLower(datasource) {
+		case "metricserver":
+			provider, err := metricserver.NewProvider(mgr.GetConfig())
+			if err != nil {
+				klog.Exitf("unable to create datasource provider %v, err: %v", datasource, err)
+			}
+			realtimeDataSources[providers.MetricServerDataSource] = provider
+		case "mock":
+			provider, err := mock.NewProvider(&opts.DataSourceMockConfig)
+			if err != nil {
+				klog.Exitf("unable to create datasource provider %v, err: %v", datasource, err)
+			}
+			hybridDataSources[providers.MockDataSource] = provider
+		case "prometheus", "prom":
+			fallthrough
+		default:
+			// default is prom
+			provider, err := prom.NewProvider(&opts.DataSourcePromConfig)
+			if err != nil {
+				klog.Exitf("unable to create datasource provider %v, err: %v", datasource, err)
+			}
+			hybridDataSources[providers.PrometheusDataSource] = provider
+			realtimeDataSources[providers.PrometheusDataSource] = provider
+			historyDataSources[providers.PrometheusDataSource] = provider
+		}
+	}
+	return realtimeDataSources, historyDataSources, hybridDataSources
+}
+
+func initializationPredictorManager(opts *options.Options, realtimeDataSources map[providers.DataSourceType]providers.RealTime, historyDataSources map[providers.DataSourceType]providers.History) predictor.Manager {
+	return predictor.NewManager(realtimeDataSources, historyDataSources, predictor.DefaultPredictorsConfig(opts.AlgorithmModelConfig))
+}
+
 // initializationControllers setup controllers with manager
-func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *options.Options) {
+func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *options.Options, predictorMgr predictor.Manager, historyDataSource providers.History) {
 	discoveryClientSet, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
 	if err != nil {
 		klog.Exit(err, "Unable to create discover client")
@@ -219,50 +261,15 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 		}
 	}
 
-	var dataSource providers.Interface
-	switch strings.ToLower(opts.DataSource) {
-	case "prometheus", "prom":
-		dataSource, err = prom.NewProvider(&opts.DataSourcePromConfig)
-	case "mock":
-		dataSource, err = mock.NewProvider(&opts.DataSourceMockConfig)
-	default:
-		// default is prom
-		dataSource, err = prom.NewProvider(&opts.DataSourcePromConfig)
-	}
-	if err != nil {
-		klog.Exit(err, "unable to create controller", "controller", "TspController")
-	}
-
-	// algorithm provider inject data source
-	percentilePredictor := percentile.NewPrediction()
-	percentilePredictor.WithProviders(map[string]providers.Interface{
-		prediction.RealtimeProvider: dataSource,
-		prediction.HistoryProvider:  dataSource,
-	})
-	go percentilePredictor.Run(ctx.Done())
-
-	dspPredictor, err := dsp.NewPrediction(opts.AlgorithmModelConfig)
-	if err != nil {
-		klog.Exit(err, "unable to create controller", "controller", "TspController")
-	}
-	dspPredictor.WithProviders(map[string]providers.Interface{
-		prediction.RealtimeProvider: dataSource,
-		prediction.HistoryProvider:  dataSource,
-	})
-	go dspPredictor.Run(ctx.Done())
-
-	predictors := map[predictionapi.AlgorithmType]prediction.Interface{
-		predictionapi.AlgorithmTypePercentile: percentilePredictor,
-		predictionapi.AlgorithmTypeDSP:        dspPredictor,
-	}
-
+	targetSelectorFetcher := target.NewSelectorFetcher(mgr.GetScheme(), mgr.GetRESTMapper(), scaleClient, mgr.GetClient())
 	// TspController
 	if utilfeature.DefaultFeatureGate.Enabled(features.CraneTimeSeriesPrediction) {
 		tspController := timeseriesprediction.NewController(
 			mgr.GetClient(),
 			mgr.GetEventRecorderFor("time-series-prediction-controller"),
 			opts.PredictionUpdateFrequency,
-			predictors,
+			predictorMgr,
+			targetSelectorFetcher,
 		)
 		if err := tspController.SetupWithManager(mgr); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "TspController")
@@ -285,14 +292,14 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 			os.Exit(1)
 		}
 		if err := (&recommendation.Controller{
-			Client:      mgr.GetClient(),
-			ConfigSet:   configSet,
-			Scheme:      mgr.GetScheme(),
-			RestMapper:  mgr.GetRESTMapper(),
-			Recorder:    mgr.GetEventRecorderFor("recommendation-controller"),
-			ScaleClient: scaleClient,
-			Predictors:  predictors,
-			Provider:    dataSource,
+			Client:       mgr.GetClient(),
+			ConfigSet:    configSet,
+			Scheme:       mgr.GetScheme(),
+			RestMapper:   mgr.GetRESTMapper(),
+			Recorder:     mgr.GetEventRecorderFor("recommendation-controller"),
+			ScaleClient:  scaleClient,
+			PredictorMgr: predictorMgr,
+			Provider:     historyDataSource,
 		}).SetupWithManager(mgr); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "RecommendationController")
 		}
@@ -311,8 +318,13 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 	}
 }
 
-func runAll(ctx context.Context, mgr ctrl.Manager, opts *options.Options) {
+func runAll(ctx context.Context, mgr ctrl.Manager, predictorMgr predictor.Manager, opts *options.Options) {
 	var eg errgroup.Group
+
+	eg.Go(func() error {
+		predictorMgr.Start(ctx.Done())
+		return nil
+	})
 
 	eg.Go(func() error {
 		if err := mgr.Start(ctx); err != nil {

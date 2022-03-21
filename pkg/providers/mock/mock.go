@@ -12,6 +12,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/gocrane/crane/pkg/common"
+	"github.com/gocrane/crane/pkg/metricnaming"
 	"github.com/gocrane/crane/pkg/providers"
 )
 
@@ -70,7 +71,7 @@ func NewProvider(config *providers.MockConfig) (providers.Interface, error) {
 }
 
 // GetTimeSeries GetTimeSeries
-func (im inMemory) GetTimeSeries(_ string, _ []common.QueryCondition, start time.Time, end time.Time, step time.Duration) ([]*common.TimeSeries, error) {
+func (im inMemory) GetTimeSeries(_ metricnaming.MetricNamer, _ []common.QueryCondition, start time.Time, end time.Time, step time.Duration) ([]*common.TimeSeries, error) {
 	var next time.Time
 	var samples []common.Sample
 	var i int
@@ -102,7 +103,7 @@ func (im inMemory) GetTimeSeries(_ string, _ []common.QueryCondition, start time
 	return []*common.TimeSeries{{Labels: []common.Label{}, Samples: samples}}, nil
 }
 
-func (im inMemory) GetLatestTimeSeries(_ string, _ []common.QueryCondition) ([]*common.TimeSeries, error) {
+func (im inMemory) GetLatestTimeSeries(_ metricnaming.MetricNamer, _ []common.QueryCondition) ([]*common.TimeSeries, error) {
 	i := im.currentIndex
 	now := time.Now().Unix()
 	for ; i < len(im.samples); i++ {
@@ -116,11 +117,11 @@ func (im inMemory) GetLatestTimeSeries(_ string, _ []common.QueryCondition) ([]*
 }
 
 // QueryTimeSeries QueryTimeSeries
-func (im inMemory) QueryTimeSeries(_ string, start time.Time, end time.Time, step time.Duration) ([]*common.TimeSeries, error) {
-	return im.GetTimeSeries("", nil, start, end, step)
+func (im inMemory) QueryTimeSeries(namer metricnaming.MetricNamer, start time.Time, end time.Time, step time.Duration) ([]*common.TimeSeries, error) {
+	return im.GetTimeSeries(namer, nil, start, end, step)
 }
 
 // QueryLatestTimeSeries QueryLatestTimeSeries
-func (im inMemory) QueryLatestTimeSeries(_ string) ([]*common.TimeSeries, error) {
-	return im.GetLatestTimeSeries("", nil)
+func (im inMemory) QueryLatestTimeSeries(namer metricnaming.MetricNamer) ([]*common.TimeSeries, error) {
+	return im.GetLatestTimeSeries(namer, nil)
 }

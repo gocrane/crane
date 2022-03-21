@@ -5,69 +5,94 @@ import (
 	"sort"
 	"strings"
 
+	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog/v2"
 
-	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
-
-	"github.com/gocrane/crane/pkg/prediction"
+	"github.com/gocrane/crane/pkg/metricnaming"
+	"github.com/gocrane/crane/pkg/metricquery"
 	predconf "github.com/gocrane/crane/pkg/prediction/config"
+	predictormgr "github.com/gocrane/crane/pkg/predictor"
+	"github.com/gocrane/crane/pkg/utils/target"
 )
 
 type MetricContext struct {
 	Namespace        string
 	TargetKind       string
 	Name             string
+	APIVersion       string
+	Selector         labels.Selector
 	SeriesPrediction *predictionapi.TimeSeriesPrediction
-	predictors       map[predictionapi.AlgorithmType]prediction.Interface
+	predictorMgr     predictormgr.Manager
+	fetcher          target.SelectorFetcher
 }
 
-func NewMetricContext(seriesPrediction *predictionapi.TimeSeriesPrediction, predictors map[predictionapi.AlgorithmType]prediction.Interface) *MetricContext {
+func NewMetricContext(fetcher target.SelectorFetcher, seriesPrediction *predictionapi.TimeSeriesPrediction, predictorMgr predictormgr.Manager) (*MetricContext, error) {
 	c := &MetricContext{
 		Namespace:        seriesPrediction.Namespace,
 		TargetKind:       seriesPrediction.Spec.TargetRef.Kind,
 		Name:             seriesPrediction.Spec.TargetRef.Name,
+		APIVersion:       seriesPrediction.Spec.TargetRef.APIVersion,
 		SeriesPrediction: seriesPrediction,
-		predictors:       predictors,
+		predictorMgr:     predictorMgr,
+		fetcher:          fetcher,
 	}
 	if strings.ToLower(c.TargetKind) != strings.ToLower(predconf.TargetKindNode) && seriesPrediction.Spec.TargetRef.Namespace != "" {
 		c.Namespace = seriesPrediction.Spec.TargetRef.Namespace
 	}
-	return c
+	if strings.ToLower(c.TargetKind) != strings.ToLower(predconf.TargetKindNode) {
+		selector, err := c.fetcher.Fetch(&seriesPrediction.Spec.TargetRef)
+		if err != nil {
+			return nil, err
+		}
+		c.Selector = selector
+	}
+
+	return c, nil
 }
 
 func (c *MetricContext) GetCaller() string {
 	return fmt.Sprintf(callerFormat, klog.KObj(c.SeriesPrediction), c.SeriesPrediction.UID)
 }
 
-func (c *MetricContext) GetQueryStr(conf *predictionapi.PredictionMetric) string {
-	var queryStr string
+func (c *MetricContext) GetMetricNamer(conf *predictionapi.PredictionMetric) metricnaming.MetricNamer {
+	var namer metricnaming.GeneralMetricNamer
 	if conf.MetricQuery != nil {
 		klog.InfoS("GetQueryStr MetricQuery not supported", "tsp", klog.KObj(c.SeriesPrediction), "metricSelector", metricSelectorToQueryExpr(conf.MetricQuery))
-		return ""
+		return nil
 	}
 	if conf.ExpressionQuery != nil {
-		queryStr = conf.ExpressionQuery.Expression
+		namer.Metric = &metricquery.Metric{
+			Type:       metricquery.PromQLMetricType,
+			MetricName: conf.ResourceIdentifier,
+			Prom: &metricquery.PromNamerInfo{
+				QueryExpr: conf.ExpressionQuery.Expression,
+				Selector:  labels.Nothing(),
+			},
+		}
 		klog.InfoS("GetQueryStr", "tsp", klog.KObj(c.SeriesPrediction), "queryExpr", conf.ExpressionQuery.Expression)
 	}
 	if conf.ResourceQuery != nil {
-		queryStr = c.ResourceToPromQueryExpr(conf.ResourceQuery)
+		namer = c.ResourceToMetricNamer(conf.ResourceQuery)
 		klog.InfoS("GetQueryStr", "tsp", klog.KObj(c.SeriesPrediction), "resourceQuery", conf.ResourceQuery)
 	}
-	return queryStr
+	return &namer
 }
 
 func (c *MetricContext) WithApiConfig(conf *predictionapi.PredictionMetric) {
-
-	if predictor, ok := c.predictors[conf.Algorithm.AlgorithmType]; ok {
+	if predictor := c.predictorMgr.GetPredictor(conf.Algorithm.AlgorithmType); predictor != nil {
 		internalConf := c.ConvertApiMetric2InternalConfig(conf)
-		queryStr := c.GetQueryStr(conf)
-		err := predictor.WithQuery(c.GetQueryStr(conf), c.GetCaller(), *internalConf)
+		namer := c.GetMetricNamer(conf)
+		queryStr := namer.BuildUniqueKey()
+		err := predictor.WithQuery(namer, c.GetCaller(), *internalConf)
 		if err != nil {
 			klog.InfoS("WithApiConfig WithQuery registered failed", "tsp", klog.KObj(c.SeriesPrediction), "queryStr", queryStr)
 			return
 		}
 		klog.InfoS("WithApiConfig WithQuery registered succeed", "tsp", klog.KObj(c.SeriesPrediction), "queryStr", queryStr)
+	} else {
+		klog.InfoS("WithApiConfig predictor %v not found, ignore tsp %v", conf.Algorithm.AlgorithmType, klog.KObj(c.SeriesPrediction))
 	}
 }
 
@@ -78,15 +103,18 @@ func (c *MetricContext) WithApiConfigs(configs []predictionapi.PredictionMetric)
 }
 
 func (c *MetricContext) DeleteApiConfig(conf *predictionapi.PredictionMetric) {
-	queryStr := c.GetQueryStr(conf)
+	namer := c.GetMetricNamer(conf)
+	queryStr := namer.BuildUniqueKey()
 	klog.InfoS("DeleteApiConfig DeleteQuery", "tsp", klog.KObj(c.SeriesPrediction), "queryStr", queryStr)
-	if predictor, ok := c.predictors[conf.Algorithm.AlgorithmType]; ok {
-		err := predictor.DeleteQuery(queryStr, c.GetCaller())
+	if predictor := c.predictorMgr.GetPredictor(conf.Algorithm.AlgorithmType); predictor != nil {
+		err := predictor.DeleteQuery(namer, c.GetCaller())
 		if err != nil {
 			klog.InfoS("DeleteApiConfig DeleteQuery deleted failed", "tsp", klog.KObj(c.SeriesPrediction), "queryStr", queryStr)
 			return
 		}
 		klog.InfoS("DeleteApiConfig DeleteQuery deleted succeed", "tsp", klog.KObj(c.SeriesPrediction), "queryStr", queryStr)
+	} else {
+		klog.InfoS("DeleteApiConfig predictor %v not found, ignore tsp %v", conf.Algorithm.AlgorithmType, klog.KObj(c.SeriesPrediction))
 	}
 
 }
@@ -111,23 +139,34 @@ func metricSelectorToQueryExpr(m *predictionapi.MetricQuery) string {
 	return fmt.Sprintf("%s{%s}", m.MetricName, strings.Join(conditions, ","))
 }
 
-func (c *MetricContext) ResourceToPromQueryExpr(resourceName *corev1.ResourceName) string {
+func (c *MetricContext) ResourceToMetricNamer(resourceName *corev1.ResourceName) metricnaming.GeneralMetricNamer {
+	var namer metricnaming.GeneralMetricNamer
+
+	// Node
 	if strings.ToLower(c.TargetKind) == strings.ToLower(predconf.TargetKindNode) {
-		switch *resourceName {
-		case corev1.ResourceCPU:
-			return fmt.Sprintf(predconf.NodeCpuUsagePromQLFmtStr, c.Name, c.Name, "5m")
-		case corev1.ResourceMemory:
-			return fmt.Sprintf(predconf.NodeMemUsagePromQLFmtStr, c.Name, c.Name)
+		namer.Metric = &metricquery.Metric{
+			Type:       metricquery.NodeMetricType,
+			MetricName: resourceName.String(),
+			Node: &metricquery.NodeNamerInfo{
+				Name:     c.Name,
+				Selector: labels.Everything(),
+			},
 		}
 	} else {
-		switch *resourceName {
-		case corev1.ResourceCPU:
-			return fmt.Sprintf(predconf.WorkloadCpuUsagePromQLFmtStr, c.Namespace, c.Name, "5m")
-		case corev1.ResourceMemory:
-			return fmt.Sprintf(predconf.WorkloadMemUsagePromQLFmtStr, c.Namespace, c.Name)
+		// workload
+		namer.Metric = &metricquery.Metric{
+			Type:       metricquery.WorkloadMetricType,
+			MetricName: resourceName.String(),
+			Workload: &metricquery.WorkloadNamerInfo{
+				Namespace:  c.Namespace,
+				Kind:       c.TargetKind,
+				APIVersion: c.APIVersion,
+				Name:       c.Name,
+				Selector:   c.Selector,
+			},
 		}
 	}
-	return ""
+	return namer
 }
 
 // ConvertApiMetrics2InternalConfigs
@@ -141,23 +180,8 @@ func (c *MetricContext) ConvertApiMetrics2InternalConfigs(metrics []predictionap
 
 // ConvertApiMetric2InternalConfig
 func (c *MetricContext) ConvertApiMetric2InternalConfig(metric *predictionapi.PredictionMetric) *predconf.Config {
-	// transfer the workload to query
-	if metric.ResourceQuery != nil {
-		// todo: different data source has different querys.
-		expr := &predictionapi.ExpressionQuery{
-			Expression: c.ResourceToPromQueryExpr(metric.ResourceQuery),
-		}
-		return &predconf.Config{
-			Expression: expr,
-			DSP:        metric.Algorithm.DSP,
-			Percentile: metric.Algorithm.Percentile,
-		}
-	} else {
-		return &predconf.Config{
-			Metric:     metric.MetricQuery,
-			Expression: metric.ExpressionQuery,
-			DSP:        metric.Algorithm.DSP,
-			Percentile: metric.Algorithm.Percentile,
-		}
+	return &predconf.Config{
+		DSP:        metric.Algorithm.DSP,
+		Percentile: metric.Algorithm.Percentile,
 	}
 }

@@ -8,39 +8,49 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/scale"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
-	"github.com/gocrane/crane/pkg/prediction"
+	predictormgr "github.com/gocrane/crane/pkg/predictor"
+	"github.com/gocrane/crane/pkg/utils/target"
 )
 
 type Controller struct {
 	client.Client
-	Recorder     record.EventRecorder
-	UpdatePeriod time.Duration
+	Recorder      record.EventRecorder
+	UpdatePeriod  time.Duration
+	TargetFetcher target.SelectorFetcher
+	Scheme        *runtime.Scheme
+	RestMapper    meta.RESTMapper
+	ScaleClient   scale.ScalesGetter
 
 	// Per tsPredictionMap map stores last observed prediction together with a local time when it was observed.
 	tsPredictionMap sync.Map
 
 	lock sync.Mutex
 	// predictors used to do predict and config, maybe the predictor should running as a independent system not as a built-in goroutines evaluator
-	predictors map[predictionapi.AlgorithmType]prediction.Interface
+	predictorMgr predictormgr.Manager
 }
 
 func NewController(
 	client client.Client,
 	recorder record.EventRecorder,
 	updatePeriod time.Duration,
-	predictors map[predictionapi.AlgorithmType]prediction.Interface,
+	predictorMgr predictormgr.Manager,
+	targetFetcher target.SelectorFetcher,
 ) *Controller {
 	return &Controller{
-		Client:       client,
-		Recorder:     recorder,
-		UpdatePeriod: updatePeriod,
-		predictors:   predictors,
+		Client:        client,
+		Recorder:      recorder,
+		UpdatePeriod:  updatePeriod,
+		predictorMgr:  predictorMgr,
+		TargetFetcher: targetFetcher,
 	}
 }
 
@@ -54,7 +64,10 @@ func (tc *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Res
 		if errors.IsNotFound(err) {
 			if last, ok := tc.tsPredictionMap.Load(req.NamespacedName.String()); ok {
 				if tsp, ok := last.(*predictionapi.TimeSeriesPrediction); ok {
-					tc.removeTimeSeriesPrediction(tsp)
+					err := tc.removeTimeSeriesPrediction(tsp)
+					if err != nil {
+						return ctrl.Result{Requeue: true}, err
+					}
 					return ctrl.Result{}, nil
 				}
 				return ctrl.Result{}, fmt.Errorf("assert tsp failed for tsp %v in map", req.String())
@@ -80,7 +93,10 @@ func (tc *Controller) SetupWithManager(mgr ctrl.Manager) error {
 func (tc *Controller) syncTimeSeriesPrediction(ctx context.Context, tsp *predictionapi.TimeSeriesPrediction) (ctrl.Result, error) {
 	key := GetTimeSeriesPredictionKey(tsp)
 
-	c := NewMetricContext(tsp, tc.predictors)
+	c, err := NewMetricContext(tc.TargetFetcher, tsp, tc.predictorMgr)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
 	last, ok := tc.tsPredictionMap.Load(key)
 	if !ok { // first time created or system start
@@ -89,15 +105,13 @@ func (tc *Controller) syncTimeSeriesPrediction(ctx context.Context, tsp *predict
 		if old, ok := last.(*predictionapi.TimeSeriesPrediction); ok {
 			// predictor need a interface to query the config and then diff.
 			// now just diff the cache in the controller to decide, it can not cover all the cases when users modify the spec
-			for _, newMetricConf := range tsp.Spec.PredictionMetrics {
-				if !ExistsPredictionMetric(newMetricConf, old.Spec.PredictionMetrics) {
-					c.WithApiConfig(&newMetricConf)
-				}
-			}
 			for _, oldMetricConf := range old.Spec.PredictionMetrics {
 				if !ExistsPredictionMetric(oldMetricConf, tsp.Spec.PredictionMetrics) {
 					c.DeleteApiConfig(&oldMetricConf)
 				}
+			}
+			for _, newMetricConf := range tsp.Spec.PredictionMetrics {
+				c.WithApiConfig(&newMetricConf)
 			}
 		} else {
 			c.WithApiConfigs(tsp.Spec.PredictionMetrics)
@@ -110,12 +124,17 @@ func (tc *Controller) syncTimeSeriesPrediction(ctx context.Context, tsp *predict
 
 }
 
-func (tc *Controller) removeTimeSeriesPrediction(tsp *predictionapi.TimeSeriesPrediction) {
+func (tc *Controller) removeTimeSeriesPrediction(tsp *predictionapi.TimeSeriesPrediction) error {
 	klog.V(4).Infof("TimeSeriesPrediction %v deleted, delete metric config", klog.KObj(tsp))
-	c := NewMetricContext(tsp, tc.predictors)
+	c, err := NewMetricContext(tc.TargetFetcher, tsp, tc.predictorMgr)
+	if err != nil {
+		klog.Errorf("Failed to delete TimeSeriesPrediction %v: %v", klog.KObj(tsp), err)
+		return err
+	}
 	c.DeleteApiConfigs(tsp.Spec.PredictionMetrics)
 	key := GetTimeSeriesPredictionKey(tsp)
 	tc.tsPredictionMap.Delete(key)
+	return nil
 }
 
 func ExistsPredictionMetric(metric predictionapi.PredictionMetric, metrics []predictionapi.PredictionMetric) bool {

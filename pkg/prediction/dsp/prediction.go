@@ -11,9 +11,11 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/gocrane/crane/pkg/common"
+	"github.com/gocrane/crane/pkg/metricnaming"
 	"github.com/gocrane/crane/pkg/prediction"
 	"github.com/gocrane/crane/pkg/prediction/accuracy"
 	"github.com/gocrane/crane/pkg/prediction/config"
+	"github.com/gocrane/crane/pkg/providers"
 )
 
 var (
@@ -33,14 +35,18 @@ type periodicSignalPrediction struct {
 	modelConfig config.AlgorithmModelConfig
 }
 
-func NewPrediction(mc config.AlgorithmModelConfig) (prediction.Interface, error) {
+func NewPrediction(realtimeProvider providers.RealTime, historyProvider providers.History, mc config.AlgorithmModelConfig) prediction.Interface {
 	withCh, delCh := make(chan prediction.QueryExprWithCaller), make(chan prediction.QueryExprWithCaller)
 	return &periodicSignalPrediction{
-		GenericPrediction: prediction.NewGenericPrediction(withCh, delCh),
+		GenericPrediction: prediction.NewGenericPrediction(realtimeProvider, historyProvider, withCh, delCh),
 		a:                 newAggregateSignals(),
 		stopChMap:         sync.Map{},
 		modelConfig:       mc,
-	}, nil
+	}
+}
+
+func (p *periodicSignalPrediction) QueryRealtimePredictedValuesOnce(ctx context.Context, namer metricnaming.MetricNamer, config config.Config) ([]*common.TimeSeries, error) {
+	panic("implement me")
 }
 
 func preProcessTimeSeriesList(tsList []*common.TimeSeries, config *internalConfig) ([]*common.TimeSeries, error) {
@@ -154,12 +160,14 @@ func (p *periodicSignalPrediction) Run(stopCh <-chan struct{}) {
 				continue
 			}
 
-			if _, ok := p.stopChMap.Load(qc.QueryExpr); ok {
+			QueryExpr := qc.MetricNamer.BuildUniqueKey()
+			if _, ok := p.stopChMap.Load(QueryExpr); ok {
 				continue
 			}
-			klog.V(6).InfoS("Register a query expression for prediction.", "queryExpr", qc.QueryExpr, "caller", qc.Caller)
+			klog.V(6).InfoS("Register a query expression for prediction.", "queryExpr", QueryExpr, "caller", qc.Caller)
 
-			go func(queryExpr string) {
+			go func(namer metricnaming.MetricNamer) {
+				queryExpr := namer.BuildUniqueKey()
 				ticker := time.NewTicker(p.modelConfig.UpdateInterval)
 				defer ticker.Stop()
 
@@ -167,7 +175,7 @@ func (p *periodicSignalPrediction) Run(stopCh <-chan struct{}) {
 				predStopCh := v.(chan struct{})
 
 				for {
-					if err := p.updateAggregateSignalsWithQuery(queryExpr); err != nil {
+					if err := p.updateAggregateSignalsWithQuery(namer); err != nil {
 						klog.ErrorS(err, "Failed to updateAggregateSignalsWithQuery.")
 					}
 
@@ -179,18 +187,19 @@ func (p *periodicSignalPrediction) Run(stopCh <-chan struct{}) {
 						continue
 					}
 				}
-			}(qc.QueryExpr)
+			}(qc.MetricNamer)
 		}
 	}()
 
 	go func() {
 		for {
 			qc := <-p.DelCh
-			klog.V(4).InfoS("Unregister a query expression from prediction.", "queryExpr", qc.QueryExpr, "caller", qc.Caller)
+			QueryExpr := qc.MetricNamer.BuildUniqueKey()
+			klog.V(4).InfoS("Unregister a query expression from prediction.", "queryExpr", QueryExpr, "caller", qc.Caller)
 
 			go func(qc prediction.QueryExprWithCaller) {
 				if p.a.Delete(qc) {
-					val, loaded := p.stopChMap.LoadAndDelete(qc.QueryExpr)
+					val, loaded := p.stopChMap.LoadAndDelete(QueryExpr)
 					if loaded {
 						predStopCh := val.(chan struct{})
 						predStopCh <- struct{}{}
@@ -200,17 +209,22 @@ func (p *periodicSignalPrediction) Run(stopCh <-chan struct{}) {
 		}
 	}()
 
+	klog.Infof("predictor %v started", p.Name())
+
 	<-stopCh
+
+	klog.Infof("predictor %v stopped", p.Name())
 }
 
-func (p *periodicSignalPrediction) updateAggregateSignalsWithQuery(queryExpr string) error {
+func (p *periodicSignalPrediction) updateAggregateSignalsWithQuery(namer metricnaming.MetricNamer) error {
 	// Query history data for prediction
 	maxAttempts := 10
 	attempts := 0
 	var tsList []*common.TimeSeries
 	var err error
+	queryExpr := namer.BuildUniqueKey()
 	for attempts < maxAttempts {
-		tsList, err = p.queryHistoryTimeSeries(queryExpr)
+		tsList, err = p.queryHistoryTimeSeries(namer)
 		if err != nil {
 			attempts++
 			t := time.Second * time.Duration(math.Pow(2., float64(attempts)))
@@ -234,23 +248,24 @@ func (p *periodicSignalPrediction) updateAggregateSignalsWithQuery(queryExpr str
 	return nil
 }
 
-func (p *periodicSignalPrediction) queryHistoryTimeSeries(queryExpr string) ([]*common.TimeSeries, error) {
+func (p *periodicSignalPrediction) queryHistoryTimeSeries(namer metricnaming.MetricNamer) ([]*common.TimeSeries, error) {
 	if p.GetHistoryProvider() == nil {
 		return nil, fmt.Errorf("history provider not provisioned")
 	}
 
+	queryExpr := namer.BuildUniqueKey()
 	config := p.a.GetConfig(queryExpr)
 
 	end := time.Now().Truncate(config.historyResolution)
 	start := end.Add(-config.historyDuration - time.Hour)
 
-	tsList, err := p.GetHistoryProvider().QueryTimeSeries(queryExpr, start, end, config.historyResolution)
+	tsList, err := p.GetHistoryProvider().QueryTimeSeries(namer, start, end, config.historyResolution)
 	if err != nil {
 		klog.ErrorS(err, "Failed to query history time series.")
 		return nil, err
 	}
 
-	klog.V(6).InfoS("", "timeSeriesList", tsList, "config", *config)
+	klog.V(6).InfoS("dsp queryHistoryTimeSeries", "timeSeriesList", tsList, "config", *config)
 
 	return preProcessTimeSeriesList(tsList, config)
 }
@@ -363,19 +378,19 @@ func bestEstimator(id string, estimators []Estimator, signal *Signal, totalCycle
 	return bestEstimator
 }
 
-func (p *periodicSignalPrediction) QueryPredictedTimeSeries(ctx context.Context, queryExpr string, startTime time.Time, endTime time.Time) ([]*common.TimeSeries, error) {
-	return p.getPredictedTimeSeriesList(ctx, queryExpr, startTime, endTime), nil
+func (p *periodicSignalPrediction) QueryPredictedTimeSeries(ctx context.Context, namer metricnaming.MetricNamer, startTime time.Time, endTime time.Time) ([]*common.TimeSeries, error) {
+	return p.getPredictedTimeSeriesList(ctx, namer, startTime, endTime), nil
 }
 
-func (p *periodicSignalPrediction) QueryRealtimePredictedValues(ctx context.Context, queryExpr string) ([]*common.TimeSeries, error) {
-	config := p.a.GetConfig(
-		queryExpr)
+func (p *periodicSignalPrediction) QueryRealtimePredictedValues(ctx context.Context, namer metricnaming.MetricNamer) ([]*common.TimeSeries, error) {
+	queryExpr := namer.BuildUniqueKey()
+	config := p.a.GetConfig(queryExpr)
 
 	now := time.Now()
 	start := now.Truncate(config.historyResolution)
 	end := start.Add(defaultFuture)
 
-	predictedTimeSeries := p.getPredictedTimeSeriesList(ctx, queryExpr, start, end)
+	predictedTimeSeries := p.getPredictedTimeSeriesList(ctx, namer, start, end)
 
 	var realtimePredictedTimeSeries []*common.TimeSeries
 
@@ -397,11 +412,12 @@ func (p *periodicSignalPrediction) QueryRealtimePredictedValues(ctx context.Cont
 	return realtimePredictedTimeSeries, nil
 }
 
-func (p *periodicSignalPrediction) getPredictedTimeSeriesList(ctx context.Context, queryExpr string, start, end time.Time) []*common.TimeSeries {
+func (p *periodicSignalPrediction) getPredictedTimeSeriesList(ctx context.Context, namer metricnaming.MetricNamer, start, end time.Time) []*common.TimeSeries {
 	var predictedTimeSeriesList []*common.TimeSeries
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
 
+	queryExpr := namer.BuildUniqueKey()
 	for {
 		signals, status := p.a.GetSignals(queryExpr)
 		if status == prediction.StatusDeleted {
@@ -428,13 +444,13 @@ func (p *periodicSignalPrediction) getPredictedTimeSeriesList(ctx context.Contex
 					})
 				}
 
-				klog.Info("Got DSP predicted samples.", "queryExpr", queryExpr, "labels", key, "len", len(samples))
+				klog.InfoS("Got DSP predicted samples.", "queryExpr", queryExpr, "labels", key, "len", len(samples))
 			}
 			return predictedTimeSeriesList
 		}
 		select {
 		case <-ctx.Done():
-			klog.Info("Time out.")
+			klog.Infoln("Time out.")
 			return predictedTimeSeriesList
 		case <-ticker.C:
 			continue

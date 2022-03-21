@@ -4,22 +4,24 @@ import (
 	"time"
 
 	"github.com/gocrane/crane/pkg/common"
+	"github.com/gocrane/crane/pkg/metricnaming"
 )
 
 // Interface is a source of monitoring metric that provides metrics that can be used for
 // prediction, such as 'cpu usage', 'memory footprint', 'request per second (qps)', etc.
 type Interface interface {
-	// GetTimeSeries returns the metric time series that meet the given
-	// conditions from the specified time range.
-	GetTimeSeries(metricName string, Conditions []common.QueryCondition,
-		startTime time.Time, endTime time.Time, step time.Duration) ([]*common.TimeSeries, error)
+	RealTime
+	History
+}
 
-	// GetLatestTimeSeries returns the latest metric values that meet the given conditions.
-	GetLatestTimeSeries(metricName string, Conditions []common.QueryCondition) ([]*common.TimeSeries, error)
+// RealTime is a source of monitoring metric that provides data that is streamed data in current time.
+type RealTime interface {
+	// QueryLatestTimeSeries returns the latest metric values that meet the given metricNamer.
+	QueryLatestTimeSeries(metricNamer metricnaming.MetricNamer) ([]*common.TimeSeries, error)
+}
 
-	// QueryTimeSeries returns the time series based on a promql like query string.
-	QueryTimeSeries(queryExpr string, startTime time.Time, endTime time.Time, step time.Duration) ([]*common.TimeSeries, error)
-
-	// QueryLatestTimeSeries returns the latest metric values that meet the given query.
-	QueryLatestTimeSeries(queryExpr string) ([]*common.TimeSeries, error)
+// History is a data source can provides history time series data at any time periods.
+type History interface {
+	// QueryTimeSeries returns the time series that meet thw given metricNamer.
+	QueryTimeSeries(metricNamer metricnaming.MetricNamer, startTime time.Time, endTime time.Time, step time.Duration) ([]*common.TimeSeries, error)
 }
