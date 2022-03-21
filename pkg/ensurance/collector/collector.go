@@ -174,7 +174,7 @@ func (s *StateCollector) UpdateCollectors() {
 		}
 
 		if _, exists := s.collectors.Load(types.CadvisorCollectorType); !exists {
-			s.collectors.Store(types.CadvisorCollectorType, s.GetCadvisorManager())
+			s.collectors.Store(types.CadvisorCollectorType, cadvisor.NewCadvisorCollector(s.podLister, s.GetCadvisorManager()))
 		}
 		break
 	}
