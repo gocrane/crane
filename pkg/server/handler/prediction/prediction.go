@@ -94,7 +94,8 @@ klog.Infof("WWWWWW p: %v", pred)
 
 	klog.Infof("WWWWWWWWWWWWWWW\n")
 			page := components.NewPage()
-			page.AddCharts(history.Plot(), test.Plot(), estimate.Plot())
+			page.AddCharts(history.Plot())
+			page.AddCharts(plot([]*dsp.Signal{test, estimate}))
 			page.Render(c.Writer)
 			return
 		}
@@ -104,7 +105,7 @@ klog.Infof("WWWWWW p: %v", pred)
 	return
 }
 
-func Plot(signals []dsp.Signal, o ...charts.GlobalOpts) *charts.Line {
+func plot(signals []*dsp.Signal, o ...charts.GlobalOpts) *charts.Line {
 	if len(signals) < 1 {
 		return nil
 	}
