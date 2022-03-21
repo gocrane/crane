@@ -2,8 +2,12 @@ package prediction
 
 import (
 	"context"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/components"
+	"github.com/go-echarts/go-echarts/v2/opts"
+	"github.com/go-echarts/go-echarts/v2/types"
 	"github.com/gocrane/crane/pkg/prediction/dsp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
@@ -98,4 +102,44 @@ klog.Infof("WWWWWW p: %v", pred)
 
 	c.Writer.WriteHeader(http.StatusBadRequest)
 	return
+}
+
+func Plot(signals []dsp.Signal, o ...charts.GlobalOpts) *charts.Line {
+	if len(signals) < 1 {
+		return nil
+	}
+	s := signals[0]
+	n := signals[0].Num()
+	x := make([]string, 0)
+	y := make([][]opts.LineData, len(signals))
+	for j := 0; j < len(signals); j++ {
+		y[j] = make([]opts.LineData, 0)
+	}
+	for i := 0; i < n; i++ {
+		x = append(x, fmt.Sprintf("%.1f", float64(i)/s.SampleRate))
+		for j := 0; j < len(signals); j++ {
+			y[j] = append(y[j], opts.LineData{Value: signals[j].Samples[i], Symbol: "none"})
+		}
+
+	}
+
+	var colors []string = []string{"black", "blue", "green"}
+
+	line := charts.NewLine()
+	line.SetGlobalOptions(
+		charts.WithInitializationOpts(opts.Initialization{Width: "3000px", Theme: types.ThemeRoma}),
+		charts.WithTitleOpts(opts.Title{Title: s.String()}))
+	if o != nil {
+		line.SetGlobalOptions(o...)
+	}
+	line.SetXAxis(x)
+	for j := 0; j < len(signals); j++ {
+		line.AddSeries("s", y[j], charts.WithAreaStyleOpts(
+			opts.AreaStyle{
+				Color:   colors[j],
+				Opacity: 0.1,
+			}),
+			charts.WithLineStyleOpts(opts.LineStyle{Color: colors[j]}))
+	}
+	return line
 }
