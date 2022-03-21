@@ -141,7 +141,7 @@ func plot(signals []*dsp.Signal, names []string, o ...charts.GlobalOpts) *charts
 				Color:   colors[j],
 				Opacity: 0.1,
 			}),
-			charts.WithLineStyleOpts(opts.LineStyle{Color: colors[j]}),
+			//charts.WithLineStyleOpts(opts.LineStyle{Color: colors[j]}),
 		)
 	}
 	return line
