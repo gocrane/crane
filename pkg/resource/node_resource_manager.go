@@ -293,7 +293,15 @@ func (o *NodeResourceManager) GetCpuCoreCanNotBeReclaimedFromLocal() float64 {
 		klog.V(1).Infof("Can't get %s from NodeResourceManager local state", types.MetricNameExtResContainerCpuTotalUsage)
 	}
 
-	return nodeCpuUsageTotal - extResContainerCpuUsageTotal
+	var exclusiveCPUIdle float64 = 0
+	exclusiveCPUIdleTimeSeries, ok := o.state[string(types.MetricNameExclusiveCPUIdle)]
+	if ok {
+		exclusiveCPUIdle = exclusiveCPUIdleTimeSeries[0].Samples[0].Value
+	} else {
+		klog.V(1).Infof("Can't get %s from NodeResourceManager local state", types.MetricNameExclusiveCPUIdle)
+	}
+
+	return nodeCpuUsageTotal + exclusiveCPUIdle - extResContainerCpuUsageTotal
 }
 
 func getReserveResourcePercentFromNodeAnnotations(annotations map[string]string, resourceName string) (float64, bool) {

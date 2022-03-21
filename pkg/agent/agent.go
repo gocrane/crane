@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"fmt"
+	"github.com/gocrane/crane/pkg/ensurance/collector/cadvisor"
 	"net/http"
 	"strings"
 	"time"
@@ -73,17 +74,19 @@ func NewAgent(ctx context.Context,
 	}
 
 	utilruntime.Must(ensuranceapi.AddToScheme(scheme.Scheme))
-
-	stateCollector := collector.NewStateCollector(nodeName, nepInformer.Lister(), podInformer.Lister(), nodeInformer.Lister(), ifaces, healthCheck, CollectInterval)
+	cadvisorManager := cadvisor.NewCadvisorManager()
+	exclusiveCPUSet := cm.DefaultExclusiveCPUSet
+	if craneCpuSetManager := utilfeature.DefaultFeatureGate.Enabled(features.CraneCpuSetManager); craneCpuSetManager {
+		cpuManager := cm.NewAdvancedCpuManager(podInformer, runtimeEndpoint, cadvisorManager)
+		exclusiveCPUSet = cpuManager.GetExclusiveCpu
+		managers = appendManagerIfNotNil(managers, cpuManager)
+	}
+	stateCollector := collector.NewStateCollector(nodeName, nepInformer.Lister(), podInformer.Lister(), nodeInformer.Lister(), ifaces, healthCheck, CollectInterval, exclusiveCPUSet, cadvisorManager)
 	managers = appendManagerIfNotNil(managers, stateCollector)
 	analyzerManager := analyzer.NewAnormalyAnalyzer(kubeClient, nodeName, podInformer, nodeInformer, nepInformer, actionInformer, stateCollector.AnalyzerChann, noticeCh)
 	managers = appendManagerIfNotNil(managers, analyzerManager)
 	avoidanceManager := executor.NewActionExecutor(kubeClient, nodeName, podInformer, nodeInformer, noticeCh, runtimeEndpoint)
 	managers = appendManagerIfNotNil(managers, avoidanceManager)
-	if craneCpuSetManager := utilfeature.DefaultFeatureGate.Enabled(features.CraneCpuSetManager); craneCpuSetManager {
-		cpuManager := cm.NewAdvancedCpuManager(podInformer, runtimeEndpoint, stateCollector.GetCadvisorManager())
-		managers = appendManagerIfNotNil(managers, cpuManager)
-	}
 
 	if nodeResource := utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResource); nodeResource {
 		nodeResourceManager := resource.NewNodeResourceManager(kubeClient, nodeName, nodeResourceOptions.ReserveCpuPercentStr, nodeResourceOptions.ReserveMemoryPercentStr, agent.CreateNodeResourceTsp(), nodeInformer, tspInformer, stateCollector.NodeResourceChann)

@@ -26,6 +26,8 @@ const (
 	MetricNameCpuLoad5Min         MetricName = "cpu_load_5_min"
 	MetricNameCpuLoad15Min        MetricName = "cpu_load_15_min"
 
+	MetricNameExclusiveCPUIdle MetricName = "exclusive_cpu_idle"
+
 	MetricNameMemoryTotalUsage       MetricName = "memory_total_usage"
 	MetricNameMemoryTotalUtilization MetricName = "memory_total_utilization"
 

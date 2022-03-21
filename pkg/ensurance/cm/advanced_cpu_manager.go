@@ -41,6 +41,10 @@ const (
 	timeoutRetryAddContainer = 2 * time.Second
 )
 
+var DefaultExclusiveCPUSet = func() cpuset.CPUSet {
+	return cpuset.NewCPUSet()
+}
+
 type AdvancedCpuManager struct {
 	isStarted bool
 
@@ -293,6 +297,20 @@ func (m *AdvancedCpuManager) getSharedCpu() cpuset.CPUSet {
 		}
 	}
 	return sharedCPUSet
+}
+
+func (m *AdvancedCpuManager) GetExclusiveCpu() cpuset.CPUSet {
+	exclusiveCPUSet := cpuset.NewCPUSet()
+	for _, pod := range m.activepods() {
+		for _, container := range pod.Spec.Containers {
+			if cset, ok := m.state.GetCPUSet(string(pod.UID), container.Name); ok {
+				if csp := GetPodCPUSetType(pod, &container); csp == CPUSetExclusive {
+					exclusiveCPUSet = exclusiveCPUSet.Union(cset)
+				}
+			}
+		}
+	}
+	return exclusiveCPUSet
 }
 
 func (m *AdvancedCpuManager) activepods() []*v1.Pod {
