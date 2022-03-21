@@ -86,7 +86,7 @@ func (dh *DebugHandler) Display(c *gin.Context) {
 			}
 
 			page := components.NewPage()
-			page.AddCharts(plot(history, "green", "history", charts.WithTitleOpts(opts.Title{Title: "history"})))
+			page.AddCharts(plot(history, "history", "green", charts.WithTitleOpts(opts.Title{Title: "history"})))
 			page.AddCharts(plots([]*dsp.Signal{test, estimate}, []string{"actual", "forecasted"},
 				charts.WithTitleOpts(opts.Title{Title: "actual/forecasted"})))
 			page.Render(c.Writer)
