@@ -41,14 +41,14 @@ type ContainerState struct {
 
 //CadvisorCollector is the collector to collect container state
 type CadvisorCollector struct {
-	Manager Manager
+	Manager   Manager
 	podLister corelisters.PodLister
 
 	latestContainersStates map[string]ContainerState
 }
 
 type CadvisorManager struct {
-	Manager cmanager.Manager
+	cmanager.Manager
 }
 
 var _ Manager = new(CadvisorManager)

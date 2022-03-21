@@ -11,12 +11,7 @@ import (
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/ensurance/collector/types"
 )
-
 var errUnsupported = errors.New("cAdvisor is unsupported in this build")
-
-type CadvisorCollectorUnsupport struct {
-	Manager Manager
-}
 
 type CadvisorManagerUnsupport struct {
 }
@@ -41,11 +36,15 @@ func (c *CadvisorCollectorUnsupport) Collect() (map[string][]common.TimeSeries, 
 	return nil, errUnsupported
 }
 
-func (c *CadvisorManagerUnsupport) ContainerInfoV2(containerName string, options cadvisorapiv2.RequestOptions) (map[string]cadvisorapiv2.ContainerInfo, error) {
+func (m *CadvisorManagerUnsupport) GetContainerInfoV2(containerName string, options cadvisorapiv2.RequestOptions) (map[string]cadvisorapiv2.ContainerInfo, error) {
 	return nil, errUnsupported
 }
 
-func (c *CadvisorManagerUnsupport) ContainerInfo(string, *info.ContainerInfoRequest) (*info.ContainerInfo, error) {
+func (m *CadvisorManagerUnsupport) GetContainerInfo(containerName string, query *info.ContainerInfoRequest) (*info.ContainerInfo, error) {
+	return nil, errUnsupported
+}
+
+func (m *CadvisorManagerUnsupport) GetMachineInfo() (*info.MachineInfo, error) {
 	return nil, errUnsupported
 }
 

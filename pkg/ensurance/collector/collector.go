@@ -29,7 +29,7 @@ type StateCollector struct {
 	collectInterval   time.Duration
 	ifaces            []string
 	collectors        *sync.Map
-	cadvisorManager cadvisor.Manager
+	cadvisorManager   cadvisor.Manager
 	AnalyzerChann     chan map[string][]common.TimeSeries
 	NodeResourceChann chan map[string][]common.TimeSeries
 	PodResourceChann  chan map[string][]common.TimeSeries
@@ -53,7 +53,7 @@ func NewStateCollector(nodeName string, nepLister ensuranceListers.NodeQOSEnsura
 		NodeResourceChann: nodeResourceChann,
 		PodResourceChann:  podResourceChann,
 		collectors:        &sync.Map{},
-		cadvisorManager: c,
+		cadvisorManager:   c,
 	}
 }
 

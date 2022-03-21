@@ -6,6 +6,7 @@ import (
 )
 
 type Manager interface {
-	ContainerInfoV2(containerName string, options cadvisorapiv2.RequestOptions) (map[string]cadvisorapiv2.ContainerInfo, error)
-	ContainerInfo(containerName string, query *info.ContainerInfoRequest) (*info.ContainerInfo, error)
+	GetContainerInfoV2(containerName string, options cadvisorapiv2.RequestOptions) (map[string]cadvisorapiv2.ContainerInfo, error)
+	GetContainerInfo(containerName string, query *info.ContainerInfoRequest) (*info.ContainerInfo, error)
+	GetMachineInfo() (*info.MachineInfo, error)
 }

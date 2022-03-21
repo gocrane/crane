@@ -81,7 +81,7 @@ func NewAgent(ctx context.Context,
 	avoidanceManager := executor.NewActionExecutor(kubeClient, nodeName, podInformer, nodeInformer, noticeCh, runtimeEndpoint)
 	managers = appendManagerIfNotNil(managers, avoidanceManager)
 	if craneCpuSetManager := utilfeature.DefaultFeatureGate.Enabled(features.CraneCpuSetManager); craneCpuSetManager {
-		cpuManager := cm.NewAdvancedCpuManager(podInformer, runtimeEndpoint, stateCollector.GetCollectors())
+		cpuManager := cm.NewAdvancedCpuManager(podInformer, runtimeEndpoint, stateCollector.GetCadvisorManager())
 		managers = appendManagerIfNotNil(managers, cpuManager)
 	}
 
@@ -92,7 +92,7 @@ func NewAgent(ctx context.Context,
 
 	if podResource := utilfeature.DefaultFeatureGate.Enabled(features.CranePodResource); podResource {
 		podResourceManager := resource.NewPodResourceManager(kubeClient, nodeName, podInformer, runtimeEndpoint, stateCollector.PodResourceChann, stateCollector.GetCadvisorManager())
-		managers = append(managers, podResourceManager)
+		managers = appendManagerIfNotNil(managers, podResourceManager)
 	}
 
 	agent.managers = managers
