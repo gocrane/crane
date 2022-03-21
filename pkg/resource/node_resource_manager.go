@@ -53,8 +53,6 @@ type NodeResourceManager struct {
 
 	stateChann chan map[string][]common.TimeSeries
 
-	//TODO: use state to be a backup of tsp
-	// A copy of data from stateChann
 	state map[string][]common.TimeSeries
 	// Updated when get new data from stateChann, used to determine whether state has expired
 	lastStateTime time.Time
