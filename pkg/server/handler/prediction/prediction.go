@@ -57,8 +57,6 @@ func NewDebugHandler(ctx context.Context) *DebugHandler {
 func (dh *DebugHandler) Display(c *gin.Context) {
 	namespace := c.Param("namespace")
 	name := c.Param("tsp")
-	klog.Infof("WWWW Display %s/%s.", namespace, name)
-
 	if len(namespace) == 0 || len(name) == 0 {
 		c.Writer.WriteHeader(http.StatusBadRequest)
 		return
@@ -69,7 +67,6 @@ func (dh *DebugHandler) Display(c *gin.Context) {
 		ginwrapper.WriteResponse(c, err, nil)
 		return
 	}
-	klog.Infof("WWWW Got TimeSeriesPrediction %s/%s.", tsp.Namespace, tsp.Name)
 
 	if len(tsp.Spec.PredictionMetrics) > 0 {
 		if tsp.Spec.PredictionMetrics[0].Algorithm.AlgorithmType == v1alpha1.AlgorithmTypeDSP && tsp.Spec.PredictionMetrics[0].Algorithm.DSP != nil  {
@@ -78,24 +75,19 @@ func (dh *DebugHandler) Display(c *gin.Context) {
 				ginwrapper.WriteResponse(c, err, nil)
 				return
 			}
-klog.Infof("WWWW MetricContext: %v", mc)
+
 			internalConf := mc.ConvertApiMetric2InternalConfig(&tsp.Spec.PredictionMetrics[0])
-klog.Infof("WWWW InternalConf: %v", *internalConf)
 			namer := mc.GetMetricNamer(&tsp.Spec.PredictionMetrics[0])
-klog.Infof("WWWW namer: %v", namer)
 			pred := dh.predictorManager.GetPredictor(v1alpha1.AlgorithmTypeDSP)
-			//gp := (*prediction.GenericPrediction)(unsafe.Pointer(p))
-klog.Infof("WWWWWW p: %v", pred)
 			history, test, estimate, err := dsp.Debug(pred, namer, internalConf)
 			if err != nil {
 				ginwrapper.WriteResponse(c, err, nil)
 				return
 			}
 
-	klog.Infof("WWWWWWWWWWWWWWW\n")
 			page := components.NewPage()
 			page.AddCharts(history.Plot())
-			page.AddCharts(plot([]*dsp.Signal{test, estimate}))
+			page.AddCharts(plot([]*dsp.Signal{test, estimate}, []string{"actual", "forecasted"}))
 			page.Render(c.Writer)
 			return
 		}
@@ -105,7 +97,7 @@ klog.Infof("WWWWWW p: %v", pred)
 	return
 }
 
-func plot(signals []*dsp.Signal, o ...charts.GlobalOpts) *charts.Line {
+func plot(signals []*dsp.Signal, names []string, o ...charts.GlobalOpts) *charts.Line {
 	if len(signals) < 1 {
 		return nil
 	}
@@ -121,26 +113,36 @@ func plot(signals []*dsp.Signal, o ...charts.GlobalOpts) *charts.Line {
 		for j := 0; j < len(signals); j++ {
 			y[j] = append(y[j], opts.LineData{Value: signals[j].Samples[i], Symbol: "none"})
 		}
-
 	}
 
-	var colors []string = []string{"black", "blue", "green"}
+	var colors []string = []string{"blue", "green", "black"}
 
 	line := charts.NewLine()
 	line.SetGlobalOptions(
-		charts.WithInitializationOpts(opts.Initialization{Width: "3000px", Theme: types.ThemeRoma}),
+		charts.WithInitializationOpts(opts.Initialization{Width: "3000px", Theme: types.ThemeShine}),
+		charts.WithLegendOpts(
+			opts.Legend{
+				Show: true,
+				Data: names,
+			}),
+		charts.WithTooltipOpts(opts.Tooltip{
+			Show: true,
+			Trigger: "axis",
+			TriggerOn: "mousemove",
+		}),
 		charts.WithTitleOpts(opts.Title{Title: s.String()}))
 	if o != nil {
 		line.SetGlobalOptions(o...)
 	}
 	line.SetXAxis(x)
 	for j := 0; j < len(signals); j++ {
-		line.AddSeries("s", y[j], charts.WithAreaStyleOpts(
+		line.AddSeries(names[j], y[j], charts.WithAreaStyleOpts(
 			opts.AreaStyle{
 				Color:   colors[j],
 				Opacity: 0.1,
 			}),
-			charts.WithLineStyleOpts(opts.LineStyle{Color: colors[j]}))
+			charts.WithLineStyleOpts(opts.LineStyle{Color: colors[j]}),
+		)
 	}
 	return line
 }

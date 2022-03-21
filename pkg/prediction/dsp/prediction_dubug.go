@@ -12,31 +12,12 @@ import (
 	"github.com/gocrane/crane/pkg/prediction/config"
 )
 
-// makeInternalConfig
-// queryHistoryTimeSeries
-// isPeriodicTimeSeries
-//
-
-// How to get a MetricContext ?
-// func NewMetricContext(fetcher target.SelectorFetcher, seriesPrediction *predictionapi.TimeSeriesPrediction, predictorMgr predictormgr.Manager)
-// c, err := NewMetricContext(tc.TargetFetcher, tsPrediction, tc.predictorMgr)
-
-
-//scaleClient := scale.New(
-//	discoveryClientSet.RESTClient(), mgr.GetRESTMapper(),
-//	dynamic.LegacyAPIPathResolverFunc,
-//	scaleKindResolver,
-//)
-//
-//targetSelectorFetcher := target.NewSelectorFetcher(mgr.GetScheme(), mgr.GetRESTMapper(), scaleClient, mgr.GetClient())
-
-
 func Debug(predictor prediction.Interface, namer metricnaming.MetricNamer, config *config.Config) (*Signal, *Signal, *Signal, error) {
 	internalConfig, err := makeInternalConfig(config.DSP)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-klog.Infof("WWWW internalConfig:%v", *internalConfig)
+
 	historyTimeSeriesList, err := queryHistoryTimeSeries(predictor.(*periodicSignalPrediction), namer, internalConfig)
 	if err != nil {
 		return nil, nil, nil, err
@@ -78,17 +59,17 @@ func queryHistoryTimeSeries(predictor *periodicSignalPrediction, namer metricnam
 	if p == nil {
 		return nil, fmt.Errorf("history provider not provisioned")
 	}
-klog.Infof("WWWW history: %v", p)
+
 	end := time.Now().Truncate(config.historyResolution)
 	start := end.Add(-config.historyDuration - time.Hour)
-klog.Infof("WWWW start: %v, end:%v", start, end)
+
 	tsList, err := p.QueryTimeSeries(namer, start, end, config.historyResolution)
 	if err != nil {
 		klog.ErrorS(err, "Failed to query history time series.")
 		return nil, err
 	}
 
-	klog.V(4).InfoS("WWWW DSP debug | queryHistoryTimeSeries", "timeSeriesList", tsList, "config", *config)
+	klog.V(4).InfoS("DSP debug | queryHistoryTimeSeries", "timeSeriesList", tsList, "config", *config)
 
 	return preProcessTimeSeriesList(tsList, config)
 }
