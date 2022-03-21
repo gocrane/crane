@@ -84,7 +84,7 @@ func sysBlockDevices(sysBlockPath string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	devices := []string{}
+	devices := make([]string, 0)
 	for _, dir := range dirs {
 		devices = append(devices, dir.Name())
 	}

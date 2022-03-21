@@ -21,17 +21,25 @@ import (
 	predictionlisters "github.com/gocrane/api/pkg/generated/listers/prediction/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 	"github.com/gocrane/crane/pkg/common"
+	"github.com/gocrane/crane/pkg/ensurance/collector/types"
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
 const (
-	MinDeltaRatio     = 0.1
-	StateExpiration   = 1 * time.Minute
-	TspUpdateInterval = 20 * time.Second
-	TspNamespace      = "default"
+	MinDeltaRatio                                 = 0.1
+	StateExpiration                               = 1 * time.Minute
+	TspUpdateInterval                             = 20 * time.Second
+	TspNamespace                                  = "default"
+	NodeReserveResourcePercentageAnnotationPrefix = "reserve.node.gocrane.io/%s"
 )
+
+// ReserveResource is the cpu and memory reserve configuration
+type ReserveResource struct {
+	CpuPercent *float64
+	MemPercent *float64
+}
 
 type NodeResourceManager struct {
 	nodeName string
@@ -51,11 +59,16 @@ type NodeResourceManager struct {
 	// Updated when get new data from stateChann, used to determine whether state has expired
 	lastStateTime time.Time
 
+	reserveResource ReserveResource
+
 	tspName string
 }
 
-func NewNodeResourceManager(client clientset.Interface, nodeName string, podInformer coreinformers.PodInformer, nodeInformer coreinformers.NodeInformer,
-	tspInformer predictionv1.TimeSeriesPredictionInformer, runtimeEndpoint string, stateChann chan map[string][]common.TimeSeries) *NodeResourceManager {
+func NewNodeResourceManager(client clientset.Interface, nodeName string, reserveCpuPercentStr string,
+	reserveMemoryPercentStr string, tspName string, nodeInformer coreinformers.NodeInformer,
+	tspInformer predictionv1.TimeSeriesPredictionInformer, stateChann chan map[string][]common.TimeSeries) *NodeResourceManager {
+	reserveCpuPercent, _ := utils.ParsePercentage(reserveCpuPercentStr)
+	reserveMemoryPercent, _ := utils.ParsePercentage(reserveMemoryPercentStr)
 	o := &NodeResourceManager{
 		nodeName:   nodeName,
 		client:     client,
@@ -64,6 +77,11 @@ func NewNodeResourceManager(client clientset.Interface, nodeName string, podInfo
 		tspLister:  tspInformer.Lister(),
 		tspSynced:  tspInformer.Informer().HasSynced,
 		stateChann: stateChann,
+		reserveResource: ReserveResource{
+			CpuPercent: &reserveCpuPercent,
+			MemPercent: &reserveMemoryPercent,
+		},
+		tspName: tspName,
 	}
 	return o
 }
@@ -154,7 +172,7 @@ func (o *NodeResourceManager) getNode() *v1.Node {
 func (o *NodeResourceManager) FindTargetNode(tsp *predictionapi.TimeSeriesPrediction, addresses []v1.NodeAddress) (bool, error) {
 	address := tsp.Spec.TargetRef.Name
 	if address == "" {
-		return false, fmt.Errorf("Tsp %s target is not specified", tsp.Name)
+		return false, fmt.Errorf("tsp %s target is not specified", tsp.Name)
 	}
 
 	// the reason we use node ip instead of node name as the target name is
@@ -169,22 +187,69 @@ func (o *NodeResourceManager) FindTargetNode(tsp *predictionapi.TimeSeriesPredic
 }
 
 func (o *NodeResourceManager) BuildNodeStatus(tsp *predictionapi.TimeSeriesPrediction, node *v1.Node) {
-	idToResourceMap := map[string]*v1.ResourceName{}
-	for _, metrics := range tsp.Spec.PredictionMetrics {
-		if metrics.ResourceQuery == nil {
+	tspCanNotBeReclaimedResource := o.GetCanNotBeReclaimedResourceFromTsp(tsp)
+	localCanNotBeReclaimedResource := o.GetCanNotBeReclaimedResourceFromLocal()
+	reserveCpuPercent := o.reserveResource.CpuPercent
+	if nodeReserveCpuPercent, ok := getReserveResourcePercentFromNodeAnnotations(node.GetAnnotations(), v1.ResourceCPU.String()); ok {
+		reserveCpuPercent = &nodeReserveCpuPercent
+	}
+
+	for resourceName, value := range tspCanNotBeReclaimedResource {
+		maxUsage := value
+		if localCanNotBeReclaimedResource[resourceName] > maxUsage {
+			maxUsage = localCanNotBeReclaimedResource[resourceName]
+		}
+		var nextRecommendation float64
+		switch resourceName {
+		case v1.ResourceCPU:
+			// cpu need to be scaled to m as ext resource cannot be decimal
+			if reserveCpuPercent != nil {
+				nextRecommendation = (float64(node.Status.Allocatable.Cpu().Value())**reserveCpuPercent - maxUsage) * 1000
+			} else {
+				nextRecommendation = (float64(node.Status.Allocatable.Cpu().Value()) - maxUsage) * 1000
+			}
+		case v1.ResourceMemory:
+			// unit of memory in prometheus is in Ki, need to be converted to byte
+			nextRecommendation = float64(node.Status.Allocatable.Memory().Value()) - (maxUsage * 1000)
+		default:
 			continue
 		}
-		idToResourceMap[metrics.ResourceIdentifier] = metrics.ResourceQuery
+		if nextRecommendation < 0 {
+			nextRecommendation = 0
+		}
+		extResourceName := fmt.Sprintf(utils.ExtResourcePrefixFormat, string(resourceName))
+		resValue, exists := node.Status.Capacity[v1.ResourceName(extResourceName)]
+		if exists && resValue.Value() != 0 &&
+			math.Abs(float64(resValue.Value())-
+				nextRecommendation)/float64(resValue.Value()) <= MinDeltaRatio {
+			continue
+		}
+		node.Status.Capacity[v1.ResourceName(extResourceName)] =
+			*resource.NewQuantity(int64(nextRecommendation), resource.DecimalSI)
+		node.Status.Allocatable[v1.ResourceName(extResourceName)] =
+			*resource.NewQuantity(int64(nextRecommendation), resource.DecimalSI)
+	}
+}
+
+func (o *NodeResourceManager) GetCanNotBeReclaimedResourceFromTsp(tsp *predictionapi.TimeSeriesPrediction) map[v1.ResourceName]float64 {
+	idToResourceMap := map[string]v1.ResourceName{
+		v1.ResourceCPU.String():    v1.ResourceCPU,
+		v1.ResourceMemory.String(): v1.ResourceMemory,
+	}
+
+	canNotBeReclaimedResource := map[v1.ResourceName]float64{
+		v1.ResourceCPU:    0,
+		v1.ResourceMemory: 0,
 	}
 	// build node status
 	nextPredictionResourceStatus := &tsp.Status
-	for _, metrics := range nextPredictionResourceStatus.PredictionMetrics {
-		resourceName, exists := idToResourceMap[metrics.ResourceIdentifier]
+	for _, predictionMetric := range nextPredictionResourceStatus.PredictionMetrics {
+		resourceName, exists := idToResourceMap[predictionMetric.ResourceIdentifier]
 		if !exists {
 			continue
 		}
-		for _, timeSeries := range metrics.Prediction {
-			var maxUsage, nextUsage float64
+		for _, timeSeries := range predictionMetric.Prediction {
+			var nextUsage float64
 			var nextUsageFloat float64
 			var err error
 			for _, sample := range timeSeries.Samples {
@@ -193,36 +258,67 @@ func (o *NodeResourceManager) BuildNodeStatus(tsp *predictionapi.TimeSeriesPredi
 					continue
 				}
 				nextUsage = nextUsageFloat
-				if maxUsage < nextUsage {
-					maxUsage = nextUsage
+				if canNotBeReclaimedResource[resourceName] < nextUsage {
+					canNotBeReclaimedResource[resourceName] = nextUsage
 				}
 			}
-			var nextRecommendation float64
-			switch *resourceName {
-			case v1.ResourceCPU:
-				// cpu need to be scaled to m as ext resource cannot be decimal
-				nextRecommendation = (float64(node.Status.Allocatable.Cpu().Value()) - maxUsage) * 1000
-			case v1.ResourceMemory:
-				// unit of memory in prometheus is in Ki, need to be converted to byte
-				nextRecommendation = float64(node.Status.Allocatable.Memory().Value()) - (maxUsage * 1000)
-			default:
-				continue
-			}
-			if nextRecommendation < 0 {
-				klog.V(4).Infof("Unexpected recommendation,nodeName %s, maxUsage %v, nextRecommendation %v", node.Name, maxUsage, nextRecommendation)
-				continue
-			}
-			extResourceName := fmt.Sprintf(utils.ExtResourcePrefixFormat, string(*resourceName))
-			resValue, exists := node.Status.Capacity[v1.ResourceName(extResourceName)]
-			if exists && resValue.Value() != 0 &&
-				math.Abs(float64(resValue.Value())-
-					nextRecommendation)/float64(resValue.Value()) <= MinDeltaRatio {
-				continue
-			}
-			node.Status.Capacity[v1.ResourceName(extResourceName)] =
-				*resource.NewQuantity(int64(nextRecommendation), resource.DecimalSI)
-			node.Status.Allocatable[v1.ResourceName(extResourceName)] =
-				*resource.NewQuantity(int64(nextRecommendation), resource.DecimalSI)
 		}
 	}
+	return canNotBeReclaimedResource
+}
+
+func (o *NodeResourceManager) GetCanNotBeReclaimedResourceFromLocal() map[v1.ResourceName]float64 {
+	return map[v1.ResourceName]float64{
+		v1.ResourceCPU:    o.GetCpuCoreCanNotBeReclaimedFromLocal(),
+		v1.ResourceMemory: 0,
+	}
+}
+
+func (o *NodeResourceManager) GetCpuCoreCanNotBeReclaimedFromLocal() float64 {
+	if o.lastStateTime.Before(time.Now().Add(-20 * time.Second)) {
+		klog.V(1).Infof("NodeResourceManager local state has expired")
+		return 0
+	}
+
+	nodeCpuUsageTotalTimeSeries, ok := o.state[string(types.MetricNameCpuTotalUsage)]
+	if !ok {
+		klog.V(1).Infof("Can't get %s from NodeResourceManager local state", types.MetricNameCpuTotalUsage)
+		return 0
+	}
+	nodeCpuUsageTotal := nodeCpuUsageTotalTimeSeries[0].Samples[0].Value
+
+	var extResContainerCpuUsageTotal float64 = 0
+	extResContainerCpuUsageTotalTimeSeries, ok := o.state[string(types.MetricNameExtResContainerCpuTotalUsage)]
+	if ok {
+		extResContainerCpuUsageTotal = extResContainerCpuUsageTotalTimeSeries[0].Samples[0].Value
+	} else {
+		klog.V(1).Infof("Can't get %s from NodeResourceManager local state", types.MetricNameExtResContainerCpuTotalUsage)
+	}
+
+	return nodeCpuUsageTotal - extResContainerCpuUsageTotal
+}
+
+func getReserveResourcePercentFromNodeAnnotations(annotations map[string]string, resourceName string) (float64, bool) {
+	if annotations == nil {
+		return 0, false
+	}
+	var reserveResourcePercentStr string
+	var ok = false
+	switch resourceName {
+	case v1.ResourceCPU.String():
+		reserveResourcePercentStr, ok = annotations[fmt.Sprintf(NodeReserveResourcePercentageAnnotationPrefix, v1.ResourceCPU.String())]
+	case v1.ResourceMemory.String():
+		reserveResourcePercentStr, ok = annotations[fmt.Sprintf(NodeReserveResourcePercentageAnnotationPrefix, v1.ResourceMemory.String())]
+	default:
+	}
+	if !ok {
+		return 0, false
+	}
+
+	reserveResourcePercent, err := utils.ParsePercentage(reserveResourcePercentStr)
+	if err != nil {
+		return 0, false
+	}
+
+	return reserveResourcePercent, ok
 }

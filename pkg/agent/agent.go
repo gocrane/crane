@@ -7,14 +7,11 @@ import (
 	"strings"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/yaml"
-	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/apiserver/pkg/server/mux"
 	"k8s.io/apiserver/pkg/server/routes"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
@@ -23,12 +20,15 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/component-base/metrics/legacyregistry"
 	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 	craneclientset "github.com/gocrane/api/pkg/generated/clientset/versioned"
 	"github.com/gocrane/api/pkg/generated/informers/externalversions/ensurance/v1alpha1"
 	predictionv1 "github.com/gocrane/api/pkg/generated/informers/externalversions/prediction/v1alpha1"
 	v1alpha12 "github.com/gocrane/api/prediction/v1alpha1"
+	"github.com/gocrane/crane/cmd/crane-agent/app/options"
 	"github.com/gocrane/crane/pkg/ensurance/analyzer"
 	"github.com/gocrane/crane/pkg/ensurance/collector"
 	"github.com/gocrane/crane/pkg/ensurance/executor"
@@ -56,6 +56,7 @@ func NewAgent(ctx context.Context,
 	nepInformer v1alpha1.NodeQOSEnsurancePolicyInformer,
 	actionInformer v1alpha1.AvoidanceActionInformer,
 	tspInformer predictionv1.TimeSeriesPredictionInformer,
+	nodeResourceOptions options.NodeResourceOptions,
 	ifaces []string,
 	healthCheck *metrics.HealthCheck,
 	CollectInterval time.Duration,
@@ -80,7 +81,7 @@ func NewAgent(ctx context.Context,
 	managers = append(managers, avoidanceManager)
 
 	if nodeResource := utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResource); nodeResource {
-		nodeResourceManager := resource.NewNodeResourceManager(kubeClient, nodeName, podInformer, nodeInformer, tspInformer, runtimeEndpoint, stateCollector.NodeResourceChann)
+		nodeResourceManager := resource.NewNodeResourceManager(kubeClient, nodeName, nodeResourceOptions.ReserveCpuPercentStr, nodeResourceOptions.ReserveMemoryPercentStr, agent.CreateNodeResourceTsp(), nodeInformer, tspInformer, stateCollector.NodeResourceChann)
 		managers = append(managers, nodeResourceManager)
 	}
 
