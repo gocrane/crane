@@ -4,7 +4,6 @@
 package cadvisor
 
 import (
-	"k8s.io/apimachinery/pkg/api/resource"
 	"net/http"
 	"strconv"
 	"strings"
@@ -17,6 +16,7 @@ import (
 	cmanager "github.com/google/cadvisor/manager"
 	csysfs "github.com/google/cadvisor/utils/sysfs"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/labels"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog/v2"
