@@ -2,9 +2,17 @@ package agent
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/yaml"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	v1 "k8s.io/api/core/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apiserver/pkg/server/mux"
@@ -20,6 +28,7 @@ import (
 	craneclientset "github.com/gocrane/api/pkg/generated/clientset/versioned"
 	"github.com/gocrane/api/pkg/generated/informers/externalversions/ensurance/v1alpha1"
 	predictionv1 "github.com/gocrane/api/pkg/generated/informers/externalversions/prediction/v1alpha1"
+	v1alpha12 "github.com/gocrane/api/prediction/v1alpha1"
 	"github.com/gocrane/crane/pkg/ensurance/analyzer"
 	"github.com/gocrane/crane/pkg/ensurance/collector"
 	"github.com/gocrane/crane/pkg/ensurance/executor"
@@ -32,6 +41,7 @@ import (
 type Agent struct {
 	ctx         context.Context
 	name        string
+	nodeName    string
 	kubeClient  kubernetes.Interface
 	craneClient craneclientset.Interface
 	managers    []manager.Manager
@@ -52,6 +62,13 @@ func NewAgent(ctx context.Context,
 ) (*Agent, error) {
 	var managers []manager.Manager
 	var noticeCh = make(chan executor.AvoidanceExecutor)
+	agent := &Agent{
+		ctx:         ctx,
+		name:        getAgentName(nodeName),
+		nodeName:    nodeName,
+		kubeClient:  kubeClient,
+		craneClient: craneClient,
+	}
 
 	utilruntime.Must(ensuranceapi.AddToScheme(scheme.Scheme))
 
@@ -68,17 +85,13 @@ func NewAgent(ctx context.Context,
 	}
 
 	if podResource := utilfeature.DefaultFeatureGate.Enabled(features.CranePodResource); podResource {
-		podResourceManager :=  resource.NewPodResourceManager(kubeClient, nodeName, podInformer, runtimeEndpoint, stateCollector.PodResourceChann, stateCollector.GetCadvisorManager())
+		podResourceManager := resource.NewPodResourceManager(kubeClient, nodeName, podInformer, runtimeEndpoint, stateCollector.PodResourceChann, stateCollector.GetCadvisorManager())
 		managers = append(managers, podResourceManager)
 	}
 
-	return &Agent{
-		ctx:         ctx,
-		name:        getAgentName(nodeName),
-		kubeClient:  kubeClient,
-		craneClient: craneClient,
-		managers:    managers,
-	}, nil
+	agent.managers = managers
+
+	return agent, nil
 }
 
 func (a *Agent) Run(healthCheck *metrics.HealthCheck, enableProfiling bool, bindAddr string) {
@@ -109,5 +122,67 @@ func (a *Agent) Run(healthCheck *metrics.HealthCheck, enableProfiling bool, bind
 }
 
 func getAgentName(nodeName string) string {
-	return nodeName + "_" + string(uuid.NewUUID())
+	return nodeName + "." + string(uuid.NewUUID())
+}
+
+func (a *Agent) CreateNodeResourceTsp() string {
+	tsp, err := a.craneClient.PredictionV1alpha1().TimeSeriesPredictions(resource.TspNamespace).Get(context.TODO(), a.GenerateNodeResourceTspName(), metav1.GetOptions{})
+	if err == nil {
+		klog.V(4).Infof("Found old tsp %s in namespace %s", a.GenerateNodeResourceTspName(), resource.TspNamespace)
+		err := a.DeleteNodeResourceTsp()
+		if err != nil {
+			klog.Errorf("Delete old tsp %s with error: %v", a.GenerateNodeResourceTspName(), err)
+			return a.GenerateNodeResourceTspName()
+		}
+	}
+	config, err := a.kubeClient.CoreV1().ConfigMaps(resource.TspNamespace).Get(context.TODO(), "noderesource-tsp-template", metav1.GetOptions{})
+
+	if err != nil {
+		klog.Exitf("Get noderesource tsp configmap noderesource-tsp-template with error: %v", err)
+	}
+
+	if config == nil {
+		klog.Exitf("Can't get noderesource tsp configmap noderesource-tsp-template")
+	}
+
+	spec := v1alpha12.TimeSeriesPredictionSpec{}
+	err = yaml.Unmarshal([]byte(strings.Replace(config.Data["spec"], "{{nodename}}", a.nodeName, -1)), &spec)
+	if err != nil {
+		klog.Exitf("Convert spec template error: %v", err)
+	}
+
+	n, err := a.kubeClient.CoreV1().Nodes().Get(context.TODO(), a.nodeName, metav1.GetOptions{})
+	if err != nil {
+		klog.Exitf("Get node error: %v", err)
+	}
+
+	tsp = &v1alpha12.TimeSeriesPrediction{}
+
+	tsp.Name = a.GenerateNodeResourceTspName()
+	tsp.Namespace = resource.TspNamespace
+	gvk, _ := apiutil.GVKForObject(n, scheme.Scheme)
+	spec.TargetRef = v1.ObjectReference{
+		Kind:       gvk.Kind,
+		APIVersion: gvk.GroupVersion().String(),
+		Name:       a.nodeName,
+	}
+	tsp.Spec = spec
+	_ = controllerutil.SetControllerReference(n, tsp, scheme.Scheme)
+	_, err = a.craneClient.PredictionV1alpha1().TimeSeriesPredictions(tsp.Namespace).Create(context.TODO(), tsp, metav1.CreateOptions{})
+	if err != nil {
+		klog.Exitf("Create noderesource tsp %s with error: %v", a.GenerateNodeResourceTspName(), err)
+	}
+	return a.GenerateNodeResourceTspName()
+}
+
+func (a *Agent) DeleteNodeResourceTsp() error {
+	err := a.craneClient.PredictionV1alpha1().TimeSeriesPredictions(resource.TspNamespace).Delete(context.TODO(), a.GenerateNodeResourceTspName(), metav1.DeleteOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (a *Agent) GenerateNodeResourceTspName() string {
+	return fmt.Sprintf("noderesource-%s", a.name)
 }

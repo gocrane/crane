@@ -11,7 +11,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	corelisters "k8s.io/client-go/listers/core/v1"
@@ -24,7 +23,6 @@ import (
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/metrics"
-	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
@@ -32,6 +30,7 @@ const (
 	MinDeltaRatio     = 0.1
 	StateExpiration   = 1 * time.Minute
 	TspUpdateInterval = 20 * time.Second
+	TspNamespace      = "default"
 )
 
 type NodeResourceManager struct {
@@ -51,6 +50,8 @@ type NodeResourceManager struct {
 	state map[string][]common.TimeSeries
 	// Updated when get new data from stateChann, used to determine whether state has expired
 	lastStateTime time.Time
+
+	tspName string
 }
 
 func NewNodeResourceManager(client clientset.Interface, nodeName string, podInformer coreinformers.PodInformer, nodeInformer coreinformers.NodeInformer,
@@ -107,9 +108,9 @@ func (o *NodeResourceManager) Run(stop <-chan struct{}) {
 }
 
 func (o *NodeResourceManager) UpdateNodeResource() {
-	tsps, err := o.tspLister.List(labels.Everything())
+	tsp, err := o.tspLister.TimeSeriesPredictions(TspNamespace).Get(o.tspName)
 	if err != nil {
-		klog.Errorf("Failed to list tsp: %#v", err)
+		klog.Errorf("Failed to get tsp: %#v", err)
 		return
 	}
 
@@ -119,35 +120,25 @@ func (o *NodeResourceManager) UpdateNodeResource() {
 		return
 	}
 	nodeCopy := node.DeepCopy()
+	tspMatched, err := o.FindTargetNode(tsp, node.Status.Addresses)
+	if err != nil {
+		klog.Error(err.Error())
+	}
 
-	for _, tsp := range tsps {
-		// Get current node info
-		target := tsp.Spec.TargetRef
-		if target.Kind != config.TargetKindNode {
-			return
-		}
-
-		// Whether tsp is matched with this node
-		tspMatched, err := o.FindTargetNode(tsp, node.Status.Addresses)
-		if err != nil {
-			klog.Error(err.Error())
-		}
-
-		if !tspMatched {
-			return
-		}
-
-		o.BuildNodeStatus(tsp, nodeCopy)
-		if !equality.Semantic.DeepEqual(&node.Status, &nodeCopy.Status) {
-			// Update Node status extend-resource info
-			// TODO fix: strategic merge patch kubernetes
-			if _, err := o.client.CoreV1().Nodes().Update(context.TODO(), nodeCopy, metav1.UpdateOptions{}); err != nil {
-				klog.Errorf("Failed to update node %s's status extend-resource, %v", nodeCopy.Name, err)
-				return
-			}
-			klog.V(4).Infof("Update Node %s Extend Resource Success according to TSP %s", node.Name, tsp.Name)
-		}
+	if !tspMatched {
+		klog.Errorf("Found tsp %s, but tsp not matched to node %s", o.tspName, node.Name)
 		return
+	}
+
+	o.BuildNodeStatus(tsp, nodeCopy)
+	if !equality.Semantic.DeepEqual(&node.Status, &nodeCopy.Status) {
+		// Update Node status extend-resource info
+		// TODO fix: strategic merge patch kubernetes
+		if _, err := o.client.CoreV1().Nodes().Update(context.TODO(), nodeCopy, metav1.UpdateOptions{}); err != nil {
+			klog.Errorf("Failed to update node %s's status extend-resource, %v", nodeCopy.Name, err)
+			return
+		}
+		klog.V(4).Infof("Update Node %s Extend Resource Success according to TSP %s", node.Name, tsp.Name)
 	}
 }
 
