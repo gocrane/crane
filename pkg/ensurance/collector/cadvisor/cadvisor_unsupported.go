@@ -11,6 +11,7 @@ import (
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/ensurance/collector/types"
 )
+
 var errUnsupported = errors.New("cAdvisor is unsupported in this build")
 
 type CadvisorManagerUnsupport struct {

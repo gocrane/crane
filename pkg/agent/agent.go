@@ -100,6 +100,8 @@ func NewAgent(ctx context.Context,
 
 	agent.managers = managers
 
+	metrics.RegisterResourceMetrics(agent.nodeName, podInformer.Lister(), cadvisorManager, exclusiveCPUSet)
+
 	return agent, nil
 }
 
@@ -128,6 +130,8 @@ func (a *Agent) Run(healthCheck *metrics.HealthCheck, enableProfiling bool, bind
 	}()
 
 	<-a.ctx.Done()
+
+	_ = a.DeleteNodeResourceTsp()
 }
 
 func getAgentName(nodeName string) string {

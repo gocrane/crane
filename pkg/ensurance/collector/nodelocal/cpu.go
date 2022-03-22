@@ -27,9 +27,9 @@ func init() {
 }
 
 type CpuTimeStampState struct {
-	stat      cpu.TimesStat
-	perStat   map[int]cpu.TimesStat
-	timestamp time.Time
+	Stat      cpu.TimesStat
+	PerStat   map[int]cpu.TimesStat
+	Timestamp time.Time
 }
 
 func collectCPU(nodeLocalContext *nodeLocalContext) (map[string][]common.TimeSeries, error) {
@@ -44,32 +44,37 @@ func collectCPU(nodeLocalContext *nodeLocalContext) (map[string][]common.TimeSer
 		}
 	}
 
-	stats, err := cpu.Times(true)
+	totalCpuStat, err := cpu.Times(false)
+	if err != nil {
+		return nil, err
+	}
+	if len(totalCpuStat) != 1 {
+		return nil, fmt.Errorf("len totalCpuStat is not 1")
+	}
+
+	perCpuStats, err := cpu.Times(true)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(stats) == 0 {
-		return nil, fmt.Errorf("len stat is 0")
+	if len(perCpuStats) == 0 {
+		return nil, fmt.Errorf("len perCpuStats is 0")
 	}
 
 	currentCpuState := &CpuTimeStampState{
-		timestamp: now,
+		Timestamp: now,
+		Stat:      totalCpuStat[0],
 	}
 
 	statsMap := make(map[int]cpu.TimesStat)
-	for _, stat := range stats {
-		if stat.CPU == "cpu-total" {
-			currentCpuState.stat = stat
-			continue
-		}
+	for _, stat := range perCpuStats {
 		cpuId, err := strconv.ParseInt(strings.TrimPrefix(stat.CPU, "cpu"), 10, 64)
 		if err != nil {
 			continue
 		}
 		statsMap[int(cpuId)] = stat
 	}
-	currentCpuState.perStat = statsMap
+	currentCpuState.PerStat = statsMap
 
 	// if the latest cpu state is empty, to initialize it
 	if nodeState.latestCpuState == nil {
@@ -77,18 +82,18 @@ func collectCPU(nodeLocalContext *nodeLocalContext) (map[string][]common.TimeSer
 		return nil, errors.New(types.CollectInitErrorText)
 	}
 
-	usagePercent := calculateBusy(nodeState.latestCpuState.stat, currentCpuState.stat)
+	usagePercent := CalculateBusy(nodeState.latestCpuState.Stat, currentCpuState.Stat)
 	usageCore := usagePercent * float64(nodeState.cpuCoreNumbers) * 1000 / types.MaxPercentage
 
 	cpuSet := nodeLocalContext.exclusiveCPUSet()
 	var exclusiveCPUIdle float64 = 0
 
-	for cpuId, stat := range currentCpuState.perStat {
+	for cpuId, stat := range currentCpuState.PerStat {
 		if !cpuSet.Contains(cpuId) {
 			continue
 		}
-		if oldStat, ok := nodeState.latestCpuState.perStat[cpuId]; ok {
-			exclusiveCPUIdle += calculateIdle(oldStat, stat) * 1000 / types.MaxPercentage
+		if oldStat, ok := nodeState.latestCpuState.PerStat[cpuId]; ok {
+			exclusiveCPUIdle += CalculateIdle(oldStat, stat) * 1000 / types.MaxPercentage
 		}
 	}
 
@@ -125,7 +130,7 @@ func collectCPULoad(_ *nodeLocalContext) (map[string][]common.TimeSeries, error)
 	return data, nil
 }
 
-func calculateBusy(stat1 cpu.TimesStat, stat2 cpu.TimesStat) float64 {
+func CalculateBusy(stat1 cpu.TimesStat, stat2 cpu.TimesStat) float64 {
 	stat1All, stat1Busy := getAllBusy(stat1)
 	stat2All, stat2Busy := getAllBusy(stat2)
 
@@ -143,7 +148,7 @@ func getAllBusy(stat cpu.TimesStat) (float64, float64) {
 	return busy + stat.Idle, busy
 }
 
-func calculateIdle(stat1 cpu.TimesStat, stat2 cpu.TimesStat) float64 {
+func CalculateIdle(stat1 cpu.TimesStat, stat2 cpu.TimesStat) float64 {
 	stat1All, stat1Idle := getAllIdle(stat1)
 	stat2All, stat2Idle := getAllIdle(stat2)
 	if stat2Idle <= stat1Idle {

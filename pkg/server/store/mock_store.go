@@ -129,6 +129,21 @@ func (mr *MockClusterStoreMockRecorder) ListClusters(arg0 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClusters", reflect.TypeOf((*MockClusterStore)(nil).ListClusters), arg0)
 }
 
+// ListNamespaces mocks base method.
+func (m *MockClusterStore) ListNamespaces(arg0 context.Context, arg1 string) (*NamespaceList, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListNamespaces", arg0, arg1)
+	ret0, _ := ret[0].(*NamespaceList)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListNamespaces indicates an expected call of ListNamespaces.
+func (mr *MockClusterStoreMockRecorder) ListNamespaces(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNamespaces", reflect.TypeOf((*MockClusterStore)(nil).ListNamespaces), arg0, arg1)
+}
+
 // UpdateCluster mocks base method.
 func (m *MockClusterStore) UpdateCluster(arg0 context.Context, arg1 *Cluster) error {
 	m.ctrl.T.Helper()

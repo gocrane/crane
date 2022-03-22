@@ -301,11 +301,13 @@ func (m *AdvancedCpuManager) getSharedCpu() cpuset.CPUSet {
 
 func (m *AdvancedCpuManager) GetExclusiveCpu() cpuset.CPUSet {
 	exclusiveCPUSet := cpuset.NewCPUSet()
-	for _, pod := range m.activepods() {
-		for _, container := range pod.Spec.Containers {
-			if cset, ok := m.state.GetCPUSet(string(pod.UID), container.Name); ok {
-				if csp := GetPodCPUSetType(pod, &container); csp == CPUSetExclusive {
-					exclusiveCPUSet = exclusiveCPUSet.Union(cset)
+	if m.isStarted{
+		for _, pod := range m.activepods() {
+			for _, container := range pod.Spec.Containers {
+				if cset, ok := m.state.GetCPUSet(string(pod.UID), container.Name); ok {
+					if csp := GetPodCPUSetType(pod, &container); csp == CPUSetExclusive {
+						exclusiveCPUSet = exclusiveCPUSet.Union(cset)
+					}
 				}
 			}
 		}

@@ -150,7 +150,7 @@ func (o *NodeResourceManager) UpdateNodeResource() {
 	if !equality.Semantic.DeepEqual(&node.Status, &nodeCopy.Status) {
 		// Update Node status extend-resource info
 		// TODO fix: strategic merge patch kubernetes
-		if _, err := o.client.CoreV1().Nodes().Update(context.TODO(), nodeCopy, metav1.UpdateOptions{}); err != nil {
+		if _, err := o.client.CoreV1().Nodes().UpdateStatus(context.TODO(), nodeCopy, metav1.UpdateOptions{}); err != nil {
 			klog.Errorf("Failed to update node %s's status extend-resource, %v", nodeCopy.Name, err)
 			return
 		}
@@ -186,7 +186,9 @@ func (o *NodeResourceManager) FindTargetNode(tsp *predictionapi.TimeSeriesPredic
 
 func (o *NodeResourceManager) BuildNodeStatus(tsp *predictionapi.TimeSeriesPrediction, node *v1.Node) {
 	tspCanNotBeReclaimedResource := o.GetCanNotBeReclaimedResourceFromTsp(tsp)
+	klog.V(6).Infof("tspCanNotBeReclaimedResource: %v", tspCanNotBeReclaimedResource)
 	localCanNotBeReclaimedResource := o.GetCanNotBeReclaimedResourceFromLocal()
+	klog.V(6).Infof("localCanNotBeReclaimedResource: %v", localCanNotBeReclaimedResource)
 	reserveCpuPercent := o.reserveResource.CpuPercent
 	if nodeReserveCpuPercent, ok := getReserveResourcePercentFromNodeAnnotations(node.GetAnnotations(), v1.ResourceCPU.String()); ok {
 		reserveCpuPercent = &nodeReserveCpuPercent
@@ -215,6 +217,7 @@ func (o *NodeResourceManager) BuildNodeStatus(tsp *predictionapi.TimeSeriesPredi
 		if nextRecommendation < 0 {
 			nextRecommendation = 0
 		}
+		klog.V(6).Infof("nextRecommendation: %v", nextRecommendation)
 		extResourceName := fmt.Sprintf(utils.ExtResourcePrefixFormat, string(resourceName))
 		resValue, exists := node.Status.Capacity[v1.ResourceName(extResourceName)]
 		if exists && resValue.Value() != 0 &&

@@ -35,8 +35,8 @@ var cadvisorMetrics = []types.MetricName{
 }
 
 type ContainerState struct {
-	stat      cadvisorapiv2.ContainerInfo
-	timestamp time.Time
+	Stat      cadvisorapiv2.ContainerInfo
+	Timestamp time.Time
 }
 
 //CadvisorCollector is the collector to collect container state
@@ -152,13 +152,13 @@ func (c *CadvisorCollector) Collect() (map[string][]common.TimeSeries, error) {
 				}
 				addSampleToStateMap(types.MetricNameContainerCpuTotalUsage, composeSample(containerLabels, cpuUsageSample, now), stateMap)
 				addSampleToStateMap(types.MetricNameContainerSchedRunQueueTime, composeSample(containerLabels, schedRunqueueTime, now), stateMap)
-				addSampleToStateMap(types.MetricNameContainerCpuLimit, composeSample(containerLabels, float64(state.stat.Spec.Cpu.Limit), now), stateMap)
+				addSampleToStateMap(types.MetricNameContainerCpuLimit, composeSample(containerLabels, float64(state.Stat.Spec.Cpu.Limit), now), stateMap)
 				addSampleToStateMap(types.MetricNameContainerCpuQuota, composeSample(containerLabels, float64(containerInfoV1.Spec.Cpu.Quota), now), stateMap)
 				addSampleToStateMap(types.MetricNameContainerCpuPeriod, composeSample(containerLabels, float64(containerInfoV1.Spec.Cpu.Period), now), stateMap)
 
 				klog.V(10).Infof("Pod: %s, containerName: %s, key %s, scheduler run queue time %.2f", klog.KObj(pod), containerName, key, schedRunqueueTime)
 			}
-			containerStates[key] = ContainerState{stat: v, timestamp: now}
+			containerStates[key] = ContainerState{Stat: v, Timestamp: now}
 		}
 	}
 	addSampleToStateMap(types.MetricNameExtResContainerCpuTotalUsage, composeSample(make([]common.Label, 0), extResCpuUse, time.Now()), stateMap)
@@ -195,9 +195,9 @@ func caculateCPUUsage(info *cadvisorapiv2.ContainerInfo, state *ContainerState) 
 		len(info.Stats) == 0 {
 		return 0, 0
 	}
-	cpuUsageIncrease := info.Stats[0].Cpu.Usage.Total - state.stat.Stats[0].Cpu.Usage.Total
-	schedRunqueueTimeIncrease := info.Stats[0].Cpu.Schedstat.RunqueueTime - state.stat.Stats[0].Cpu.Schedstat.RunqueueTime
-	timeIncrease := info.Stats[0].Timestamp.UnixNano() - state.stat.Stats[0].Timestamp.UnixNano()
+	cpuUsageIncrease := info.Stats[0].Cpu.Usage.Total - state.Stat.Stats[0].Cpu.Usage.Total
+	schedRunqueueTimeIncrease := info.Stats[0].Cpu.Schedstat.RunqueueTime - state.Stat.Stats[0].Cpu.Schedstat.RunqueueTime
+	timeIncrease := info.Stats[0].Timestamp.UnixNano() - state.Stat.Stats[0].Timestamp.UnixNano()
 	cpuUsageSample := float64(cpuUsageIncrease) / float64(timeIncrease)
 	schedRunqueueTime := float64(schedRunqueueTimeIncrease) * 1000 * 1000 / float64(timeIncrease)
 	return cpuUsageSample, schedRunqueueTime
@@ -221,7 +221,7 @@ func GetContainerNameFromPod(pod *v1.Pod, containerId string) string {
 }
 
 func GetContainerFromPod(pod *v1.Pod, containerName string) *v1.Container {
-	if containerName == ""{
+	if containerName == "" {
 		return nil
 	}
 	for _, v := range pod.Spec.Containers {
