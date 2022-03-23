@@ -4,11 +4,15 @@ import ICU from 'i18next-icu';
 
 import { initReactI18next, Trans } from 'react-i18next';
 
+import en from './resources/en/translation.json';
 import zh from './resources/zh/translation.json';
 
 const resources = {
   zh: {
     translation: { ...zh }
+  },
+  en: {
+    translation: { ...en }
   }
 };
 

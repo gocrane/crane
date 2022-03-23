@@ -12,8 +12,6 @@ export interface InsightState {
 
   selectedDashboard?: any;
 
-  isCurrentCluster: boolean;
-
   selectedClusterId?: string;
 
   selectedNamespace?: string | null;
@@ -29,13 +27,11 @@ export const initialInsightState: InsightState = {
   window: QueryWindow.LAST_1_DAY,
 
   customRange: {
-    start: rangeMap[QueryWindow.LAST_1_DAY][0].toISOString(),
-    end: rangeMap[QueryWindow.LAST_1_DAY][1].toISOString()
+    start: rangeMap[QueryWindow.LAST_1_DAY][0].format('YYYY-MM-DD HH:mm:ss'),
+    end: rangeMap[QueryWindow.LAST_1_DAY][1].format('YYYY-MM-DD HH:mm:ss')
   },
 
   selectedDashboard: null,
-
-  isCurrentCluster: true,
 
   selectedClusterId: null,
 
@@ -54,9 +50,6 @@ const slice = createSlice({
     },
     selectedClusterId: (state, action: PayloadAction<string>) => {
       state.selectedClusterId = action.payload;
-    },
-    isSelectedCurrentCluster: (state, action: PayloadAction<boolean>) => {
-      state.isCurrentCluster = action.payload;
     },
     selectedDashboard: (state, action: PayloadAction<any>) => {
       state.selectedDashboard = action.payload;

@@ -6,7 +6,7 @@ type FetchDashboardDetailArgs = {
 };
 
 interface FetchDashboardListArgs {
-  craneUrl?: string;
+  craneUrl: string;
 }
 
 export const grafanaApi = createApi({

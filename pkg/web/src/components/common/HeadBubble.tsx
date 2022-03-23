@@ -1,6 +1,5 @@
-import { Bubble } from 'tea-component';
-
 import React from 'react';
+import { Tooltip } from 'tdesign-react';
 
 export interface HeadBubbleProps {
   /** 显示标题 */
@@ -24,11 +23,11 @@ export const HeadBubble = React.memo((props: HeadBubbleProps) => {
   return (
     <div>
       {autoflow ? <span className="text-overflow">{title}</span> : <span>{title}</span>}
-      <Bubble content={<p style={{ fontWeight: 'normal' }}>{text}</p>} placement={position || 'top'}>
+      <Tooltip content={<p style={{ fontWeight: 'normal' }}>{text}</p>} placement={position || 'top'}>
         <span className="tc-15-bubble-icon">
           <i className="tc-icon icon-what" />
         </span>
-      </Bubble>
+      </Tooltip>
     </div>
   );
 });

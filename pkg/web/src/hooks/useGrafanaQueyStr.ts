@@ -1,4 +1,4 @@
-import moment from 'moment';
+import dayjs from 'dayjs';
 import { stringify } from 'query-string';
 
 import React from 'react';
@@ -14,7 +14,7 @@ export const useGrafanaQueryStr = ({ panelId }: { panelId: string }) => {
   const isNeedSelectNamespace = useIsNeedSelectNamespace();
 
   const [from, to] = React.useMemo(
-    () => [moment(customRange.start).toDate().getTime(), moment(customRange.end).toDate().getTime()],
+    () => [dayjs(customRange.start).toDate().getTime(), dayjs(customRange.end).toDate().getTime()],
     [customRange.end, customRange.start]
   );
 
