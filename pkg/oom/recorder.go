@@ -17,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/gocrane/crane/pkg/known"
+	"github.com/gocrane/crane/pkg/metrics"
 )
 
 const (
@@ -61,6 +62,11 @@ func (r *PodOOMRecorder) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 					if cs.Name == container.Name {
 						// don't handle if request is not set
 						if mem, ok := container.Resources.Requests[v1.ResourceMemory]; ok {
+							labels := map[string]string{
+								"pod":       pod.Name,
+								"container": cs.Name,
+							}
+							metrics.OOMCount.With(labels).Inc()
 							r.queue.Add(OOMRecord{
 								Pod:       pod.Name,
 								Container: cs.Name,

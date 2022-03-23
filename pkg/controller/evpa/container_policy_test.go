@@ -187,3 +187,65 @@ func TestCalculateResourceByPriority(t *testing.T) {
 		}
 	}
 }
+
+func TestResourceWithTolerance(t *testing.T) {
+	resourceEstimated := v1.ResourceList{
+		v1.ResourceCPU:    *resource.NewQuantity(1, resource.DecimalSI),
+		v1.ResourceMemory: *resource.NewQuantity(1024*1024*1024, resource.BinarySI),
+	}
+
+	tests := []struct {
+		description string
+		target      v1.ResourceList
+		expect      v1.ResourceList
+	}{
+		{
+			description: "target cpu tolerance ",
+			target: v1.ResourceList{
+				v1.ResourceCPU: *resource.NewMilliQuantity(1099, resource.DecimalSI),
+			},
+			expect: v1.ResourceList{
+				v1.ResourceCPU:    *resource.NewMilliQuantity(1099, resource.DecimalSI),
+				v1.ResourceMemory: *resource.NewQuantity(1024*1024*1024, resource.BinarySI),
+			},
+		},
+		{
+			description: "target cpu not tolerance ",
+			target: v1.ResourceList{
+				v1.ResourceCPU: *resource.NewMilliQuantity(1101, resource.DecimalSI),
+			},
+			expect: v1.ResourceList{
+				v1.ResourceCPU:    *resource.NewQuantity(1, resource.DecimalSI),
+				v1.ResourceMemory: *resource.NewQuantity(1024*1024*1024, resource.BinarySI),
+			},
+		},
+		{
+			description: "target memory tolerance ",
+			target: v1.ResourceList{
+				v1.ResourceMemory: *resource.NewQuantity(1025*1024*1024, resource.BinarySI),
+			},
+			expect: v1.ResourceList{
+				v1.ResourceCPU:    *resource.NewQuantity(1, resource.DecimalSI),
+				v1.ResourceMemory: *resource.NewQuantity(1025*1024*1024, resource.BinarySI),
+			},
+		},
+		{
+			description: "target memory not tolerance ",
+			target: v1.ResourceList{
+				v1.ResourceMemory: *resource.NewQuantity(2048*1024*1024, resource.BinarySI),
+			},
+			expect: v1.ResourceList{
+				v1.ResourceCPU:    *resource.NewQuantity(1, resource.DecimalSI),
+				v1.ResourceMemory: *resource.NewQuantity(1024*1024*1024, resource.BinarySI),
+			},
+		},
+	}
+
+	for _, test := range tests {
+		resourceTest := resourceEstimated.DeepCopy()
+		ResourceWithTolerance(resourceTest, test.target)
+		if !resourceTest.Cpu().Equal(*test.expect.Cpu()) || !resourceTest.Memory().Equal(*test.expect.Memory()) {
+			t.Errorf("expect result %v actual result %v", test.expect, resourceTest)
+		}
+	}
+}
