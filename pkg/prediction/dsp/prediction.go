@@ -72,7 +72,6 @@ func preProcessTimeSeriesList(tsList []*common.TimeSeries, config *internalConfi
 	for ts := range tsCh {
 		tsList = append(tsList, ts)
 	}
-	wg.Wait()
 
 	return tsList, nil
 }
