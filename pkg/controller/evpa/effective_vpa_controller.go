@@ -18,6 +18,7 @@ import (
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/autoscaling/estimator"
+	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/oom"
 	"github.com/gocrane/crane/pkg/utils"
 )
@@ -76,7 +77,7 @@ func (c *EffectiveVPAController) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, nil
 	}
 
-	currentEstimatorStatus, recommend, err := c.ReconcileContainerPolicies(ctx, evpa, *newStatus, podTemplate, estimators)
+	currentEstimatorStatus, recommend, err := c.ReconcileContainerPolicies(ctx, evpa, podTemplate, estimators)
 	if err != nil {
 		c.Recorder.Event(evpa, v1.EventTypeNormal, "FailedReconcileContainerPolicies", err.Error())
 		klog.Errorf("Failed to reconcile container policies, evpa %s", klog.KObj(evpa))
@@ -87,9 +88,14 @@ func (c *EffectiveVPAController) Reconcile(ctx context.Context, req ctrl.Request
 
 	newStatus.Recommendation = recommend
 	newStatus.CurrentEstimators = currentEstimatorStatus
+
+	recordMetric(evpa, newStatus, podTemplate)
+
 	setCondition(newStatus, metav1.ConditionTrue, "EffectiveVerticalPodAutoscalerReady", "Effective VPA is ready")
 	c.UpdateStatus(ctx, evpa, newStatus)
-	return ctrl.Result{}, nil
+	return ctrl.Result{
+		RequeueAfter: DefaultEVPARsyncPeriod,
+	}, nil
 }
 
 func (c *EffectiveVPAController) UpdateStatus(ctx context.Context, evpa *autoscalingapi.EffectiveVerticalPodAutoscaler, newStatus *autoscalingapi.EffectiveVerticalPodAutoscalerStatus) {
@@ -114,6 +120,48 @@ func (c *EffectiveVPAController) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&autoscalingapi.EffectiveVerticalPodAutoscaler{}).
 		Complete(c)
+}
+
+func recordMetric(evpa *autoscalingapi.EffectiveVerticalPodAutoscaler, status *autoscalingapi.EffectiveVerticalPodAutoscalerStatus, podTemplate *v1.PodTemplateSpec) {
+	labels := map[string]string{
+		"target": fmt.Sprintf("%s/%s", evpa.Namespace, evpa.Spec.TargetRef.Name),
+	}
+
+	for _, container := range status.Recommendation.ContainerRecommendations {
+		resourceRequirement, found := utils.GetResourceByPodTemplate(podTemplate, container.ContainerName)
+		if !found {
+			klog.Warningf("ContainerName %s not found", container.ContainerName)
+			continue
+		}
+
+		recommendCpu := container.Target[v1.ResourceCPU]
+		currentCpu := resourceRequirement.Requests[v1.ResourceCPU]
+		if currentCpu.Cmp(recommendCpu) > 0 {
+			// scale down
+			currCopy := currentCpu.DeepCopy()
+			currCopy.Sub(recommendCpu)
+			metrics.EVPACpuScaleDownMilliCores.With(labels).Set(float64(currCopy.MilliValue()))
+		} else if currentCpu.Cmp(recommendCpu) < 0 {
+			// scale up
+			recommendCopy := recommendCpu.DeepCopy()
+			recommendCopy.Sub(currentCpu)
+			metrics.EVPACpuScaleUpMilliCores.With(labels).Set(float64(recommendCopy.MilliValue()))
+		}
+
+		recommendMem := container.Target[v1.ResourceMemory]
+		currentMem := resourceRequirement.Requests[v1.ResourceMemory]
+		if currentMem.Cmp(recommendMem) > 0 {
+			// scale down
+			currCopy := currentMem.DeepCopy()
+			currCopy.Sub(recommendMem)
+			metrics.EVPAMemoryScaleDownMB.With(labels).Set(float64(currCopy.Value() / 1024 / 1024))
+		} else if currentMem.Cmp(recommendMem) < 0 {
+			// scale up
+			recommendCopy := recommendMem.DeepCopy()
+			recommendCopy.Sub(currentMem)
+			metrics.EVPAMemoryScaleUpMB.With(labels).Set(float64(recommendCopy.Value() / 1024 / 1024))
+		}
+	}
 }
 
 func setCondition(status *autoscalingapi.EffectiveVerticalPodAutoscalerStatus, conditionStatus metav1.ConditionStatus, reason string, message string) {
