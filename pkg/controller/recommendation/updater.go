@@ -74,7 +74,7 @@ func (c *Controller) UpdateRecommendation(ctx context.Context, recommendation *a
 	// Only support Auto Type for EHPA recommendation
 	if recommendation.Spec.AdoptionType == analysisapi.AdoptionTypeAuto {
 		if proposed.EffectiveHPA != nil {
-			ehpa, err := utils.GetEHPAFromScaleTarget(ctx, c.Client, recommendation.Namespace, recommendation.Spec.TargetRef)
+			ehpa, err := utils.GetEHPAFromScaleTarget(ctx, c.Client, recommendation.Spec.TargetRef.Namespace, recommendation.Spec.TargetRef)
 			if err != nil {
 				return fmt.Errorf("Get EHPA from target failed: %v. ", err)
 			}
@@ -125,7 +125,7 @@ func (c *Controller) UpdateRecommendation(ctx context.Context, recommendation *a
 		}
 
 		if proposed.ResourceRequest != nil {
-			evpa, err := utils.GetEVPAFromScaleTarget(ctx, c.Client, recommendation.Namespace, recommendation.Spec.TargetRef)
+			evpa, err := utils.GetEVPAFromScaleTarget(ctx, c.Client, recommendation.Spec.TargetRef.Namespace, recommendation.Spec.TargetRef)
 			if err != nil {
 				return fmt.Errorf("Get EVPA from target failed: %v. ", err)
 			}

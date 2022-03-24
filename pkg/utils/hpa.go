@@ -30,7 +30,7 @@ func GetHPAFromScaleTarget(context context.Context, kubeClient client.Client, na
 		}
 
 		if hpa.Spec.ScaleTargetRef.Name == objRef.Name &&
-			hpa.Spec.ScaleTargetRef.Kind == objRef.APIVersion &&
+			hpa.Spec.ScaleTargetRef.Kind == objRef.Kind &&
 			hpa.Spec.ScaleTargetRef.APIVersion == objRef.APIVersion {
 			return &hpa, nil
 		}
@@ -51,7 +51,7 @@ func GetEHPAFromScaleTarget(context context.Context, kubeClient client.Client, n
 
 	for _, ehpa := range ehpaList.Items {
 		if ehpa.Spec.ScaleTargetRef.Name == objRef.Name &&
-			ehpa.Spec.ScaleTargetRef.Kind == objRef.APIVersion &&
+			ehpa.Spec.ScaleTargetRef.Kind == objRef.Kind &&
 			ehpa.Spec.ScaleTargetRef.APIVersion == objRef.APIVersion {
 			return &ehpa, nil
 		}
