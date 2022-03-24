@@ -32,14 +32,16 @@ func GetScale(ctx context.Context, restMapper meta.RESTMapper, scaleClient scale
 		return nil, nil, err
 	}
 
+	var errs []error
 	for _, mapping := range mappings {
 		scale, err := scaleClient.Scales(namespace).Get(ctx, mapping.Resource.GroupResource(), ref.Name, metav1.GetOptions{})
 		if err == nil {
 			return scale, mapping, nil
 		}
+		errs = append(errs, err)
 	}
 
-	return nil, nil, fmt.Errorf("unrecognized resource")
+	return nil, nil, fmt.Errorf("unrecognized resource: %+v", errs)
 }
 
 func GetPodsFromScale(kubeClient client.Client, scale *autoscalingapiv1.Scale) ([]v1.Pod, error) {

@@ -138,7 +138,7 @@ func (f *targetSelectorFetcher) getLabelSelectorFromScale(groupKind schema.Group
 		return nil, err
 	}
 
-	var lastError error
+	var errs []error
 	for _, mapping := range mappings {
 		groupResource := mapping.Resource.GroupResource()
 		scale, err := f.ScaleClient.Scales(namespace).Get(context.TODO(), groupResource, name, metav1.GetOptions{})
@@ -152,7 +152,7 @@ func (f *targetSelectorFetcher) getLabelSelectorFromScale(groupKind schema.Group
 			}
 			return selector, nil
 		}
-		lastError = err
+		errs = append(errs, err)
 	}
-	return nil, lastError
+	return nil, fmt.Errorf("%+v", errs)
 }

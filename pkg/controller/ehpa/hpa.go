@@ -251,23 +251,26 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 }
 
 // GetCronMetricSpecsForHPA return a hpa external metric specs from ehpa cron scale specs, this spec will be injected into hpa
+// One ehpa mapping to one cron metric only, even though there are multiple cron specs
 func GetCronMetricSpecsForHPA(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) []autoscalingv2.MetricSpec {
 	var metricSpecs []autoscalingv2.MetricSpec
-	for _, cronScale := range ehpa.Spec.Crons {
-		metricName := metricprovider.EHPACronMetricName(ehpa.Namespace, ehpa.Name, cronScale)
-		metricSpecs = append(metricSpecs, autoscalingv2.MetricSpec{
-			Type: autoscalingv2.ExternalMetricSourceType,
-			External: &autoscalingv2.ExternalMetricSource{
-				Metric: autoscalingv2.MetricIdentifier{
-					Name: metricName,
-				},
-				Target: autoscalingv2.MetricTarget{
-					Type:         autoscalingv2.AverageValueMetricType,
-					AverageValue: resource.NewQuantity(metricprovider.DefaultCronTargetMetricValue, resource.DecimalSI),
+	metricSpecs = append(metricSpecs, autoscalingv2.MetricSpec{
+		Type: autoscalingv2.ExternalMetricSourceType,
+		External: &autoscalingv2.ExternalMetricSource{
+			Metric: autoscalingv2.MetricIdentifier{
+				Name: ehpa.Name,
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						known.EffectiveHorizontalPodAutoscalerUidLabel: string(ehpa.UID),
+					},
 				},
 			},
-		})
-	}
+			Target: autoscalingv2.MetricTarget{
+				Type:         autoscalingv2.AverageValueMetricType,
+				AverageValue: resource.NewQuantity(int64(metricprovider.DefaultCronTargetMetricValue), resource.DecimalSI),
+			},
+		},
+	})
 	return metricSpecs
 }
 

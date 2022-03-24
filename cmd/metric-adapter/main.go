@@ -5,18 +5,23 @@ import (
 	"os"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	openapinamer "k8s.io/apiserver/pkg/endpoints/openapi"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/scale"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/component-base/logs"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 	basecmd "sigs.k8s.io/custom-metrics-apiserver/pkg/cmd"
 	"sigs.k8s.io/custom-metrics-apiserver/pkg/provider"
@@ -53,8 +58,8 @@ func (a *MetricAdapter) makeCustomMetricProvider(remoteAdapter *metricprovider.R
 	return metricprovider.NewCustomMetricProvider(client, remoteAdapter, recorder)
 }
 
-func (a *MetricAdapter) makeExternalMetricProvider(client client.Client, recorder record.EventRecorder) *metricprovider.ExternalMetricProvider {
-	return metricprovider.NewExternalMetricProvider(client, recorder)
+func (a *MetricAdapter) makeExternalMetricProvider(client client.Client, recorder record.EventRecorder, scaleClient scale.ScalesGetter, restMapper meta.RESTMapper) *metricprovider.ExternalMetricProvider {
+	return metricprovider.NewExternalMetricProvider(client, recorder, scaleClient, restMapper)
 }
 
 func main() {
@@ -113,6 +118,22 @@ func main() {
 	if err != nil {
 		klog.Exitf("Failed to create kube client: %v", err)
 	}
+	discoveryClientSet, err := discovery.NewDiscoveryClientForConfig(config)
+	if err != nil {
+		klog.Exit(err, "Unable to create discover client")
+	}
+
+	restMapper, err := apiutil.NewDynamicRESTMapper(config)
+	if err != nil {
+		klog.Exit(err, "Unable to create rest mapper")
+	}
+
+	scaleKindResolver := scale.NewDiscoveryScaleKindResolver(discoveryClientSet)
+	scaleClient := scale.New(
+		discoveryClientSet.RESTClient(), restMapper,
+		dynamic.LegacyAPIPathResolverFunc,
+		scaleKindResolver,
+	)
 
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(&v1core.EventSinkImpl{
@@ -123,7 +144,7 @@ func main() {
 	ctx := signals.SetupSignalHandler()
 
 	customMetricProvider := cmd.makeCustomMetricProvider(remoteAdapter, client, recorder)
-	externalMetricProvider := cmd.makeExternalMetricProvider(client, recorder)
+	externalMetricProvider := cmd.makeExternalMetricProvider(client, recorder, scaleClient, restMapper)
 
 	cmd.WithCustomMetrics(customMetricProvider)
 	cmd.WithExternalMetrics(externalMetricProvider)

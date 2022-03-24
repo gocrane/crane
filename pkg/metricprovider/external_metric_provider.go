@@ -6,9 +6,11 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/scale"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/metrics/pkg/apis/external_metrics"
@@ -16,68 +18,86 @@ import (
 	"sigs.k8s.io/custom-metrics-apiserver/pkg/provider"
 
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
+
+	"github.com/gocrane/crane/pkg/utils"
 )
 
 var _ provider.ExternalMetricsProvider = &ExternalMetricProvider{}
 
 // ExternalMetricProvider implements ehpa external metric as external metric provider which now support cron metric
 type ExternalMetricProvider struct {
-	client   client.Client
-	recorder record.EventRecorder
+	client     client.Client
+	recorder   record.EventRecorder
+	scaler     scale.ScalesGetter
+	restMapper meta.RESTMapper
 }
 
 // NewExternalMetricProvider returns an instance of ExternalMetricProvider
-func NewExternalMetricProvider(client client.Client, recorder record.EventRecorder) *ExternalMetricProvider {
+func NewExternalMetricProvider(client client.Client, recorder record.EventRecorder, scaleClient scale.ScalesGetter, restMapper meta.RESTMapper) *ExternalMetricProvider {
 	return &ExternalMetricProvider{
-		client:   client,
-		recorder: recorder,
+		client:     client,
+		recorder:   recorder,
+		scaler:     scaleClient,
+		restMapper: restMapper,
 	}
 }
 
 const (
 	// DefaultCronTargetMetricValue is used to construct a default external cron metric targetValue.
-	// When the time is not in cron period, then the hpa will compute the replica counts to DefaultCronTargetMetricValue for the cron metric.
 	// So the hpa may scale workload to DefaultCronTargetMetricValue. And finally scale replica depends on the HPA min max replica count the user set.
-	DefaultCronTargetMetricValue int64 = 1
+	DefaultCronTargetMetricValue int32 = 1
 )
 
+// each ehpa mapping to only one external cron metric. metric name is ehpa name
 func (p *ExternalMetricProvider) GetExternalMetric(ctx context.Context, namespace string, metricSelector labels.Selector, info provider.ExternalMetricInfo) (*external_metrics.ExternalMetricValueList, error) {
-	var ehpaList autoscalingapi.EffectiveHorizontalPodAutoscalerList
-	err := p.client.List(ctx, &ehpaList)
+	var ehpa autoscalingapi.EffectiveHorizontalPodAutoscaler
+
+	err := p.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: info.Metric}, &ehpa)
 	if err != nil {
 		return &external_metrics.ExternalMetricValueList{}, err
 	}
 	// Find the cron metric scaler
-	cronScaler := findCronScaler(ehpaList.Items, info)
-	if cronScaler == nil {
-		return &external_metrics.ExternalMetricValueList{}, fmt.Errorf("cron metric %v/%v not found", namespace, info.Metric)
+	cronScalers := GetCronScalersForEHPA(&ehpa)
+	var activeScalers []*CronScaler
+	var errs []error
+	for _, cronScaler := range cronScalers {
+		isActive, err := cronScaler.IsActive(ctx, time.Now())
+		if err != nil {
+			errs = append(errs, err)
+		}
+		if isActive {
+			activeScalers = append(activeScalers, cronScaler)
+		}
 	}
-	isActive, err := cronScaler.IsActive(ctx, time.Now())
-	if err != nil {
-		return nil, err
+	if len(errs) > 0 {
+		return nil, fmt.Errorf("%v", errs)
 	}
 	replicas := DefaultCronTargetMetricValue
-	if isActive {
-		replicas = int64(cronScaler.TargetSize())
-	}
-	value := external_metrics.ExternalMetricValue{
-		MetricName: info.Metric,
-		Timestamp:  metav1.Now(),
-		Value:      *resource.NewQuantity(replicas, resource.DecimalSI),
-	}
-	return &external_metrics.ExternalMetricValueList{Items: []external_metrics.ExternalMetricValue{value}}, nil
-}
-
-func findCronScaler(ehpas []autoscalingapi.EffectiveHorizontalPodAutoscaler, info provider.ExternalMetricInfo) *CronScaler {
-	for i := range ehpas {
-		cronScalers := GetCronScalersForEHPA(&ehpas[i])
-		for k := range cronScalers {
-			if cronScalers[k].Name() == info.Metric {
-				return cronScalers[k]
+	// No active cron now, then return current workload replicas to keep the original replicas
+	if len(activeScalers) == 0 {
+		scale, _, err := utils.GetScale(ctx, p.restMapper, p.scaler, namespace, ehpa.Spec.ScaleTargetRef)
+		if err != nil {
+			klog.Errorf("Failed to get scale: %v", err)
+			return nil, err
+		}
+		replicas = scale.Status.Replicas
+	} else {
+		// Has active ones. Basically, there should not be more then one active cron at the same time period, it is not a best practice.
+		// we use the largest targetReplicas specified in cron spec.
+		for _, activeScaler := range activeScalers {
+			if activeScaler.TargetSize() >= replicas {
+				replicas = activeScaler.TargetSize()
 			}
 		}
 	}
-	return nil
+
+	return &external_metrics.ExternalMetricValueList{Items: []external_metrics.ExternalMetricValue{
+		{
+			MetricName: info.Metric,
+			Timestamp:  metav1.Now(),
+			Value:      *resource.NewQuantity(int64(replicas), resource.DecimalSI),
+		},
+	}}, nil
 }
 
 // ListAllExternalMetrics return external cron metrics
@@ -91,12 +111,15 @@ func (p *ExternalMetricProvider) ListAllExternalMetrics() []provider.ExternalMet
 		return metricInfos
 	}
 	for _, ehpa := range ehpaList.Items {
-		for _, cronScale := range ehpa.Spec.Crons {
-			metricName := EHPACronMetricName(ehpa.Namespace, ehpa.Name, cronScale)
-			metricInfos = append(metricInfos, provider.ExternalMetricInfo{Metric: metricName})
+		if CronEnabled(&ehpa) {
+			metricInfos = append(metricInfos, provider.ExternalMetricInfo{Metric: ehpa.Name})
 		}
 	}
 	return metricInfos
+}
+
+func CronEnabled(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) bool {
+	return len(ehpa.Spec.Crons) > 0
 }
 
 // EHPACronMetricName return the hpa cron external metric name from ehpa cron scale spec
