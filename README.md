@@ -22,8 +22,7 @@ Crane (FinOps Crane) is a cloud native open source project which manages cloud r
   - [Getting Started](#getting-started)
     - [Installation](#installation)
     - [Get your Kubernetes Cost Report](#get-your-kubernetes-cost-report)
-    - [Analytics and Recommend Pod Resources](#analytics-and-recommend-pod-resources)
-    - [Analytics and Recommend HPA](#analytics-and-recommend-hpa)
+    - [Analytics and Recommendation](#analytics-and-recommendation)
   - [RoadMap](#roadmap)
   - [Contributing](#Contributing)
   - [Code of Conduct](#Code-of-Conduct)
@@ -46,8 +45,8 @@ The goal of Crane is to provide a one-stop-shop project to help Kubernetes users
 ## Features
 ### Time Series Prediction
 
-Crane predictor fetches metric data, and then outputs the prediction results.
-The prediction result can be consumed by other crane components, like [EHPA](#effective-horizontalpodautoscaler) and [Analytics](#analytics).
+TimeSeriesPrediction defines metric spec to predict kubernetes resources like Pod or Node. 
+The prediction module is the core component that other crane components relied on, like [EHPA](#effective-horizontalpodautoscaler) and [Analytics](#analytics).
 
 Please see [this document](./docs/tutorials/using-time-series-prediction.md) to learn more.
 
@@ -82,8 +81,9 @@ Crane is composed of the following components:
   - **Predictor** - Predicts resources metrics trends based on historical data.
   - **AnalyticsController** - Analyzes resources and generate related recommendations.
   - **RecommendationController** - Recommend Pod resource requests and autoscaler.
-  - **NodeResourceController** - Re-allocate node resource based on prediction result.
-  - **EffectiveHPAController** - Effective HPA based on prediction result.
+  - **ClusterNodePredictionController** - Create Predictor for nodes.
+  - **EffectiveHPAController** - Effective HPA for horizontal scaling.
+  - **EffectiveHPAController** - Effective VPA for vertical scaling.
 - [metric-adaptor](cmd/metric-adapter). - Metric server for driving the scaling.
 - [crane-agent](cmd/crane-agent). - Ensure critical workloads SLO based on abnormally detection.
 - [gocrane/api](https://github.com/gocrane/api). This repository defines component-level APIs for the Crane platform.
@@ -139,13 +139,18 @@ kubectl get deploy -n crane-system
 
 The output is similar to:
 ```console
-NAME                            READY   UP-TO-DATE   AVAILABLE   AGE
-craned                          1/1     1            1           60m
-fadvisor                        1/1     1            1           60m
-grafana                         1/1     1            1           60m
-metric-adapter                  1/1     1            1           60m
-prometheus-kube-state-metrics   1/1     1            1           61m
-prometheus-server               1/1     1            1           61m
+NAME                                             READY   STATUS    RESTARTS   AGE
+crane-agent-8h7df                                1/1     Running   0          119m
+crane-agent-8qf5n                                1/1     Running   0          119m
+crane-agent-h9h5d                                1/1     Running   0          119m
+craned-5c69c684d8-dxmhw                          2/2     Running   0          20m
+grafana-7fddd867b4-kdxv2                         1/1     Running   0          41m
+metric-adapter-94b6f75b-k8h7z                    1/1     Running   0          119m
+prometheus-kube-state-metrics-6dbc9cd6c9-dfmkw   1/1     Running   0          45m
+prometheus-node-exporter-bfv74                   1/1     Running   0          45m
+prometheus-node-exporter-s6zps                   1/1     Running   0          45m
+prometheus-node-exporter-x5rnm                   1/1     Running   0          45m
+prometheus-server-5966b646fd-g9vxl               2/2     Running   0          45m
 ```
 
 you can see [this](https://github.com/gocrane/helm-charts) to learn more.
@@ -179,218 +184,11 @@ kubectl --namespace crane-system port-forward $POD_NAME 3000
 
 visit [Cost Report](http://127.0.0.1:3000/dashboards) here with account(admin:admin).
 
-### Analytics and Recommend Pod Resources
+### Analytics and Recommendation
 
-Create an **Resource** `Analytics` to give recommendation for deployment: `craned` and `metric-adapter` as a sample.
+Crane supports analytics and give recommend advise for your k8s cluster.
 
-```console
-kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/analytics-resource.yaml
-kubectl get analytics -n crane-system
-```
-
-The output is:
-
-```console
-NAME                      AGE
-craned-resource           15m
-metric-adapter-resource   15m
-```
-
-You can get created recommendation from analytics status:
-
-```console
-kubectl get analytics craned-resource -n crane-system -o yaml
-```
-
-The output is similar to:
-
-```console 
-apiVersion: analysis.crane.io/v1alpha1
-kind: Analytics
-metadata:
-  name: craned-resource
-  namespace: crane-system
-spec:
-  completionStrategy:
-    completionStrategyType: Periodical
-    periodSeconds: 86400
-  resourceSelectors:
-  - apiVersion: apps/v1
-    kind: Deployment
-    labelSelector: {}
-    name: craned
-  type: Resource
-status:
-  lastSuccessfulTime: "2022-01-12T08:40:59Z"
-  recommendations:
-  - name: craned-resource-resource-j7shb
-    namespace: crane-system
-    uid: 8ce2eedc-7969-4b80-8aee-fd4a98d6a8b6    
-```
-
-The recommendation name presents on `status.recommendations[0].name`. Then you can get recommendation detail by running:
-
-```console
-kubectl get recommend -n crane-system craned-resource-resource-j7shb -o yaml
-```
-
-The output is similar to:
-
-```console
-apiVersion: analysis.crane.io/v1alpha1
-kind: Recommendation
-metadata:
-  name: craned-resource-resource-j7shb
-  namespace: crane-system
-  ownerReferences:
-  - apiVersion: analysis.crane.io/v1alpha1
-    blockOwnerDeletion: false
-    controller: false
-    kind: Analytics
-    name: craned-resource
-    uid: a9e6dc0d-ab26-4f2a-84bd-4fe9e0f3e105
-spec:
-  completionStrategy:
-    completionStrategyType: Periodical
-    periodSeconds: 86400
-  targetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: craned
-    namespace: crane-system
-  type: Resource
-status:
-  conditions:
-  - lastTransitionTime: "2022-01-12T08:40:59Z"
-    message: Recommendation is ready
-    reason: RecommendationReady
-    status: "True"
-    type: Ready
-  lastSuccessfulTime: "2022-01-12T08:40:59Z"
-  lastUpdateTime: "2022-01-12T08:40:59Z"
-  resourceRequest:
-    containers:
-    - containerName: craned
-      target:
-        cpu: 114m
-        memory: 120586239m
-```
-
-The `status.resourceRequest` is recommended by crane's recommendation engine.
- 
-Something you should know about Resource recommendation:
-* Resource Recommendation use historic prometheus metrics to calculate and propose.
-* We use **Percentile** algorithm to process metrics that also used by VPA.
-* If the workload is running for a long term like several weeks, the result will be more accurate.
-
-### Analytics and Recommend HPA
-
-Create an **HPA** `Analytics` to give recommendation for deployment: `craned` and `metric-adapter` as an sample.
-
-```console
-kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/analytics-hpa.yaml
-kubectl get analytics -n crane-system 
-```
-
-The output is:
-
-```console
-NAME                      AGE
-craned-hpa                5m52s
-craned-resource           18h
-metric-adapter-hpa        5m52s
-metric-adapter-resource   18h
-
-```
-
-You can get created recommendation from analytics status:
-
-```console
-kubectl get analytics craned-hpa -n crane-system -o yaml
-```
-
-The output is similar to:
-
-```console 
-apiVersion: analysis.crane.io/v1alpha1
-kind: Analytics
-metadata:
-  name: craned-hpa
-  namespace: crane-system
-spec:
-  completionStrategy:
-    completionStrategyType: Periodical
-    periodSeconds: 86400
-  resourceSelectors:
-  - apiVersion: apps/v1
-    kind: Deployment
-    labelSelector: {}
-    name: craned
-  type: HPA
-status:
-  lastSuccessfulTime: "2022-01-13T07:26:18Z"
-  recommendations:
-  - apiVersion: analysis.crane.io/v1alpha1
-    kind: Recommendation
-    name: craned-hpa-hpa-2f22w
-    namespace: crane-system
-    uid: 397733ee-986a-4630-af75-736d2b58bfac
-```
-
-The recommendation name presents on `status.recommendations[0].name`. Then you can get recommendation detail by running:
-
-```console
-kubectl get recommend -n crane-system craned-resource-resource-j7shb -o yaml
-```
-
-The output is similar to:
-
-```console
-apiVersion: analysis.crane.io/v1alpha1
-kind: Recommendation
-metadata:
-  name: craned-hpa-hpa-2f22w
-  namespace: crane-system
-  ownerReferences:
-  - apiVersion: analysis.crane.io/v1alpha1
-    blockOwnerDeletion: false
-    controller: false
-    kind: Analytics
-    name: craned-hpa
-    uid: b216d9c3-c52e-4c9c-b9e9-9d5b45165b1d
-spec:
-  completionStrategy:
-    completionStrategyType: Periodical
-    periodSeconds: 86400
-  targetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: craned
-    namespace: crane-system
-  type: HPA
-status:
-  conditions:
-  - lastTransitionTime: "2022-01-13T07:51:18Z"
-    message: 'Failed to offer recommend, Recommendation crane-system/craned-hpa-hpa-2f22w
-      error EHPAAdvisor prediction metrics data is unexpected, List length is 0 '
-    reason: FailedOfferRecommend
-    status: "False"
-    type: Ready
-  lastUpdateTime: "2022-01-13T07:51:18Z"
-```
-
-The `status.resourceRequest` is recommended by crane's recommendation engine. The fail reason is demo workload don't have enough run time.
-
-Something you should know about HPA recommendation:
-* HPA Recommendation use historic prometheus metrics to calculate, forecast and propose.
-* We use **DSP** algorithm to process metrics.
-* We recommend using Effective HorizontalPodAutoscaler to execute autoscaling, you can see [this document](./docs/tutorials/using-time-series-prediction.md) to learn more.
-* The Workload need match following conditions:
-  * Existing at least one ready pod
-  * Ready pod ratio should larger that 50%
-  * Must provide cpu request for pod spec
-  * The workload should be running for at least **a week** to get enough metrics to forecast
-  * The workload's cpu load should be predictable, **too low** or **too unstable** workload often is unpredictable
+Please follow [this guide](./docs/tutorials/analytics-and-recommendation.md) to learn more.
 
 ## RoadMap
 Please see [this document](./docs/roadmaps/roadmap-1h-2022.md) to learn more.

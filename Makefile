@@ -144,7 +144,7 @@ image-metric-adapter: ## Build docker image with the metric adapter.
 	docker build --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=metric-adapter -t ${ADAPTER_IMG} .
 
 .PHONY: push-images
-push-images: push-image-craned push-image-crane-agent push-image-metric-adapter
+push-images: push-image-craned push-image-crane-agent push-image-metric-adapter push-image-dashboard
 
 .PHONY: push-image-craned
 push-image-craned: ## Push images.
