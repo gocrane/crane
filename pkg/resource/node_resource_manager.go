@@ -60,7 +60,7 @@ type NodeResourceManager struct {
 	tspLister predictionlisters.TimeSeriesPredictionLister
 	tspSynced cache.InformerSynced
 
-	recorder                   record.EventRecorder
+	recorder record.EventRecorder
 
 	stateChann chan map[string][]common.TimeSeries
 
@@ -73,11 +73,16 @@ type NodeResourceManager struct {
 	tspName string
 }
 
-func NewNodeResourceManager(client clientset.Interface, nodeName string, reserveCpuPercentStr string,
-	reserveMemoryPercentStr string, tspName string, nodeInformer coreinformers.NodeInformer,
-	tspInformer predictionv1.TimeSeriesPredictionInformer, stateChann chan map[string][]common.TimeSeries) *NodeResourceManager {
-	reserveCpuPercent, _ := utils.ParsePercentage(reserveCpuPercentStr)
-	reserveMemoryPercent, _ := utils.ParsePercentage(reserveMemoryPercentStr)
+func NewNodeResourceManager(client clientset.Interface, nodeName string, op map[string]string, tspName string, nodeInformer coreinformers.NodeInformer,
+	tspInformer predictionv1.TimeSeriesPredictionInformer, stateChann chan map[string][]common.TimeSeries) (*NodeResourceManager, error) {
+	reserveCpuPercent, err := utils.ParsePercentage(op[v1.ResourceCPU.String()])
+	if err != nil {
+		return nil, err
+	}
+	reserveMemoryPercent, err := utils.ParsePercentage(op[v1.ResourceMemory.String()])
+	if err != nil {
+		return nil, err
+	}
 
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartStructuredLogging(0)
@@ -99,7 +104,7 @@ func NewNodeResourceManager(client clientset.Interface, nodeName string, reserve
 		},
 		tspName: tspName,
 	}
-	return o
+	return o, nil
 }
 
 func (o *NodeResourceManager) Name() string {
@@ -153,7 +158,7 @@ func (o *NodeResourceManager) UpdateNodeResource() {
 	if !equality.Semantic.DeepEqual(&node.Status, &nodeCopy.Status) {
 		// Update Node status extend-resource info
 		// TODO fix: strategic merge patch kubernetes
-		if _, err := o.client.CoreV1().Nodes().Update(context.TODO(), nodeCopy, metav1.UpdateOptions{}); err != nil {
+		if _, err := o.client.CoreV1().Nodes().UpdateStatus(context.TODO(), nodeCopy, metav1.UpdateOptions{}); err != nil {
 			klog.Errorf("Failed to update node %s's status extend-resource, %v", nodeCopy.Name, err)
 			return
 		}
@@ -188,7 +193,7 @@ func (o *NodeResourceManager) FindTargetNode(tsp *predictionapi.TimeSeriesPredic
 	return false, nil
 }
 
-func (o *NodeResourceManager) BuildNodeStatus(node *v1.Node) map[v1.ResourceName]string{
+func (o *NodeResourceManager) BuildNodeStatus(node *v1.Node) map[v1.ResourceName]string {
 	tspCanNotBeReclaimedResource := o.GetCanNotBeReclaimedResourceFromTsp(node)
 	localCanNotBeReclaimedResource := o.GetCanNotBeReclaimedResourceFromLocal()
 	reserveCpuPercent := o.reserveResource.CpuPercent
@@ -205,14 +210,14 @@ func (o *NodeResourceManager) BuildNodeStatus(node *v1.Node) map[v1.ResourceName
 			maxUsage = localCanNotBeReclaimedResource[resourceName]
 			resourceFrom = "local"
 		}
+
 		var nextRecommendation float64
 		switch resourceName {
 		case v1.ResourceCPU:
-			// cpu need to be scaled to m as ext resource cannot be decimal
 			if reserveCpuPercent != nil {
-				nextRecommendation = (float64(node.Status.Allocatable.Cpu().Value())**reserveCpuPercent - maxUsage) * 1000
+				nextRecommendation = float64(node.Status.Allocatable.Cpu().Value()) - float64(node.Status.Allocatable.Cpu().Value())*(*reserveCpuPercent) - maxUsage/1000
 			} else {
-				nextRecommendation = (float64(node.Status.Allocatable.Cpu().Value()) - maxUsage) * 1000
+				nextRecommendation = float64(node.Status.Allocatable.Cpu().Value()) - maxUsage/1000
 			}
 		case v1.ResourceMemory:
 			// unit of memory in prometheus is in Ki, need to be converted to byte
@@ -313,7 +318,7 @@ func (o *NodeResourceManager) GetCpuCoreCanNotBeReclaimedFromLocal() float64 {
 	var extResContainerCpuUsageTotal float64 = 0
 	extResContainerCpuUsageTotalTimeSeries, ok := o.state[string(types.MetricNameExtResContainerCpuTotalUsage)]
 	if ok {
-		extResContainerCpuUsageTotal = extResContainerCpuUsageTotalTimeSeries[0].Samples[0].Value
+		extResContainerCpuUsageTotal = extResContainerCpuUsageTotalTimeSeries[0].Samples[0].Value * 1000
 	} else {
 		klog.V(1).Infof("Can't get %s from NodeResourceManager local state", types.MetricNameExtResContainerCpuTotalUsage)
 	}
@@ -325,6 +330,8 @@ func (o *NodeResourceManager) GetCpuCoreCanNotBeReclaimedFromLocal() float64 {
 	} else {
 		klog.V(1).Infof("Can't get %s from NodeResourceManager local state", types.MetricNameExclusiveCPUIdle)
 	}
+
+	klog.V(6).Infof("nodeCpuUsageTotal: %s, exclusiveCPUIdle: %s, extResContainerCpuUsageTotal: %s", nodeCpuUsageTotal, exclusiveCPUIdle, extResContainerCpuUsageTotal)
 
 	// 1. Exclusive tethered CPU cannot be reclaimed even if the free part is free, so add the exclusive CPUIdle to the CanNotBeReclaimed CPU
 	// 2. The CPU used by extRes-container needs to be reclaimed, otherwise it will be double-counted due to the allotted mechanism of k8s, so the extResContainerCpuUsageTotal is subtracted from the CanNotBeReclaimedCpu

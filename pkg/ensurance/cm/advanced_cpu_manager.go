@@ -67,6 +67,8 @@ type AdvancedCpuManager struct {
 	// stateFileDirectory holds the directory where the state file for checkpoints is held.
 	stateFileDirectory string
 
+	exclusiveCPUSet cpuset.CPUSet
+
 	cadvisor.Manager
 }
 
@@ -255,6 +257,8 @@ func (m *AdvancedCpuManager) syncState(doAllocate bool) {
 			}
 		}
 	}
+
+	m.exclusiveCPUSet = m.getExclusiveCpu()
 }
 
 func (m *AdvancedCpuManager) policyRemoveContainerByRef(podUID string, containerName string) error {
@@ -299,7 +303,7 @@ func (m *AdvancedCpuManager) getSharedCpu() cpuset.CPUSet {
 	return sharedCPUSet
 }
 
-func (m *AdvancedCpuManager) GetExclusiveCpu() cpuset.CPUSet {
+func (m *AdvancedCpuManager) getExclusiveCpu() cpuset.CPUSet {
 	exclusiveCPUSet := cpuset.NewCPUSet()
 	for _, pod := range m.activepods() {
 		for _, container := range pod.Spec.Containers {
@@ -311,6 +315,10 @@ func (m *AdvancedCpuManager) GetExclusiveCpu() cpuset.CPUSet {
 		}
 	}
 	return exclusiveCPUSet
+}
+
+func (m *AdvancedCpuManager) GetExclusiveCpu() cpuset.CPUSet {
+	return m.exclusiveCPUSet
 }
 
 func (m *AdvancedCpuManager) activepods() []*v1.Pod {

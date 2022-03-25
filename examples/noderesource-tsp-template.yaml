@@ -17,7 +17,7 @@ data:
       resourceIdentifier: cpu
       type: ExpressionQuery
       expressionQuery:
-        expression: 'node_cpu_cannot_be_reclaimed_seconds{node=~"({{nodename}})(:\\d+)?"}'
+        expression: 'node_cpu_cannot_be_reclaimed_seconds{node=~"({{ .metadata.name }})(:\\d+)?"}'
     predictionWindowSeconds: 180
 kind: ConfigMap
 metadata:

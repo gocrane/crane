@@ -159,7 +159,7 @@ func GetContainerNameFromPod(pod *v1.Pod, containerId string) string {
 }
 
 func GetContainerFromPod(pod *v1.Pod, containerName string) *v1.Container {
-	if containerName == ""{
+	if containerName == "" {
 		return nil
 	}
 	for _, v := range pod.Spec.Containers {

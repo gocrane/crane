@@ -4,6 +4,8 @@
 package cadvisor
 
 import (
+	"errors"
+
 	info "github.com/google/cadvisor/info/v1"
 	cadvisorapiv2 "github.com/google/cadvisor/info/v2"
 	corelisters "k8s.io/client-go/listers/core/v1"
@@ -11,13 +13,14 @@ import (
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/ensurance/collector/types"
 )
+
 var errUnsupported = errors.New("cAdvisor is unsupported in this build")
 
 type CadvisorCollectorUnsupport struct {
 	Manager Manager
 }
 
-type CadvisorManagerUnsupport struct {}
+type CadvisorManagerUnsupport struct{}
 
 func NewCadvisorManager() Manager {
 	return &CadvisorManagerUnsupport{}
