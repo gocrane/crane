@@ -61,22 +61,27 @@ func (tc *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Res
 	p := &predictionapi.TimeSeriesPrediction{}
 	err := tc.Client.Get(ctx, req.NamespacedName, p)
 	if err != nil {
-		if errors.IsNotFound(err) {
-			if last, ok := tc.tsPredictionMap.Load(req.NamespacedName.String()); ok {
-				if tsp, ok := last.(*predictionapi.TimeSeriesPrediction); ok {
-					err := tc.removeTimeSeriesPrediction(tsp)
-					if err != nil {
-						return ctrl.Result{Requeue: true}, err
-					}
-					return ctrl.Result{}, nil
-				}
-				return ctrl.Result{}, fmt.Errorf("assert tsp failed for tsp %v in map", req.String())
-			}
+		if !errors.IsNotFound(err) {
+			klog.V(4).Infof("Failed to get TimeSeriesPrediction %v err: %v", klog.KObj(p), err)
+			return ctrl.Result{Requeue: true}, err
+		}
+
+		last, ok := tc.tsPredictionMap.Load(req.NamespacedName.String())
+		if !ok {
 			klog.V(4).Infof("Failed to load exist tsp %v", req.String())
 			return ctrl.Result{}, nil
 		}
-		klog.V(4).Infof("Failed to get TimeSeriesPrediction %v err: %v", klog.KObj(p), err)
-		return ctrl.Result{Requeue: true}, err
+
+		tsp, ok := last.(*predictionapi.TimeSeriesPrediction)
+		if !ok {
+			return ctrl.Result{}, fmt.Errorf("assert tsp failed for tsp %v in map", req.String())
+		}
+
+		err := tc.removeTimeSeriesPrediction(tsp)
+		if err != nil {
+			return ctrl.Result{Requeue: true}, err
+		}
+		return ctrl.Result{}, nil
 	}
 
 	return tc.syncTimeSeriesPrediction(ctx, p)
@@ -98,25 +103,28 @@ func (tc *Controller) syncTimeSeriesPrediction(ctx context.Context, tsp *predict
 		return ctrl.Result{}, err
 	}
 
-	last, ok := tc.tsPredictionMap.Load(key)
-	if !ok { // first time created or system start
-		c.WithApiConfigs(tsp.Spec.PredictionMetrics)
-	} else {
-		if old, ok := last.(*predictionapi.TimeSeriesPrediction); ok {
-			// predictor need a interface to query the config and then diff.
-			// now just diff the cache in the controller to decide, it can not cover all the cases when users modify the spec
-			for _, oldMetricConf := range old.Spec.PredictionMetrics {
-				if !ExistsPredictionMetric(oldMetricConf, tsp.Spec.PredictionMetrics) {
-					c.DeleteApiConfig(&oldMetricConf)
-				}
-			}
-			for _, newMetricConf := range tsp.Spec.PredictionMetrics {
-				c.WithApiConfig(&newMetricConf)
-			}
-		} else {
+	func() {
+		last, ok := tc.tsPredictionMap.Load(key)
+		if !ok { // first time created or system start
 			c.WithApiConfigs(tsp.Spec.PredictionMetrics)
+			return
 		}
-	}
+		old, ok := last.(*predictionapi.TimeSeriesPrediction)
+		if !ok {
+			c.WithApiConfigs(tsp.Spec.PredictionMetrics)
+			return
+		}
+		// predictor need an interface to query the config and then diff.
+		// now just diff the cache in the controller to decide, it can not cover all the cases when users modify the spec
+		for _, oldMetricConf := range old.Spec.PredictionMetrics {
+			if !ExistsPredictionMetric(oldMetricConf, tsp.Spec.PredictionMetrics) {
+				c.DeleteApiConfig(&oldMetricConf)
+			}
+		}
+		for _, newMetricConf := range tsp.Spec.PredictionMetrics {
+			c.WithApiConfig(&newMetricConf)
+		}
+	}()
 
 	tc.tsPredictionMap.Store(key, tsp)
 

@@ -1,6 +1,8 @@
 package evpa
 
 import (
+	"time"
+
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 )
 
@@ -24,6 +26,18 @@ const (
 	// If the ratio of actual used cpu resources divided by limit resources is greater than DefaultScaleUpCPUUtilPercentageThreshold,
 	// it will trigger memory scaleup.
 	DefaultScaleUpMemoryUtilPercentageThreshold = int32(95)
+
+	// DefaultStabWindowSeconds defines the cold down seconds between two scaling for one container.
+	DefaultStabWindowSeconds = int32(120)
+
+	// DefaultCpuToleranceMilliCores defines the tolerance cpu change when scaling
+	DefaultCpuToleranceMilliCores = 100
+
+	// DefaultMemoryToleranceMB defines the tolerance memory change when scaling
+	DefaultMemoryToleranceMB = 100 * 1024 * 1024
+
+	// DefaultEVPARsyncPeriod defines the rsync period for EVPA controller
+	DefaultEVPARsyncPeriod = time.Second * 60
 )
 
 var (

@@ -42,6 +42,7 @@ func NewStateCollector(nodeName string, nepLister ensuranceListers.NodeQOSEnsura
 	analyzerChann := make(chan map[string][]common.TimeSeries)
 	nodeResourceChann := make(chan map[string][]common.TimeSeries)
 	podResourceChann := make(chan map[string][]common.TimeSeries)
+	c := cadvisor.NewCadvisorManager()
 	return &StateCollector{
 		nodeName:          nodeName,
 		nepLister:         nepLister,

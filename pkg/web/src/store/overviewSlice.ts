@@ -1,19 +1,19 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 export interface OverviewState {
-  searchFilter: { clusterNames: string[]; clusterIds: string[] } | null;
+  searchText: string;
 }
 
 export const initialOverviewState: OverviewState = {
-  searchFilter: null
+  searchText: ''
 };
 
 const slice = createSlice({
   name: 'overview',
   initialState: initialOverviewState,
   reducers: {
-    searchFilter: (state, action: PayloadAction<any>) => {
-      state.searchFilter = action.payload;
+    searchText: (state, action: PayloadAction<any>) => {
+      state.searchText = action.payload;
     }
   }
 });

@@ -50,12 +50,12 @@ func IsEqual(oldResource, desiredResource *corev1.ResourceRequirements) bool {
 	return true
 }
 
-func GetResourceByPodTemplate(podTemplate *corev1.PodTemplateSpec, containerName string) *corev1.ResourceRequirements {
+func GetResourceByPodTemplate(podTemplate *corev1.PodTemplateSpec, containerName string) (*corev1.ResourceRequirements, bool) {
 	for _, containerSpec := range podTemplate.Spec.Containers {
 		if containerSpec.Name == containerName {
-			return &containerSpec.Resources
+			return &containerSpec.Resources, true
 		}
 	}
 
-	return nil
+	return nil, false
 }

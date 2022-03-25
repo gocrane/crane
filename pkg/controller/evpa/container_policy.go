@@ -3,10 +3,10 @@ package evpa
 import (
 	"context"
 	"fmt"
+	"math"
 	"sort"
 	"time"
 
-	"github.com/gocrane/crane/pkg/autoscaling/estimator"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	vpatypes "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
@@ -14,6 +14,7 @@ import (
 
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 
+	"github.com/gocrane/crane/pkg/autoscaling/estimator"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
@@ -24,11 +25,7 @@ const (
 	ScaleDown ScaleDirection = "ScaleDown"
 )
 
-const (
-	DefaultStabWindowSeconds = int32(120)
-)
-
-func (c *EffectiveVPAController) ReconcileContainerPolicies(ctx context.Context, evpa *autoscalingapi.EffectiveVerticalPodAutoscaler, status autoscalingapi.EffectiveVerticalPodAutoscalerStatus, podTemplate *corev1.PodTemplateSpec, resourceEstimators []estimator.ResourceEstimatorInstance) (currentEstimatorStatus []autoscalingapi.ResourceEstimatorStatus, recommendation *vpatypes.RecommendedPodResources, err error) {
+func (c *EffectiveVPAController) ReconcileContainerPolicies(ctx context.Context, evpa *autoscalingapi.EffectiveVerticalPodAutoscaler, podTemplate *corev1.PodTemplateSpec, resourceEstimators []estimator.ResourceEstimatorInstance) (currentEstimatorStatus []autoscalingapi.ResourceEstimatorStatus, recommendation *vpatypes.RecommendedPodResources, err error) {
 	recommendation = &vpatypes.RecommendedPodResources{}
 
 	rankedEstimators := RankEstimators(resourceEstimators)
@@ -41,9 +38,9 @@ func (c *EffectiveVPAController) ReconcileContainerPolicies(ctx context.Context,
 
 		// get current resource by pod template
 		// todo: support "*"
-		resourceRequirement := utils.GetResourceByPodTemplate(podTemplate, containerPolicy.ContainerName)
-		if resourceRequirement == nil {
-			klog.Warningf("ContainerName %s resource requirement not found", containerPolicy.ContainerName)
+		resourceRequirement, found := utils.GetResourceByPodTemplate(podTemplate, containerPolicy.ContainerName)
+		if !found {
+			klog.Warningf("ContainerName %s not found", containerPolicy.ContainerName)
 			continue
 		}
 
@@ -110,17 +107,6 @@ func UpdateCurrentEstimatorStatus(estimator estimator.ResourceEstimatorInstance,
 	currentEstimatorStatus = append(currentEstimatorStatus, currentStatus) // nolint:ineffassign
 }
 
-func UpdateRecommendStatus(recommendation *vpatypes.RecommendedPodResources, containerName string, recommendResource corev1.ResourceList) {
-	containerRecommendation := vpatypes.RecommendedContainerResources{
-		ContainerName: containerName,
-		Target:        recommendResource,
-	}
-
-	recommendation.ContainerRecommendations = append(recommendation.ContainerRecommendations, containerRecommendation)
-	// todo: handle minAllow and maxAllow, for example uncapping and sharping
-	return
-}
-
 // CheckContainerScalingCondition check the conditions for container with scale direction
 func (c *EffectiveVPAController) CheckContainerScalingCondition(evpa *autoscalingapi.EffectiveVerticalPodAutoscaler, containerPolicy autoscalingapi.ContainerResourcePolicy, scalingPolicy *autoscalingapi.ContainerScalingPolicy, direction ScaleDirection, containerResource corev1.ResourceList, recommendContainerResource corev1.ResourceList) (bool, string) {
 	if scalingPolicy == nil {
@@ -169,6 +155,21 @@ func (c *EffectiveVPAController) CheckContainerScalingCondition(evpa *autoscalin
 	}
 
 	return true, ""
+}
+
+// UpdateRecommendStatus update recommend resource
+func UpdateRecommendStatus(recommendation *vpatypes.RecommendedPodResources, containerName string, recommendResource corev1.ResourceList) {
+	currentTargetResource := GetContainerTargetResource(recommendation, containerName)
+	ResourceWithTolerance(recommendResource, currentTargetResource)
+
+	containerRecommendation := vpatypes.RecommendedContainerResources{
+		ContainerName: containerName,
+		Target:        recommendResource,
+	}
+
+	recommendation.ContainerRecommendations = append(recommendation.ContainerRecommendations, containerRecommendation)
+	// todo: handle minAllow and maxAllow, for example uncapping and sharping
+	return
 }
 
 // GetScaleEventKey concat information for scale event key
@@ -243,6 +244,53 @@ func CalculateResourceByPriority(resourceLists []corev1.ResourceList) corev1.Res
 	}
 
 	return resourceByPriority
+}
+
+func GetContainerTargetResource(recommendation *vpatypes.RecommendedPodResources, containerName string) corev1.ResourceList {
+	for _, containerRecommend := range recommendation.ContainerRecommendations {
+		if containerRecommend.ContainerName == containerName {
+			return containerRecommend.Target
+		}
+	}
+
+	return nil
+}
+
+func ResourceWithTolerance(resource corev1.ResourceList, target corev1.ResourceList) {
+	ResourceWithToleranceCpu(resource, target)
+	ResourceWithToleranceMemory(resource, target)
+}
+
+// ResourceWithToleranceCpu handle cpu resource with tolerance
+func ResourceWithToleranceCpu(resource corev1.ResourceList, target corev1.ResourceList) {
+	resourceCpu := resource[corev1.ResourceCPU]
+	targetCpu := target[corev1.ResourceCPU]
+	if resourceCpu.IsZero() || targetCpu.IsZero() {
+		return
+	}
+
+	if math.Abs(float64(resourceCpu.MilliValue())-float64(targetCpu.MilliValue())) <= DefaultCpuToleranceMilliCores {
+		// tolerance cpu
+		resource[corev1.ResourceCPU] = targetCpu
+	}
+
+	return
+}
+
+// ResourceWithToleranceMemory handle memory resource with tolerance
+func ResourceWithToleranceMemory(resource corev1.ResourceList, target corev1.ResourceList) {
+	resourceMemory := resource[corev1.ResourceMemory]
+	targetMemory := target[corev1.ResourceMemory]
+	if resourceMemory.IsZero() || targetMemory.IsZero() {
+		return
+	}
+
+	if math.Abs(float64(resourceMemory.Value())-float64(targetMemory.Value())) <= DefaultMemoryToleranceMB {
+		// tolerance memory
+		resource[corev1.ResourceMemory] = targetMemory
+	}
+
+	return
 }
 
 // IsResourceListEmpty loop all resource quantities in resourceList, if all resources' quantity are zero, return true, otherwise return false.

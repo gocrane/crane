@@ -87,7 +87,6 @@ func NewAgent(ctx context.Context,
 	managers = appendManagerIfNotNil(managers, analyzerManager)
 	avoidanceManager := executor.NewActionExecutor(kubeClient, nodeName, podInformer, nodeInformer, noticeCh, runtimeEndpoint)
 	managers = appendManagerIfNotNil(managers, avoidanceManager)
-
 	if nodeResource := utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResource); nodeResource {
 		nodeResourceManager := resource.NewNodeResourceManager(kubeClient, nodeName, nodeResourceOptions.ReserveCpuPercentStr, nodeResourceOptions.ReserveMemoryPercentStr, agent.CreateNodeResourceTsp(), nodeInformer, tspInformer, stateCollector.NodeResourceChann)
 		managers = appendManagerIfNotNil(managers, nodeResourceManager)
@@ -195,6 +194,13 @@ func (a *Agent) DeleteNodeResourceTsp() error {
 
 func (a *Agent) GenerateNodeResourceTspName() string {
 	return fmt.Sprintf("noderesource-%s", a.name)
+}
+
+func appendManagerIfNotNil(managers []manager.Manager, m manager.Manager) []manager.Manager {
+	if m != nil {
+		return append(managers, m)
+	}
+	return managers
 }
 
 func appendManagerIfNotNil(managers []manager.Manager, m manager.Manager) []manager.Manager {
