@@ -23,4 +23,5 @@ RUN npm i -g runtime-env-cra@0.2.0
 WORKDIR /usr/share/nginx/html
 EXPOSE 9090
 
-CMD ["/bin/sh", "-c", "runtime-env-cra && nginx -g \"daemon off;\""]
+# CMD ["/bin/sh", "-c", "runtime-env-cra && nginx -g \"daemon off;\""]
+CMD ["/bin/sh", "-c", "nginx -g \"daemon off;\""]
