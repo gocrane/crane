@@ -20,7 +20,7 @@ spec:
     name: php-apache
   minReplicas: 1        # MinReplicas is the lower limit replicas to the scale target which the autoscaler can scale down to.
   maxReplicas: 10       # MaxReplicas is the upper limit replicas to the scale target which the autoscaler can scale up to.
-  scaleStrategy: Auto   # ScaleStrategy indicate the strategy to scaling target, value can be "Auto" and "Preview".
+  scaleStrategy: Auto   # ScaleStrategy indicates the strategy to scaling target, value can be "Auto" and "Preview".
   # Metrics contains the specifications for which to use to calculate the desired replica count.
   metrics:
   - type: Resource
@@ -45,7 +45,7 @@ spec:
 * spec.scaleTargetRef defines the reference to the workload that should be scaled.
 * spec.minReplicas is the lower limit replicas to the scale target which the autoscaler can scale down to.
 * spec.maxReplicas is the upper limit replicas to the scale target which the autoscaler can scale up to.
-* spec.metrics indicate the strategy to scaling target, value can be "Auto" and "Preview".
+* spec.scaleStrategy indicates the strategy to scaling target, value can be "Auto" and "Preview".
 * spec.metrics contains the specifications for which to use to calculate the desired replica count. Please refer to the details:
 * spec.prediction defines configurations for predict resources.If unspecified, defaults don't enable prediction.
 

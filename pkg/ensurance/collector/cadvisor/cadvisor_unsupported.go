@@ -4,28 +4,51 @@
 package cadvisor
 
 import (
+	info "github.com/google/cadvisor/info/v1"
+	cadvisorapiv2 "github.com/google/cadvisor/info/v2"
+	corelisters "k8s.io/client-go/listers/core/v1"
+
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/ensurance/collector/types"
-	corelisters "k8s.io/client-go/listers/core/v1"
 )
+var errUnsupported = errors.New("cAdvisor is unsupported in this build")
 
-type CadvisorCollector struct {
+type CadvisorCollectorUnsupport struct {
+	Manager Manager
 }
 
-func NewCadvisor(_ corelisters.PodLister) *CadvisorCollector {
-	return &CadvisorCollector{}
+type CadvisorManagerUnsupport struct {}
+
+func NewCadvisorManager() Manager {
+	return &CadvisorManagerUnsupport{}
 }
 
-func (c *CadvisorCollector) Stop() error {
-	return nil
+func NewCadvisorCollector(_ corelisters.PodLister, manager Manager) *CadvisorCollectorUnsupport {
+	return &CadvisorCollectorUnsupport{}
 }
 
-func (c *CadvisorCollector) GetType() types.CollectType {
+func (c *CadvisorCollectorUnsupport) Stop() error {
+	return errUnsupported
+}
+
+func (c *CadvisorCollectorUnsupport) GetType() types.CollectType {
 	return types.CadvisorCollectorType
 }
 
-func (c *CadvisorCollector) Collect() (map[string][]common.TimeSeries, error) {
-	return nil, nil
+func (c *CadvisorCollectorUnsupport) Collect() (map[string][]common.TimeSeries, error) {
+	return nil, errUnsupported
+}
+
+func (m *CadvisorManagerUnsupport) GetContainerInfoV2(containerName string, options cadvisorapiv2.RequestOptions) (map[string]cadvisorapiv2.ContainerInfo, error) {
+	return nil, errUnsupported
+}
+
+func (m *CadvisorManagerUnsupport) GetContainerInfo(containerName string, query *info.ContainerInfoRequest) (*info.ContainerInfo, error) {
+	return nil, errUnsupported
+}
+
+func (m *CadvisorManagerUnsupport) GetMachineInfo() (*info.MachineInfo, error) {
+	return nil, errUnsupported
 }
 
 func CheckMetricNameExist(name string) bool {

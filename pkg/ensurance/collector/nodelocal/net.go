@@ -39,8 +39,9 @@ type NetInterfaceUsage struct {
 	DropOut float64
 }
 
-func collectNetIO(nodeState *nodeState) (map[string][]common.TimeSeries, error) {
+func collectNetIO(nodeLocalContext *nodeLocalContext) (map[string][]common.TimeSeries, error) {
 	var now = time.Now()
+	nodeState := nodeLocalContext.nodeState
 
 	netIOStats, err := net.IOCounters(true)
 	if err != nil {

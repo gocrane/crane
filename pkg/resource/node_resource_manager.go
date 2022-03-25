@@ -2,6 +2,7 @@ package resource
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"strconv"
@@ -11,28 +12,43 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 
 	predictionv1 "github.com/gocrane/api/pkg/generated/informers/externalversions/prediction/v1alpha1"
 	predictionlisters "github.com/gocrane/api/pkg/generated/listers/prediction/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 	"github.com/gocrane/crane/pkg/common"
+	"github.com/gocrane/crane/pkg/ensurance/collector/types"
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/metrics"
-	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
 const (
-	MinDeltaRatio     = 0.1
-	StateExpiration   = 1 * time.Minute
-	TspUpdateInterval = 20 * time.Second
+	MinDeltaRatio                                 = 0.1
+	StateExpiration                               = 1 * time.Minute
+	TspUpdateInterval                             = 20 * time.Second
+	TspNamespace                                  = "default"
+	NodeReserveResourcePercentageAnnotationPrefix = "reserve.node.gocrane.io/%s"
 )
+
+var idToResourceMap = map[string]v1.ResourceName{
+	v1.ResourceCPU.String():    v1.ResourceCPU,
+	v1.ResourceMemory.String(): v1.ResourceMemory,
+}
+
+// ReserveResource is the cpu and memory reserve configuration
+type ReserveResource struct {
+	CpuPercent *float64
+	MemPercent *float64
+}
 
 type NodeResourceManager struct {
 	nodeName string
@@ -44,17 +60,30 @@ type NodeResourceManager struct {
 	tspLister predictionlisters.TimeSeriesPredictionLister
 	tspSynced cache.InformerSynced
 
+	recorder                   record.EventRecorder
+
 	stateChann chan map[string][]common.TimeSeries
 
-	//TODO: use state to be a backup of tsp
-	// A copy of data from stateChann
 	state map[string][]common.TimeSeries
 	// Updated when get new data from stateChann, used to determine whether state has expired
 	lastStateTime time.Time
+
+	reserveResource ReserveResource
+
+	tspName string
 }
 
-func NewNodeResourceManager(client clientset.Interface, nodeName string, podInformer coreinformers.PodInformer, nodeInformer coreinformers.NodeInformer,
-	tspInformer predictionv1.TimeSeriesPredictionInformer, runtimeEndpoint string, stateChann chan map[string][]common.TimeSeries) *NodeResourceManager {
+func NewNodeResourceManager(client clientset.Interface, nodeName string, reserveCpuPercentStr string,
+	reserveMemoryPercentStr string, tspName string, nodeInformer coreinformers.NodeInformer,
+	tspInformer predictionv1.TimeSeriesPredictionInformer, stateChann chan map[string][]common.TimeSeries) *NodeResourceManager {
+	reserveCpuPercent, _ := utils.ParsePercentage(reserveCpuPercentStr)
+	reserveMemoryPercent, _ := utils.ParsePercentage(reserveMemoryPercentStr)
+
+	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartStructuredLogging(0)
+	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: client.CoreV1().Events("")})
+	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "crane-agent"})
+
 	o := &NodeResourceManager{
 		nodeName:   nodeName,
 		client:     client,
@@ -62,7 +91,13 @@ func NewNodeResourceManager(client clientset.Interface, nodeName string, podInfo
 		nodeSynced: nodeInformer.Informer().HasSynced,
 		tspLister:  tspInformer.Lister(),
 		tspSynced:  tspInformer.Informer().HasSynced,
+		recorder:   recorder,
 		stateChann: stateChann,
+		reserveResource: ReserveResource{
+			CpuPercent: &reserveCpuPercent,
+			MemPercent: &reserveMemoryPercent,
+		},
+		tspName: tspName,
 	}
 	return o
 }
@@ -107,12 +142,6 @@ func (o *NodeResourceManager) Run(stop <-chan struct{}) {
 }
 
 func (o *NodeResourceManager) UpdateNodeResource() {
-	tsps, err := o.tspLister.List(labels.Everything())
-	if err != nil {
-		klog.Errorf("Failed to list tsp: %#v", err)
-		return
-	}
-
 	node := o.getNode()
 	if len(node.Status.Addresses) == 0 {
 		klog.Error("Node addresses is empty")
@@ -120,34 +149,16 @@ func (o *NodeResourceManager) UpdateNodeResource() {
 	}
 	nodeCopy := node.DeepCopy()
 
-	for _, tsp := range tsps {
-		// Get current node info
-		target := tsp.Spec.TargetRef
-		if target.Kind != config.TargetKindNode {
+	resourcesFrom := o.BuildNodeStatus(nodeCopy)
+	if !equality.Semantic.DeepEqual(&node.Status, &nodeCopy.Status) {
+		// Update Node status extend-resource info
+		// TODO fix: strategic merge patch kubernetes
+		if _, err := o.client.CoreV1().Nodes().Update(context.TODO(), nodeCopy, metav1.UpdateOptions{}); err != nil {
+			klog.Errorf("Failed to update node %s's status extend-resource, %v", nodeCopy.Name, err)
 			return
 		}
-
-		// Whether tsp is matched with this node
-		tspMatched, err := o.FindTargetNode(tsp, node.Status.Addresses)
-		if err != nil {
-			klog.Error(err.Error())
-		}
-
-		if !tspMatched {
-			return
-		}
-
-		o.BuildNodeStatus(tsp, nodeCopy)
-		if !equality.Semantic.DeepEqual(&node.Status, &nodeCopy.Status) {
-			// Update Node status extend-resource info
-			// TODO fix: strategic merge patch kubernetes
-			if _, err := o.client.CoreV1().Nodes().Update(context.TODO(), nodeCopy, metav1.UpdateOptions{}); err != nil {
-				klog.Errorf("Failed to update node %s's status extend-resource, %v", nodeCopy.Name, err)
-				return
-			}
-			klog.V(4).Infof("Update Node %s Extend Resource Success according to TSP %s", node.Name, tsp.Name)
-		}
-		return
+		klog.V(4).Infof("Update Node %s Extend Resource Success", node.Name)
+		o.recorder.Event(node, v1.EventTypeNormal, "UpdateNode", generateUpdateEventMessage(resourcesFrom))
 	}
 }
 
@@ -163,7 +174,7 @@ func (o *NodeResourceManager) getNode() *v1.Node {
 func (o *NodeResourceManager) FindTargetNode(tsp *predictionapi.TimeSeriesPrediction, addresses []v1.NodeAddress) (bool, error) {
 	address := tsp.Spec.TargetRef.Name
 	if address == "" {
-		return false, fmt.Errorf("Tsp %s target is not specified", tsp.Name)
+		return false, fmt.Errorf("tsp %s target is not specified", tsp.Name)
 	}
 
 	// the reason we use node ip instead of node name as the target name is
@@ -177,23 +188,91 @@ func (o *NodeResourceManager) FindTargetNode(tsp *predictionapi.TimeSeriesPredic
 	return false, nil
 }
 
-func (o *NodeResourceManager) BuildNodeStatus(tsp *predictionapi.TimeSeriesPrediction, node *v1.Node) {
-	idToResourceMap := map[string]*v1.ResourceName{}
-	for _, metrics := range tsp.Spec.PredictionMetrics {
-		if metrics.ResourceQuery == nil {
+func (o *NodeResourceManager) BuildNodeStatus(node *v1.Node) map[v1.ResourceName]string{
+	tspCanNotBeReclaimedResource := o.GetCanNotBeReclaimedResourceFromTsp(node)
+	localCanNotBeReclaimedResource := o.GetCanNotBeReclaimedResourceFromLocal()
+	reserveCpuPercent := o.reserveResource.CpuPercent
+	if nodeReserveCpuPercent, ok := getReserveResourcePercentFromNodeAnnotations(node.GetAnnotations(), v1.ResourceCPU.String()); ok {
+		reserveCpuPercent = &nodeReserveCpuPercent
+	}
+
+	extResourceFrom := map[v1.ResourceName]string{}
+
+	for resourceName, value := range tspCanNotBeReclaimedResource {
+		resourceFrom := "tsp"
+		maxUsage := value
+		if localCanNotBeReclaimedResource[resourceName] > maxUsage {
+			maxUsage = localCanNotBeReclaimedResource[resourceName]
+			resourceFrom = "local"
+		}
+		var nextRecommendation float64
+		switch resourceName {
+		case v1.ResourceCPU:
+			// cpu need to be scaled to m as ext resource cannot be decimal
+			if reserveCpuPercent != nil {
+				nextRecommendation = (float64(node.Status.Allocatable.Cpu().Value())**reserveCpuPercent - maxUsage) * 1000
+			} else {
+				nextRecommendation = (float64(node.Status.Allocatable.Cpu().Value()) - maxUsage) * 1000
+			}
+		case v1.ResourceMemory:
+			// unit of memory in prometheus is in Ki, need to be converted to byte
+			nextRecommendation = float64(node.Status.Allocatable.Memory().Value()) - (maxUsage * 1000)
+		default:
 			continue
 		}
-		idToResourceMap[metrics.ResourceIdentifier] = metrics.ResourceQuery
+		if nextRecommendation < 0 {
+			nextRecommendation = 0
+		}
+		extResourceName := fmt.Sprintf(utils.ExtResourcePrefixFormat, string(resourceName))
+		resValue, exists := node.Status.Capacity[v1.ResourceName(extResourceName)]
+		if exists && resValue.Value() != 0 &&
+			math.Abs(float64(resValue.Value())-
+				nextRecommendation)/float64(resValue.Value()) <= MinDeltaRatio {
+			continue
+		}
+		node.Status.Capacity[v1.ResourceName(extResourceName)] =
+			*resource.NewQuantity(int64(nextRecommendation), resource.DecimalSI)
+		node.Status.Allocatable[v1.ResourceName(extResourceName)] =
+			*resource.NewQuantity(int64(nextRecommendation), resource.DecimalSI)
+
+		extResourceFrom[resourceName] = resourceFrom
 	}
+
+	return extResourceFrom
+}
+
+func (o *NodeResourceManager) GetCanNotBeReclaimedResourceFromTsp(node *v1.Node) map[v1.ResourceName]float64 {
+	canNotBeReclaimedResource := map[v1.ResourceName]float64{
+		v1.ResourceCPU:    0,
+		v1.ResourceMemory: 0,
+	}
+
+	tsp, err := o.tspLister.TimeSeriesPredictions(TspNamespace).Get(o.tspName)
+	if err != nil {
+		klog.Errorf("Failed to get tsp: %#v", err)
+		return canNotBeReclaimedResource
+	}
+
+	tspMatched, err := o.FindTargetNode(tsp, node.Status.Addresses)
+	if err != nil {
+		klog.Error(err.Error())
+		return canNotBeReclaimedResource
+	}
+
+	if !tspMatched {
+		klog.Errorf("Found tsp %s, but tsp not matched to node %s", o.tspName, node.Name)
+		return canNotBeReclaimedResource
+	}
+
 	// build node status
 	nextPredictionResourceStatus := &tsp.Status
-	for _, metrics := range nextPredictionResourceStatus.PredictionMetrics {
-		resourceName, exists := idToResourceMap[metrics.ResourceIdentifier]
+	for _, predictionMetric := range nextPredictionResourceStatus.PredictionMetrics {
+		resourceName, exists := idToResourceMap[predictionMetric.ResourceIdentifier]
 		if !exists {
 			continue
 		}
-		for _, timeSeries := range metrics.Prediction {
-			var maxUsage, nextUsage float64
+		for _, timeSeries := range predictionMetric.Prediction {
+			var nextUsage float64
 			var nextUsageFloat float64
 			var err error
 			for _, sample := range timeSeries.Samples {
@@ -202,36 +281,85 @@ func (o *NodeResourceManager) BuildNodeStatus(tsp *predictionapi.TimeSeriesPredi
 					continue
 				}
 				nextUsage = nextUsageFloat
-				if maxUsage < nextUsage {
-					maxUsage = nextUsage
+				if canNotBeReclaimedResource[resourceName] < nextUsage {
+					canNotBeReclaimedResource[resourceName] = nextUsage
 				}
 			}
-			var nextRecommendation float64
-			switch *resourceName {
-			case v1.ResourceCPU:
-				// cpu need to be scaled to m as ext resource cannot be decimal
-				nextRecommendation = (float64(node.Status.Allocatable.Cpu().Value()) - maxUsage) * 1000
-			case v1.ResourceMemory:
-				// unit of memory in prometheus is in Ki, need to be converted to byte
-				nextRecommendation = float64(node.Status.Allocatable.Memory().Value()) - (maxUsage * 1000)
-			default:
-				continue
-			}
-			if nextRecommendation < 0 {
-				klog.V(4).Infof("Unexpected recommendation,nodeName %s, maxUsage %v, nextRecommendation %v", node.Name, maxUsage, nextRecommendation)
-				continue
-			}
-			extResourceName := fmt.Sprintf(utils.ExtResourcePrefixFormat, string(*resourceName))
-			resValue, exists := node.Status.Capacity[v1.ResourceName(extResourceName)]
-			if exists && resValue.Value() != 0 &&
-				math.Abs(float64(resValue.Value())-
-					nextRecommendation)/float64(resValue.Value()) <= MinDeltaRatio {
-				continue
-			}
-			node.Status.Capacity[v1.ResourceName(extResourceName)] =
-				*resource.NewQuantity(int64(nextRecommendation), resource.DecimalSI)
-			node.Status.Allocatable[v1.ResourceName(extResourceName)] =
-				*resource.NewQuantity(int64(nextRecommendation), resource.DecimalSI)
 		}
 	}
+	return canNotBeReclaimedResource
+}
+
+func (o *NodeResourceManager) GetCanNotBeReclaimedResourceFromLocal() map[v1.ResourceName]float64 {
+	return map[v1.ResourceName]float64{
+		v1.ResourceCPU:    o.GetCpuCoreCanNotBeReclaimedFromLocal(),
+		v1.ResourceMemory: 0,
+	}
+}
+
+func (o *NodeResourceManager) GetCpuCoreCanNotBeReclaimedFromLocal() float64 {
+	if o.lastStateTime.Before(time.Now().Add(-20 * time.Second)) {
+		klog.V(1).Infof("NodeResourceManager local state has expired")
+		return 0
+	}
+
+	nodeCpuUsageTotalTimeSeries, ok := o.state[string(types.MetricNameCpuTotalUsage)]
+	if !ok {
+		klog.V(1).Infof("Can't get %s from NodeResourceManager local state", types.MetricNameCpuTotalUsage)
+		return 0
+	}
+	nodeCpuUsageTotal := nodeCpuUsageTotalTimeSeries[0].Samples[0].Value
+
+	var extResContainerCpuUsageTotal float64 = 0
+	extResContainerCpuUsageTotalTimeSeries, ok := o.state[string(types.MetricNameExtResContainerCpuTotalUsage)]
+	if ok {
+		extResContainerCpuUsageTotal = extResContainerCpuUsageTotalTimeSeries[0].Samples[0].Value
+	} else {
+		klog.V(1).Infof("Can't get %s from NodeResourceManager local state", types.MetricNameExtResContainerCpuTotalUsage)
+	}
+
+	var exclusiveCPUIdle float64 = 0
+	exclusiveCPUIdleTimeSeries, ok := o.state[string(types.MetricNameExclusiveCPUIdle)]
+	if ok {
+		exclusiveCPUIdle = exclusiveCPUIdleTimeSeries[0].Samples[0].Value
+	} else {
+		klog.V(1).Infof("Can't get %s from NodeResourceManager local state", types.MetricNameExclusiveCPUIdle)
+	}
+
+	// 1. Exclusive tethered CPU cannot be reclaimed even if the free part is free, so add the exclusive CPUIdle to the CanNotBeReclaimed CPU
+	// 2. The CPU used by extRes-container needs to be reclaimed, otherwise it will be double-counted due to the allotted mechanism of k8s, so the extResContainerCpuUsageTotal is subtracted from the CanNotBeReclaimedCpu
+	return nodeCpuUsageTotal + exclusiveCPUIdle - extResContainerCpuUsageTotal
+}
+
+func getReserveResourcePercentFromNodeAnnotations(annotations map[string]string, resourceName string) (float64, bool) {
+	if annotations == nil {
+		return 0, false
+	}
+	var reserveResourcePercentStr string
+	var ok = false
+	switch resourceName {
+	case v1.ResourceCPU.String():
+		reserveResourcePercentStr, ok = annotations[fmt.Sprintf(NodeReserveResourcePercentageAnnotationPrefix, v1.ResourceCPU.String())]
+	case v1.ResourceMemory.String():
+		reserveResourcePercentStr, ok = annotations[fmt.Sprintf(NodeReserveResourcePercentageAnnotationPrefix, v1.ResourceMemory.String())]
+	default:
+	}
+	if !ok {
+		return 0, false
+	}
+
+	reserveResourcePercent, err := utils.ParsePercentage(reserveResourcePercentStr)
+	if err != nil {
+		return 0, false
+	}
+
+	return reserveResourcePercent, ok
+}
+
+func generateUpdateEventMessage(resourcesFrom map[v1.ResourceName]string) string {
+	message, err := json.Marshal(resourcesFrom)
+	if err != nil {
+		return ""
+	}
+	return string(message)
 }

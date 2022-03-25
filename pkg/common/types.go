@@ -11,6 +11,7 @@ const (
 	LabelNamePodUid        = "PodUid"
 	LabelNameContainerName = "ContainerName"
 	LabelNameContainerId   = "ContainerId"
+	LabelNameHasExtRes     = "HasExtRes"
 )
 
 // TimeSeries is a stream of samples that belong to a metric with a set of labels

@@ -52,6 +52,17 @@ spec:
               readOnly: true
             - name: config
               mountPath: /tmp/recommendation-config
+          readinessProbe:
+            httpGet:
+              path: /api/healthz
+              port: 8082
+              scheme: HTTP
+        - image: docker.io/gocrane/dashboard:v0.2.0
+          imagePullPolicy: IfNotPresent
+          name: dashboard
+          volumeMounts:
+            - mountPath: /etc/nginx/conf.d/
+              name: nginx-conf
       volumes:
         - name: cert
           secret:
@@ -60,6 +71,10 @@ spec:
         - name: config
           configMap:
             name: recommendation-config
+        - name: nginx-conf
+          configMap:
+            name: nginx-conf
+
 ---
 apiVersion: v1
 data:
@@ -98,3 +113,115 @@ data:
           ehpa.min-cpu-target-utilization: "30"
           ehpa.max-cpu-target-utilization: "75"
           ehpa.reference-hpa: "true"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-conf
+  namespace: crane-system
+data:
+  nginx.conf: |
+    gzip_static  on;
+    gzip on;
+    gzip_min_length 50000;
+    gzip_proxied expired no-cache no-store private auth;
+    gzip_types
+        application/atom+xml
+        application/geo+json
+        application/javascript
+        application/x-javascript
+        application/json
+        application/ld+json
+        application/manifest+json
+        application/rdf+xml
+        application/rss+xml
+        application/vnd.ms-fontobject
+        application/wasm
+        application/x-web-app-manifest+json
+        application/xhtml+xml
+        application/xml
+        font/eot
+        font/otf
+        font/ttf
+        image/bmp
+        image/svg+xml
+        text/cache-manifest
+        text/calendar
+        text/css
+        text/javascript
+        text/markdown
+        text/plain
+        text/xml
+        text/x-component
+        text/x-cross-domain-policy;
+
+    upstream cluster {
+        server craned.crane-system:8082;
+    }
+
+    upstream grafana {
+        server grafana.crane-system:8082;
+    }
+
+
+    server {
+        server_name _;
+        large_client_header_buffers 4 32k;
+        add_header Cache-Control "must-revalidate";
+        add_header Cache-Control "max-age=300";
+        add_header ETag "1.90.0-rc.0";
+        listen 9090;
+        listen [::]:9090;
+        location / {
+            root /usr/share/nginx/html/;
+            include /etc/nginx/mime.types;
+            try_files $uri $uri/ /index.html;
+
+            location /grafana {
+                proxy_connect_timeout       180;
+                proxy_send_timeout          180;
+                proxy_read_timeout          180;
+                proxy_pass http://grafana;
+                proxy_redirect off;
+                rewrite /grafana/(.*) /$1 break;
+                proxy_http_version 1.1;
+                proxy_set_header Connection "";
+                proxy_set_header  X-Real-IP  $remote_addr;
+                proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
+            }
+            location /api/v1/cluster {
+                proxy_connect_timeout       180;
+                proxy_send_timeout          180;
+                proxy_read_timeout          180;
+                proxy_pass http://cluster;
+                proxy_redirect off;
+                proxy_http_version 1.1;
+                proxy_set_header Connection "";
+                proxy_set_header  X-Real-IP  $remote_addr;
+                proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
+            }
+            location /api/v1/namespaces {
+                proxy_connect_timeout       180;
+                proxy_send_timeout          180;
+                proxy_read_timeout          180;
+                proxy_pass http://cluster;
+                proxy_redirect off;
+                proxy_http_version 1.1;
+                proxy_set_header Connection "";
+                proxy_set_header  X-Real-IP  $remote_addr;
+                proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
+            }
+            location /api {
+                proxy_connect_timeout       180;
+                proxy_send_timeout          180;
+                proxy_read_timeout          180;
+                proxy_pass http://cluster;
+                proxy_redirect off;
+                proxy_http_version 1.1;
+                proxy_set_header Connection "";
+                proxy_set_header  X-Real-IP  $remote_addr;
+                proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
+            }
+        }
+    }

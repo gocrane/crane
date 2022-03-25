@@ -141,6 +141,44 @@ func GetExtCpuRes(container v1.Container) (resource.Quantity, bool) {
 	return resource.Quantity{}, false
 }
 
+func GetContainerNameFromPod(pod *v1.Pod, containerId string) string {
+	if containerId == "" {
+		return ""
+	}
+
+	for _, v := range pod.Status.ContainerStatuses {
+		strList := strings.Split(v.ContainerID, "//")
+		if len(strList) > 0 {
+			if strList[len(strList)-1] == containerId {
+				return v.Name
+			}
+		}
+	}
+
+	return ""
+}
+
+func GetContainerFromPod(pod *v1.Pod, containerName string) *v1.Container {
+	if containerName == ""{
+		return nil
+	}
+	for _, v := range pod.Spec.Containers {
+		if v.Name == containerName {
+			return &v
+		}
+	}
+	return nil
+}
+
+// GetExtCpuRes get container's gocrane.io/cpu usage
+func GetContainerExtCpuResFromPod(pod *v1.Pod, containerName string) (resource.Quantity, bool) {
+	c := GetContainerFromPod(pod, containerName)
+	if c == nil {
+		return resource.Quantity{}, false
+	}
+	return GetExtCpuRes(*c)
+}
+
 func GetContainerStatus(pod *v1.Pod, container v1.Container) v1.ContainerState {
 	for _, cs := range pod.Status.ContainerStatuses {
 		if cs.Name == container.Name {

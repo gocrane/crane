@@ -9,5 +9,14 @@ spec:
     - port: 443
       protocol: TCP
       targetPort: 9443
+      name: craned
+    - port: 8082
+      protocol: TCP
+      targetPort: 8082
+      name: crane-server
+    - port: 9090
+      protocol: TCP
+      targetPort: 9090
+      name: dashboard-service
   selector:
     app: craned
