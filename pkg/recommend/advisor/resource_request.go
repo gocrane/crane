@@ -108,7 +108,7 @@ func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) 
 		}
 
 		mericNamer := ResourceToContainerMetricNamer(namespace, pod.Name, c.Name, corev1.ResourceCPU)
-		klog.V(8).Infof("CPU query for resource request recommendation: %s", mericNamer.BuildUniqueKey())
+		klog.V(6).Infof("CPU query for resource request recommendation: %s", mericNamer.BuildUniqueKey())
 		cpuConfig := makeCpuConfig(a.ConfigProperties)
 		tsList, err := utils.QueryPredictedValuesOnce(a.Recommendation, p,
 			fmt.Sprintf(callerFormat, a.Recommendation.UID), cpuConfig, mericNamer)
@@ -122,7 +122,7 @@ func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) 
 		cr.Target[corev1.ResourceCPU] = resource.NewMilliQuantity(v, resource.DecimalSI).String()
 
 		mericNamer = ResourceToContainerMetricNamer(namespace, pod.Name, c.Name, corev1.ResourceMemory)
-		klog.V(8).Infof("Memory query for resource request recommendation: %s", mericNamer.BuildUniqueKey())
+		klog.V(6).Infof("Memory query for resource request recommendation: %s", mericNamer.BuildUniqueKey())
 		memConfig := makeMemConfig(a.ConfigProperties)
 		tsList, err = utils.QueryPredictedValuesOnce(a.Recommendation, p,
 			fmt.Sprintf(callerFormat, a.Recommendation.UID), memConfig, mericNamer)

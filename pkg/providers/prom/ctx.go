@@ -51,17 +51,18 @@ func (c *context) QueryRangeSync(ctx gocontext.Context, query string, start, end
 	}
 	shards := c.computeShards(query, &r)
 	if len(shards.windows) <= 1 {
+		klog.V(4).InfoS("Prom query directly", "query", query)
 		var ts []*common.TimeSeries
 		results, warnings, err := c.api.QueryRange(ctx, query, r)
 		if len(warnings) != 0 {
-			klog.V(4).InfoS("prom query range warnings", "warnings", warnings)
+			klog.V(4).InfoS("Prom query range warnings", "warnings", warnings)
 		}
 		// todo: parse err to see its max limit dynamically
 		if err != nil {
 			return ts, err
 		}
-		if klog.V(10).Enabled() {
-			klog.V(10).InfoS("prom query range result", "result", results.String(), "resultsType", results.Type())
+		if klog.V(7).Enabled() {
+			klog.V(7).InfoS("Prom query range result", "query", query, "result", results.String(), "resultsType", results.Type())
 		}
 
 		return c.convertPromResultsToTimeSeries(results)
@@ -74,17 +75,18 @@ func (c *context) QuerySync(ctx gocontext.Context, query string) ([]*common.Time
 	var ts []*common.TimeSeries
 	results, warnings, err := c.api.Query(ctx, query, time.Now())
 	if len(warnings) != 0 {
-		klog.InfoS("prom query warnings", "warnings", warnings)
+		klog.InfoS("Prom query warnings", "warnings", warnings)
 	}
 	if err != nil {
 		return ts, err
 	}
-	klog.V(8).InfoS("prom query result", "result", results.String(), "resultsType", results.Type())
+	klog.V(8).InfoS("Prom query result", "result", results.String(), "resultsType", results.Type())
 	return c.convertPromResultsToTimeSeries(results)
 
 }
 
 func (c *context) queryByShards(ctx gocontext.Context, queryShards *QueryShards) ([]*common.TimeSeries, error) {
+	klog.V(4).InfoS("Prom query range by shards", "query", queryShards.query)
 	resultsCh := make(chan *QueryShardResult, len(queryShards.windows))
 	var wg sync.WaitGroup
 	for _, window := range queryShards.windows {
@@ -92,9 +94,10 @@ func (c *context) queryByShards(ctx gocontext.Context, queryShards *QueryShards)
 		go func(ctx gocontext.Context, window *promapiv1.Range) {
 			defer runtime.HandleCrash()
 			defer wg.Done()
+			klog.V(6).InfoS("Prom query range by shards", "query", queryShards.query, "window", window)
 			value, warnings, err := c.api.QueryRange(ctx, queryShards.query, *window)
 			if len(warnings) != 0 {
-				klog.V(4).InfoS("prom query range warnings", "warnings", warnings, "window", window, "query", queryShards.query)
+				klog.V(4).InfoS("Prom query range warnings", "warnings", warnings, "window", window, "query", queryShards.query)
 			}
 			if err != nil {
 				resultsCh <- &QueryShardResult{
@@ -126,6 +129,7 @@ func (c *context) queryByShards(ctx gocontext.Context, queryShards *QueryShards)
 	wg.Wait()
 	close(resultsCh)
 
+	klog.V(4).InfoS("Prom query range by shards, all shards query done", "query", queryShards.query)
 	var errs []error
 	resultsMap := make(map[string]*common.TimeSeries)
 	var results []*common.TimeSeries
