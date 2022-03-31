@@ -3,7 +3,6 @@ package percentile
 import (
 	"context"
 	"fmt"
-	"math"
 	"sync"
 	"time"
 
@@ -173,8 +172,6 @@ func (p *percentilePrediction) QueryRealtimePredictedValuesOnce(ctx context.Cont
 // process is a stateless function to get estimation of a metric series by constructing a histogram then get estimation data.
 func (p *percentilePrediction) process(namer metricnaming.MetricNamer, config config.Config) ([]*common.TimeSeries, error) {
 	var predictedTimeSeriesList []*common.TimeSeries
-	maxAttempts := 10
-	attempts := 0
 	var historyTimeSeriesList []*common.TimeSeries
 	var err error
 	queryExpr := namer.BuildUniqueKey()
@@ -184,19 +181,9 @@ func (p *percentilePrediction) process(namer metricnaming.MetricNamer, config co
 	}
 	klog.V(4).Infof("process analyzing metric namer: %v, config: %+v", namer.BuildUniqueKey(), *cfg)
 
-	for attempts < maxAttempts {
-		historyTimeSeriesList, err = p.queryHistoryTimeSeries(namer, cfg)
-		if err != nil {
-			attempts++
-			t := time.Second * time.Duration(math.Pow(2., float64(attempts)))
-			klog.ErrorS(err, "Failed to get time series.", "queryExpr", queryExpr, "attempts", attempts)
-			time.Sleep(t)
-		} else {
-			break
-		}
-	}
-	if attempts == maxAttempts {
-		klog.Errorf("After attempting %d times, still cannot get history time series for query expression '%s'.", maxAttempts, queryExpr)
+	historyTimeSeriesList, err = p.queryHistoryTimeSeries(namer, cfg)
+	if err != nil {
+		klog.Errorf("Failed to query history time series for query expression '%s'.", queryExpr)
 		return nil, err
 	}
 
@@ -414,23 +401,11 @@ func (p *percentilePrediction) init(namer metricnaming.MetricNamer) error {
 	queryExpr := namer.BuildUniqueKey()
 	cfg := p.a.GetConfig(queryExpr)
 	// Query history data for prediction
-	maxAttempts := 10
-	attempts := 0
 	var historyTimeSeriesList []*common.TimeSeries
 	var err error
-	for attempts < maxAttempts {
-		historyTimeSeriesList, err = p.queryHistoryTimeSeries(namer, cfg)
-		if err != nil {
-			attempts++
-			t := time.Second * time.Duration(math.Pow(2., float64(attempts)))
-			klog.ErrorS(err, "Failed to get time series.", "queryExpr", queryExpr, "attempts", attempts)
-			time.Sleep(t)
-		} else {
-			break
-		}
-	}
-	if attempts == maxAttempts {
-		klog.Errorf("After attempting %d times, still cannot get history time series for query expression '%s'.", maxAttempts, queryExpr)
+	historyTimeSeriesList, err = p.queryHistoryTimeSeries(namer, cfg)
+	if err != nil {
+		klog.Errorf("Failed to query history time series for query expression '%s'.", queryExpr)
 		return err
 	}
 

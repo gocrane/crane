@@ -13,7 +13,8 @@ import (
 )
 
 type prom struct {
-	ctx *context
+	ctx    *context
+	config *providers.PromConfig
 }
 
 // NewProvider return a prometheus data provider
@@ -26,7 +27,7 @@ func NewProvider(config *providers.PromConfig) (providers.Interface, error) {
 
 	ctx := NewContext(client, config.MaxPointsLimitPerTimeSeries)
 
-	return &prom{ctx: ctx}, nil
+	return &prom{ctx: ctx, config: config}, nil
 }
 
 func (p *prom) QueryTimeSeries(namer metricnaming.MetricNamer, startTime time.Time, endTime time.Time, step time.Duration) ([]*common.TimeSeries, error) {
@@ -36,12 +37,14 @@ func (p *prom) QueryTimeSeries(namer metricnaming.MetricNamer, startTime time.Ti
 		klog.Errorf("Failed to BuildQuery: %v", err)
 		return nil, err
 	}
-	timeSeries, err := p.ctx.QueryRangeSync(gocontext.TODO(), promQuery.Prometheus.Query, startTime, endTime, step)
+	klog.V(6).Infof("QueryTimeSeries metricNamer %v, timeout: %v", namer.BuildUniqueKey(), p.config.Timeout)
+	timeoutCtx, cancelFunc := gocontext.WithTimeout(gocontext.Background(), p.config.Timeout)
+	defer cancelFunc()
+	timeSeries, err := p.ctx.QueryRangeSync(timeoutCtx, promQuery.Prometheus.Query, startTime, endTime, step)
 	if err != nil {
 		klog.Errorf("Failed to QueryTimeSeries: %v, metricNamer: %v, query: %v", err, namer.BuildUniqueKey(), promQuery.Prometheus.Query)
 		return nil, err
 	}
-	klog.V(6).Infof("QueryTimeSeries metricNamer %v", namer.BuildUniqueKey())
 	return timeSeries, nil
 }
 
@@ -56,11 +59,13 @@ func (p *prom) QueryLatestTimeSeries(namer metricnaming.MetricNamer) ([]*common.
 	//end := time.Now()
 	// avoid no data latest. multiply 2
 	//start := end.Add(-step * 2)
-	timeSeries, err := p.ctx.QuerySync(gocontext.TODO(), promQuery.Prometheus.Query)
+	klog.V(6).Infof("QueryLatestTimeSeries metricNamer %v, timeout: %v", namer.BuildUniqueKey(), p.config.Timeout)
+	timeoutCtx, cancelFunc := gocontext.WithTimeout(gocontext.Background(), p.config.Timeout)
+	defer cancelFunc()
+	timeSeries, err := p.ctx.QuerySync(timeoutCtx, promQuery.Prometheus.Query)
 	if err != nil {
 		klog.Errorf("Failed to QueryLatestTimeSeries: %v, metricNamer: %v, query: %v", err, namer.BuildUniqueKey(), promQuery.Prometheus.Query)
 		return nil, err
 	}
-	klog.V(6).Infof("QueryLatestTimeSeries metricNamer %v", namer.BuildUniqueKey())
 	return timeSeries, nil
 }
