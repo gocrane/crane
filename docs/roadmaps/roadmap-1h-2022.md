@@ -11,7 +11,7 @@ Please let us know if you have urgent needs which are not presented in the plan.
 - Multiple Metric Adaptor support
 - Node QoS Ensurance for CPU
 - Operation Metrics about R3 and EPA applied ratio
-### 0.3.0 [March]
+### 0.3.0 [released]
 - UI with cost visibility and usage optimizations.
 - Request Recommendation adapts with Virtual Kubelet
 - Multiple Triggers for EPA
