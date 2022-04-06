@@ -1,0 +1,42 @@
+name: Publish branch
+on:
+  push:
+    branches:
+      - "release-*"
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.9"
+
+      - run: pip install mkdocs-material mkdocs-static-i18n mike
+
+      - name: Set user
+        run: |
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+      - name: Extract branch name
+        shell: bash
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+        id: extract_branch
+
+      - name: Mike with updating aliases
+        if: ${{ github.event.created }}
+        run: |
+          echo ${{ steps.extract_branch.outputs.branch }}
+          mike deploy --push --force --update-aliases ${{ steps.extract_branch.outputs.branch }} latest --rebase
+          mike set-default --push --force latest
+
+      - name: Mike
+        if: ${{ !github.event.created }}
+        run: |
+          echo ${{ steps.extract_branch.outputs.branch }}
+          mike deploy --force --push ${{ steps.extract_branch.outputs.branch }}

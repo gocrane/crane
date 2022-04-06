@@ -1,46 +1,56 @@
 # EffectiveHorizontalPodAutoscaler
 
-EffectiveHorizontalPodAutoscaler helps you manage application scaling in an easy way. It is compatible with HorizontalPodAutoscaler but extends more features.
-EffectiveHorizontalPodAutoscaler supports prediction-driven autoscaling. With this capability, user can forecast the incoming peak flow and scale up their application ahead, also user can know when the peak flow will end and scale down their application gracefully.
+EffectiveHorizontalPodAutoscaler helps you manage application scaling in an easy way. 
+
+It is compatible with HorizontalPodAutoscaler but extends more features.
+
+EffectiveHorizontalPodAutoscaler supports prediction-driven autoscaling. 
+
+With this capability, user can forecast the incoming peak flow and scale up their application ahead, also user can know when the peak flow will end and scale down their application gracefully.
 
 Besides that, EffectiveHorizontalPodAutoscaler also defines several scale strategies to support different scaling scenarios.
 
 ## Features
 A EffectiveHorizontalPodAutoscaler sample yaml looks like below:
+
 ```yaml
 apiVersion: autoscaling.crane.io/v1alpha1
 kind: EffectiveHorizontalPodAutoscaler
 metadata:
   name: php-apache
 spec:
-  # ScaleTargetRef is the reference to the workload that should be scaled.
-  scaleTargetRef:
+  scaleTargetRef: #(1)
     apiVersion: apps/v1
     kind: Deployment
     name: php-apache
-  minReplicas: 1        # MinReplicas is the lower limit replicas to the scale target which the autoscaler can scale down to.
-  maxReplicas: 10       # MaxReplicas is the upper limit replicas to the scale target which the autoscaler can scale up to.
-  scaleStrategy: Auto   # ScaleStrategy indicates the strategy to scaling target, value can be "Auto" and "Preview".
-  # Metrics contains the specifications for which to use to calculate the desired replica count.
-  metrics:
+  minReplicas: 1 #(2)
+  maxReplicas: 10 #(3)
+  scaleStrategy: Auto #(4)
+  metrics: #(5)
   - type: Resource
     resource:
       name: cpu
       target:
         type: Utilization
         averageUtilization: 50
-  # Prediction defines configurations for predict resources.
-  # If unspecified, defaults don't enable prediction.
-  prediction:
-    predictionWindowSeconds: 3600   # PredictionWindowSeconds is the time window to predict metrics in the future.
+  prediction: #(6)
+    predictionWindowSeconds: 3600 #(7)
     predictionAlgorithm:
       algorithmType: dsp
       dsp:
         sampleInterval: "60s"
         historyLength: "3d"
-
-
 ```
+
+1. ScaleTargetRef is the reference to the workload that should be scaled.
+2. MinReplicas is the lower limit replicas to the scale target which the autoscaler can scale down to.
+3. MaxReplicas is the upper limit replicas to the scale target which the autoscaler can scale up to.
+4. ScaleStrategy indicates the strategy to scaling target, value can be "Auto" and "Preview".
+5. Metrics contains the specifications for which to use to calculate the desired replica count.
+6. Prediction defines configurations for predict resources.If unspecified, defaults don't enable prediction.
+7. PredictionWindowSeconds is the time window to predict metrics in the future.
+
+### Params Description
 
 * spec.scaleTargetRef defines the reference to the workload that should be scaled.
 * spec.minReplicas is the lower limit replicas to the scale target which the autoscaler can scale down to.
@@ -103,7 +113,8 @@ spec:
       type: Resource
 ```
 
-In this sample, the resource metric defined by user is converted into two metrics: prediction metric and origin metric .
+In this sample, the resource metric defined by user is converted into two metrics: prediction metric and origin metric.
+
 * **prediction metric** is custom metrics that provided by component MetricAdapter. Since custom metric doesn't support `targetAverageUtilization`, it's converted to `targetAverageValue` based on target pod cpu request.
 * **origin metric** is equivalent to user defined metrics in EffectiveHorizontalPodAutoscaler, to fall back to baseline user defined in case of some unexpected situation e.g. business traffic sudden growth.
 
@@ -111,6 +122,7 @@ HorizontalPodAutoscaler will calculate on each metric, and propose new replicas 
 
 #### Horizontal scaling process
 There are six steps of prediction and scaling process:
+
 1. EffectiveHPAController create HorizontalPodAutoscaler and TimeSeriesPrediction instance 
 2. PredictionCore get historic metric from prometheus and persist into TimeSeriesPrediction
 3. HPAController read metrics from KubeApiServer
@@ -119,20 +131,21 @@ There are six steps of prediction and scaling process:
 6. HPAController scale target with Scale Api
 
 Below is the process flow.
-<div align="center"><img src="../images/crane-ehpa.png" style="width:900px;" /></div>
+![crane-ehpa](../images/crane-ehpa.png)
 
 #### Use case
 Let's take one use case that using EffectiveHorizontalPodAutoscaler in production cluster.
 
 We did a profiling on the load history of one application in production and replayed it in staging environment. With the same application, we leverage both EffectiveHorizontalPodAutoscaler and HorizontalPodAutoscaler to manage the scale and compare the result.
 
-From the red line in below chart, we can see its actual total cpu usage is high at ~8am, ~12pm, ~8pm and low in midnight. The green line shows the prediction cpu usage trend. 
-<div align="center"><img src="../images/crane-ehpa-metrics-chart.png" style="width:900px;" /></div>
+From the red line in below chart, we can see its actual total cpu usage is high at ~8am, ~12pm, ~8pm and low in midnight. The green line shows the prediction cpu usage trend.
+![craen-ehpa-metrics-chart](../images/crane-ehpa-metrics-chart.png)
 
 Below is the comparison result between EffectiveHorizontalPodAutoscaler and HorizontalPodAutoscaler. The red line is the replica number generated by HorizontalPodAutoscaler and the green line is the result from EffectiveHorizontalPodAutoscaler.
-<div align="center"><img src="../images/crane-ehpa-replicas-chart.png" style="width:900px;" /></div>
+![crane-ehpa-metrics-replicas-chart](../images/crane-ehpa-replicas-chart.png)
 
 We can see significant improvement with EffectiveHorizontalPodAutoscaler:
+
 * Scale up in advance before peek flow
 * Scale down gracefully after peek flow
 * Fewer replicas changes than HorizontalPodAutoscaler

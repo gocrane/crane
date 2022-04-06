@@ -73,7 +73,7 @@ Provide three polices for cpuset manager:
 - share: containers of this pod runs in theallocated  CPUs , but other containers can also use.
 
 ### Advanced CPU Manager component
-<div align="center"><img src="../images/advanced_cpuset_manager.png" style="width:900px;" /></div>
+![advanced_cpuset_manager.png](../images/advanced_cpuset_manager.png)
 
 - Crane-agent use podLister informs to sense the creation of pod.
 - Crane-agent allocate cpus when pod is binded, and loop in cycle to addContainer(change cpuset) until the containers are created

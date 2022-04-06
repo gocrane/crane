@@ -1,0 +1,73 @@
+# yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
+site_name: Crane - Cloud Resource Analytics and Economics
+theme:
+  name: material
+  custom_dir: overrides
+  language: en
+  features:
+    - toc.integrate
+    - content.code.annotate
+    - navigation.top
+  palette:
+    primary: blue
+  logo: images/crane.svg
+  favicon: images/crane.svg
+  font:
+    text: Work Sans
+extra_javascript:
+  - assets/util.js
+extra:
+  version:
+    provider: mike
+    default: latest
+plugins:
+  - search
+  - i18n:
+      default_language: en
+      languages:
+        en:
+          name: English
+          build: true
+        zh:
+          name: 简体中文
+          build: true
+      nav_translations:
+        zh:
+          Overview: 总览
+          Getting Started: 从这里开始
+          Tutorials: 教程
+          Proposals: 提案
+          Contributing: 贡献
+          Code Standard: 代码标准
+          Roadmap: 路线图
+markdown_extensions:
+  - codehilite
+  - admonition
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      use_pygments: true
+      linenums: true
+      linenums_style: pymdownx-inline
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+repo_url: https://github.com/gocrane/crane
+repo_name: gocrane/crane
+nav:
+  - Overview: index.md
+  - Getting Started: getting-started.md
+  - Tutorials:
+      - Analytics and Recommendation: tutorials/analytics-and-recommendation.md
+      - Using Effective HPA To Scaling With Effectiveness: tutorials/using-effective-hpa-to-scaling-with-effectiveness.md
+      - Using Qos Ensurance: tutorials/using-qos-ensurance.md
+      - Using Time Series Prediction: tutorials/using-time-series-prediction.md
+  - Proposals:
+      - Advanced CpuSet Manager: proposals/20220228-advanced-cpuset-manger.md
+  - Contributing: CONTRIBUTING.md
+  - Code Standard: code-standards.md
+  - Roadmap:
+    - 1H 2022: roadmaps/roadmap-1h-2022.md
