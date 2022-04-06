@@ -70,7 +70,7 @@ Crane is composed of the following components:
     - **RecommendationController** - Recommend Pod resource requests and autoscaler.
     - **ClusterNodePredictionController** - Create Predictor for nodes.
     - **EffectiveHPAController** - Effective HPA for horizontal scaling.
-    - **EffectiveHPAController** - Effective VPA for vertical scaling.
+    - **EffectiveVPAController** - Effective VPA for vertical scaling.
 - [metric-adaptor](https://github.com/gocrane/crane/tree/main/cmd/metric-adapter) - Metric server for driving the scaling.
 - [crane-agent](https://github.com/gocrane/crane/tree/main/cmd/crane-agent) - Ensure critical workloads SLO based on abnormally detection.
 - [gocrane/api](https://github.com/gocrane/api) - This repository defines component-level APIs for the Crane platform.
