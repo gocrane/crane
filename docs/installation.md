@@ -1,17 +1,17 @@
-# Getting Started
+# Installation
 
-## Installation
-
-**Prerequisites**
+## Prerequisites
 
 - Kubernetes 1.18+
 - Helm 3.1.0
 
-**Helm Installation**
+## Steps
+
+### Helm Installation
 
 Please refer to Helm's [documentation](https://helm.sh/docs/intro/install/) for installation.
 
-**Installing prometheus and grafana with helm chart**
+### Installing prometheus and grafana with helm chart
 
 !!! note
     If you already deployed prometheus, grafana in your environment, then skip this step.
@@ -32,7 +32,7 @@ helm repo add grafana https://grafana.github.io/helm-charts
 helm install grafana -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/grafana/override_values.yaml -n crane-system --create-namespace grafana/grafana
 ```
 
-**Deploying Crane and Fadvisor**
+### Deploying Crane and Fadvisor
 
 ```bash
 helm repo add crane https://gocrane.github.io/helm-charts
@@ -40,7 +40,7 @@ helm install crane -n crane-system --create-namespace crane/crane
 helm install fadvisor -n crane-system --create-namespace crane/fadvisor
 ```
 
-**Verify Installation**
+### Verify Installation
 
 Check deployments are all available by running:
 
@@ -66,7 +66,7 @@ prometheus-server-5966b646fd-g9vxl               2/2     Running   0          45
 
 you can see [this](https://github.com/gocrane/helm-charts) to learn more.
 
-**Customize Installation**
+## Customize Installation
 
 Deploy `Crane` by apply YAML declaration.
 
@@ -96,19 +96,3 @@ kubectl --namespace crane-system port-forward $POD_NAME 3000
 ```
 
 visit [Cost Report](http://127.0.0.1:3000/dashboards) here with account(admin:admin).
-
-## Analytics and Recommendation
-
-Crane supports analytics and give recommend advise for your k8s cluster.
-
-Please follow [this guide](tutorials/analytics-and-recommendation.md) to learn more.
-
-## RoadMap
-Please see [this document](roadmaps/roadmap-1h-2022.md) to learn more.
-
-## Contributing
-
-Contributors are welcomed to join Crane project. Please check [CONTRIBUTING](./CONTRIBUTING.md) about how to contribute to this project.
-
-## Code of Conduct
-Crane adopts [CNCF Code of Conduct](https://github.com/cncf/foundation/blob/master/code-of-conduct.md).

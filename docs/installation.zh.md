@@ -1,8 +1,5 @@
 # 产品部署指南
 
-!!! tip
-    本页面来自 https://github.com/gocrane/crane/pull/243 @willemswang
-
 为了让您更快的部署 Crane ，本文档提供清晰的：
 
 * 部署环境要求
@@ -52,8 +49,6 @@ helm install crane -n crane-system --create-namespace crane/crane
 helm install fadvisor -n crane-system --create-namespace crane/fadvisor
 ```
 
-
-
 ## 验证安装是否成功
 
 使用如下命令检查安装的 Deployment 是否正常：
@@ -91,8 +86,6 @@ kubectl port-forward -n crane-system svc/craned 9090
 执行上述命令后，不要关闭命令行工具，在本地计算机的浏览器地址里输入 `localhost:9090`即可打开 Crane 的控制台：
 
 ![](images/crane-dashboard.png)
-
-
 
 ### 添加安装了 Crane 的集群
 

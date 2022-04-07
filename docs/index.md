@@ -1,17 +1,4 @@
-# Crane: Cloud Resource Analytics and Economics
-
-[![Go Report Card](https://goreportcard.com/badge/github.com/gocrane/crane)](https://goreportcard.com/report/github.com/gocrane/crane)
-[![GoDoc](https://godoc.org/github.com/gocrane/crane?status.svg)](https://godoc.org/github.com/gocrane/crane)
-[![License](https://img.shields.io/github/license/gocrane/crane)](https://www.apache.org/licenses/LICENSE-2.0.html)
-![GoVersion](https://img.shields.io/github/go-mod/go-version/gocrane/crane)
-
-<img alt="Crane logo" height="100" src="images/crane.svg" title="Crane" width="200"/>
-
----
-
-Crane (FinOps Crane) is a cloud native open source project which manages cloud resources on Kubernetes stack, it is inspired by FinOps concepts.
-
-## Introduction
+# Introduction
 
 The goal of Crane is to provide a one-stop-shop project to help Kubernetes users to save cloud resource usage with a rich set of functionalities:
 
@@ -75,4 +62,3 @@ Crane is composed of the following components:
 - [crane-agent](https://github.com/gocrane/crane/tree/main/cmd/crane-agent) - Ensure critical workloads SLO based on abnormally detection.
 - [gocrane/api](https://github.com/gocrane/api) - This repository defines component-level APIs for the Crane platform.
 - [gocrane/fadvisor](https://github.com/gocrane/fadvisor) - Financial advisor which collect resource prices from cloud API.
-

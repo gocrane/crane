@@ -1,4 +1,7 @@
+# Code standards
+
 This doc describes the code standards and suggestion for crane project, mainly for new contributor of the project
+
 ### import need to be organized
 import should be categorized with blank line as system imports, community imports and crane apis and crane imports, like the following example
 ```go
