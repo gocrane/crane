@@ -1,17 +1,4 @@
-# Crane: Cloud Resource Analytics and Economics
-
-[![Go Report Card](https://goreportcard.com/badge/github.com/gocrane/crane)](https://goreportcard.com/report/github.com/gocrane/crane)
-[![GoDoc](https://godoc.org/github.com/gocrane/crane?status.svg)](https://godoc.org/github.com/gocrane/crane)
-[![License](https://img.shields.io/github/license/gocrane/crane)](https://www.apache.org/licenses/LICENSE-2.0.html)
-![GoVersion](https://img.shields.io/github/go-mod/go-version/gocrane/crane)
-
-<img alt="Crane logo" height="100" src="images/crane.svg" title="Crane" width="200"/>
-
----
-
-Crane（FinOps Crane）是一个云原生开源项目，它管理Kubernetes上的云资源，其灵感来自FinOps理念。
-
-## 介绍
+# 介绍
 
 The goal of Crane is to provide a one-stop-shop project to help Kubernetes users to save cloud resource usage with a rich set of functionalities:
 
@@ -65,12 +52,12 @@ Please see [this document](tutorials/using-qos-ensurance.md) to learn more.
 Crane is composed of the following components:
 
 - [craned](https://github.com/gocrane/crane/tree/main/cmd/craned) - main crane control plane.
-  - **Predictor** - Predicts resources metrics trends based on historical data.
-  - **AnalyticsController** - Analyzes resources and generate related recommendations.
-  - **RecommendationController** - Recommend Pod resource requests and autoscaler.
-  - **ClusterNodePredictionController** - Create Predictor for nodes.
-  - **EffectiveHPAController** - Effective HPA for horizontal scaling.
-  - **EffectiveHPAController** - Effective VPA for vertical scaling.
+    - **Predictor** - Predicts resources metrics trends based on historical data.
+    - **AnalyticsController** - Analyzes resources and generate related recommendations.
+    - **RecommendationController** - Recommend Pod resource requests and autoscaler.
+    - **ClusterNodePredictionController** - Create Predictor for nodes.
+    - **EffectiveHPAController** - Effective HPA for horizontal scaling.
+    - **EffectiveVPAController** - Effective VPA for vertical scaling.
 - [metric-adaptor](https://github.com/gocrane/crane/tree/main/cmd/metric-adapter) - Metric server for driving the scaling.
 - [crane-agent](https://github.com/gocrane/crane/tree/main/cmd/crane-agent) - Ensure critical workloads SLO based on abnormally detection.
 - [gocrane/api](https://github.com/gocrane/api) - This repository defines component-level APIs for the Crane platform.
