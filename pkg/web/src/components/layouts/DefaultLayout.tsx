@@ -7,7 +7,7 @@ import { SupportLanguages } from '../../i18n';
 import { ContentHeader } from '../common/ContentHeader';
 import { SideMenu } from '../common/SideMenu';
 
-const { Header, Content, Footer, Aside } = Layout;
+const { Header, Content, Aside } = Layout;
 const { HeadMenu } = Menu;
 
 export function DefaultLayout({ content }: { content: React.ReactNode }) {
@@ -18,7 +18,7 @@ export function DefaultLayout({ content }: { content: React.ReactNode }) {
       <Header>
         <HeadMenu
           logo={
-            <span style={{ marginLeft: 18, fontSize: 18, color: 'var(--td-font-white-1)' }}>{'Crane Dashboard'}</span>
+            <img alt="logo" height="100" src="/logo.svg" style={{ marginTop: 20 }} width="240" />
           }
           operations={
             <Dropdown
@@ -51,7 +51,6 @@ export function DefaultLayout({ content }: { content: React.ReactNode }) {
             <ContentHeader />
             <div style={{ margin: '1rem' }}>{content}</div>
           </Content>
-          <Footer>Copyright @ 2019-2020 Tencent. All Rights Reserved</Footer>
         </Layout>
       </Layout>
     </Layout>

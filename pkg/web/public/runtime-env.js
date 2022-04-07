@@ -1,1 +1,0 @@
-window.__RUNTIME_CONFIG__ = {"CLUSTER_ID":"cls-j3vgaeae","CRANE_URL":"http://localhost:3333"};
