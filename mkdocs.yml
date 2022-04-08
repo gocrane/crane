@@ -2,7 +2,7 @@
 site_name: Crane - Cloud Resource Analytics and Economics
 theme:
   name: material
-  custom_dir: overrides
+#  custom_dir: overrides
   language: en
   features:
     - toc.integrate

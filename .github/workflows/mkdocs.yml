@@ -19,3 +19,4 @@ jobs:
           git config --local user.name "github-actions[bot]"
       - run: pip install mkdocs-material mkdocs-static-i18n mike
       - run: mike deploy --force --push dev
+      - run: mike set-default --push --force dev
