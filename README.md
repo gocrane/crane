@@ -28,9 +28,9 @@ The goal of Crane is to provide a one-stop-shop project to help Kubernetes users
 
 ## Getting Started
 
-- [Introduction](https://docs.gocrane.io/getting-started/introduction)
-- [Installation](https://docs.gocrane.io/getting-started/installation)
-- [Tutorials](https://docs.gocrane.io/tutorials)
+- [Introduction](https://docs.gocrane.io)
+- [Installation](https://docs.gocrane.io/dev/installation/)
+- [Tutorials](https://docs.gocrane.io/dev/tutorials/using-effective-hpa-to-scaling-with-effectiveness/)
 
 ## Documentation
 
