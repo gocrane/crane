@@ -42,9 +42,10 @@ Full documentation is available on the [Crane website](https://docs.gocrane.io).
 
 <img alt="Wechat" src="docs/images/wechat.jpeg" title="Wechat" width="200"/>
 
-- Bi-weekly Community Call: [Meeting Notes](https://doc.weixin.qq.com/doc/w3_AHMAlwa_AFU7PT58rVhTFKXV0maR6?scode=AJEAIQdfAAo0gvbrCIAHMAlwa_AFU).
-
-- Bi-weekly Chinese Community Call: [Video Records](https://www.wolai.com/33xC4HB1JXCCH1x8umfioS).
+- Bi-weekly Community Call(APAC, Chinese)
+  - [Meeting Link](https://meeting.tencent.com/dm/SjY20wCJHy5F)
+  - [Meeting Notes](https://doc.weixin.qq.com/doc/w3_AHMAlwa_AFU7PT58rVhTFKXV0maR6?scode=AJEAIQdfAAo0gvbrCIAHMAlwa_AFU)
+  - [Video Records](https://www.wolai.com/33xC4HB1JXCCH1x8umfioS)
 
 ## RoadMap
 
