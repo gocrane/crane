@@ -180,7 +180,7 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 		metrics = append(metrics, *copyMetric)
 	}
 
-	if IsPredictionEnabled(ehpa) {
+	if utils.IsEHPAPredictionEnabled(ehpa) {
 		var customMetricsForPrediction []autoscalingv2.MetricSpec
 
 		for _, metric := range metrics {
@@ -243,7 +243,7 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 	}
 
 	// Construct cron external metrics for cron scale
-	if IsCronEnabled(ehpa) {
+	if utils.IsEHPACronEnabled(ehpa) {
 		metrics = append(metrics, GetCronMetricSpecsForHPA(ehpa)...)
 	}
 
