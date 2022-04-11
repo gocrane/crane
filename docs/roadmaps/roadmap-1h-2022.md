@@ -20,13 +20,13 @@ Please let us know if you have urgent needs which are not presented in the plan.
 - Scalability to support 1K TSP and 1K EPA			
 ### 0.4.0 [April]
 - EVPA support
-- Application Portrait
-- Descheduler and Dynamic Scheduler
-- SLO based Application QoS for CPU and Mem
+- Dynamic Scheduler
 - UI to support EPA.					
 ### 0.5.0 [May]
 - HPC open source
 - Node & Pod QoS Ensurance for DiskIO and Network
 - Prediction with DiskIO, Network				
 ### 0.6.0 [June]
-- Scalability to support 3k TSP and 3k EPA			
+- Scalability to support 3k TSP and 3k EPA		
+- Application Portrait	
+- SLO based Application QoS for CPU and Mem
