@@ -13,17 +13,17 @@ export interface EditClusterState {
 
 type Cluster = EditClusterState['clusters'][0];
 
+const defaultCluster = {
+  id: v4(),
+  clusterName: '',
+  craneUrl: ''
+};
+
 const initialEditClusterState: EditClusterState = {
   mode: 'create',
   modalVisible: false,
   editingClusterId: null,
-  clusters: [
-    {
-      id: v4(),
-      clusterName: '',
-      craneUrl: ''
-    }
-  ]
+  clusters: [{ ...defaultCluster }]
 };
 
 const slice = createSlice({
@@ -63,7 +63,7 @@ const slice = createSlice({
       state.clusters = state.clusters.filter(cluster => cluster.id !== action.payload.id);
     },
     resetCluster: state => {
-      state.clusters = initialEditClusterState.clusters;
+      state.clusters = [{ ...defaultCluster, id: v4() }];
     },
     modalVisible: (state, action: PayloadAction<boolean>) => {
       state.modalVisible = action.payload;

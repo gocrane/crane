@@ -15,7 +15,6 @@ type Validation = { error: boolean; msg: string };
 export const EditClusterModal = React.memo(() => {
   const { t } = useTranslation();
   const dispatch = useDispatch();
-
   const editingClusterId = useSelector(state => state.editCluster.editingClusterId);
   const mode = useSelector(state => state.editCluster.mode);
   const visible = useSelector(state => state.editCluster.modalVisible);
@@ -194,7 +193,7 @@ export const EditClusterModal = React.memo(() => {
       }}
     >
       <div style={{ marginBottom: 10 }}>{t('请输入一个可访问的CRANE Endpoint，以获得新集群的相关成本数据')}</div>
-      <Form>
+      <Form >
         <Tabs
           addable={mode === 'create'}
           style={{ border: '1px solid var(--td-component-stroke)' }}
