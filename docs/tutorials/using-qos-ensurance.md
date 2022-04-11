@@ -71,8 +71,7 @@ spec:
 
 Please check the video to learn more about the scheduling disable actions.
 
-[![disable scheduling example video](../images/disablescheduling-example.png)](https://youtu.be/87bnz5LasbI "disable scheduling")
-
+[![disable scheduling example video](https://asciinema.org/a/480735.svg)](https://asciinema.org/a/480735)
 
 ## Throttle
 
