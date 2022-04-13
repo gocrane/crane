@@ -184,6 +184,3 @@ jobs:
         with:
           # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
           version: v1.45.2
-          
-          # Optional: golangci-lint command line arguments.
-          args: --timeout 30m --disable-all -E deadcode -E unused -E varcheck -E ineffassign -E goimports -E gofmt -E misspell -E unparam -E unconvert -E govet -E errcheck -E structcheck

@@ -47,7 +47,7 @@ func TestFftEstimator_GetEstimation(t *testing.T) {
 		charts.WithInitializationOpts(opts.Initialization{Width: "3000px", Theme: types.ThemeWonderland}))
 	line.SetXAxis(x)
 
-	var colors []string = []string{"black", "blue", "green"}
+	var colors = []string{"black", "blue", "green"}
 
 	for i := 0; i < 3; i++ {
 		y := make([]opts.LineData, 0)
@@ -65,6 +65,7 @@ func TestFftEstimator_GetEstimation(t *testing.T) {
 	http.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		if err := components.NewPage().AddCharts(line).Render(w); err != nil {
 			// nothing to do
+			t.Error(err)
 		}
 	})
 	fmt.Println("Open your browser and access 'http://localhost:7001'")

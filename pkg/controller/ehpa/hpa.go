@@ -220,7 +220,7 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 					}
 
 					if len(pods) == 0 {
-						return nil, fmt.Errorf("No pods returns from scale object. ")
+						return nil, fmt.Errorf("no pods returns from scale object. ")
 					}
 
 					requests, err := utils.CalculatePodRequests(pods, metric.Resource.Name)

@@ -153,9 +153,7 @@ func metricSelectorToQueryExpr(m *predictionapi.MetricQuery) string {
 	conditions := make([]string, 0, len(m.QueryConditions))
 	for _, cond := range m.QueryConditions {
 		values := make([]string, 0, len(cond.Value))
-		for _, val := range cond.Value {
-			values = append(values, val)
-		}
+		values = append(values, cond.Value...)
 		sort.Strings(values)
 		conditions = append(conditions, fmt.Sprintf("%s%s[%s]", cond.Key, cond.Operator, strings.Join(values, ",")))
 	}

@@ -93,7 +93,7 @@ func (b *ScheduleExecutor) Restore(ctx *ExecuteContext) error {
 
 func (p *ComparablePod) Less(p2 ComparablePod) bool {
 	if comparePodQos(p.Status.QOSClass, p2.Status.QOSClass) == 1 {
-
+		return false
 	}
 
 	return *p.Spec.Priority < *p2.Spec.Priority

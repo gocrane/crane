@@ -21,7 +21,7 @@ type ValidationAdmission struct {
 func (p *ValidationAdmission) Default(ctx context.Context, req runtime.Object) error {
 	recommendation, ok := req.(*analysisv1alph1.Recommendation)
 	if !ok {
-		return fmt.Errorf("Failed to convert req to Recommendation. ")
+		return fmt.Errorf("failed to convert req to Recommendation. ")
 	}
 
 	Default(recommendation)
@@ -32,7 +32,7 @@ func (p *ValidationAdmission) Default(ctx context.Context, req runtime.Object) e
 func (p *ValidationAdmission) ValidateCreate(ctx context.Context, req runtime.Object) error {
 	recommendation, ok := req.(*analysisv1alph1.Recommendation)
 	if !ok {
-		return fmt.Errorf("Failed to convert req to Recommendation. ")
+		return fmt.Errorf("failed to convert req to Recommendation. ")
 	}
 
 	klog.V(4).Info("validate create object %s", klog.KObj(recommendation))

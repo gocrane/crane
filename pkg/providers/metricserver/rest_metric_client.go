@@ -141,8 +141,7 @@ func (c *resourceMetricsClient) workloadMetric(metric *metricquery.Metric) (Reso
 		return nil, time.Time{}, fmt.Errorf("no metrics returned from resource metrics API")
 	}
 
-	var res ResourceMetricInfo
-	res = getWorkloadMetrics(v1.ResourceName(metric.MetricName), metrics.Items)
+	res := getWorkloadMetrics(v1.ResourceName(metric.MetricName), metrics.Items)
 	timestamp := metrics.Items[0].Timestamp.Time
 	return res, timestamp, nil
 }
@@ -159,8 +158,7 @@ func (c *resourceMetricsClient) containerMetric(metric *metricquery.Metric) (Res
 		return nil, time.Time{}, fmt.Errorf("unable to fetch metrics from resource metrics API: %v", err)
 	}
 
-	var res ResourceMetricInfo
-	res = getContainerMetrics(v1.ResourceName(metric.MetricName), podMetrics, container.ContainerName)
+	res := getContainerMetrics(v1.ResourceName(metric.MetricName), podMetrics, container.ContainerName)
 	if err != nil {
 		return nil, time.Time{}, err
 	}
@@ -179,8 +177,7 @@ func (c *resourceMetricsClient) podMetric(metric *metricquery.Metric) (ResourceM
 		return nil, time.Time{}, fmt.Errorf("unable to fetch metrics from resource metrics API: %v", err)
 	}
 
-	var res ResourceMetricInfo
-	res = getPodMetrics(v1.ResourceName(metric.MetricName), podMetrics)
+	res := getPodMetrics(v1.ResourceName(metric.MetricName), podMetrics)
 	timestamp := podMetrics.Timestamp.Time
 	return res, timestamp, nil
 }
@@ -196,8 +193,7 @@ func (c *resourceMetricsClient) nodeMetric(metric *metricquery.Metric) (Resource
 		return nil, time.Time{}, fmt.Errorf("unable to fetch metrics from resource metrics API: %v", err)
 	}
 
-	var res ResourceMetricInfo
-	res = getNodeMetrics(v1.ResourceName(metric.MetricName), metrics)
+	res := getNodeMetrics(v1.ResourceName(metric.MetricName), metrics)
 	if err != nil {
 		return nil, time.Time{}, err
 	}

@@ -34,7 +34,7 @@ func (e *OOMResourceEstimator) GetResourceEstimation(evpa *autoscalingapi.Effect
 	}
 
 	// ignore too old oom events
-	if oomRecord != nil && time.Now().Sub(oomRecord.OOMAt) <= (time.Hour*24*7) {
+	if oomRecord != nil && time.Since(oomRecord.OOMAt) <= (time.Hour*24*7) {
 		memoryOOM := oomRecord.Memory.Value()
 		recommendResource := corev1.ResourceList{}
 		var memoryNeeded recommendermodel.ResourceAmount
@@ -47,7 +47,7 @@ func (e *OOMResourceEstimator) GetResourceEstimation(evpa *autoscalingapi.Effect
 		} else {
 			oomBumpUpRatio, err := strconv.ParseFloat(bumpUpRatio, 64)
 			if err != nil {
-				return nil, fmt.Errorf("Parse bumpUpRatio failed: %v. ", err)
+				return nil, fmt.Errorf("parse bumpUpRatio failed: %v. ", err)
 			}
 			memoryNeeded = recommendermodel.ScaleResource(recommendermodel.ResourceAmount(memoryOOM), oomBumpUpRatio)
 		}

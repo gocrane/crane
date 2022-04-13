@@ -48,7 +48,7 @@ func (c *Controller) UpdateRecommendation(ctx context.Context, recommendation *a
 	unstructed.SetKind(recommendation.Spec.TargetRef.Kind)
 	err := c.Client.Get(ctx, client.ObjectKey{Name: recommendation.Spec.TargetRef.Name, Namespace: recommendation.Spec.TargetRef.Namespace}, unstructed)
 	if err != nil {
-		return fmt.Errorf("Get target object failed: %v. ", err)
+		return fmt.Errorf("get target object failed: %v. ", err)
 	}
 
 	if recommendation.Spec.AdoptionType == analysisapi.AdoptionTypeStatusAndAnnotation || recommendation.Spec.AdoptionType == analysisapi.AdoptionTypeAuto {
@@ -67,7 +67,7 @@ func (c *Controller) UpdateRecommendation(ctx context.Context, recommendation *a
 		unstructed.SetAnnotations(annotation)
 		err = c.Client.Update(ctx, unstructed)
 		if err != nil {
-			return fmt.Errorf("Update target annotation failed: %v. ", err)
+			return fmt.Errorf("update target annotation failed: %v. ", err)
 		}
 	}
 
@@ -76,7 +76,7 @@ func (c *Controller) UpdateRecommendation(ctx context.Context, recommendation *a
 		if proposed.EffectiveHPA != nil {
 			ehpa, err := utils.GetEHPAFromScaleTarget(ctx, c.Client, recommendation.Spec.TargetRef.Namespace, recommendation.Spec.TargetRef)
 			if err != nil {
-				return fmt.Errorf("Get EHPA from target failed: %v. ", err)
+				return fmt.Errorf("get EHPA from target failed: %v. ", err)
 			}
 			if ehpa == nil {
 				ehpa = &autoscalingapi.EffectiveHorizontalPodAutoscaler{
@@ -127,7 +127,7 @@ func (c *Controller) UpdateRecommendation(ctx context.Context, recommendation *a
 		if proposed.ResourceRequest != nil {
 			evpa, err := utils.GetEVPAFromScaleTarget(ctx, c.Client, recommendation.Spec.TargetRef.Namespace, recommendation.Spec.TargetRef)
 			if err != nil {
-				return fmt.Errorf("Get EVPA from target failed: %v. ", err)
+				return fmt.Errorf("get EVPA from target failed: %v. ", err)
 			}
 			if evpa == nil {
 				off := vpatypes.UpdateModeOff

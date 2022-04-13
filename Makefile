@@ -87,21 +87,7 @@ tidy:
 
 .PHONY: lint
 lint: golangci-lint  ## Run golang lint against code
-	@$(GOLANG_LINT) run \
-      --timeout 30m \
-      --disable-all \
-      -E deadcode \
-      -E unused \
-      -E varcheck \
-      -E ineffassign \
-      -E goimports \
-      -E gofmt \
-      -E misspell \
-      -E unparam \
-      -E unconvert \
-      -E govet \
-      -E errcheck \
-      -E structcheck
+	@$(GOLANG_LINT) run ./...
 
 .PHONY: test
 test: fmt vet lint ## Run tests.

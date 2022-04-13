@@ -240,16 +240,16 @@ func defaultingEVPA(evpa *autoscalingapi.EffectiveVerticalPodAutoscaler) error {
 
 	for _, estimatorCurr := range evpa.Spec.ResourceEstimators {
 		if estimatorCurr.Type == "" {
-			return fmt.Errorf("Estimator type cannot be empty. ")
+			return fmt.Errorf("estimator type cannot be empty. ")
 		}
 	}
 
 	if evpa.Spec.ResourcePolicy == nil || len(evpa.Spec.ResourcePolicy.ContainerPolicies) == 0 {
-		return fmt.Errorf("Resource policy or container policy cannot be empty. ")
+		return fmt.Errorf("resource policy or container policy cannot be empty. ")
 	}
 	for index, containerPolicy := range evpa.Spec.ResourcePolicy.ContainerPolicies {
 		if containerPolicy.ContainerName == "" {
-			return fmt.Errorf("Container name cannot be empty. ")
+			return fmt.Errorf("container name cannot be empty. ")
 		}
 
 		// scale up

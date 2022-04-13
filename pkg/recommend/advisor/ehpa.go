@@ -182,7 +182,7 @@ func (a *EHPAAdvisor) checkMinCpuUsageThreshold(cpuMax float64) error {
 
 	klog.V(4).Infof("EHPAAdvisor checkMinCpuUsageThreshold, cpuMax %f threshold %f", cpuMax, minCpuUsageThreshold)
 	if cpuMax < minCpuUsageThreshold {
-		return fmt.Errorf("Target cpuusage %f is under ehpa.min-cpu-usage-threshold %f. ", cpuMax, minCpuUsageThreshold)
+		return fmt.Errorf("target cpuusage %f is under ehpa.min-cpu-usage-threshold %f. ", cpuMax, minCpuUsageThreshold)
 	}
 
 	return nil
@@ -236,12 +236,12 @@ func (a *EHPAAdvisor) checkFluctuation(medianMin, medianMax float64) error {
 	}
 
 	if medianMin == 0 {
-		return fmt.Errorf("Mean cpu usage is zero. ")
+		return fmt.Errorf("mean cpu usage is zero. ")
 	}
 
 	fluctuation := medianMax / medianMin
 	if fluctuation < fluctuationThreshold {
-		return fmt.Errorf("Target cpu fluctuation %f is under ehpa.fluctuation-threshold %f. ", fluctuation, fluctuationThreshold)
+		return fmt.Errorf("target cpu fluctuation %f is under ehpa.fluctuation-threshold %f. ", fluctuation, fluctuationThreshold)
 	}
 
 	return nil

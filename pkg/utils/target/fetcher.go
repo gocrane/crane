@@ -71,7 +71,7 @@ func (f *targetSelectorFetcher) Fetch(target *corev1.ObjectReference) (labels.Se
 
 	selector, err := f.getLabelSelectorFromScale(groupKind, target.Namespace, target.Name)
 	if err != nil {
-		return nil, fmt.Errorf("Unhandled targetRef %+v,  error: %v", *target, err)
+		return nil, fmt.Errorf("unhandled targetRef %+v,  error: %v", *target, err)
 	}
 	return selector, nil
 }
@@ -144,7 +144,7 @@ func (f *targetSelectorFetcher) getLabelSelectorFromScale(groupKind schema.Group
 		scale, err := f.ScaleClient.Scales(namespace).Get(context.TODO(), groupResource, name, metav1.GetOptions{})
 		if err == nil {
 			if scale.Status.Selector == "" {
-				return nil, fmt.Errorf("Resource %s/%s has an empty selector for scale sub-resource", namespace, name)
+				return nil, fmt.Errorf("resource %s/%s has an empty selector for scale sub-resource", namespace, name)
 			}
 			selector, err := labels.Parse(scale.Status.Selector)
 			if err != nil {

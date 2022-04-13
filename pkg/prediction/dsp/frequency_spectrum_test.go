@@ -63,7 +63,7 @@ func TestSignal_Period(t *testing.T) {
 		assert.NoError(t, err)
 		assert.InEpsilon(t, expected[i], normalized.Frequencies()[0], epsilon)
 
-		lines = append(lines, s.Plot())
+		lines = append(lines, s.Plot()) //nolint // SA4010: this result of append is never used, except maybe in other appends
 	}
 
 	/*
