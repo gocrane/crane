@@ -364,45 +364,38 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#features" class="md-nav__link">
-    Features
+  <a href="#_1" class="md-nav__link">
+    产品功能
   </a>
   
-    <nav class="md-nav" aria-label="Features">
+    <nav class="md-nav" aria-label="产品功能">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#params-description" class="md-nav__link">
-    Params Description
+  <a href="#_2" class="md-nav__link">
+    基于预测的弹性
   </a>
   
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#prediction-driven-autoscaling" class="md-nav__link">
-    Prediction-driven autoscaling
-  </a>
-  
-    <nav class="md-nav" aria-label="Prediction-driven autoscaling">
+    <nav class="md-nav" aria-label="基于预测的弹性">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#metric-conversion" class="md-nav__link">
-    Metric conversion
+  <a href="#_3" class="md-nav__link">
+    监控数据兜底
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#horizontal-scaling-process" class="md-nav__link">
-    Horizontal scaling process
+  <a href="#_4" class="md-nav__link">
+    水平弹性的执行流程
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#use-case" class="md-nav__link">
-    Use case
+  <a href="#_5" class="md-nav__link">
+    用户案例
   </a>
   
 </li>
@@ -414,10 +407,10 @@
         
           <li class="md-nav__item">
   <a href="#scalestrategy" class="md-nav__link">
-    ScaleStrategy
+    ScaleStrategy 弹性策略
   </a>
   
-    <nav class="md-nav" aria-label="ScaleStrategy">
+    <nav class="md-nav" aria-label="ScaleStrategy 弹性策略">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -440,8 +433,8 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#horizontalpodautoscaler-compatible" class="md-nav__link">
-    HorizontalPodAutoscaler compatible
+  <a href="#horizontalpodautoscaler" class="md-nav__link">
+    HorizontalPodAutoscaler 社区兼容
   </a>
   
 </li>
@@ -653,20 +646,22 @@
             <article class="md-content__inner md-typeset">
               
                 
-  <a href="https://github.com/gocrane/crane/edit/master/docs/tutorials/using-effective-hpa-to-scaling-with-effectiveness.md" title="编辑此页" class="md-content__button md-icon">
+  <a href="https://github.com/gocrane/crane/edit/master/docs/tutorials/using-effective-hpa-to-scaling-with-effectiveness.zh.md" title="编辑此页" class="md-content__button md-icon">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25Z"/></svg>
   </a>
 
 
 
 <h1 id="effectivehorizontalpodautoscaler">EffectiveHorizontalPodAutoscaler<a class="headerlink" href="#effectivehorizontalpodautoscaler" title="Permanent link">&para;</a></h1>
-<p>EffectiveHorizontalPodAutoscaler helps you manage application scaling in an easy way. </p>
-<p>It is compatible with HorizontalPodAutoscaler but extends more features.</p>
-<p>EffectiveHorizontalPodAutoscaler supports prediction-driven autoscaling. </p>
-<p>With this capability, user can forecast the incoming peak flow and scale up their application ahead, also user can know when the peak flow will end and scale down their application gracefully.</p>
-<p>Besides that, EffectiveHorizontalPodAutoscaler also defines several scale strategies to support different scaling scenarios.</p>
-<h2 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h2>
-<p>A EffectiveHorizontalPodAutoscaler sample yaml looks like below:</p>
+<p>EffectiveHorizontalPodAutoscaler（简称 EHPA）是 Crane 提供的弹性伸缩产品，它基于社区 HPA 做底层的弹性控制，支持更丰富的弹性触发策略（预测，观测，周期），让弹性更加高效，并保障了服务的质量。</p>
+<ul>
+<li>提前扩容，保证服务质量：通过算法预测未来的流量洪峰提前扩容，避免扩容不及时导致的雪崩和服务稳定性故障。</li>
+<li>减少无效缩容：通过预测未来可减少不必要的缩容，稳定工作负载的资源使用率，消除突刺误判。</li>
+<li>支持 Cron 配置：支持 Cron-based 弹性配置，应对大促等异常流量洪峰。</li>
+<li>兼容社区：使用社区 HPA 作为弹性控制的执行层，能力完全兼容社区。</li>
+</ul>
+<h2 id="_1">产品功能<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>一个简单的 EHPA yaml 文件如下：</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1"></a><a href="#__codelineno-0-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">autoscaling.crane.io/v1alpha1</span><span class="w"></span>
 <a id="__codelineno-0-2" name="__codelineno-0-2"></a><a href="#__codelineno-0-2"><span class="linenos" data-linenos=" 2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">EffectiveHorizontalPodAutoscaler</span><span class="w"></span>
 <a id="__codelineno-0-3" name="__codelineno-0-3"></a><a href="#__codelineno-0-3"><span class="linenos" data-linenos=" 3 "></span></a><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
@@ -695,26 +690,17 @@
 <a id="__codelineno-0-26" name="__codelineno-0-26"></a><a href="#__codelineno-0-26"><span class="linenos" data-linenos="26 "></span></a><span class="w">        </span><span class="nt">historyLength</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;3d&quot;</span><span class="w"></span>
 </code></pre></div>
 <ol>
-<li>ScaleTargetRef is the reference to the workload that should be scaled.</li>
-<li>MinReplicas is the lower limit replicas to the scale target which the autoscaler can scale down to.</li>
-<li>MaxReplicas is the upper limit replicas to the scale target which the autoscaler can scale up to.</li>
-<li>ScaleStrategy indicates the strategy to scaling target, value can be "Auto" and "Preview".</li>
-<li>Metrics contains the specifications for which to use to calculate the desired replica count.</li>
-<li>Prediction defines configurations for predict resources.If unspecified, defaults don't enable prediction.</li>
-<li>PredictionWindowSeconds is the time window to predict metrics in the future.</li>
+<li>ScaleTargetRef 配置你希望弹性的工作负载。</li>
+<li>MinReplicas 指定了自动缩容的最小值。</li>
+<li>MaxReplicas 指定了自动扩容的最大值。</li>
+<li>ScaleStrategy 定义了弹性的策略，值可以是 "Auto" and "Preview".</li>
+<li>Metrics 定义了弹性阈值配置。</li>
+<li>Prediction 定义了预测算法配置。</li>
+<li>PredictionWindowSeconds 指定往后预测多久的数据。</li>
 </ol>
-<h3 id="params-description">Params Description<a class="headerlink" href="#params-description" title="Permanent link">&para;</a></h3>
-<ul>
-<li>spec.scaleTargetRef defines the reference to the workload that should be scaled.</li>
-<li>spec.minReplicas is the lower limit replicas to the scale target which the autoscaler can scale down to.</li>
-<li>spec.maxReplicas is the upper limit replicas to the scale target which the autoscaler can scale up to.</li>
-<li>spec.scaleStrategy indicates the strategy to scaling target, value can be "Auto" and "Preview".</li>
-<li>spec.metrics contains the specifications for which to use to calculate the desired replica count. Please refer to the details:</li>
-<li>spec.prediction defines configurations for predict resources.If unspecified, defaults don't enable prediction.</li>
-</ul>
-<h3 id="prediction-driven-autoscaling">Prediction-driven autoscaling<a class="headerlink" href="#prediction-driven-autoscaling" title="Permanent link">&para;</a></h3>
-<p>Most of online applications follow regular pattern. We can predict future trend of hours or days. DSP is a time series prediction algorithm that applicable for application metrics prediction.</p>
-<p>The following shows a sample EffectiveHorizontalPodAutoscaler yaml with prediction enabled.
+<h3 id="_2">基于预测的弹性<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
+<p>大多数在线应用的负载都有周期性的特征。我们可以根据按天或者按周的趋势预测未来的负载。EHPA 使用 DSP 算法来预测应用未来的时间序列数据。</p>
+<p>以下是一个开启了预测能力的 EHPA 模版例子：
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1"></a><a href="#__codelineno-1-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">autoscaling.crane.io/v1alpha1</span><span class="w"></span>
 <a id="__codelineno-1-2" name="__codelineno-1-2"></a><a href="#__codelineno-1-2"><span class="linenos" data-linenos=" 2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">EffectiveHorizontalPodAutoscaler</span><span class="w"></span>
 <a id="__codelineno-1-3" name="__codelineno-1-3"></a><a href="#__codelineno-1-3"><span class="linenos" data-linenos=" 3 "></span></a><span class="nt">spec</span><span class="p">:</span><span class="w"></span>
@@ -726,9 +712,10 @@
 <a id="__codelineno-1-9" name="__codelineno-1-9"></a><a href="#__codelineno-1-9"><span class="linenos" data-linenos=" 9 "></span></a><span class="w">        </span><span class="nt">sampleInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;60s&quot;</span><span class="w"></span>
 <a id="__codelineno-1-10" name="__codelineno-1-10"></a><a href="#__codelineno-1-10"><span class="linenos" data-linenos="10 "></span></a><span class="w">        </span><span class="nt">historyLength</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;3d&quot;</span><span class="w"></span>
 </code></pre></div></p>
-<h4 id="metric-conversion">Metric conversion<a class="headerlink" href="#metric-conversion" title="Permanent link">&para;</a></h4>
-<p>When user defines <code>spec.metrics</code> in EffectiveHorizontalPodAutoscaler and prediction configuration is enabled, EffectiveHPAController will convert it to a new metric and configure the background HorizontalPodAutoscaler. </p>
-<p>This is a source EffectiveHorizontalPodAutoscaler yaml for metric definition.
+<h4 id="_3">监控数据兜底<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h4>
+<p>在使用预测算法预测时，你可能会担心预测数据不准带来一定的风险，EHPA 在计算副本数时，不仅会按预测数据计算，同时也会考虑实际监控数据来兜底，提升了弹性的安全性。
+实现的原理是当你在 EHPA 中定义 <code>spec.metrics</code> 并且开启弹性预测时，EffectiveHPAController 会在创建底层管理的 HPA 时按策略自动生成多条 Metric Spec。</p>
+<p>例如，当用户在 EHPA 的 yaml 里定义如下 Metric Spec：
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1"></a><a href="#__codelineno-2-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">autoscaling.crane.io/v1alpha1</span><span class="w"></span>
 <a id="__codelineno-2-2" name="__codelineno-2-2"></a><a href="#__codelineno-2-2"><span class="linenos" data-linenos=" 2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">EffectiveHorizontalPodAutoscaler</span><span class="w"></span>
 <a id="__codelineno-2-3" name="__codelineno-2-3"></a><a href="#__codelineno-2-3"><span class="linenos" data-linenos=" 3 "></span></a><span class="nt">spec</span><span class="p">:</span><span class="w"></span>
@@ -740,7 +727,7 @@
 <a id="__codelineno-2-9" name="__codelineno-2-9"></a><a href="#__codelineno-2-9"><span class="linenos" data-linenos=" 9 "></span></a><span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Utilization</span><span class="w"></span>
 <a id="__codelineno-2-10" name="__codelineno-2-10"></a><a href="#__codelineno-2-10"><span class="linenos" data-linenos="10 "></span></a><span class="w">        </span><span class="nt">averageUtilization</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span><span class="w"></span>
 </code></pre></div></p>
-<p>It's converted to underlying HorizontalPodAutoscaler metrics yaml.
+<p>它会自动转换成两条 HPA 的阈值配置：
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1"></a><a href="#__codelineno-3-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">autoscaling/v2beta1</span><span class="w"></span>
 <a id="__codelineno-3-2" name="__codelineno-3-2"></a><a href="#__codelineno-3-2"><span class="linenos" data-linenos=" 2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">HorizontalPodAutoscaler</span><span class="w"></span>
 <a id="__codelineno-3-3" name="__codelineno-3-3"></a><a href="#__codelineno-3-3"><span class="linenos" data-linenos=" 3 "></span></a><span class="nt">spec</span><span class="p">:</span><span class="w"></span>
@@ -757,44 +744,43 @@
 <a id="__codelineno-3-14" name="__codelineno-3-14"></a><a href="#__codelineno-3-14"><span class="linenos" data-linenos="14 "></span></a><span class="w">        </span><span class="nt">targetAverageUtilization</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span><span class="w"></span>
 <a id="__codelineno-3-15" name="__codelineno-3-15"></a><a href="#__codelineno-3-15"><span class="linenos" data-linenos="15 "></span></a><span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Resource</span><span class="w"></span>
 </code></pre></div></p>
-<p>In this sample, the resource metric defined by user is converted into two metrics: prediction metric and origin metric.</p>
+<p>在上面这个例子中，用户在 EHPA 创建的 Metric 阈值配置会自动转换成底层 HPA 上的两条 Metric 阈值配置：预测 Metric 阈值和实际监控 Metric 阈值</p>
 <ul>
-<li><strong>prediction metric</strong> is custom metrics that provided by component MetricAdapter. Since custom metric doesn't support <code>targetAverageUtilization</code>, it's converted to <code>targetAverageValue</code> based on target pod cpu request.</li>
-<li><strong>origin metric</strong> is equivalent to user defined metrics in EffectiveHorizontalPodAutoscaler, to fall back to baseline user defined in case of some unexpected situation e.g. business traffic sudden growth.</li>
+<li><strong>预测 Metric 阈值</strong> 是一个 custom metric。值通过 Crane 的 MetricAdapter 提供。</li>
+<li><strong>实际监控 Metric 阈值</strong>是一个 resource metric，它和用户在 EHPA 上定义的一样。这样 HPA 会根据应用实际监控的 Metric 计算副本数。</li>
 </ul>
-<p>HorizontalPodAutoscaler will calculate on each metric, and propose new replicas based on that. The <strong>largest</strong> one will be picked as the new scale.</p>
-<h4 id="horizontal-scaling-process">Horizontal scaling process<a class="headerlink" href="#horizontal-scaling-process" title="Permanent link">&para;</a></h4>
-<p>There are six steps of prediction and scaling process:</p>
+<p>HPA 在配置了多个弹性 Metric 阈值时，在计算副本数时会分别计算每条 Metric 对应的副本数，并选择<strong>最大</strong>的那个副本数作为最终的推荐弹性结果。</p>
+<h4 id="_4">水平弹性的执行流程<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h4>
 <ol>
-<li>EffectiveHPAController create HorizontalPodAutoscaler and TimeSeriesPrediction instance </li>
-<li>PredictionCore get historic metric from prometheus and persist into TimeSeriesPrediction</li>
-<li>HPAController read metrics from KubeApiServer</li>
-<li>KubeApiServer forward requests to MetricAdapter and MetricServer</li>
-<li>HPAController calculate all metric results and propose a new scale replicas for target</li>
-<li>HPAController scale target with Scale Api</li>
+<li>EffectiveHPAController 创建 HorizontalPodAutoscaler 和 TimeSeriesPrediction 对象 </li>
+<li>PredictionCore 从 prometheus 获取历史 metric 通过预测算法计算，将结果记录到 TimeSeriesPrediction</li>
+<li>HPAController 通过 metric client 从 KubeApiServer 读取 metric 数据</li>
+<li>KubeApiServer 将请求路由到 Crane 的 MetricAdapter。</li>
+<li>HPAController 计算所有的 Metric 返回的结果得到最终的弹性副本推荐。</li>
+<li>HPAController 调用 scale API 对目标应用扩/缩容。</li>
 </ol>
-<p>Below is the process flow.
+<p>整体流程图如下：
 <img alt="crane-ehpa" src="../../images/crane-ehpa.png" /></p>
-<h4 id="use-case">Use case<a class="headerlink" href="#use-case" title="Permanent link">&para;</a></h4>
-<p>Let's take one use case that using EffectiveHorizontalPodAutoscaler in production cluster.</p>
-<p>We did a profiling on the load history of one application in production and replayed it in staging environment. With the same application, we leverage both EffectiveHorizontalPodAutoscaler and HorizontalPodAutoscaler to manage the scale and compare the result.</p>
-<p>From the red line in below chart, we can see its actual total cpu usage is high at ~8am, ~12pm, ~8pm and low in midnight. The green line shows the prediction cpu usage trend.
+<h4 id="_5">用户案例<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h4>
+<p>我们通过一个生产环境的客户案例来介绍 EHPA 的落地效果。</p>
+<p>我们将生产上的数据在预发环境重放，对比使用 EHPA 和社区的 HPA 的弹性效果。</p>
+<p>下图的红线是应用在一天内的实际 CPU 使用量曲线，我们可以看到在8点，12点，晚上8点时是使用高峰。绿线是 EHPA 预测的 CPU 使用量。
 <img alt="craen-ehpa-metrics-chart" src="../../images/crane-ehpa-metrics-chart.png" /></p>
-<p>Below is the comparison result between EffectiveHorizontalPodAutoscaler and HorizontalPodAutoscaler. The red line is the replica number generated by HorizontalPodAutoscaler and the green line is the result from EffectiveHorizontalPodAutoscaler.
+<p>下图是对应的自动弹性的副本数曲线，红线是社区 HPA 的副本数曲线，绿线是 EHPA 的副本数曲线。
 <img alt="crane-ehpa-metrics-replicas-chart" src="../../images/crane-ehpa-replicas-chart.png" /></p>
-<p>We can see significant improvement with EffectiveHorizontalPodAutoscaler:</p>
+<p>可以看到 EHPA 具有以下优势：</p>
 <ul>
-<li>Scale up in advance before peek flow</li>
-<li>Scale down gracefully after peek flow</li>
-<li>Fewer replicas changes than HorizontalPodAutoscaler</li>
+<li>在流量洪峰来临前扩容。</li>
+<li>当流量先降后立刻升时不做无效缩容。</li>
+<li>相比 HPA 更少的弹性次数却更高效。</li>
 </ul>
-<h3 id="scalestrategy">ScaleStrategy<a class="headerlink" href="#scalestrategy" title="Permanent link">&para;</a></h3>
-<p>EffectiveHorizontalPodAutoscaler provides two strategies for scaling: <code>Auto</code> and <code>Preview</code>. User can change the strategy at runtime, and it will take effect on the fly.</p>
+<h3 id="scalestrategy">ScaleStrategy 弹性策略<a class="headerlink" href="#scalestrategy" title="Permanent link">&para;</a></h3>
+<p>EHPA 提供了两种弹性策略：<code>Auto</code> 和 <code>Preview</code>。用户可以随时切换它并立即生效。</p>
 <h4 id="auto">Auto<a class="headerlink" href="#auto" title="Permanent link">&para;</a></h4>
-<p>Auto strategy achieves automatic scaling based on metrics. It is the default strategy. With this strategy, EffectiveHorizontalPodAutoscaler will create and control a HorizontalPodAutoscaler instance in backend. We don't recommend explicit configuration on the underlying HorizontalPodAutoscaler because it will be overridden by EffectiveHPAController. If user delete EffectiveHorizontalPodAutoscaler, HorizontalPodAutoscaler will be cleaned up too.</p>
+<p>Auto 策略下 EHPA 会自动执行弹性行为。默认 EHPA 的策略是 Auto。在这个模式下 EHPA 会创建一个社区的 HPA 对象并自动接管它的生命周期。我们不建议用户修改或者控制这个底层的 HPA 对象，当 EHPA 被删除时，底层的 HPA 对象也会一并删除。</p>
 <h4 id="preview">Preview<a class="headerlink" href="#preview" title="Permanent link">&para;</a></h4>
-<p>Preview strategy means EffectiveHorizontalPodAutoscaler won't change target's replicas automatically, so you can preview the calculated replicas and control target's replicas by themselves. User can switch from default strategy to this one by applying <code>spec.scaleStrategy</code> to <code>Preview</code>. It will take effect immediately, During the switch, EffectiveHPAController will disable HorizontalPodAutoscaler if exists and scale the target to the value <code>spec.specificReplicas</code>, if user not set <code>spec.specificReplicas</code>, when ScaleStrategy is change to Preview, it will just stop scaling.</p>
-<p>A sample preview configuration looks like following:
+<p>Preview 策略提供了一种让 EHPA 不自动执行弹性的能力。所以你可以通过 EHPA 的 desiredReplicas 字段观测 EHPA 计算出的副本数。用户可以随时在两个模式间切换，当用户切换到 Preview 模式时，用户可以通过 <code>spec.specificReplicas</code> 调整应用的副本数，如果 <code>spec.specificReplicas</code> 为空，则不会对应用执行弹性，但是依然会执行副本数的计算。</p>
+<p>以下是一个配置成 Preview 模式的 EHPA 模版例子：
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1"></a><a href="#__codelineno-4-1"><span class="linenos" data-linenos="1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">autoscaling.crane.io/v1alpha1</span><span class="w"></span>
 <a id="__codelineno-4-2" name="__codelineno-4-2"></a><a href="#__codelineno-4-2"><span class="linenos" data-linenos="2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">EffectiveHorizontalPodAutoscaler</span><span class="w"></span>
 <a id="__codelineno-4-3" name="__codelineno-4-3"></a><a href="#__codelineno-4-3"><span class="linenos" data-linenos="3 "></span></a><span class="nt">spec</span><span class="p">:</span><span class="w"></span>
@@ -804,11 +790,12 @@
 <a id="__codelineno-4-7" name="__codelineno-4-7"></a><a href="#__codelineno-4-7"><span class="linenos" data-linenos="7 "></span></a><span class="w">  </span><span class="nt">expectReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span><span class="w">        </span><span class="c1"># expectReplicas is the calculated replicas that based on prediction metrics or spec.specificReplicas.</span><span class="w"></span>
 <a id="__codelineno-4-8" name="__codelineno-4-8"></a><a href="#__codelineno-4-8"><span class="linenos" data-linenos="8 "></span></a><span class="w">  </span><span class="nt">currentReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span><span class="w">       </span><span class="c1"># currentReplicas is actual replicas from target</span><span class="w"></span>
 </code></pre></div></p>
-<h3 id="horizontalpodautoscaler-compatible">HorizontalPodAutoscaler compatible<a class="headerlink" href="#horizontalpodautoscaler-compatible" title="Permanent link">&para;</a></h3>
-<p>EffectiveHorizontalPodAutoscaler is designed to be compatible with k8s native HorizontalPodAutoscaler, because we don't reinvent the autoscaling part but take advantage of the extension from HorizontalPodAutoscaler and build a high level autoscaling CRD. EffectiveHorizontalPodAutoscaler support all abilities from HorizontalPodAutoscaler like metricSpec and behavior.</p>
-<p>EffectiveHorizontalPodAutoscaler will continue support incoming new feature from HorizontalPodAutoscaler.</p>
+<h3 id="horizontalpodautoscaler">HorizontalPodAutoscaler 社区兼容<a class="headerlink" href="#horizontalpodautoscaler" title="Permanent link">&para;</a></h3>
+<p>EHPA 从设计之出就希望和社区的 HPA 兼容，因为我们不希望重新造一个类似 HPA 的轮子，HPA 在不断演进的过程已经解决了很多通用的问题，EHPA 希望在 HPA 的基础上提供更高阶的 CRD，EHPA 的功能是社区 HPA 的超集。</p>
+<p>EHPA 也会持续跟进支持 HPA 的新功能。</p>
 <h3 id="effectivehorizontalpodautoscaler-status">EffectiveHorizontalPodAutoscaler status<a class="headerlink" href="#effectivehorizontalpodautoscaler-status" title="Permanent link">&para;</a></h3>
-<p>This is a yaml from EffectiveHorizontalPodAutoscaler.Status
+<p>EHPA 的 Status 包括了自身的 Status 同时也汇聚了底层 HPA 的部分 Status。</p>
+<p>以下是一个 EHPA 的 Status yaml例子：
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1"></a><a href="#__codelineno-5-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">autoscaling.crane.io/v1alpha1</span><span class="w"></span>
 <a id="__codelineno-5-2" name="__codelineno-5-2"></a><a href="#__codelineno-5-2"><span class="linenos" data-linenos=" 2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">EffectiveHorizontalPodAutoscaler</span><span class="w"></span>
 <a id="__codelineno-5-3" name="__codelineno-5-3"></a><a href="#__codelineno-5-3"><span class="linenos" data-linenos=" 3 "></span></a><span class="nt">status</span><span class="p">:</span><span class="w"></span>

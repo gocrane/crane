@@ -372,13 +372,6 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#params-description" class="md-nav__link">
-    Params Description
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#prediction-driven-autoscaling" class="md-nav__link">
     Prediction-driven autoscaling
   </a>
@@ -703,15 +696,6 @@
 <li>Prediction defines configurations for predict resources.If unspecified, defaults don't enable prediction.</li>
 <li>PredictionWindowSeconds is the time window to predict metrics in the future.</li>
 </ol>
-<h3 id="params-description">Params Description<a class="headerlink" href="#params-description" title="Permanent link">&para;</a></h3>
-<ul>
-<li>spec.scaleTargetRef defines the reference to the workload that should be scaled.</li>
-<li>spec.minReplicas is the lower limit replicas to the scale target which the autoscaler can scale down to.</li>
-<li>spec.maxReplicas is the upper limit replicas to the scale target which the autoscaler can scale up to.</li>
-<li>spec.scaleStrategy indicates the strategy to scaling target, value can be "Auto" and "Preview".</li>
-<li>spec.metrics contains the specifications for which to use to calculate the desired replica count. Please refer to the details:</li>
-<li>spec.prediction defines configurations for predict resources.If unspecified, defaults don't enable prediction.</li>
-</ul>
 <h3 id="prediction-driven-autoscaling">Prediction-driven autoscaling<a class="headerlink" href="#prediction-driven-autoscaling" title="Permanent link">&para;</a></h3>
 <p>Most of online applications follow regular pattern. We can predict future trend of hours or days. DSP is a time series prediction algorithm that applicable for application metrics prediction.</p>
 <p>The following shows a sample EffectiveHorizontalPodAutoscaler yaml with prediction enabled.
