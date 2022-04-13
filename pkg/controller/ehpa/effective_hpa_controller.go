@@ -184,7 +184,7 @@ func setCondition(status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus,
 func RecordMetrics(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) {
 	if ehpa.Status.ExpectReplicas != nil {
 		labels := map[string]string{
-			"identity": klog.KObj(ehpa).String(),
+			"resourceName": klog.KObj(ehpa).String(),
 			"strategy": string(ehpa.Spec.ScaleStrategy),
 		}
 		metrics.EHPAReplicas.With(labels).Set(float64(*ehpa.Status.ExpectReplicas))

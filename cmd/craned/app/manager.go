@@ -212,7 +212,7 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 		Client: mgr.GetClient(),
 	}
 	if err := podOOMRecorder.SetupWithManager(mgr); err != nil {
-		klog.Exit(err, "unable to create controller", "controller", "PodOOMRecorder")
+		klog.Exit(err, "Unable to create controller", "PodOOMRecorder")
 	}
 	go func() {
 		if err := podOOMRecorder.Run(ctx.Done()); err != nil {
@@ -242,13 +242,13 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 			klog.Exit(err, "unable to create controller", "controller", "SubstituteController")
 		}
 
-		if err := (&ehpa.HPAReplicasController{
+		if err := (&ehpa.HPAObserverController{
 			Client:     mgr.GetClient(),
 			Scheme:     mgr.GetScheme(),
 			RestMapper: mgr.GetRESTMapper(),
 			Recorder:   mgr.GetEventRecorderFor("hpareplicas-controller"),
 		}).SetupWithManager(mgr); err != nil {
-			klog.Exit(err, "unable to create controller", "controller", "HPAReplicasController")
+			klog.Exit(err, "unable to create controller", "controller", "HPAObserverController")
 		}
 
 		if err := (&evpa.EffectiveVPAController{
