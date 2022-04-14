@@ -154,3 +154,7 @@ func promQuery(prom *metricquery.PrometheusQuery) *metricquery.Query {
 		Prometheus: prom,
 	}
 }
+
+func init() {
+	querybuilder.RegisterBuilderFactory(metricquery.PrometheusMetricSource, NewPromQueryBuilder)
+}

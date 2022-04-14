@@ -3,8 +3,6 @@ package metricnaming
 import (
 	"github.com/gocrane/crane/pkg/metricquery"
 	"github.com/gocrane/crane/pkg/querybuilder"
-	msbuilder "github.com/gocrane/crane/pkg/querybuilder-providers/metricserver"
-	prombuilder "github.com/gocrane/crane/pkg/querybuilder-providers/prometheus"
 )
 
 // MetricNamer is an interface. it is the bridge between predictor and different data sources and other component.
@@ -38,13 +36,8 @@ type queryBuilderFactory struct {
 }
 
 func (q queryBuilderFactory) Builder(source metricquery.MetricSource) querybuilder.Builder {
-	switch source {
-	case metricquery.MetricServerMetricSource:
-		return msbuilder.NewMetricServerQueryBuilder(q.metric)
-	case metricquery.PrometheusMetricSource:
-		return prombuilder.NewPromQueryBuilder(q.metric)
-	}
-	return prombuilder.NewPromQueryBuilder(q.metric)
+	initFunc := querybuilder.GetBuilderFactory(source)
+	return initFunc(q.metric)
 }
 
 func NewQueryBuilder(metric *metricquery.Metric) querybuilder.QueryBuilder {

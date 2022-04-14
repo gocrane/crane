@@ -27,3 +27,7 @@ func metricServerQuery(query *metricquery.MetricServerQuery) *metricquery.Query 
 		MetricServer: query,
 	}
 }
+
+func init() {
+	querybuilder.RegisterBuilderFactory(metricquery.MetricServerMetricSource, NewMetricServerQueryBuilder)
+}
