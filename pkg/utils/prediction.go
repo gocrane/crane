@@ -30,6 +30,15 @@ func QueryPredictedTimeSeriesOnce(predictor prediction.Interface, caller string,
 	return predictor.QueryPredictedTimeSeries(context.TODO(), namer, startTime, endTime)
 }
 
+func QueryPredictedValues(predictor prediction.Interface, caller string, pConfig *config.Config, namer metricnaming.MetricNamer) ([]*common.TimeSeries, error) {
+	err := predictor.WithQuery(namer, caller, *pConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return predictor.QueryRealtimePredictedValues(context.TODO(), namer)
+}
+
 func QueryPredictedValuesOnce(recommendation *v1alpha1.Recommendation, predictor prediction.Interface, caller string, pConfig *config.Config, namer metricnaming.MetricNamer) ([]*common.TimeSeries, error) {
 	return predictor.QueryRealtimePredictedValuesOnce(context.TODO(), namer, *pConfig)
 }

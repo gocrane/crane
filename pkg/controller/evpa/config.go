@@ -40,16 +40,16 @@ const (
 	DefaultEVPARsyncPeriod = time.Second * 60
 )
 
+const (
+	EffectiveVPAConditionTypeReady = "Ready"
+)
+
 var (
 	DefaultControlledResources = []autoscalingapi.ResourceName{autoscalingapi.ResourceName("cpu"), autoscalingapi.ResourceName("memory")}
 
 	defaultEstimators = []autoscalingapi.ResourceEstimator{
 		{
 			Type:   "Percentile",
-			Config: map[string]string{},
-		},
-		{
-			Type:   "Proportional",
 			Config: map[string]string{},
 		},
 		{

@@ -258,6 +258,7 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 			Scheme:      mgr.GetScheme(),
 			Recorder:    mgr.GetEventRecorderFor("effective-vpa-controller"),
 			OOMRecorder: podOOMRecorder,
+			Predictor:   predictorMgr.GetPredictor(predictionapi.AlgorithmTypePercentile),
 		}).SetupWithManager(mgr); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "EffectiveVPAController")
 		}

@@ -10,6 +10,7 @@ import (
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/oom"
+	"github.com/gocrane/crane/pkg/prediction"
 )
 
 // ResourceEstimatorManager controls how to get or delete estimators for EffectiveVPA
@@ -29,19 +30,20 @@ type estimatorManager struct {
 	estimatorMap map[string]ResourceEstimator
 }
 
-func NewResourceEstimatorManager(client client.Client, oomRecorder oom.Recorder) ResourceEstimatorManager {
+func NewResourceEstimatorManager(client client.Client, oomRecorder oom.Recorder, predictor prediction.Interface) ResourceEstimatorManager {
 	resourceEstimatorManager := &estimatorManager{
 		estimatorMap: make(map[string]ResourceEstimator),
 	}
-	resourceEstimatorManager.buildEstimators(client, oomRecorder)
+	resourceEstimatorManager.buildEstimators(client, oomRecorder, predictor)
 	return resourceEstimatorManager
 }
 
-func (m *estimatorManager) buildEstimators(client client.Client, oomRecorder oom.Recorder) {
-	proportionalEstimator := &ProportionalResourceEstimator{
-		Client: client,
+func (m *estimatorManager) buildEstimators(client client.Client, oomRecorder oom.Recorder, predictor prediction.Interface) {
+	percentileEstimator := &PercentileResourceEstimator{
+		Predictor: predictor,
+		Client:    client,
 	}
-	m.registerEstimator("Proportional", proportionalEstimator)
+	m.registerEstimator("Percentile", percentileEstimator)
 	oomEstimator := &OOMResourceEstimator{
 		OOMRecorder: oomRecorder,
 	}
