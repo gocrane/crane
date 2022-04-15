@@ -92,15 +92,20 @@ kind: HorizontalPodAutoscaler
 spec:
   metrics:
     - pods:
-        metricName: pod_cpu_usage
-        selector:
-          matchLabels:
-            autoscaling.crane.io/effective-hpa-uid: f9b92249-eab9-4671-afe0-17925e5987b8
-        targetAverageValue: 100m
+        metric:
+          name: crane_pod_cpu_usage
+          selector:
+            matchLabels:
+              autoscaling.crane.io/effective-hpa-uid: f9b92249-eab9-4671-afe0-17925e5987b8
+        target:
+          type: AverageValue
+          averageValue: 100m
       type: Pods
     - resource:
         name: cpu
-        targetAverageUtilization: 50
+        target:
+          type: Utilization
+          averageUtilization: 50
       type: Resource
 ```
 
