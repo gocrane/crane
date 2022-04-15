@@ -107,7 +107,7 @@ func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) 
 			Target:        map[corev1.ResourceName]string{},
 		}
 
-		mericNamer := ResourceToContainerMetricNamer(namespace, pod.Name, c.Name, corev1.ResourceCPU)
+		mericNamer := ResourceToContainerMetricNamer(namespace, a.Recommendation.Spec.TargetRef.Name, c.Name, corev1.ResourceCPU)
 		klog.V(6).Infof("CPU query for resource request recommendation: %s", mericNamer.BuildUniqueKey())
 		cpuConfig := makeCpuConfig(a.ConfigProperties)
 		tsList, err := utils.QueryPredictedValuesOnce(a.Recommendation, p,
@@ -121,7 +121,7 @@ func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) 
 		v := int64(tsList[0].Samples[0].Value * 1000)
 		cr.Target[corev1.ResourceCPU] = resource.NewMilliQuantity(v, resource.DecimalSI).String()
 
-		mericNamer = ResourceToContainerMetricNamer(namespace, pod.Name, c.Name, corev1.ResourceMemory)
+		mericNamer = ResourceToContainerMetricNamer(namespace, a.Recommendation.Spec.TargetRef.Name, c.Name, corev1.ResourceMemory)
 		klog.V(6).Infof("Memory query for resource request recommendation: %s", mericNamer.BuildUniqueKey())
 		memConfig := makeMemConfig(a.ConfigProperties)
 		tsList, err = utils.QueryPredictedValuesOnce(a.Recommendation, p,
@@ -146,7 +146,7 @@ func (a *ResourceRequestAdvisor) Name() string {
 	return "ResourceRequestAdvisor"
 }
 
-func ResourceToContainerMetricNamer(namespace, podname, containername string, resourceName corev1.ResourceName) metricnaming.MetricNamer {
+func ResourceToContainerMetricNamer(namespace, workloadname, containername string, resourceName corev1.ResourceName) metricnaming.MetricNamer {
 	// container
 	return &metricnaming.GeneralMetricNamer{
 		Metric: &metricquery.Metric{
@@ -154,7 +154,7 @@ func ResourceToContainerMetricNamer(namespace, podname, containername string, re
 			MetricName: resourceName.String(),
 			Container: &metricquery.ContainerNamerInfo{
 				Namespace:     namespace,
-				PodName:       podname,
+				WorkloadName:  workloadname,
 				ContainerName: containername,
 				Selector:      labels.Everything(),
 			},

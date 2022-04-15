@@ -69,11 +69,11 @@ func TestBuildQuery(t *testing.T) {
 				Type:       metricquery.ContainerMetricType,
 				Container: &metricquery.ContainerNamerInfo{
 					Namespace:     "default",
-					PodName:       "pod-xxx",
+					WorkloadName:  "workload",
 					ContainerName: "container",
 				},
 			},
-			want: fmt.Sprintf(ContainerCpuUsageExprTemplate, "default", "pod-xxx", "container", "3m"),
+			want: fmt.Sprintf(ContainerCpuUsageExprTemplate, "default", "workload", "container", "3m"),
 		},
 		{
 			desc: "tc4-container-mem",
@@ -82,11 +82,11 @@ func TestBuildQuery(t *testing.T) {
 				Type:       metricquery.ContainerMetricType,
 				Container: &metricquery.ContainerNamerInfo{
 					Namespace:     "default",
-					PodName:       "pod-xxx",
+					WorkloadName:  "workload",
 					ContainerName: "container",
 				},
 			},
-			want: fmt.Sprintf(ContainerMemUsageExprTemplate, "default", "pod-xxx", "container"),
+			want: fmt.Sprintf(ContainerMemUsageExprTemplate, "default", "workload", "container"),
 		},
 		{
 			desc: "tc5-node-cpu",

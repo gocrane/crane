@@ -92,11 +92,11 @@ func (b *builder) containerQuery(metric *metricquery.Metric) (*metricquery.Query
 	switch strings.ToLower(metric.MetricName) {
 	case v1.ResourceCPU.String():
 		return promQuery(&metricquery.PrometheusQuery{
-			Query: fmt.Sprintf(ContainerCpuUsageExprTemplate, metric.Container.Namespace, metric.Container.PodName, metric.Container.ContainerName, "3m"),
+			Query: fmt.Sprintf(ContainerCpuUsageExprTemplate, metric.Container.Namespace, metric.Container.WorkloadName, metric.Container.ContainerName, "3m"),
 		}), nil
 	case v1.ResourceMemory.String():
 		return promQuery(&metricquery.PrometheusQuery{
-			Query: fmt.Sprintf(ContainerMemUsageExprTemplate, metric.Container.Namespace, metric.Container.PodName, metric.Container.ContainerName),
+			Query: fmt.Sprintf(ContainerMemUsageExprTemplate, metric.Container.Namespace, metric.Container.WorkloadName, metric.Container.ContainerName),
 		}), nil
 	default:
 		return nil, fmt.Errorf("metric type %v do not support resource metric %v. only support %v now", metric.Type, metric.MetricName, supportedResources.List())
