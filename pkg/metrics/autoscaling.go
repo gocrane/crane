@@ -93,7 +93,7 @@ var (
 
 func init() {
 	// Register custom metrics with the global prometheus registry
-	metrics.Registry.MustRegister(HPAReplicas, EHPAReplicas, OOMCount, EVPACpuScaleUpMilliCores, EVPACpuScaleDownMilliCores, EVPAMemoryScaleDownMB, EVPAMemoryScaleUpMB)
+	metrics.Registry.MustRegister(HPAReplicas, EHPAReplicas, OOMCount, HPAScaleCount, EVPACpuScaleUpMilliCores, EVPACpuScaleDownMilliCores, EVPAMemoryScaleDownMB, EVPAMemoryScaleUpMB)
 
 }
 
