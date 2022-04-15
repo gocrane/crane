@@ -39,6 +39,8 @@ import (
 	"github.com/gocrane/crane/pkg/providers/metricserver"
 	"github.com/gocrane/crane/pkg/providers/mock"
 	"github.com/gocrane/crane/pkg/providers/prom"
+	_ "github.com/gocrane/crane/pkg/querybuilder-providers/metricserver"
+	_ "github.com/gocrane/crane/pkg/querybuilder-providers/prometheus"
 	"github.com/gocrane/crane/pkg/recommend"
 	"github.com/gocrane/crane/pkg/server"
 	serverconfig "github.com/gocrane/crane/pkg/server/config"
