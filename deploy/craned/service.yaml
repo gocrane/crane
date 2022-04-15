@@ -18,5 +18,9 @@ spec:
       protocol: TCP
       targetPort: 9090
       name: dashboard-service
+    - name: metrics-http
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
   selector:
     app: craned
