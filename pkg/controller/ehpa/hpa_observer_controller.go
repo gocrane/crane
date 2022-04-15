@@ -43,7 +43,7 @@ func (c *HPAObserverController) Reconcile(ctx context.Context, req ctrl.Request)
 
 func (c *HPAObserverController) SetupWithManager(mgr ctrl.Manager) error {
 	// Create a new controller
-	controller, err := controller.New("broadcastjob-controller", mgr, controller.Options{
+	controller, err := controller.New("hpa-observer-controller", mgr, controller.Options{
 		Reconciler: c})
 	if err != nil {
 		return err
