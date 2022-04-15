@@ -6,6 +6,7 @@ import (
 
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
@@ -33,6 +34,7 @@ func (h *hpaEventHandler) Delete(evt event.DeleteEvent, q workqueue.RateLimiting
 func (h *hpaEventHandler) Update(evt event.UpdateEvent, q workqueue.RateLimitingInterface) {
 	newHpa := evt.ObjectNew.(*autoscalingv2.HorizontalPodAutoscaler)
 	oldHpa := evt.ObjectOld.(*autoscalingv2.HorizontalPodAutoscaler)
+	klog.V(6).Infof("hpa %s OnUpdate", klog.KObj(newHpa))
 	if oldHpa.Status.DesiredReplicas != newHpa.Status.DesiredReplicas {
 		for _, cond := range newHpa.Status.Conditions {
 			if cond.Reason == "SucceededRescale" || cond.Reason == "SucceededOverloadRescale" {
@@ -51,7 +53,7 @@ func (h *hpaEventHandler) Update(evt event.UpdateEvent, q workqueue.RateLimiting
 					"type":         scaleType,
 					"direction":    direction,
 				}
-				metrics.HPAScaleCount.With(labels).Add(1)
+				metrics.HPAScaleCount.With(labels).Inc()
 
 				break
 			}

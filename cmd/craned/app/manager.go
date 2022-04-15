@@ -246,7 +246,7 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 			Client:     mgr.GetClient(),
 			Scheme:     mgr.GetScheme(),
 			RestMapper: mgr.GetRESTMapper(),
-			Recorder:   mgr.GetEventRecorderFor("hpareplicas-controller"),
+			Recorder:   mgr.GetEventRecorderFor("hpa-observer-controller"),
 		}).SetupWithManager(mgr); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "HPAObserverController")
 		}
