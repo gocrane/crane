@@ -15,8 +15,8 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 	craneclientset "github.com/gocrane/api/pkg/generated/clientset/versioned"
@@ -119,9 +119,9 @@ func Run(ctx context.Context, opts *options.Options) error {
 }
 
 func buildClient() (*kubernetes.Clientset, *craneclientset.Clientset, error) {
-	config, err := rest.InClusterConfig()
+	config, err := ctrl.GetConfig()
 	if err != nil {
-		klog.Errorf("Failed to get InClusterConfig, %v.", err)
+		klog.Errorf("Failed to get GetConfig, %v.", err)
 		return nil, nil, err
 	}
 	kubeClient, err := kubernetes.NewForConfig(config)

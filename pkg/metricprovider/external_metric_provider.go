@@ -50,7 +50,7 @@ const (
 	DefaultCronTargetMetricValue int32 = 1
 )
 
-// each ehpa mapping to only one external cron metric. metric name is ehpa name
+// GetExternalMetric each ehpa mapping to only one external cron metric. metric name is ehpa name
 func (p *ExternalMetricProvider) GetExternalMetric(ctx context.Context, namespace string, metricSelector labels.Selector, info provider.ExternalMetricInfo) (*external_metrics.ExternalMetricValueList, error) {
 	var ehpa autoscalingapi.EffectiveHorizontalPodAutoscaler
 

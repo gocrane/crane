@@ -10,42 +10,32 @@ import (
 	gprcconnection "github.com/gocrane/crane/pkg/ensurance/grpc"
 )
 
-// runtimeEndpointIsSet is true when RuntimeEndpoint is configured
 // runtimeEndpoint is CRI server runtime endpoint
-func getRuntimeClientConnection(runtimeEndpoint string, runtimeEndpointIsSet bool) (*grpc.ClientConn, error) {
-
-	if runtimeEndpointIsSet && runtimeEndpoint == "" {
-		return nil, fmt.Errorf("runtime-endpoint is not set")
+func getRuntimeClientConnection(runtimeEndpoint string) (*grpc.ClientConn, error) {
+	var runtimeEndpoints []string
+	if runtimeEndpoint != "" {
+		runtimeEndpoints = append(runtimeEndpoints, runtimeEndpoint)
 	}
-
-	if !runtimeEndpointIsSet {
-		klog.V(2).Infof("Runtime connect using default endpoints: %v. You can set the endpoint instead.", defaultRuntimeEndpoints)
-		return gprcconnection.InitGrpcConnection(defaultRuntimeEndpoints)
-	}
-
-	return gprcconnection.InitGrpcConnection([]string{runtimeEndpoint})
+	runtimeEndpoints = append(runtimeEndpoints, defaultRuntimeEndpoints...)
+	klog.V(2).Infof("Runtime connect using endpoints: %v. You can set the endpoint instead.", defaultRuntimeEndpoints)
+	return gprcconnection.InitGrpcConnection(runtimeEndpoints)
 }
 
 // imageEndpoint is CRI server image endpoint, default same as runtime endpoint
-// imageEndpointIsSet is true when imageEndpoint is configured
-func getImageClientConnection(imageEndpoint string, imageEndpointIsSet bool) (*grpc.ClientConn, error) {
-	if imageEndpoint == "" {
-		if imageEndpointIsSet && imageEndpoint == "" {
-			return nil, fmt.Errorf("image-endpoint is not set")
-		}
+func getImageClientConnection(imageEndpoint string) (*grpc.ClientConn, error) {
+	var imageEndpoints []string
+	if imageEndpoint != "" {
+		imageEndpoints = append(imageEndpoints, imageEndpoint)
 	}
-
-	if !imageEndpointIsSet {
-		klog.V(2).Infof(fmt.Sprintf("Image connect using default endpoints: %v. You should set the endpoint instead.", defaultRuntimeEndpoints))
-		return gprcconnection.InitGrpcConnection(defaultRuntimeEndpoints)
-	}
-	return gprcconnection.InitGrpcConnection([]string{imageEndpoint})
+	imageEndpoints = append(imageEndpoints, defaultRuntimeEndpoints...)
+	klog.V(2).Infof(fmt.Sprintf("Image connect using endpoints: %v. You should set the endpoint instead.", imageEndpoints))
+	return gprcconnection.InitGrpcConnection(imageEndpoints)
 }
 
 //GetRuntimeClient get the runtime client
-func GetRuntimeClient(runtimeEndpoint string, runtimeEndpointIsSet bool) (pb.RuntimeServiceClient, *grpc.ClientConn, error) {
+func GetRuntimeClient(runtimeEndpoint string) (pb.RuntimeServiceClient, *grpc.ClientConn, error) {
 	// Set up a connection to the server.
-	conn, err := getRuntimeClientConnection(runtimeEndpoint, runtimeEndpointIsSet)
+	conn, err := getRuntimeClientConnection(runtimeEndpoint)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -54,9 +44,9 @@ func GetRuntimeClient(runtimeEndpoint string, runtimeEndpointIsSet bool) (pb.Run
 }
 
 //GetImageClient get the runtime client
-func GetImageClient(imageEndpoint string, imageEndpointIsSet bool) (pb.ImageServiceClient, *grpc.ClientConn, error) {
+func GetImageClient(imageEndpoint string) (pb.ImageServiceClient, *grpc.ClientConn, error) {
 	// Set up a connection to the server.
-	conn, err := getImageClientConnection(imageEndpoint, imageEndpointIsSet)
+	conn, err := getImageClientConnection(imageEndpoint)
 	if err != nil {
 		return nil, nil, err
 	}
