@@ -25,29 +25,81 @@ Crane 安装时间在10分钟左右，具体时间也依赖集群规模以及硬
 
 使用 Helm 安装 Prometheus 和 Grafana。
 
-> 注意：如果您已经在环境中部署了 Prometheus 和 Grafana，可以跳过该步骤。
+!!! Note "注意" 
+    如果您已经在环境中部署了 Prometheus 和 Grafana，可以跳过该步骤。
+
+!!! Warning "网络问题"
+    如果你的网络无法访问GitHub资源(GitHub Release, GitHub Raw Content `raw.githubusercontent.com`)。
+    
+    那么你可以尝试镜像仓库。但镜像仓库具有一定的**时延**。[镜像仓库](mirror.zh.md)
+
 
 Crane 使用 Prometheus 抓取集群工作负载对资源的使用情况。安装 Prometheus：
 
-```shell
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm install prometheus -n crane-system --set pushgateway.enabled=false --set alertmanager.enabled=false --set server.persistentVolume.enabled=false -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/prometheus/override_values.yaml --create-namespace  prometheus-community/prometheus
-```
+=== "Main"
+
+    ```bash
+    helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+    helm install prometheus -n crane-system \
+                            --set pushgateway.enabled=false \
+                            --set alertmanager.enabled=false \
+                            --set server.persistentVolume.enabled=false \
+                            -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/prometheus/override_values.yaml \
+                            --create-namespace  prometheus-community/prometheus
+    ```
+
+=== "Mirror"
+
+    ```bash
+    helm repo add prometheus-community https://finops-helm.pkg.coding.net/gocrane/prometheus-community
+    helm install prometheus -n crane-system \
+                            --set pushgateway.enabled=false \
+                            --set alertmanager.enabled=false \
+                            --set server.persistentVolume.enabled=false \
+                            -f https://finops.coding.net/p/gocrane/d/helm-charts/git/raw/main/integration/prometheus/override_values.yaml?download=false \
+                            --create-namespace  prometheus-community/prometheus
+    ```
+
 
 Crane 的 Fadvisor 使用 Grafana 展示成本预估。安装 Grafana：
 
-```console
-helm repo add grafana https://grafana.github.io/helm-charts
-helm install grafana -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/grafana/override_values.yaml -n crane-system --create-namespace grafana/grafana
-```
+=== "Main"
+
+    ```bash
+    helm repo add grafana https://grafana.github.io/helm-charts
+    helm install grafana \
+                 -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/grafana/override_values.yaml \
+                 -n crane-system \
+                 --create-namespace grafana/grafana
+    ```
+
+=== "Mirror"
+
+    ```bash
+    helm repo add grafana https://finops-helm.pkg.coding.net/gocrane/grafana
+    helm install grafana \
+                 -f https://finops.coding.net/p/gocrane/d/helm-charts/git/raw/main/integration/grafana/override_values.yaml?download=false \
+                 -n crane-system \
+                 --create-namespace grafana/grafana
+    ```
 
 ### 安装 Crane 和 Fadvisor
 
-```console
-helm repo add crane https://gocrane.github.io/helm-charts
-helm install crane -n crane-system --create-namespace crane/crane
-helm install fadvisor -n crane-system --create-namespace crane/fadvisor
-```
+=== "Main"
+
+    ```bash
+    helm repo add crane https://gocrane.github.io/helm-charts
+    helm install crane -n crane-system --create-namespace crane/crane
+    helm install fadvisor -n crane-system --create-namespace crane/fadvisor
+    ```
+
+=== "Mirror"
+
+    ```bash
+    helm repo add crane https://finops-helm.pkg.coding.net/gocrane/gocrane
+    helm install crane -n crane-system --create-namespace crane/crane
+    helm install fadvisor -n crane-system --create-namespace crane/fadvisor
+    ```
 
 ## 验证安装是否成功
 
@@ -99,12 +151,27 @@ kubectl port-forward -n crane-system svc/craned 9090
 
 通过 YAML 安装 `Crane` 。
 
-```console
-git checkout v0.2.0
-kubectl apply -f deploy/manifests 
-kubectl apply -f deploy/craned 
-kubectl apply -f deploy/metric-adapter
-```
+=== "Main"
+
+    ```bash
+    git clone https://github.com/gocrane/crane.git
+    CRANE_LATEST_VERSION=$(curl -s https://api.github.com/repos/gocrane/crane/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
+    git checkout $CRANE_LATEST_VERSION
+    kubectl apply -f deploy/manifests 
+    kubectl apply -f deploy/craned 
+    kubectl apply -f deploy/metric-adapter
+    ```
+
+=== "Mirror"
+
+    ```bash
+    git clone https://e.coding.net/finops/gocrane/crane.git
+    CRANE_LATEST_VERSION=$(curl -s https://api.github.com/repos/gocrane/crane/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
+    git checkout $CRANE_LATEST_VERSION
+    kubectl apply -f deploy/manifests
+    kubectl apply -f deploy/craned
+    kubectl apply -f deploy/metric-adapter
+    ```
 
 如果您想自定义 Crane 里配置 Prometheus 的 HTTP 地址，请参考以下的命令。如果您在集群里已存在一个 Prometheus，请将 Server 地址填于`CUSTOMIZE_PROMETHEUS` 。
 

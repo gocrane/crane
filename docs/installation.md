@@ -16,29 +16,79 @@ Please refer to Helm's [documentation](https://helm.sh/docs/intro/install/) for 
 !!! note
     If you already deployed prometheus, grafana in your environment, then skip this step.
 
+!!! Warning "Network Problems"
+    If your network is hard to connect GitHub resources, you can try the mirror repo. Like GitHub Release, GitHub Raw Content `raw.githubusercontent.com`.
+
+    But mirror repo has a certain **latency**.[Mirror Repo](mirror.md)
+
 Crane use prometheus to be the default metric provider. 
 
 Using following command to install prometheus components: prometheus-server, node-exporter, kube-state-metrics.
 
-```bash
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm install prometheus -n crane-system --set pushgateway.enabled=false --set alertmanager.enabled=false --set server.persistentVolume.enabled=false -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/prometheus/override_values.yaml --create-namespace  prometheus-community/prometheus
-```
+=== "Main"
 
+    ```bash
+    helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+    helm install prometheus -n crane-system \
+                            --set pushgateway.enabled=false \
+                            --set alertmanager.enabled=false \
+                            --set server.persistentVolume.enabled=false \
+                            -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/prometheus/override_values.yaml \
+                            --create-namespace  prometheus-community/prometheus
+    ```
+
+=== "Mirror"
+
+    ```bash
+    helm repo add prometheus-community https://finops-helm.pkg.coding.net/gocrane/prometheus-community
+    helm install prometheus -n crane-system \
+                            --set pushgateway.enabled=false \
+                            --set alertmanager.enabled=false \
+                            --set server.persistentVolume.enabled=false \
+                            -f https://finops.coding.net/p/gocrane/d/helm-charts/git/raw/main/integration/prometheus/override_values.yaml?download=false \
+                            --create-namespace  prometheus-community/prometheus
+    ```
 Fadvisor use grafana to present cost estimates. Using following command to install a grafana.
 
-```bash
-helm repo add grafana https://grafana.github.io/helm-charts
-helm install grafana -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/grafana/override_values.yaml -n crane-system --create-namespace grafana/grafana
-```
+
+=== "Main"
+
+    ```bash
+    helm repo add grafana https://grafana.github.io/helm-charts
+    helm install grafana \
+                 -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/grafana/override_values.yaml \
+                 -n crane-system \
+                 --create-namespace grafana/grafana
+    ```
+
+=== "Mirror"
+
+    ```bash
+    helm repo add grafana https://finops-helm.pkg.coding.net/gocrane/grafana
+    helm install grafana \
+                 -f https://finops.coding.net/p/gocrane/d/helm-charts/git/raw/main/integration/grafana/override_values.yaml?download=false \
+                 -n crane-system \
+                 --create-namespace grafana/grafana
+    ```
 
 ### Deploying Crane and Fadvisor
 
-```bash
-helm repo add crane https://gocrane.github.io/helm-charts
-helm install crane -n crane-system --create-namespace crane/crane
-helm install fadvisor -n crane-system --create-namespace crane/fadvisor
-```
+
+=== "Main"
+
+    ```bash
+    helm repo add crane https://gocrane.github.io/helm-charts
+    helm install crane -n crane-system --create-namespace crane/crane
+    helm install fadvisor -n crane-system --create-namespace crane/fadvisor
+    ```
+
+=== "Mirror"
+
+    ```bash
+    helm repo add crane https://finops-helm.pkg.coding.net/gocrane/gocrane
+    helm install crane -n crane-system --create-namespace crane/crane
+    helm install fadvisor -n crane-system --create-namespace crane/fadvisor
+    ```
 
 ### Verify Installation
 
@@ -70,14 +120,27 @@ you can see [this](https://github.com/gocrane/helm-charts) to learn more.
 
 Deploy `Crane` by apply YAML declaration.
 
-```bash
-git clone https://github.com/gocrane/crane.git
-CRANE_LATEST_VERSION=$(curl -s https://api.github.com/repos/gocrane/crane/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
-git checkout $CRANE_LATEST_VERSION
-kubectl apply -f deploy/manifests 
-kubectl apply -f deploy/craned 
-kubectl apply -f deploy/metric-adapter
-```
+=== "Main"
+
+    ```bash
+    git clone https://github.com/gocrane/crane.git
+    CRANE_LATEST_VERSION=$(curl -s https://api.github.com/repos/gocrane/crane/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
+    git checkout $CRANE_LATEST_VERSION
+    kubectl apply -f deploy/manifests 
+    kubectl apply -f deploy/craned 
+    kubectl apply -f deploy/metric-adapter
+    ```
+
+=== "Mirror"
+
+    ```bash
+    git clone https://e.coding.net/finops/gocrane/crane.git
+    CRANE_LATEST_VERSION=$(curl -s https://api.github.com/repos/gocrane/crane/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
+    git checkout $CRANE_LATEST_VERSION
+    kubectl apply -f deploy/manifests
+    kubectl apply -f deploy/craned
+    kubectl apply -f deploy/metric-adapter
+    ```
 
 The following command will configure prometheus http address for crane if you want to customize it. Specify `CUSTOMIZE_PROMETHEUS` if you have existing prometheus server.
 

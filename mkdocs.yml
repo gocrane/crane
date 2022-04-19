@@ -41,6 +41,7 @@ plugins:
           Tutorials: 教程
           Proposals: 提案
           Contributing: 贡献
+          Mirror Repo: 镜像仓库
           Code Standard: 代码标准
           Roadmap: 路线图
 markdown_extensions:
@@ -75,3 +76,4 @@ nav:
   - Code Standard: code-standards.md
   - Roadmap:
     - 1H 2022: roadmaps/roadmap-1h-2022.md
+  - Mirror Repo: mirror.md
