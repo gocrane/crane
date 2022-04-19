@@ -39,6 +39,8 @@ import (
 	"github.com/gocrane/crane/pkg/providers/metricserver"
 	"github.com/gocrane/crane/pkg/providers/mock"
 	"github.com/gocrane/crane/pkg/providers/prom"
+	_ "github.com/gocrane/crane/pkg/querybuilder-providers/metricserver"
+	_ "github.com/gocrane/crane/pkg/querybuilder-providers/prometheus"
 	"github.com/gocrane/crane/pkg/recommend"
 	"github.com/gocrane/crane/pkg/server"
 	serverconfig "github.com/gocrane/crane/pkg/server/config"
@@ -212,7 +214,7 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 		Client: mgr.GetClient(),
 	}
 	if err := podOOMRecorder.SetupWithManager(mgr); err != nil {
-		klog.Exit(err, "unable to create controller", "controller", "PodOOMRecorder")
+		klog.Exit(err, "Unable to create controller", "PodOOMRecorder")
 	}
 	go func() {
 		if err := podOOMRecorder.Run(ctx.Done()); err != nil {
@@ -242,13 +244,13 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 			klog.Exit(err, "unable to create controller", "controller", "SubstituteController")
 		}
 
-		if err := (&ehpa.HPAReplicasController{
+		if err := (&ehpa.HPAObserverController{
 			Client:     mgr.GetClient(),
 			Scheme:     mgr.GetScheme(),
 			RestMapper: mgr.GetRESTMapper(),
-			Recorder:   mgr.GetEventRecorderFor("hpareplicas-controller"),
+			Recorder:   mgr.GetEventRecorderFor("hpa-observer-controller"),
 		}).SetupWithManager(mgr); err != nil {
-			klog.Exit(err, "unable to create controller", "controller", "HPAReplicasController")
+			klog.Exit(err, "unable to create controller", "controller", "HPAObserverController")
 		}
 
 		if err := (&evpa.EffectiveVPAController{

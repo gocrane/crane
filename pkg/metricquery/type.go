@@ -59,6 +59,9 @@ type WorkloadNamerInfo struct {
 
 type ContainerNamerInfo struct {
 	Namespace     string
+	WorkloadName  string
+	Kind          string
+	APIVersion    string
 	PodName       string
 	ContainerName string
 	Selector      labels.Selector
@@ -162,10 +165,12 @@ func (m *Metric) keyByContainer() string {
 		string(m.Type),
 		strings.ToLower(m.MetricName),
 		m.Container.Namespace,
+		m.Container.WorkloadName,
 		m.Container.PodName,
 		m.Container.ContainerName,
 		selectorStr}, "-")
 }
+
 func (m *Metric) keyByPod() string {
 	selectorStr := ""
 	if m.Pod.Selector != nil {

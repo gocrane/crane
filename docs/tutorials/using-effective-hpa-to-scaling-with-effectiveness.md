@@ -50,15 +50,6 @@ spec:
 6. Prediction defines configurations for predict resources.If unspecified, defaults don't enable prediction.
 7. PredictionWindowSeconds is the time window to predict metrics in the future.
 
-### Params Description
-
-* spec.scaleTargetRef defines the reference to the workload that should be scaled.
-* spec.minReplicas is the lower limit replicas to the scale target which the autoscaler can scale down to.
-* spec.maxReplicas is the upper limit replicas to the scale target which the autoscaler can scale up to.
-* spec.scaleStrategy indicates the strategy to scaling target, value can be "Auto" and "Preview".
-* spec.metrics contains the specifications for which to use to calculate the desired replica count. Please refer to the details:
-* spec.prediction defines configurations for predict resources.If unspecified, defaults don't enable prediction.
-
 ### Prediction-driven autoscaling
 Most of online applications follow regular pattern. We can predict future trend of hours or days. DSP is a time series prediction algorithm that applicable for application metrics prediction.
 
@@ -101,15 +92,20 @@ kind: HorizontalPodAutoscaler
 spec:
   metrics:
     - pods:
-        metricName: pod_cpu_usage
-        selector:
-          matchLabels:
-            autoscaling.crane.io/effective-hpa-uid: f9b92249-eab9-4671-afe0-17925e5987b8
-        targetAverageValue: 100m
+        metric:
+          name: crane_pod_cpu_usage
+          selector:
+            matchLabels:
+              autoscaling.crane.io/effective-hpa-uid: f9b92249-eab9-4671-afe0-17925e5987b8
+        target:
+          type: AverageValue
+          averageValue: 100m
       type: Pods
     - resource:
         name: cpu
-        targetAverageUtilization: 50
+        target:
+          type: Utilization
+          averageUtilization: 50
       type: Resource
 ```
 

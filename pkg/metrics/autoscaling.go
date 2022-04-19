@@ -13,7 +13,7 @@ var (
 			Name:      "hpa_replicas",
 			Help:      "Replicas for HPA",
 		},
-		[]string{"identity"},
+		[]string{"resourceName"},
 	)
 	EHPAReplicas = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -22,7 +22,16 @@ var (
 			Name:      "effective_hpa_replicas",
 			Help:      "Replicas for Effective HPA",
 		},
-		[]string{"identity", "strategy"},
+		[]string{"resourceName", "strategy"},
+	)
+	HPAScaleCount = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "crane",
+			Subsystem: "autoscaling",
+			Name:      "hpa_scale_count",
+			Help:      "Scale count for HPA",
+		},
+		[]string{"resourceName", "type", "direction"},
 	)
 	OOMCount = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -44,7 +53,7 @@ var (
 			Help:      "The cpu scale up for Effective VPA",
 		},
 		[]string{
-			"target",
+			"resourceName",
 		},
 	)
 	EVPACpuScaleDownMilliCores = prometheus.NewGaugeVec(
@@ -55,7 +64,7 @@ var (
 			Help:      "The cpu scale down for Effective VPA",
 		},
 		[]string{
-			"target",
+			"resourceName",
 		},
 	)
 	EVPAMemoryScaleUpMB = prometheus.NewGaugeVec(
@@ -66,7 +75,7 @@ var (
 			Help:      "The memory scale up for Effective VPA",
 		},
 		[]string{
-			"target",
+			"resourceName",
 		},
 	)
 	EVPAMemoryScaleDownMB = prometheus.NewGaugeVec(
@@ -77,14 +86,14 @@ var (
 			Help:      "The memory scale down for Effective VPA",
 		},
 		[]string{
-			"target",
+			"resourceName",
 		},
 	)
 )
 
 func init() {
 	// Register custom metrics with the global prometheus registry
-	metrics.Registry.MustRegister(HPAReplicas, EHPAReplicas, OOMCount, EVPACpuScaleUpMilliCores, EVPACpuScaleDownMilliCores, EVPAMemoryScaleDownMB, EVPAMemoryScaleUpMB)
+	metrics.Registry.MustRegister(HPAReplicas, EHPAReplicas, OOMCount, HPAScaleCount, EVPACpuScaleUpMilliCores, EVPACpuScaleDownMilliCores, EVPAMemoryScaleDownMB, EVPAMemoryScaleUpMB)
 
 }
 

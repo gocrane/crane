@@ -124,7 +124,7 @@ func (c *EffectiveVPAController) SetupWithManager(mgr ctrl.Manager) error {
 
 func recordMetric(evpa *autoscalingapi.EffectiveVerticalPodAutoscaler, status *autoscalingapi.EffectiveVerticalPodAutoscalerStatus, podTemplate *v1.PodTemplateSpec) {
 	labels := map[string]string{
-		"target": fmt.Sprintf("%s/%s", evpa.Namespace, evpa.Spec.TargetRef.Name),
+		"resourceName": fmt.Sprintf("%s/%s", evpa.Namespace, evpa.Spec.TargetRef.Name),
 	}
 
 	for _, container := range status.Recommendation.ContainerRecommendations {
