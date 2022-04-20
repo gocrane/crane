@@ -155,7 +155,12 @@ data:
         text/xml
         text/x-component
         text/x-cross-domain-policy;
-
+    
+    map $http_upgrade $connection_upgrade {
+        default upgrade;
+        '' close;
+    }
+  
     upstream cluster {
         server craned.crane-system:8082;
     }
@@ -163,7 +168,6 @@ data:
     upstream grafana {
         server grafana.crane-system:8082;
     }
-
 
     server {
         server_name _;
@@ -177,51 +181,52 @@ data:
             root /usr/share/nginx/html/;
             include /etc/nginx/mime.types;
             try_files $uri $uri/ /index.html;
-
-            location /grafana {
-                proxy_connect_timeout       180;
-                proxy_send_timeout          180;
-                proxy_read_timeout          180;
-                proxy_pass http://grafana;
-                proxy_redirect off;
-                rewrite /grafana/(.*) /$1 break;
-                proxy_http_version 1.1;
-                proxy_set_header Connection "";
-                proxy_set_header  X-Real-IP  $remote_addr;
-                proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
-            }
-            location /api/v1/cluster {
-                proxy_connect_timeout       180;
-                proxy_send_timeout          180;
-                proxy_read_timeout          180;
-                proxy_pass http://cluster;
-                proxy_redirect off;
-                proxy_http_version 1.1;
-                proxy_set_header Connection "";
-                proxy_set_header  X-Real-IP  $remote_addr;
-                proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
-            }
-            location /api/v1/namespaces {
-                proxy_connect_timeout       180;
-                proxy_send_timeout          180;
-                proxy_read_timeout          180;
-                proxy_pass http://cluster;
-                proxy_redirect off;
-                proxy_http_version 1.1;
-                proxy_set_header Connection "";
-                proxy_set_header  X-Real-IP  $remote_addr;
-                proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
-            }
-            location /api {
-                proxy_connect_timeout       180;
-                proxy_send_timeout          180;
-                proxy_read_timeout          180;
-                proxy_pass http://cluster;
-                proxy_redirect off;
-                proxy_http_version 1.1;
-                proxy_set_header Connection "";
-                proxy_set_header  X-Real-IP  $remote_addr;
-                proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
-            }
+        }
+        location /grafana {
+            proxy_connect_timeout       180;
+            proxy_send_timeout          180;
+            proxy_read_timeout          180;
+            proxy_pass http://grafana;
+            proxy_redirect off;
+            rewrite /grafana/(.*) /$1 break;
+            proxy_http_version 1.1;
+            proxy_set_header  Host $http_host;
+            proxy_set_header  Upgrade $http_upgrade;
+            proxy_set_header  Connection $connection_upgrade;
+            proxy_set_header  X-Real-IP  $remote_addr;
+            proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+        location /api/v1/cluster {
+            proxy_connect_timeout       180;
+            proxy_send_timeout          180;
+            proxy_read_timeout          180;
+            proxy_pass http://cluster;
+            proxy_redirect off;
+            proxy_http_version 1.1;
+            proxy_set_header Connection "";
+            proxy_set_header  X-Real-IP  $remote_addr;
+            proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+        location /api/v1/namespaces {
+            proxy_connect_timeout       180;
+            proxy_send_timeout          180;
+            proxy_read_timeout          180;
+            proxy_pass http://cluster;
+            proxy_redirect off;
+            proxy_http_version 1.1;
+            proxy_set_header Connection "";
+            proxy_set_header  X-Real-IP  $remote_addr;
+            proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+        location /api {
+            proxy_connect_timeout       180;
+            proxy_send_timeout          180;
+            proxy_read_timeout          180;
+            proxy_pass http://cluster;
+            proxy_redirect off;
+            proxy_http_version 1.1;
+            proxy_set_header Connection "";
+            proxy_set_header  X-Real-IP  $remote_addr;
+            proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
         }
     }
