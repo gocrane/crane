@@ -4,6 +4,9 @@ on:
   pull_request_target:
     # when using teardown: 'true', add default event types + closed event type
     types: [opened, synchronize, reopened, closed]
+    paths:
+      - 'docs/**'
+      - '*.md'
 
 jobs:
   preview:
