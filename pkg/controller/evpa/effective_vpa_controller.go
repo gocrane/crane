@@ -18,8 +18,10 @@ import (
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/autoscaling/estimator"
+	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/oom"
+	"github.com/gocrane/crane/pkg/prediction"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
@@ -31,6 +33,7 @@ type EffectiveVPAController struct {
 	OOMRecorder      oom.Recorder
 	EstimatorManager estimator.ResourceEstimatorManager
 	lastScaleTime    map[string]metav1.Time
+	Predictor        prediction.Interface
 	mu               sync.Mutex
 }
 
@@ -47,41 +50,69 @@ func (c *EffectiveVPAController) Reconcile(ctx context.Context, req ctrl.Request
 
 	err = defaultingEVPA(evpa)
 	if err != nil {
-		c.Recorder.Event(evpa, v1.EventTypeNormal, "FailedValidation", err.Error())
+		c.Recorder.Event(evpa, v1.EventTypeWarning, "FailedValidation", err.Error())
 		msg := fmt.Sprintf("Validation EffectiveVerticalPodAutoscaler failed, evpa %s error %v", klog.KObj(evpa), err)
 		klog.Error(msg)
-		setCondition(newStatus, metav1.ConditionFalse, "FailedValidation", msg)
+		setCondition(newStatus, EffectiveVPAConditionTypeReady, metav1.ConditionFalse, "FailedValidation", msg)
 		c.UpdateStatus(ctx, evpa, newStatus)
 		return ctrl.Result{}, err
 	}
 
 	podTemplate, err := utils.GetPodTemplate(ctx, evpa.Namespace, evpa.Spec.TargetRef.Name, evpa.Spec.TargetRef.Kind, evpa.Spec.TargetRef.APIVersion, c.Client)
 	if err != nil {
-		c.Recorder.Event(evpa, v1.EventTypeNormal, "FailedGetPodTemplate", err.Error())
+		c.Recorder.Event(evpa, v1.EventTypeWarning, "FailedGetPodTemplate", err.Error())
 		klog.Errorf("Failed to get pod template, evpa %s", klog.KObj(evpa))
-		setCondition(newStatus, metav1.ConditionFalse, "FailedGetPodTemplate", "Failed to get pod template")
+		setCondition(newStatus, EffectiveVPAConditionTypeReady, metav1.ConditionFalse, "FailedGetPodTemplate", "Failed to get pod template")
 		c.UpdateStatus(ctx, evpa, newStatus)
 		return ctrl.Result{}, err
 	}
 
 	estimators := c.EstimatorManager.GetEstimators(evpa)
 	if err != nil {
-		c.Recorder.Event(evpa, v1.EventTypeNormal, "FailedGetEstimators", err.Error())
+		c.Recorder.Event(evpa, v1.EventTypeWarning, "FailedGetEstimators", err.Error())
 		klog.Errorf("Failed to get estimators, evpa %s", klog.KObj(evpa))
-		setCondition(newStatus, metav1.ConditionFalse, "FailedGetEstimators", "Failed to get estimators")
+		setCondition(newStatus, EffectiveVPAConditionTypeReady, metav1.ConditionFalse, "FailedGetEstimators", "Failed to get estimators")
 		c.UpdateStatus(ctx, evpa, newStatus)
 		return ctrl.Result{}, err
+	}
+
+	if evpa.DeletionTimestamp != nil {
+		c.EstimatorManager.DeleteEstimators(evpa) // release estimators
+		c.CleanLastScaleTime(evpa)                // clean last scale time
+
+		evpaCopy := evpa.DeepCopy()
+		evpaCopy.Finalizers = utils.RemoveString(evpaCopy.Finalizers, known.AutoscalingFinalizer)
+		err = c.Client.Update(ctx, evpaCopy)
+		if err != nil {
+			c.Recorder.Event(evpa, v1.EventTypeWarning, "FailedRemoveFinalizers", err.Error())
+			klog.Errorf("Failed to remove finalizers, evpa %s", klog.KObj(evpa))
+			setCondition(newStatus, EffectiveVPAConditionTypeReady, metav1.ConditionFalse, "FailedRemoveFinalizers", "Failed to remove finalizers")
+			c.UpdateStatus(ctx, evpa, newStatus)
+			return ctrl.Result{}, err
+		}
+		c.Recorder.Event(evpa, v1.EventTypeNormal, "RemoveFinalizers", err.Error())
+	} else if !utils.ContainsString(evpa.Finalizers, known.AutoscalingFinalizer) {
+		evpa.Finalizers = append(evpa.Finalizers, known.AutoscalingFinalizer)
+		err = c.Client.Update(ctx, evpa)
+		if err != nil {
+			c.Recorder.Event(evpa, v1.EventTypeWarning, "FailedAddFinalizers", err.Error())
+			klog.Errorf("Failed to add finalizers, evpa %s", klog.KObj(evpa))
+			setCondition(newStatus, EffectiveVPAConditionTypeReady, metav1.ConditionFalse, "FailedAddFinalizers", "Failed to add finalizers")
+			c.UpdateStatus(ctx, evpa, newStatus)
+			return ctrl.Result{}, err
+		}
+		c.Recorder.Event(evpa, v1.EventTypeNormal, "AddFinalizers", "Add finalizers successful.")
 	}
 
 	if evpa.Spec.ResourcePolicy == nil {
 		return ctrl.Result{}, nil
 	}
 
-	currentEstimatorStatus, recommend, err := c.ReconcileContainerPolicies(ctx, evpa, podTemplate, estimators)
+	currentEstimatorStatus, recommend, err := c.ReconcileContainerPolicies(evpa, podTemplate, estimators)
 	if err != nil {
-		c.Recorder.Event(evpa, v1.EventTypeNormal, "FailedReconcileContainerPolicies", err.Error())
+		c.Recorder.Event(evpa, v1.EventTypeWarning, "FailedReconcileContainerPolicies", err.Error())
 		klog.Errorf("Failed to reconcile container policies, evpa %s", klog.KObj(evpa))
-		setCondition(newStatus, metav1.ConditionFalse, "FailedGetEstimators", "Failed to get estimators")
+		setCondition(newStatus, EffectiveVPAConditionTypeReady, metav1.ConditionFalse, "FailedGetEstimators", "Failed to get estimators")
 		c.UpdateStatus(ctx, evpa, newStatus)
 		return ctrl.Result{}, err
 	}
@@ -90,9 +121,9 @@ func (c *EffectiveVPAController) Reconcile(ctx context.Context, req ctrl.Request
 	newStatus.CurrentEstimators = currentEstimatorStatus
 
 	recordMetric(evpa, newStatus, podTemplate)
-
-	setCondition(newStatus, metav1.ConditionTrue, "EffectiveVerticalPodAutoscalerReady", "Effective VPA is ready")
+	setCondition(newStatus, EffectiveVPAConditionTypeReady, metav1.ConditionTrue, "EffectiveVerticalPodAutoscaler", "EffectiveVerticalPodAutoscaler is ready")
 	c.UpdateStatus(ctx, evpa, newStatus)
+
 	return ctrl.Result{
 		RequeueAfter: DefaultEVPARsyncPeriod,
 	}, nil
@@ -115,7 +146,7 @@ func (c *EffectiveVPAController) UpdateStatus(ctx context.Context, evpa *autosca
 }
 
 func (c *EffectiveVPAController) SetupWithManager(mgr ctrl.Manager) error {
-	estimatorManager := estimator.NewResourceEstimatorManager(mgr.GetClient(), c.OOMRecorder)
+	estimatorManager := estimator.NewResourceEstimatorManager(mgr.GetClient(), c.OOMRecorder, c.Predictor)
 	c.EstimatorManager = estimatorManager
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&autoscalingapi.EffectiveVerticalPodAutoscaler{}).
@@ -164,9 +195,10 @@ func recordMetric(evpa *autoscalingapi.EffectiveVerticalPodAutoscaler, status *a
 	}
 }
 
-func setCondition(status *autoscalingapi.EffectiveVerticalPodAutoscalerStatus, conditionStatus metav1.ConditionStatus, reason string, message string) {
+// nolint:unparam
+func setCondition(status *autoscalingapi.EffectiveVerticalPodAutoscalerStatus, conditionType string, conditionStatus metav1.ConditionStatus, reason string, message string) {
 	for i := range status.Conditions {
-		if status.Conditions[i].Type == "Ready" {
+		if status.Conditions[i].Type == conditionType {
 			status.Conditions[i].Status = conditionStatus
 			status.Conditions[i].Reason = reason
 			status.Conditions[i].Message = message

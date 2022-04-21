@@ -100,37 +100,36 @@ func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) 
 	pod := a.Pods[0]
 	namespace := pod.Namespace
 
-	var queryExpr string
 	for _, c := range pod.Spec.Containers {
 		cr := types.ContainerRecommendation{
 			ContainerName: c.Name,
 			Target:        map[corev1.ResourceName]string{},
 		}
 
-		mericNamer := ResourceToContainerMetricNamer(namespace, a.Recommendation.Spec.TargetRef.Name, c.Name, corev1.ResourceCPU)
-		klog.V(6).Infof("CPU query for resource request recommendation: %s", mericNamer.BuildUniqueKey())
+		metricNamer := ResourceToContainerMetricNamer(namespace, a.Recommendation.Spec.TargetRef.Name, c.Name, corev1.ResourceCPU)
+		klog.V(6).Infof("CPU query for resource request recommendation: %s", metricNamer.BuildUniqueKey())
 		cpuConfig := makeCpuConfig(a.ConfigProperties)
 		tsList, err := utils.QueryPredictedValuesOnce(a.Recommendation, p,
-			fmt.Sprintf(callerFormat, a.Recommendation.UID), cpuConfig, mericNamer)
+			fmt.Sprintf(callerFormat, a.Recommendation.UID), cpuConfig, metricNamer)
 		if err != nil {
 			return err
 		}
 		if len(tsList) < 1 || len(tsList[0].Samples) < 1 {
-			return fmt.Errorf("no value retured for queryExpr: %s", queryExpr)
+			return fmt.Errorf("no value retured for queryExpr: %s", metricNamer.BuildUniqueKey())
 		}
 		v := int64(tsList[0].Samples[0].Value * 1000)
 		cr.Target[corev1.ResourceCPU] = resource.NewMilliQuantity(v, resource.DecimalSI).String()
 
-		mericNamer = ResourceToContainerMetricNamer(namespace, a.Recommendation.Spec.TargetRef.Name, c.Name, corev1.ResourceMemory)
-		klog.V(6).Infof("Memory query for resource request recommendation: %s", mericNamer.BuildUniqueKey())
+		metricNamer = ResourceToContainerMetricNamer(namespace, a.Recommendation.Spec.TargetRef.Name, c.Name, corev1.ResourceMemory)
+		klog.V(6).Infof("Memory query for resource request recommendation: %s", metricNamer.BuildUniqueKey())
 		memConfig := makeMemConfig(a.ConfigProperties)
 		tsList, err = utils.QueryPredictedValuesOnce(a.Recommendation, p,
-			fmt.Sprintf(callerFormat, a.Recommendation.UID), memConfig, mericNamer)
+			fmt.Sprintf(callerFormat, a.Recommendation.UID), memConfig, metricNamer)
 		if err != nil {
 			return err
 		}
 		if len(tsList) < 1 || len(tsList[0].Samples) < 1 {
-			return fmt.Errorf("no value retured for queryExpr: %s", queryExpr)
+			return fmt.Errorf("no value retured for queryExpr: %s", metricNamer.BuildUniqueKey())
 		}
 		v = int64(tsList[0].Samples[0].Value)
 		cr.Target[corev1.ResourceMemory] = resource.NewQuantity(v, resource.BinarySI).String()
