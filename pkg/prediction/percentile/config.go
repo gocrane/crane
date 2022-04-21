@@ -9,6 +9,7 @@ import (
 
 	"github.com/gocrane/api/prediction/v1alpha1"
 
+	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
@@ -25,6 +26,7 @@ var defaultInternalConfig = internalConfig{
 	marginFraction:         defaultMarginFraction,
 	percentile:             defaultPercentile,
 	histogramOptions:       defaultHistogramOptions,
+	historyLength:          time.Hour * 24 * 7,
 }
 
 type internalConfig struct {
@@ -36,6 +38,7 @@ type internalConfig struct {
 	minSampleWeight        float64
 	marginFraction         float64
 	percentile             float64
+	initMode               config.ModelInitMode
 }
 
 func (c *internalConfig) String() string {
@@ -43,8 +46,14 @@ func (c *internalConfig) String() string {
 		c.aggregated, c.historyLength, c.sampleInterval, c.histogramDecayHalfLife, c.minSampleWeight, c.marginFraction, c.percentile)
 }
 
-func makeInternalConfig(p *v1alpha1.Percentile) (*internalConfig, error) {
+// todo: later better to refine the algorithm params to a map not a struct to get more extendability,
+// if not, we add some param is very difficult because it will modify crane api
+func makeInternalConfig(p *v1alpha1.Percentile, initMode *config.ModelInitMode) (*internalConfig, error) {
 	sampleInterval, err := utils.ParseDuration(p.SampleInterval)
+	if err != nil {
+		return nil, err
+	}
+	historyLength, err := utils.ParseDuration(p.HistoryLength)
 	if err != nil {
 		return nil, err
 	}
@@ -122,9 +131,15 @@ func makeInternalConfig(p *v1alpha1.Percentile) (*internalConfig, error) {
 		return nil, err
 	}
 
+	// default use history
+	mode := config.ModelInitModeHistory
+	if initMode != nil {
+		mode = *initMode
+	}
 	c := &internalConfig{
+		initMode:               mode,
 		aggregated:             p.Aggregated,
-		historyLength:          time.Hour * 24 * 7,
+		historyLength:          historyLength,
 		sampleInterval:         sampleInterval,
 		histogramOptions:       options,
 		histogramDecayHalfLife: halfLife,

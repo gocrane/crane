@@ -23,6 +23,11 @@ type percentilePrediction struct {
 	stopChMap sync.Map
 }
 
+func (p *percentilePrediction) QueryPredictionStatus(ctx context.Context, metricNamer metricnaming.MetricNamer) (prediction.Status, error) {
+	_, status := p.a.GetSignals(metricNamer.BuildUniqueKey())
+	return status, nil
+}
+
 func (p *percentilePrediction) QueryPredictedTimeSeries(ctx context.Context, namer metricnaming.MetricNamer, startTime time.Time, endTime time.Time) ([]*common.TimeSeries, error) {
 	var predictedTimeSeriesList []*common.TimeSeries
 	queryExpr := namer.BuildUniqueKey()
@@ -59,8 +64,8 @@ func (p *percentilePrediction) getPredictedValues(ctx context.Context, namer met
 	queryExpr := namer.BuildUniqueKey()
 	for {
 		signals, status := p.a.GetSignals(queryExpr)
-		if status == prediction.StatusDeleted {
-			klog.V(4).InfoS("Aggregated has been deleted.", "queryExpr", queryExpr)
+		if status == prediction.StatusUnknown {
+			klog.V(4).InfoS("Aggregated has been deleted and unknown", "queryExpr", queryExpr)
 			return predictedTimeSeriesList
 		}
 		if signals != nil && status == prediction.StatusReady {
@@ -112,6 +117,11 @@ func (p *percentilePrediction) getPredictedValues(ctx context.Context, namer met
 }
 
 func (p *percentilePrediction) QueryRealtimePredictedValues(ctx context.Context, namer metricnaming.MetricNamer) ([]*common.TimeSeries, error) {
+	queryExpr := namer.BuildUniqueKey()
+	_, status := p.a.GetSignals(queryExpr)
+	if status != prediction.StatusReady {
+		return nil, fmt.Errorf("metric %v model status is %v, must be ready", queryExpr, status)
+	}
 	return p.getPredictedValues(ctx, namer), nil
 }
 
@@ -175,7 +185,7 @@ func (p *percentilePrediction) process(namer metricnaming.MetricNamer, config co
 	var historyTimeSeriesList []*common.TimeSeries
 	var err error
 	queryExpr := namer.BuildUniqueKey()
-	cfg, err := makeInternalConfig(config.Percentile)
+	cfg, err := makeInternalConfig(config.Percentile, config.InitMode)
 	if err != nil {
 		return nil, err
 	}
@@ -276,14 +286,31 @@ func (p *percentilePrediction) Run(stopCh <-chan struct{}) {
 			// todo: Do not block this management go routine here to do some time consuming operation.
 			// We just init the signal and setting the status
 			// we start the real time model updating directly. but there is a window time for each metricNamer in the algorithm config to ready status
-			if err := p.init(qc.MetricNamer); err != nil {
-				klog.ErrorS(err, "Failed to init percentilePrediction.")
+			c := p.a.GetConfig(QueryExpr)
+			if c == nil {
+				c = &defaultInternalConfig
+			}
+
+			var initError error
+			switch c.initMode {
+			case config.ModelInitModeLazyTraining:
+				p.initByRealTimeProvider(qc.MetricNamer)
+			case config.ModelInitModeCheckpoint:
+				initError = p.initByCheckPoint(qc.MetricNamer)
+			case config.ModelInitModeHistory:
+				fallthrough
+			default:
+				// blocking
+				initError = p.initFromHistory(qc.MetricNamer)
+			}
+
+			if initError != nil {
+				klog.ErrorS(initError, "Failed to init percentilePrediction.")
 				continue
 			}
 
-			// bug here:
-			// 1. first, judge the  metric is already started, if so, we do not start the updating model routine again.
-			// 2. same query, but different config means different series analysis, but here GetConfig always return same config.
+			// note: same query, but different config means different series analysis, GetConfig always return same config.
+			// this is our default policy, one metric only has one config at a time.
 			go func(namer metricnaming.MetricNamer) {
 				queryExpr := namer.BuildUniqueKey()
 				if c := p.a.GetConfig(queryExpr); c != nil {
@@ -353,51 +380,26 @@ func (p *percentilePrediction) queryHistoryTimeSeries(namer metricnaming.MetricN
 // So, we can set a waiting time for the model trained completed. Because percentile is only used for request resource & resource estimation.
 // Because of the scenes, we do not need it give a result fastly after service start, we can tolerate it has some days delaying for collecting more data.
 // nolint:unused
-func (p *percentilePrediction) initByRealTimeProvider(namer metricnaming.MetricNamer) error {
+func (p *percentilePrediction) initByRealTimeProvider(namer metricnaming.MetricNamer) {
 	queryExpr := namer.BuildUniqueKey()
 	cfg := p.a.GetConfig(queryExpr)
-	latestTimeSeriesList, err := p.GetRealtimeProvider().QueryLatestTimeSeries(namer)
-	if err != nil {
-		klog.ErrorS(err, "Failed to get latest time series.")
-		return err
-	}
 	if cfg.aggregated {
 		signal := newAggregateSignal(cfg)
-		for _, ts := range latestTimeSeriesList {
-			for _, s := range ts.Samples {
-				t := time.Unix(s.Timestamp, 0)
-				signal.addSample(t, s.Value)
-			}
-		}
-		p.a.SetSignal(queryExpr, "__all__", signal)
+
+		p.a.SetSignalWithStatus(queryExpr, "__all__", signal, prediction.StatusInitializing)
 	} else {
 		signals := map[string]*aggregateSignal{}
-		for _, ts := range latestTimeSeriesList {
-			if len(ts.Samples) < 1 {
-				continue
-			}
-			key := prediction.AggregateSignalKey(ts.Labels)
-			signal := newAggregateSignal(cfg)
-			for _, s := range ts.Samples {
-				t := time.Unix(s.Timestamp, 0)
-				signal.addSample(t, s.Value)
-			}
-			signal.labels = ts.Labels
-			signals[key] = signal
-		}
-		p.a.SetSignals(queryExpr, signals)
+		p.a.SetSignalsWithStatus(queryExpr, signals, prediction.StatusInitializing)
 	}
-
-	return nil
 }
 
 // todo:
 // nolint:unused
 func (p *percentilePrediction) initByCheckPoint(namer metricnaming.MetricNamer) error {
-	return nil
+	return fmt.Errorf("Do not support checkpoint now")
 }
 
-func (p *percentilePrediction) init(namer metricnaming.MetricNamer) error {
+func (p *percentilePrediction) initFromHistory(namer metricnaming.MetricNamer) error {
 	queryExpr := namer.BuildUniqueKey()
 	cfg := p.a.GetConfig(queryExpr)
 	// Query history data for prediction
@@ -449,11 +451,6 @@ func (p *percentilePrediction) addSamples(namer metricnaming.MetricNamer) {
 	queryExpr := namer.BuildUniqueKey()
 	c := p.a.GetConfig(queryExpr)
 
-	if _, status := p.a.GetSignals(queryExpr); status != prediction.StatusReady {
-		klog.InfoS("Aggregate signals not ready.", "queryExpr", queryExpr, "status", status)
-		return
-	}
-
 	if c.aggregated {
 		key := "__all__"
 		signal := p.a.GetSignal(queryExpr, key)
@@ -468,7 +465,17 @@ func (p *percentilePrediction) addSamples(namer metricnaming.MetricNamer) {
 			sample := ts.Samples[len(ts.Samples)-1]
 			sampleTime := time.Unix(sample.Timestamp, 0)
 			signal.addSample(sampleTime, sample.Value)
-			klog.V(6).InfoS("Sample added.", "sampleValue", sample.Value, "sampleTime", sampleTime, "queryExpr", queryExpr)
+
+			// current time is reach the window length of percentile need to accumulating data, the model is ready to do predict
+			// all type need the aggregation window length is accumulating enough data.
+			// History: if the container is newly, then there maybe has not enough history data, so we need accumulating to make the confidence more reliable
+			// LazyTraining: directly accumulating data from real time metric provider until the data is enough
+			// Checkpoint: directly recover the model from a checkpoint, and then updating the model until accumulated data is enough
+			if signal.GetAggregationWindowLength() >= c.historyLength {
+				p.a.SetSignalStatus(queryExpr, key, prediction.StatusReady)
+			}
+
+			klog.V(6).InfoS("Sample added.", "sampleValue", sample.Value, "sampleTime", sampleTime, "queryExpr", queryExpr, "history", c.historyLength, "aggregationWindowLength", signal.GetAggregationWindowLength())
 		}
 	} else {
 		// todo: find a way to remove the labels key, although we do not really use it now.
@@ -485,11 +492,22 @@ func (p *percentilePrediction) addSamples(namer metricnaming.MetricNamer) {
 			}
 			sample := ts.Samples[len(ts.Samples)-1]
 			sampleTime := time.Unix(sample.Timestamp, 0)
+
 			signal.addSample(sampleTime, sample.Value)
 			if len(signal.labels) == 0 {
 				signal.labels = ts.Labels
 			}
-			klog.V(6).InfoS("Sample added.", "sampleValue", sample.Value, "sampleTime", sampleTime, "queryExpr", queryExpr, "key", key)
+
+			// current time is reach the window length of percentile need to accumulating data, the model is ready to do predict
+			// all type need the aggregation window length is accumulating enough data.
+			// History: if the container is newly, then there maybe has not enough history data, so we need accumulating to make the confidence more reliable
+			// LazyTraining: directly accumulating data from real time metric provider until the data is enough
+			// Checkpoint: directly recover the model from a checkpoint, and then updating the model until accumulated data is enough
+			if signal.GetAggregationWindowLength() >= c.historyLength {
+				p.a.SetSignalStatus(queryExpr, key, prediction.StatusReady)
+			}
+
+			klog.V(6).InfoS("Sample added.", "sampleValue", sample.Value, "sampleTime", sampleTime, "queryExpr", queryExpr, "key", key, "history", c.historyLength, "aggregationWindowLength", signal.GetAggregationWindowLength())
 		}
 	}
 }

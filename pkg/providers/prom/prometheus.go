@@ -37,7 +37,7 @@ func (p *prom) QueryTimeSeries(namer metricnaming.MetricNamer, startTime time.Ti
 		klog.Errorf("Failed to BuildQuery: %v", err)
 		return nil, err
 	}
-	klog.V(6).Infof("QueryTimeSeries metricNamer %v, timeout: %v", namer.BuildUniqueKey(), p.config.Timeout)
+	klog.V(6).Infof("QueryTimeSeries metricNamer %v, timeout: %v, query: %v", namer.BuildUniqueKey(), p.config.Timeout, promQuery.Prometheus.Query)
 	timeoutCtx, cancelFunc := gocontext.WithTimeout(gocontext.Background(), p.config.Timeout)
 	defer cancelFunc()
 	timeSeries, err := p.ctx.QueryRangeSync(timeoutCtx, promQuery.Prometheus.Query, startTime, endTime, step)
@@ -59,7 +59,7 @@ func (p *prom) QueryLatestTimeSeries(namer metricnaming.MetricNamer) ([]*common.
 	//end := time.Now()
 	// avoid no data latest. multiply 2
 	//start := end.Add(-step * 2)
-	klog.V(6).Infof("QueryLatestTimeSeries metricNamer %v, timeout: %v", namer.BuildUniqueKey(), p.config.Timeout)
+	klog.V(6).Infof("QueryLatestTimeSeries metricNamer %v, timeout: %v, query: %v", namer.BuildUniqueKey(), p.config.Timeout, promQuery.Prometheus.Query)
 	timeoutCtx, cancelFunc := gocontext.WithTimeout(gocontext.Background(), p.config.Timeout)
 	defer cancelFunc()
 	timeSeries, err := p.ctx.QuerySync(timeoutCtx, promQuery.Prometheus.Query)

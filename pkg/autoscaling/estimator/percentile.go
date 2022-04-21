@@ -19,7 +19,7 @@ import (
 	"github.com/gocrane/crane/pkg/utils"
 )
 
-const callerFormat = "EVPACaller-%s-%s-%s"
+const callerFormat = "EVPACaller-%s-%s"
 
 type PercentileResourceEstimator struct {
 	Predictor prediction.Interface
@@ -29,7 +29,9 @@ type PercentileResourceEstimator struct {
 func (e *PercentileResourceEstimator) GetResourceEstimation(evpa *autoscalingapi.EffectiveVerticalPodAutoscaler, config map[string]string, containerName string, currRes *corev1.ResourceRequirements) (corev1.ResourceList, error) {
 	recommendResource := corev1.ResourceList{}
 
+	caller := fmt.Sprintf(callerFormat, klog.KObj(evpa), string(evpa.UID))
 	cpuMetricNamer := &metricnaming.GeneralMetricNamer{
+		CallerName: caller,
 		Metric: &metricquery.Metric{
 			Type:       metricquery.ContainerMetricType,
 			MetricName: corev1.ResourceCPU.String(),
@@ -43,7 +45,7 @@ func (e *PercentileResourceEstimator) GetResourceEstimation(evpa *autoscalingapi
 	}
 
 	cpuConfig := getCpuConfig(config)
-	tsList, err := utils.QueryPredictedValues(e.Predictor, fmt.Sprintf(callerFormat, string(evpa.UID), containerName, corev1.ResourceCPU), cpuConfig, cpuMetricNamer)
+	tsList, err := utils.QueryPredictedValues(e.Predictor, caller, cpuConfig, cpuMetricNamer)
 	if err != nil {
 		return nil, err
 	}
@@ -56,6 +58,7 @@ func (e *PercentileResourceEstimator) GetResourceEstimation(evpa *autoscalingapi
 	recommendResource[corev1.ResourceCPU] = *resource.NewMilliQuantity(cpuValue, resource.DecimalSI)
 
 	memoryMetricNamer := &metricnaming.GeneralMetricNamer{
+		CallerName: caller,
 		Metric: &metricquery.Metric{
 			Type:       metricquery.ContainerMetricType,
 			MetricName: corev1.ResourceMemory.String(),
@@ -69,7 +72,7 @@ func (e *PercentileResourceEstimator) GetResourceEstimation(evpa *autoscalingapi
 	}
 
 	memConfig := getMemConfig(config)
-	tsList, err = utils.QueryPredictedValues(e.Predictor, fmt.Sprintf(callerFormat, string(evpa.UID), containerName, corev1.ResourceMemory), memConfig, memoryMetricNamer)
+	tsList, err = utils.QueryPredictedValues(e.Predictor, caller, memConfig, memoryMetricNamer)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +89,9 @@ func (e *PercentileResourceEstimator) GetResourceEstimation(evpa *autoscalingapi
 
 func (e *PercentileResourceEstimator) DeleteEstimation(evpa *autoscalingapi.EffectiveVerticalPodAutoscaler) {
 	for _, containerPolicy := range evpa.Spec.ResourcePolicy.ContainerPolicies {
+		caller := fmt.Sprintf(callerFormat, klog.KObj(evpa), string(evpa.UID))
 		cpuMetricNamer := &metricnaming.GeneralMetricNamer{
+			CallerName: caller,
 			Metric: &metricquery.Metric{
 				Type:       metricquery.ContainerMetricType,
 				MetricName: corev1.ResourceCPU.String(),
@@ -98,12 +103,12 @@ func (e *PercentileResourceEstimator) DeleteEstimation(evpa *autoscalingapi.Effe
 				},
 			},
 		}
-		err := e.Predictor.DeleteQuery(cpuMetricNamer, fmt.Sprintf(callerFormat, string(evpa.UID), containerPolicy.ContainerName, corev1.ResourceCPU))
+		err := e.Predictor.DeleteQuery(cpuMetricNamer, caller)
 		if err != nil {
 			klog.ErrorS(err, "Failed to delete query.", "queryExpr", cpuMetricNamer.BuildUniqueKey())
 		}
-
 		memoryMetricNamer := &metricnaming.GeneralMetricNamer{
+			CallerName: caller,
 			Metric: &metricquery.Metric{
 				Type:       metricquery.ContainerMetricType,
 				MetricName: corev1.ResourceMemory.String(),
@@ -115,7 +120,7 @@ func (e *PercentileResourceEstimator) DeleteEstimation(evpa *autoscalingapi.Effe
 				},
 			},
 		}
-		err = e.Predictor.DeleteQuery(memoryMetricNamer, fmt.Sprintf(callerFormat, string(evpa.UID), containerPolicy.ContainerName, corev1.ResourceMemory))
+		err = e.Predictor.DeleteQuery(memoryMetricNamer, caller)
 		if err != nil {
 			klog.ErrorS(err, "Failed to delete query.", "queryExpr", memoryMetricNamer.BuildUniqueKey())
 		}
@@ -137,9 +142,22 @@ func getCpuConfig(config map[string]string) *predictionconfig.Config {
 		marginFraction = "0.15"
 	}
 
+	initModeStr, exists := config["cpu-model-init-mode"]
+	initMode := predictionconfig.ModelInitModeLazyTraining
+	if !exists {
+		initMode = predictionconfig.ModelInitMode(initModeStr)
+	}
+
+	historyLength, exists := config["cpu-model-history-length"]
+	if !exists {
+		historyLength = "24h"
+	}
+
 	return &predictionconfig.Config{
+		InitMode: &initMode,
 		Percentile: &predictionapi.Percentile{
 			Aggregated:     true,
+			HistoryLength:  historyLength,
 			SampleInterval: sampleInterval,
 			MarginFraction: marginFraction,
 			Percentile:     percentile,
@@ -166,9 +184,22 @@ func getMemConfig(props map[string]string) *predictionconfig.Config {
 		marginFraction = "0.15"
 	}
 
+	initModeStr, exists := props["mem-model-init-mode"]
+	initMode := predictionconfig.ModelInitModeLazyTraining
+	if !exists {
+		initMode = predictionconfig.ModelInitMode(initModeStr)
+	}
+
+	historyLength, exists := props["mem-model-history-length"]
+	if !exists {
+		historyLength = "48h"
+	}
+
 	return &predictionconfig.Config{
+		InitMode: &initMode,
 		Percentile: &predictionapi.Percentile{
 			Aggregated:     true,
+			HistoryLength:  historyLength,
 			SampleInterval: sampleInterval,
 			MarginFraction: marginFraction,
 			Percentile:     percentile,

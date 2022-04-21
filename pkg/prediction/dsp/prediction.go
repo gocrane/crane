@@ -35,6 +35,10 @@ type periodicSignalPrediction struct {
 	modelConfig config.AlgorithmModelConfig
 }
 
+func (p *periodicSignalPrediction) QueryPredictionStatus(ctx context.Context, metricNamer metricnaming.MetricNamer) (prediction.Status, error) {
+	panic("implement me")
+}
+
 func NewPrediction(realtimeProvider providers.RealTime, historyProvider providers.History, mc config.AlgorithmModelConfig) prediction.Interface {
 	withCh, delCh := make(chan prediction.QueryExprWithCaller), make(chan prediction.QueryExprWithCaller)
 	return &periodicSignalPrediction{

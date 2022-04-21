@@ -63,18 +63,21 @@ func (c *MetricContext) GetMetricNamer(conf *predictionapi.PredictionMetric) met
 		return nil
 	}
 	if conf.ExpressionQuery != nil {
-		namer.Metric = &metricquery.Metric{
-			Type:       metricquery.PromQLMetricType,
-			MetricName: conf.ResourceIdentifier,
-			Prom: &metricquery.PromNamerInfo{
-				QueryExpr: conf.ExpressionQuery.Expression,
-				Selector:  labels.Nothing(),
+		namer = metricnaming.GeneralMetricNamer{
+			CallerName: c.GetCaller(),
+			Metric: &metricquery.Metric{
+				Type:       metricquery.PromQLMetricType,
+				MetricName: conf.ResourceIdentifier,
+				Prom: &metricquery.PromNamerInfo{
+					QueryExpr: conf.ExpressionQuery.Expression,
+					Selector:  labels.Nothing(),
+				},
 			},
 		}
 		klog.InfoS("GetQueryStr", "tsp", klog.KObj(c.SeriesPrediction), "queryExpr", conf.ExpressionQuery.Expression)
 	}
 	if conf.ResourceQuery != nil {
-		namer = c.ResourceToMetricNamer(conf.ResourceQuery)
+		namer = c.ResourceToMetricNamer(conf.ResourceQuery, c.GetCaller())
 		klog.InfoS("GetQueryStr", "tsp", klog.KObj(c.SeriesPrediction), "resourceQuery", conf.ResourceQuery)
 	}
 	return &namer
@@ -139,30 +142,36 @@ func metricSelectorToQueryExpr(m *predictionapi.MetricQuery) string {
 	return fmt.Sprintf("%s{%s}", m.MetricName, strings.Join(conditions, ","))
 }
 
-func (c *MetricContext) ResourceToMetricNamer(resourceName *corev1.ResourceName) metricnaming.GeneralMetricNamer {
+func (c *MetricContext) ResourceToMetricNamer(resourceName *corev1.ResourceName, caller string) metricnaming.GeneralMetricNamer {
 	var namer metricnaming.GeneralMetricNamer
 
 	// Node
 	if strings.ToLower(c.TargetKind) == strings.ToLower(predconf.TargetKindNode) {
-		namer.Metric = &metricquery.Metric{
-			Type:       metricquery.NodeMetricType,
-			MetricName: resourceName.String(),
-			Node: &metricquery.NodeNamerInfo{
-				Name:     c.Name,
-				Selector: labels.Everything(),
+		namer = metricnaming.GeneralMetricNamer{
+			CallerName: caller,
+			Metric: &metricquery.Metric{
+				Type:       metricquery.NodeMetricType,
+				MetricName: resourceName.String(),
+				Node: &metricquery.NodeNamerInfo{
+					Name:     c.Name,
+					Selector: labels.Everything(),
+				},
 			},
 		}
 	} else {
 		// workload
-		namer.Metric = &metricquery.Metric{
-			Type:       metricquery.WorkloadMetricType,
-			MetricName: resourceName.String(),
-			Workload: &metricquery.WorkloadNamerInfo{
-				Namespace:  c.Namespace,
-				Kind:       c.TargetKind,
-				APIVersion: c.APIVersion,
-				Name:       c.Name,
-				Selector:   c.Selector,
+		namer = metricnaming.GeneralMetricNamer{
+			CallerName: caller,
+			Metric: &metricquery.Metric{
+				Type:       metricquery.WorkloadMetricType,
+				MetricName: resourceName.String(),
+				Workload: &metricquery.WorkloadNamerInfo{
+					Namespace:  c.Namespace,
+					Kind:       c.TargetKind,
+					APIVersion: c.APIVersion,
+					Name:       c.Name,
+					Selector:   c.Selector,
+				},
 			},
 		}
 	}

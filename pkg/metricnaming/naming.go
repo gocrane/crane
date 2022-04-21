@@ -5,7 +5,7 @@ import (
 	"github.com/gocrane/crane/pkg/querybuilder"
 )
 
-// MetricNamer is an interface. it is the bridge between predictor and different data sources and other component.
+// MetricNamer is an interface. it is the bridge between predictor and different data sources and other component such as caller.
 type MetricNamer interface {
 	// Used for datasource provider, data source provider call QueryBuilder
 	QueryBuilder() querybuilder.QueryBuilder
@@ -13,10 +13,20 @@ type MetricNamer interface {
 	BuildUniqueKey() string
 
 	Validate() error
+
+	// Means the caller of this MetricNamer, different caller maybe use the same metric
+	Caller() string
 }
 
+var _ MetricNamer = &GeneralMetricNamer{}
+
 type GeneralMetricNamer struct {
-	Metric *metricquery.Metric
+	Metric     *metricquery.Metric
+	CallerName string
+}
+
+func (gmn *GeneralMetricNamer) Caller() string {
+	return gmn.CallerName
 }
 
 func (gmn *GeneralMetricNamer) QueryBuilder() querybuilder.QueryBuilder {
@@ -24,7 +34,7 @@ func (gmn *GeneralMetricNamer) QueryBuilder() querybuilder.QueryBuilder {
 }
 
 func (gmn *GeneralMetricNamer) BuildUniqueKey() string {
-	return gmn.Metric.BuildUniqueKey()
+	return gmn.CallerName + "/" + gmn.Metric.BuildUniqueKey()
 }
 
 func (gmn *GeneralMetricNamer) Validate() error {
