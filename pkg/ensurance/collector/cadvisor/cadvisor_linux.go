@@ -5,6 +5,7 @@ package cadvisor
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	cmanager "github.com/google/cadvisor/manager"
 	csysfs "github.com/google/cadvisor/utils/sysfs"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/labels"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog/v2"
@@ -33,8 +35,8 @@ var cadvisorMetrics = []types.MetricName{
 }
 
 type ContainerState struct {
-	stat      cadvisorapiv2.ContainerInfo
-	timestamp time.Time
+	Stat      cadvisorapiv2.ContainerInfo
+	Timestamp time.Time
 }
 
 //CadvisorCollector is the collector to collect container state
@@ -104,6 +106,7 @@ func (c *CadvisorCollector) Collect() (map[string][]common.TimeSeries, error) {
 		klog.Errorf("Failed to list all pods: %v", err)
 		return nil, err
 	}
+	var extResCpuUse float64 = 0
 
 	var stateMap = make(map[string][]common.TimeSeries)
 	for _, pod := range allPods {
@@ -117,7 +120,6 @@ func (c *CadvisorCollector) Collect() (map[string][]common.TimeSeries, error) {
 			klog.Errorf("GetContainerInfoV2 failed: %v", err)
 			continue
 		}
-
 		for key, v := range containers {
 			containerId := utils.GetContainerIdFromKey(key)
 			containerName := GetContainerNameFromPod(pod, containerId)
@@ -125,6 +127,9 @@ func (c *CadvisorCollector) Collect() (map[string][]common.TimeSeries, error) {
 			if (containerId != "") && (containerName == "") {
 				continue
 			}
+
+			_, hasExtRes := GetContainerExtCpuResFromPod(pod, containerName)
+
 			// In the GetContainerInfoV2 not collect the cpu quota and period
 			// We used GetContainerInfo instead
 			// issue https://github.com/google/cadvisor/issues/3040
@@ -136,23 +141,27 @@ func (c *CadvisorCollector) Collect() (map[string][]common.TimeSeries, error) {
 			}
 
 			if state, ok := c.latestContainersStates[key]; ok {
-				var labels = GetContainerLabels(pod, containerId, containerName)
+				var containerLabels = GetContainerLabels(pod, containerId, containerName, hasExtRes)
 
 				cpuUsageSample, schedRunqueueTime := caculateCPUUsage(&v, &state)
 				if cpuUsageSample == 0 && schedRunqueueTime == 0 {
 					continue
 				}
-				addSampleToStateMap(types.MetricNameContainerCpuTotalUsage, composeSample(labels, cpuUsageSample, now), stateMap)
-				addSampleToStateMap(types.MetricNameContainerSchedRunQueueTime, composeSample(labels, schedRunqueueTime, now), stateMap)
-				addSampleToStateMap(types.MetricNameContainerCpuLimit, composeSample(labels, float64(state.stat.Spec.Cpu.Limit), now), stateMap)
-				addSampleToStateMap(types.MetricNameContainerCpuQuota, composeSample(labels, float64(containerInfoV1.Spec.Cpu.Quota), now), stateMap)
-				addSampleToStateMap(types.MetricNameContainerCpuPeriod, composeSample(labels, float64(containerInfoV1.Spec.Cpu.Period), now), stateMap)
+				if hasExtRes {
+					extResCpuUse += cpuUsageSample
+				}
+				addSampleToStateMap(types.MetricNameContainerCpuTotalUsage, composeSample(containerLabels, cpuUsageSample, now), stateMap)
+				addSampleToStateMap(types.MetricNameContainerSchedRunQueueTime, composeSample(containerLabels, schedRunqueueTime, now), stateMap)
+				addSampleToStateMap(types.MetricNameContainerCpuLimit, composeSample(containerLabels, float64(state.Stat.Spec.Cpu.Limit), now), stateMap)
+				addSampleToStateMap(types.MetricNameContainerCpuQuota, composeSample(containerLabels, float64(containerInfoV1.Spec.Cpu.Quota), now), stateMap)
+				addSampleToStateMap(types.MetricNameContainerCpuPeriod, composeSample(containerLabels, float64(containerInfoV1.Spec.Cpu.Period), now), stateMap)
 
 				klog.V(10).Infof("Pod: %s, containerName: %s, key %s, scheduler run queue time %.2f", klog.KObj(pod), containerName, key, schedRunqueueTime)
 			}
-			containerStates[key] = ContainerState{stat: v, timestamp: now}
+			containerStates[key] = ContainerState{Stat: v, Timestamp: now}
 		}
 	}
+	addSampleToStateMap(types.MetricNameExtResContainerCpuTotalUsage, composeSample(make([]common.Label, 0), extResCpuUse, time.Now()), stateMap)
 
 	c.latestContainersStates = containerStates
 
@@ -186,9 +195,9 @@ func caculateCPUUsage(info *cadvisorapiv2.ContainerInfo, state *ContainerState) 
 		len(info.Stats) == 0 {
 		return 0, 0
 	}
-	cpuUsageIncrease := info.Stats[0].Cpu.Usage.Total - state.stat.Stats[0].Cpu.Usage.Total
-	schedRunqueueTimeIncrease := info.Stats[0].Cpu.Schedstat.RunqueueTime - state.stat.Stats[0].Cpu.Schedstat.RunqueueTime
-	timeIncrease := info.Stats[0].Timestamp.UnixNano() - state.stat.Stats[0].Timestamp.UnixNano()
+	cpuUsageIncrease := info.Stats[0].Cpu.Usage.Total - state.Stat.Stats[0].Cpu.Usage.Total
+	schedRunqueueTimeIncrease := info.Stats[0].Cpu.Schedstat.RunqueueTime - state.Stat.Stats[0].Cpu.Schedstat.RunqueueTime
+	timeIncrease := info.Stats[0].Timestamp.UnixNano() - state.Stat.Stats[0].Timestamp.UnixNano()
 	cpuUsageSample := float64(cpuUsageIncrease) / float64(timeIncrease)
 	schedRunqueueTime := float64(schedRunqueueTimeIncrease) * 1000 * 1000 / float64(timeIncrease)
 	return cpuUsageSample, schedRunqueueTime
@@ -211,13 +220,35 @@ func GetContainerNameFromPod(pod *v1.Pod, containerId string) string {
 	return ""
 }
 
-func GetContainerLabels(pod *v1.Pod, containerId, containerName string) []common.Label {
+func GetContainerFromPod(pod *v1.Pod, containerName string) *v1.Container {
+	if containerName == "" {
+		return nil
+	}
+	for _, v := range pod.Spec.Containers {
+		if v.Name == containerName {
+			return &v
+		}
+	}
+	return nil
+}
+
+// GetExtCpuRes get container's gocrane.io/cpu usage
+func GetContainerExtCpuResFromPod(pod *v1.Pod, containerName string) (resource.Quantity, bool) {
+	c := GetContainerFromPod(pod, containerName)
+	if c == nil {
+		return resource.Quantity{}, false
+	}
+	return utils.GetExtCpuRes(*c)
+}
+
+func GetContainerLabels(pod *v1.Pod, containerId, containerName string, hasExtRes bool) []common.Label {
 	return []common.Label{
 		{Name: common.LabelNamePodName, Value: pod.Name},
 		{Name: common.LabelNamePodNamespace, Value: pod.Namespace},
 		{Name: common.LabelNamePodUid, Value: string(pod.UID)},
 		{Name: common.LabelNameContainerName, Value: containerName},
 		{Name: common.LabelNameContainerId, Value: containerId},
+		{Name: common.LabelNameHasExtRes, Value: strconv.FormatBool(hasExtRes)},
 	}
 }
 

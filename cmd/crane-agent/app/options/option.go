@@ -22,11 +22,20 @@ type Options struct {
 	MaxInactivity time.Duration
 	// Ifaces is the network devices to collect metric
 	Ifaces []string
+	//NodeResourceOptions is the options of nodeResource
+	NodeResourceOptions NodeResourceOptions
+}
+
+type NodeResourceOptions struct {
+	ReserveCpuPercentStr    string
+	ReserveMemoryPercentStr string
 }
 
 // NewOptions builds an empty options.
 func NewOptions() *Options {
-	return &Options{}
+	return &Options{
+		NodeResourceOptions: NodeResourceOptions{},
+	}
 }
 
 // Complete completes all the required options.
@@ -47,5 +56,7 @@ func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&o.BindAddr, "bind-address", "0.0.0.0:8081", "The address the agent binds to for metrics, health-check and pprof, default: 0.0.0.0:8081.")
 	flags.DurationVar(&o.CollectInterval, "collect-interval", 10*time.Second, "Period for the state collector to collect metrics, default: 10s")
 	flags.StringArrayVar(&o.Ifaces, "ifaces", []string{"eth0"}, "The network devices to collect metric, use comma to separated, default: eth0")
+	flags.StringVar(&o.NodeResourceOptions.ReserveCpuPercentStr, "reserve-cpu-percent", "", "reserve cpu percentage of node.")
+	flags.StringVar(&o.NodeResourceOptions.ReserveMemoryPercentStr, "reserve-memory-percent", "", "reserve memory percentage of node.")
 	flags.DurationVar(&o.MaxInactivity, "max-inactivity", 5*time.Minute, "Maximum time from last recorded activity before automatic restart, default: 5min")
 }

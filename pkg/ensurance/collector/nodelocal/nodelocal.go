@@ -4,14 +4,19 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/util/sets"
-
 	"k8s.io/klog/v2"
+	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/ensurance/collector/types"
 )
 
-type collectFunc func(nodeState *nodeState) (map[string][]common.TimeSeries, error)
+type nodeLocalContext struct {
+	nodeState       *nodeState
+	exclusiveCPUSet func() cpuset.CPUSet
+}
+
+type collectFunc func(nodeLocalContext *nodeLocalContext) (map[string][]common.TimeSeries, error)
 
 var nodeLocalMetric = make(map[string][]types.MetricName, 10)
 var collectFuncMap = make(map[string]collectFunc, 10)
@@ -35,16 +40,18 @@ type nodeState struct {
 }
 
 type NodeLocal struct {
-	name      types.CollectType
-	nodeState *nodeState
+	name            types.CollectType
+	nodeState       *nodeState
+	exclusiveCPUSet func() cpuset.CPUSet
 }
 
-func NewNodeLocal(ifaces []string) *NodeLocal {
+func NewNodeLocal(ifaces []string, exclusiveCPUSet func() cpuset.CPUSet) *NodeLocal {
 	klog.V(2).Infof("New NodeLocal collector on interfaces %v", ifaces)
 
 	n := NodeLocal{
-		name:      types.NodeLocalCollectorType,
-		nodeState: &nodeState{ifaces: sets.NewString(ifaces...)},
+		name:            types.NodeLocalCollectorType,
+		nodeState:       &nodeState{ifaces: sets.NewString(ifaces...)},
+		exclusiveCPUSet: exclusiveCPUSet,
 	}
 
 	return &n
@@ -58,8 +65,12 @@ func (n *NodeLocal) Collect() (map[string][]common.TimeSeries, error) {
 	klog.V(6).Infof("Node local collecting")
 
 	var status = make(map[string][]common.TimeSeries)
+	nodeLocalContext := &nodeLocalContext{
+		nodeState:       n.nodeState,
+		exclusiveCPUSet: n.exclusiveCPUSet,
+	}
 	for name, collect := range collectFuncMap {
-		if data, err := collect(n.nodeState); err == nil {
+		if data, err := collect(nodeLocalContext); err == nil {
 			for key, d := range data {
 				status[key] = d
 			}

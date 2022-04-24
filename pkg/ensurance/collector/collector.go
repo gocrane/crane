@@ -8,6 +8,7 @@ import (
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog/v2"
+	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 
 	ensuranceListers "github.com/gocrane/api/pkg/generated/listers/ensurance/v1alpha1"
 	"github.com/gocrane/crane/pkg/common"
@@ -28,6 +29,7 @@ type StateCollector struct {
 	healthCheck       *metrics.HealthCheck
 	collectInterval   time.Duration
 	ifaces            []string
+	exclusiveCPUSet   func() cpuset.CPUSet
 	collectors        *sync.Map
 	cadvisorManager   cadvisor.Manager
 	AnalyzerChann     chan map[string][]common.TimeSeries
@@ -36,11 +38,10 @@ type StateCollector struct {
 }
 
 func NewStateCollector(nodeName string, nepLister ensuranceListers.NodeQOSEnsurancePolicyLister, podLister corelisters.PodLister,
-	nodeLister corelisters.NodeLister, ifaces []string, healthCheck *metrics.HealthCheck, collectInterval time.Duration) *StateCollector {
+	nodeLister corelisters.NodeLister, ifaces []string, healthCheck *metrics.HealthCheck, collectInterval time.Duration, exclusiveCPUSet func() cpuset.CPUSet, manager cadvisor.Manager) *StateCollector {
 	analyzerChann := make(chan map[string][]common.TimeSeries)
 	nodeResourceChann := make(chan map[string][]common.TimeSeries)
 	podResourceChann := make(chan map[string][]common.TimeSeries)
-	c := cadvisor.NewCadvisorManager()
 	return &StateCollector{
 		nodeName:          nodeName,
 		nepLister:         nepLister,
@@ -53,7 +54,8 @@ func NewStateCollector(nodeName string, nepLister ensuranceListers.NodeQOSEnsura
 		NodeResourceChann: nodeResourceChann,
 		PodResourceChann:  podResourceChann,
 		collectors:        &sync.Map{},
-		cadvisorManager:   c,
+		cadvisorManager:   manager,
+		exclusiveCPUSet:   exclusiveCPUSet,
 	}
 }
 
@@ -170,7 +172,7 @@ func (s *StateCollector) UpdateCollectors() {
 		nodeLocal = true
 
 		if _, exists := s.collectors.Load(types.NodeLocalCollectorType); !exists {
-			nc := nodelocal.NewNodeLocal(s.ifaces)
+			nc := nodelocal.NewNodeLocal(s.ifaces, s.exclusiveCPUSet)
 			s.collectors.Store(types.NodeLocalCollectorType, nc)
 		}
 

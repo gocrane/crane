@@ -99,8 +99,8 @@ func Run(ctx context.Context, opts *options.Options) error {
 	actionInformer := craneInformerFactory.Ensurance().V1alpha1().AvoidanceActions()
 	tspInformer := craneInformerFactory.Prediction().V1alpha1().TimeSeriesPredictions()
 
-	agent, err := agent.NewAgent(ctx, hostname, opts.RuntimeEndpoint, kubeClient, craneClient,
-		podInformer, nodeInformer, nepInformer, actionInformer, tspInformer, opts.Ifaces, healthCheck, opts.CollectInterval)
+	newAgent, err := agent.NewAgent(ctx, hostname, opts.RuntimeEndpoint, kubeClient, craneClient,
+		podInformer, nodeInformer, nepInformer, actionInformer, tspInformer, opts.NodeResourceOptions, opts.Ifaces, healthCheck, opts.CollectInterval)
 
 	if err != nil {
 		return err
@@ -114,7 +114,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 	nodeInformerFactory.WaitForCacheSync(ctx.Done())
 	craneInformerFactory.WaitForCacheSync(ctx.Done())
 
-	agent.Run(healthCheck, opts.EnableProfiling, opts.BindAddr)
+	newAgent.Run(healthCheck, opts.EnableProfiling, opts.BindAddr)
 	return nil
 }
 
