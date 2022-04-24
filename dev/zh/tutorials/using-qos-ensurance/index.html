@@ -9,7 +9,7 @@
       
       
       <link rel="icon" href="../../../images/crane.svg">
-      <meta name="generator" content="mkdocs-1.3.0, mkdocs-material-8.2.9">
+      <meta name="generator" content="mkdocs-1.3.0, mkdocs-material-8.2.10">
     
     
       
@@ -17,7 +17,7 @@
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.120efc48.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.df45aa19.min.css">
       
         
         <link rel="stylesheet" href="../../../assets/stylesheets/palette.9647289d.min.css">
@@ -623,37 +623,37 @@ Disable schedule, throttle, evict will be applied to low priority pods when the 
 <h2 id="disable-scheduling">Disable Scheduling<a class="headerlink" href="#disable-scheduling" title="Permanent link">&para;</a></h2>
 <p>The following AvoidanceAction and NodeQOSEnsurancePolicy can be defined. As a result, when the node CPU usage triggers the threshold, disable schedule action for the node will be executed.</p>
 <p>The sample YAML looks like below:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1"></a><a href="#__codelineno-0-1"><span class="linenos" data-linenos="1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ensurance.crane.io/v1alpha1</span><span class="w"></span>
-<a id="__codelineno-0-2" name="__codelineno-0-2"></a><a href="#__codelineno-0-2"><span class="linenos" data-linenos="2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AvoidanceAction</span><span class="w"></span>
-<a id="__codelineno-0-3" name="__codelineno-0-3"></a><a href="#__codelineno-0-3"><span class="linenos" data-linenos="3 "></span></a><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-0-4" name="__codelineno-0-4"></a><a href="#__codelineno-0-4"><span class="linenos" data-linenos="4 "></span></a><span class="w">  </span><span class="nt">labels</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-0-5" name="__codelineno-0-5"></a><a href="#__codelineno-0-5"><span class="linenos" data-linenos="5 "></span></a><span class="w">    </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">system</span><span class="w"></span>
-<a id="__codelineno-0-6" name="__codelineno-0-6"></a><a href="#__codelineno-0-6"><span class="linenos" data-linenos="6 "></span></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">disablescheduling</span><span class="w"></span>
-<a id="__codelineno-0-7" name="__codelineno-0-7"></a><a href="#__codelineno-0-7"><span class="linenos" data-linenos="7 "></span></a><span class="nt">spec</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-0-8" name="__codelineno-0-8"></a><a href="#__codelineno-0-8"><span class="linenos" data-linenos="8 "></span></a><span class="w">  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">disable schedule new pods to the node</span><span class="w"></span>
-<a id="__codelineno-0-9" name="__codelineno-0-9"></a><a href="#__codelineno-0-9"><span class="linenos" data-linenos="9 "></span></a><span class="w">  </span><span class="nt">coolDownSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">300</span><span class="w">  </span><span class="c1"># The minimum wait time of the node from  scheduling disable status to normal status</span><span class="w"></span>
-</code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1"></a><a href="#__codelineno-1-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ensurance.crane.io/v1alpha1</span><span class="w"></span>
-<a id="__codelineno-1-2" name="__codelineno-1-2"></a><a href="#__codelineno-1-2"><span class="linenos" data-linenos=" 2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NodeQOSEnsurancePolicy</span><span class="w"></span>
-<a id="__codelineno-1-3" name="__codelineno-1-3"></a><a href="#__codelineno-1-3"><span class="linenos" data-linenos=" 3 "></span></a><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-1-4" name="__codelineno-1-4"></a><a href="#__codelineno-1-4"><span class="linenos" data-linenos=" 4 "></span></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;waterline1&quot;</span><span class="w"></span>
-<a id="__codelineno-1-5" name="__codelineno-1-5"></a><a href="#__codelineno-1-5"><span class="linenos" data-linenos=" 5 "></span></a><span class="w">  </span><span class="nt">labels</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-1-6" name="__codelineno-1-6"></a><a href="#__codelineno-1-6"><span class="linenos" data-linenos=" 6 "></span></a><span class="w">    </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;system&quot;</span><span class="w"></span>
-<a id="__codelineno-1-7" name="__codelineno-1-7"></a><a href="#__codelineno-1-7"><span class="linenos" data-linenos=" 7 "></span></a><span class="nt">spec</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-1-8" name="__codelineno-1-8"></a><a href="#__codelineno-1-8"><span class="linenos" data-linenos=" 8 "></span></a><span class="w">  </span><span class="nt">nodeQualityProbe</span><span class="p">:</span><span class="w"> </span>
-<a id="__codelineno-1-9" name="__codelineno-1-9"></a><a href="#__codelineno-1-9"><span class="linenos" data-linenos=" 9 "></span></a><span class="w">    </span><span class="nt">timeoutSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span><span class="w"></span>
-<a id="__codelineno-1-10" name="__codelineno-1-10"></a><a href="#__codelineno-1-10"><span class="linenos" data-linenos="10 "></span></a><span class="w">    </span><span class="nt">nodeLocalGet</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-1-11" name="__codelineno-1-11"></a><a href="#__codelineno-1-11"><span class="linenos" data-linenos="11 "></span></a><span class="w">      </span><span class="nt">localCacheTTLSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">60</span><span class="w"></span>
-<a id="__codelineno-1-12" name="__codelineno-1-12"></a><a href="#__codelineno-1-12"><span class="linenos" data-linenos="12 "></span></a><span class="w">  </span><span class="nt">objectiveEnsurances</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-1-13" name="__codelineno-1-13"></a><a href="#__codelineno-1-13"><span class="linenos" data-linenos="13 "></span></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;cpu-usage&quot;</span><span class="w"></span>
-<a id="__codelineno-1-14" name="__codelineno-1-14"></a><a href="#__codelineno-1-14"><span class="linenos" data-linenos="14 "></span></a><span class="w">    </span><span class="nt">avoidanceThreshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w"> </span><span class="c1">#(1) </span><span class="w"></span>
-<a id="__codelineno-1-15" name="__codelineno-1-15"></a><a href="#__codelineno-1-15"><span class="linenos" data-linenos="15 "></span></a><span class="w">    </span><span class="nt">restoreThreshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w"> </span><span class="c1">#(2)</span><span class="w"></span>
-<a id="__codelineno-1-16" name="__codelineno-1-16"></a><a href="#__codelineno-1-16"><span class="linenos" data-linenos="16 "></span></a><span class="w">    </span><span class="nt">actionName</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;disablescheduling&quot;</span><span class="w"> </span><span class="c1">#(3) </span><span class="w"></span>
-<a id="__codelineno-1-17" name="__codelineno-1-17"></a><a href="#__codelineno-1-17"><span class="linenos" data-linenos="17 "></span></a><span class="w">    </span><span class="nt">strategy</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;None&quot;</span><span class="w"> </span><span class="c1">#(4) </span><span class="w"></span>
-<a id="__codelineno-1-18" name="__codelineno-1-18"></a><a href="#__codelineno-1-18"><span class="linenos" data-linenos="18 "></span></a><span class="w">    </span><span class="nt">metricRule</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-1-19" name="__codelineno-1-19"></a><a href="#__codelineno-1-19"><span class="linenos" data-linenos="19 "></span></a><span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;cpu_total_usage&quot;</span><span class="w"> </span><span class="c1">#(5) </span><span class="w"></span>
-<a id="__codelineno-1-20" name="__codelineno-1-20"></a><a href="#__codelineno-1-20"><span class="linenos" data-linenos="20 "></span></a><span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4000</span><span class="w"> </span><span class="c1">#(6) </span><span class="w"></span>
-</code></pre></div>
+<p><code>yaml
+apiVersion: ensurance.crane.io/v1alpha1
+kind: AvoidanceAction
+metadata:
+  labels:
+    app: system
+  name: disablescheduling
+spec:
+  description: disable schedule new pods to the node
+  coolDownSeconds: 300  # The minimum wait time of the node from  scheduling disable status to normal status</code></p>
+<p><code>yaml
+apiVersion: ensurance.crane.io/v1alpha1
+kind: NodeQOSEnsurancePolicy
+metadata:
+  name: "waterline1"
+  labels:
+    app: "system"
+spec:
+  nodeQualityProbe: 
+    timeoutSeconds: 10
+    nodeLocalGet:
+      localCacheTTLSeconds: 60
+  objectiveEnsurances:
+  - name: "cpu-usage"
+    avoidanceThreshold: 2 #(1) 
+    restoreThreshold: 2 #(2)
+    actionName: "disablescheduling" #(3) 
+    strategy: "None" #(4) 
+    metricRule:
+      name: "cpu_total_usage" #(5) 
+      value: 4000 #(6)</code></p>
 <ol>
 <li>We consider the rule is triggered, when the threshold reached continued so many times</li>
 <li>We consider the rule is restored, when the threshold not reached continued so many times</li>
@@ -667,83 +667,83 @@ Disable schedule, throttle, evict will be applied to low priority pods when the 
 <h2 id="throttle">Throttle<a class="headerlink" href="#throttle" title="Permanent link">&para;</a></h2>
 <p>The following AvoidanceAction and NodeQOSEnsurancePolicy can be defined. As a result, when the node CPU usage triggers the threshold, throttle action for the node will be executed.</p>
 <p>The sample YAML looks like below:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1"></a><a href="#__codelineno-2-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ensurance.crane.io/v1alpha1</span><span class="w"></span>
-<a id="__codelineno-2-2" name="__codelineno-2-2"></a><a href="#__codelineno-2-2"><span class="linenos" data-linenos=" 2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AvoidanceAction</span><span class="w"></span>
-<a id="__codelineno-2-3" name="__codelineno-2-3"></a><a href="#__codelineno-2-3"><span class="linenos" data-linenos=" 3 "></span></a><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-2-4" name="__codelineno-2-4"></a><a href="#__codelineno-2-4"><span class="linenos" data-linenos=" 4 "></span></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">throttle</span><span class="w"></span>
-<a id="__codelineno-2-5" name="__codelineno-2-5"></a><a href="#__codelineno-2-5"><span class="linenos" data-linenos=" 5 "></span></a><span class="w">  </span><span class="nt">labels</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-2-6" name="__codelineno-2-6"></a><a href="#__codelineno-2-6"><span class="linenos" data-linenos=" 6 "></span></a><span class="w">    </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">system</span><span class="w"></span>
-<a id="__codelineno-2-7" name="__codelineno-2-7"></a><a href="#__codelineno-2-7"><span class="linenos" data-linenos=" 7 "></span></a><span class="nt">spec</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-2-8" name="__codelineno-2-8"></a><a href="#__codelineno-2-8"><span class="linenos" data-linenos=" 8 "></span></a><span class="w">  </span><span class="nt">coolDownSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">300</span><span class="w"></span>
-<a id="__codelineno-2-9" name="__codelineno-2-9"></a><a href="#__codelineno-2-9"><span class="linenos" data-linenos=" 9 "></span></a><span class="w">  </span><span class="nt">throttle</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-2-10" name="__codelineno-2-10"></a><a href="#__codelineno-2-10"><span class="linenos" data-linenos="10 "></span></a><span class="w">    </span><span class="nt">cpuThrottle</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-2-11" name="__codelineno-2-11"></a><a href="#__codelineno-2-11"><span class="linenos" data-linenos="11 "></span></a><span class="w">      </span><span class="nt">minCPURatio</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span><span class="w"> </span><span class="c1">#(1)</span><span class="w"></span>
-<a id="__codelineno-2-12" name="__codelineno-2-12"></a><a href="#__codelineno-2-12"><span class="linenos" data-linenos="12 "></span></a><span class="w">      </span><span class="nt">stepCPURatio</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span><span class="w"> </span><span class="c1">#(2) </span><span class="w"></span>
-<a id="__codelineno-2-13" name="__codelineno-2-13"></a><a href="#__codelineno-2-13"><span class="linenos" data-linenos="13 "></span></a><span class="w">  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;throttle</span><span class="nv"> </span><span class="s">low</span><span class="nv"> </span><span class="s">priority</span><span class="nv"> </span><span class="s">pods&quot;</span><span class="w"></span>
-</code></pre></div>
+<p><code>yaml
+apiVersion: ensurance.crane.io/v1alpha1
+kind: AvoidanceAction
+metadata:
+  name: throttle
+  labels:
+    app: system
+spec:
+  coolDownSeconds: 300
+  throttle:
+    cpuThrottle:
+      minCPURatio: 10 #(1)
+      stepCPURatio: 10 #(2) 
+  description: "throttle low priority pods"</code></p>
 <ol>
 <li>The minimal ratio of the CPU quota, if the pod is throttled lower than this ratio, it will be set to this.</li>
 <li>The step for throttle action. It will reduce this percentage of CPU quota in each avoidance triggered.It will increase this percentage of CPU quota in each restored.</li>
 </ol>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1"></a><a href="#__codelineno-3-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ensurance.crane.io/v1alpha1</span><span class="w"></span>
-<a id="__codelineno-3-2" name="__codelineno-3-2"></a><a href="#__codelineno-3-2"><span class="linenos" data-linenos=" 2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NodeQOSEnsurancePolicy</span><span class="w"></span>
-<a id="__codelineno-3-3" name="__codelineno-3-3"></a><a href="#__codelineno-3-3"><span class="linenos" data-linenos=" 3 "></span></a><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-3-4" name="__codelineno-3-4"></a><a href="#__codelineno-3-4"><span class="linenos" data-linenos=" 4 "></span></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;waterline2&quot;</span><span class="w"></span>
-<a id="__codelineno-3-5" name="__codelineno-3-5"></a><a href="#__codelineno-3-5"><span class="linenos" data-linenos=" 5 "></span></a><span class="w">  </span><span class="nt">labels</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-3-6" name="__codelineno-3-6"></a><a href="#__codelineno-3-6"><span class="linenos" data-linenos=" 6 "></span></a><span class="w">    </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;system&quot;</span><span class="w"></span>
-<a id="__codelineno-3-7" name="__codelineno-3-7"></a><a href="#__codelineno-3-7"><span class="linenos" data-linenos=" 7 "></span></a><span class="nt">spec</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-3-8" name="__codelineno-3-8"></a><a href="#__codelineno-3-8"><span class="linenos" data-linenos=" 8 "></span></a><span class="w">  </span><span class="nt">nodeQualityProbe</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-3-9" name="__codelineno-3-9"></a><a href="#__codelineno-3-9"><span class="linenos" data-linenos=" 9 "></span></a><span class="w">    </span><span class="nt">timeoutSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span><span class="w"></span>
-<a id="__codelineno-3-10" name="__codelineno-3-10"></a><a href="#__codelineno-3-10"><span class="linenos" data-linenos="10 "></span></a><span class="w">    </span><span class="nt">nodeLocalGet</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-3-11" name="__codelineno-3-11"></a><a href="#__codelineno-3-11"><span class="linenos" data-linenos="11 "></span></a><span class="w">      </span><span class="nt">localCacheTTLSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">60</span><span class="w"></span>
-<a id="__codelineno-3-12" name="__codelineno-3-12"></a><a href="#__codelineno-3-12"><span class="linenos" data-linenos="12 "></span></a><span class="w">  </span><span class="nt">objectiveEnsurances</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-3-13" name="__codelineno-3-13"></a><a href="#__codelineno-3-13"><span class="linenos" data-linenos="13 "></span></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;cpu-usage&quot;</span><span class="w"></span>
-<a id="__codelineno-3-14" name="__codelineno-3-14"></a><a href="#__codelineno-3-14"><span class="linenos" data-linenos="14 "></span></a><span class="w">      </span><span class="nt">avoidanceThreshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w"></span>
-<a id="__codelineno-3-15" name="__codelineno-3-15"></a><a href="#__codelineno-3-15"><span class="linenos" data-linenos="15 "></span></a><span class="w">      </span><span class="nt">restoredThreshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w"></span>
-<a id="__codelineno-3-16" name="__codelineno-3-16"></a><a href="#__codelineno-3-16"><span class="linenos" data-linenos="16 "></span></a><span class="w">      </span><span class="nt">actionName</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;throttle&quot;</span><span class="w"></span>
-<a id="__codelineno-3-17" name="__codelineno-3-17"></a><a href="#__codelineno-3-17"><span class="linenos" data-linenos="17 "></span></a><span class="w">      </span><span class="nt">strategy</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;None&quot;</span><span class="w"></span>
-<a id="__codelineno-3-18" name="__codelineno-3-18"></a><a href="#__codelineno-3-18"><span class="linenos" data-linenos="18 "></span></a><span class="w">      </span><span class="nt">metricRule</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-3-19" name="__codelineno-3-19"></a><a href="#__codelineno-3-19"><span class="linenos" data-linenos="19 "></span></a><span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;cpu_total_usage&quot;</span><span class="w"></span>
-<a id="__codelineno-3-20" name="__codelineno-3-20"></a><a href="#__codelineno-3-20"><span class="linenos" data-linenos="20 "></span></a><span class="w">        </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">6000</span><span class="w"></span>
-</code></pre></div>
+<p><code>yaml
+apiVersion: ensurance.crane.io/v1alpha1
+kind: NodeQOSEnsurancePolicy
+metadata:
+  name: "waterline2"
+  labels:
+    app: "system"
+spec:
+  nodeQualityProbe:
+    timeoutSeconds: 10
+    nodeLocalGet:
+      localCacheTTLSeconds: 60
+  objectiveEnsurances:
+    - name: "cpu-usage"
+      avoidanceThreshold: 2
+      restoredThreshold: 2
+      actionName: "throttle"
+      strategy: "None"
+      metricRule:
+        name: "cpu_total_usage"
+        value: 6000</code></p>
 <h2 id="eviction">Eviction<a class="headerlink" href="#eviction" title="Permanent link">&para;</a></h2>
 <p>The following YAML is another case, low priority pods on the node will be evicted, when the node CPU usage trigger the threshold.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1"></a><a href="#__codelineno-4-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ensurance.crane.io/v1alpha1</span><span class="w"></span>
-<a id="__codelineno-4-2" name="__codelineno-4-2"></a><a href="#__codelineno-4-2"><span class="linenos" data-linenos=" 2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AvoidanceAction</span><span class="w"></span>
-<a id="__codelineno-4-3" name="__codelineno-4-3"></a><a href="#__codelineno-4-3"><span class="linenos" data-linenos=" 3 "></span></a><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-4-4" name="__codelineno-4-4"></a><a href="#__codelineno-4-4"><span class="linenos" data-linenos=" 4 "></span></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eviction</span><span class="w"></span>
-<a id="__codelineno-4-5" name="__codelineno-4-5"></a><a href="#__codelineno-4-5"><span class="linenos" data-linenos=" 5 "></span></a><span class="w">  </span><span class="nt">labels</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-4-6" name="__codelineno-4-6"></a><a href="#__codelineno-4-6"><span class="linenos" data-linenos=" 6 "></span></a><span class="w">    </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">system</span><span class="w"></span>
-<a id="__codelineno-4-7" name="__codelineno-4-7"></a><a href="#__codelineno-4-7"><span class="linenos" data-linenos=" 7 "></span></a><span class="nt">spec</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-4-8" name="__codelineno-4-8"></a><a href="#__codelineno-4-8"><span class="linenos" data-linenos=" 8 "></span></a><span class="w">  </span><span class="nt">coolDownSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">300</span><span class="w"></span>
-<a id="__codelineno-4-9" name="__codelineno-4-9"></a><a href="#__codelineno-4-9"><span class="linenos" data-linenos=" 9 "></span></a><span class="w">  </span><span class="nt">eviction</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-4-10" name="__codelineno-4-10"></a><a href="#__codelineno-4-10"><span class="linenos" data-linenos="10 "></span></a><span class="w">    </span><span class="nt">terminationGracePeriodSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30</span><span class="w"> </span><span class="c1">#(1) </span><span class="w"></span>
-<a id="__codelineno-4-11" name="__codelineno-4-11"></a><a href="#__codelineno-4-11"><span class="linenos" data-linenos="11 "></span></a><span class="w">  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;evict</span><span class="nv"> </span><span class="s">low</span><span class="nv"> </span><span class="s">priority</span><span class="nv"> </span><span class="s">pods&quot;</span><span class="w"></span>
-</code></pre></div>
+<p><code>yaml
+apiVersion: ensurance.crane.io/v1alpha1
+kind: AvoidanceAction
+metadata:
+  name: eviction
+  labels:
+    app: system
+spec:
+  coolDownSeconds: 300
+  eviction:
+    terminationGracePeriodSeconds: 30 #(1) 
+  description: "evict low priority pods"</code></p>
 <ol>
 <li>Duration in seconds the pod needs to terminate gracefully.</li>
 </ol>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1"></a><a href="#__codelineno-5-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ensurance.crane.io/v1alpha1</span><span class="w"></span>
-<a id="__codelineno-5-2" name="__codelineno-5-2"></a><a href="#__codelineno-5-2"><span class="linenos" data-linenos=" 2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NodeQOSEnsurancePolicy</span><span class="w"></span>
-<a id="__codelineno-5-3" name="__codelineno-5-3"></a><a href="#__codelineno-5-3"><span class="linenos" data-linenos=" 3 "></span></a><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-5-4" name="__codelineno-5-4"></a><a href="#__codelineno-5-4"><span class="linenos" data-linenos=" 4 "></span></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;waterline3&quot;</span><span class="w"></span>
-<a id="__codelineno-5-5" name="__codelineno-5-5"></a><a href="#__codelineno-5-5"><span class="linenos" data-linenos=" 5 "></span></a><span class="w">  </span><span class="nt">labels</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-5-6" name="__codelineno-5-6"></a><a href="#__codelineno-5-6"><span class="linenos" data-linenos=" 6 "></span></a><span class="w">    </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;system&quot;</span><span class="w"></span>
-<a id="__codelineno-5-7" name="__codelineno-5-7"></a><a href="#__codelineno-5-7"><span class="linenos" data-linenos=" 7 "></span></a><span class="nt">spec</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-5-8" name="__codelineno-5-8"></a><a href="#__codelineno-5-8"><span class="linenos" data-linenos=" 8 "></span></a><span class="w">  </span><span class="nt">nodeQualityProbe</span><span class="p">:</span><span class="w"> </span>
-<a id="__codelineno-5-9" name="__codelineno-5-9"></a><a href="#__codelineno-5-9"><span class="linenos" data-linenos=" 9 "></span></a><span class="w">    </span><span class="nt">timeoutSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span><span class="w"></span>
-<a id="__codelineno-5-10" name="__codelineno-5-10"></a><a href="#__codelineno-5-10"><span class="linenos" data-linenos="10 "></span></a><span class="w">    </span><span class="nt">nodeLocalGet</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-5-11" name="__codelineno-5-11"></a><a href="#__codelineno-5-11"><span class="linenos" data-linenos="11 "></span></a><span class="w">      </span><span class="nt">localCacheTTLSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">60</span><span class="w"></span>
-<a id="__codelineno-5-12" name="__codelineno-5-12"></a><a href="#__codelineno-5-12"><span class="linenos" data-linenos="12 "></span></a><span class="w">  </span><span class="nt">objectiveEnsurances</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-5-13" name="__codelineno-5-13"></a><a href="#__codelineno-5-13"><span class="linenos" data-linenos="13 "></span></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;cpu-usage&quot;</span><span class="w"></span>
-<a id="__codelineno-5-14" name="__codelineno-5-14"></a><a href="#__codelineno-5-14"><span class="linenos" data-linenos="14 "></span></a><span class="w">    </span><span class="nt">avoidanceThreshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w"></span>
-<a id="__codelineno-5-15" name="__codelineno-5-15"></a><a href="#__codelineno-5-15"><span class="linenos" data-linenos="15 "></span></a><span class="w">    </span><span class="nt">restoreThreshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w"></span>
-<a id="__codelineno-5-16" name="__codelineno-5-16"></a><a href="#__codelineno-5-16"><span class="linenos" data-linenos="16 "></span></a><span class="w">    </span><span class="nt">actionName</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;evict&quot;</span><span class="w"></span>
-<a id="__codelineno-5-17" name="__codelineno-5-17"></a><a href="#__codelineno-5-17"><span class="linenos" data-linenos="17 "></span></a><span class="w">    </span><span class="nt">strategy</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Preview&quot;</span><span class="w"> </span><span class="c1">#(1) </span><span class="w"></span>
-<a id="__codelineno-5-18" name="__codelineno-5-18"></a><a href="#__codelineno-5-18"><span class="linenos" data-linenos="18 "></span></a><span class="w">    </span><span class="nt">metricRule</span><span class="p">:</span><span class="w"></span>
-<a id="__codelineno-5-19" name="__codelineno-5-19"></a><a href="#__codelineno-5-19"><span class="linenos" data-linenos="19 "></span></a><span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;cpu_total_usage&quot;</span><span class="w"></span>
-<a id="__codelineno-5-20" name="__codelineno-5-20"></a><a href="#__codelineno-5-20"><span class="linenos" data-linenos="20 "></span></a><span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">6000</span><span class="w"></span>
-</code></pre></div>
+<p><code>yaml
+apiVersion: ensurance.crane.io/v1alpha1
+kind: NodeQOSEnsurancePolicy
+metadata:
+  name: "waterline3"
+  labels:
+    app: "system"
+spec:
+  nodeQualityProbe: 
+    timeoutSeconds: 10
+    nodeLocalGet:
+      localCacheTTLSeconds: 60
+  objectiveEnsurances:
+  - name: "cpu-usage"
+    avoidanceThreshold: 2
+    restoreThreshold: 2
+    actionName: "evict"
+    strategy: "Preview" #(1) 
+    metricRule:
+      name: "cpu_total_usage"
+      value: 6000</code></p>
 <ol>
 <li>Strategy for the action, "Preview" to not perform actually</li>
 </ol>
@@ -839,7 +839,7 @@ Disable schedule, throttle, evict will be applied to low priority pods when the 
     <script id="__config" type="application/json">{"base": "../../..", "features": ["toc.integrate", "content.code.annotate", "navigation.top"], "search": "../../../assets/javascripts/workers/search.2a1c317c.min.js", "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.config.lang": "ja", "search.config.pipeline": "trimmer, stemmer", "search.config.separator": "[\\uff0c\\u3002]+", "search.placeholder": "\u641c\u7d22", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version.title": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.6e54b5cd.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.748e2769.min.js"></script>
       
         <script src="../../../assets/util.js"></script>
       
