@@ -6,6 +6,7 @@ require (
 	github.com/go-echarts/go-echarts/v2 v2.2.4
 	github.com/gocrane/api v0.3.0
 	github.com/google/cadvisor v0.39.2
+	github.com/influxdata/influxdb-client-go/v2 v2.8.0
 	github.com/mjibson/go-dsp v0.0.0-20180508042940-11479a337f12
 	github.com/prometheus/client_golang v1.11.0
 	github.com/prometheus/common v0.26.0
@@ -61,6 +62,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/deepmap/oapi-codegen v1.8.2 // indirect
 	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/docker v20.10.2+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
@@ -92,6 +94,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/influxdata/line-protocol v0.0.0-20200327222509-2487e7298839 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/karrick/godirwalk v1.16.1 // indirect
 	github.com/leodido/go-urn v1.2.0 // indirect
