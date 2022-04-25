@@ -47,7 +47,8 @@ func (a *EHPAAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 	if err != nil {
 		return err
 	}
-	metricNamer := ResourceToWorkloadMetricNamer(target, &resourceCpu, labelSelector)
+	caller := fmt.Sprintf(callerFormat, klog.KObj(a.Recommendation), a.Recommendation.UID)
+	metricNamer := ResourceToWorkloadMetricNamer(target, &resourceCpu, labelSelector, caller)
 	if err := metricNamer.Validate(); err != nil {
 		return err
 	}
@@ -62,7 +63,7 @@ func (a *EHPAAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 	}
 
 	cpuConfig := getPredictionCpuConfig()
-	tsListPrediction, err := utils.QueryPredictedTimeSeriesOnce(p, fmt.Sprintf(callerFormat, a.Recommendation.UID),
+	tsListPrediction, err := utils.QueryPredictedTimeSeriesOnce(p, caller,
 		getPredictionCpuConfig(),
 		metricNamer,
 		timeNow,
@@ -265,11 +266,12 @@ func (a *EHPAAdvisor) proposeTargetUtilization() (int32, int64, error) {
 	var cpuUsage float64
 	// use percentile algo to get the 99 percentile cpu usage for this target
 	for _, container := range a.PodTemplate.Spec.Containers {
-		metricNamer := ResourceToContainerMetricNamer(a.Recommendation.Spec.TargetRef.Namespace, a.Recommendation.Spec.TargetRef.Name, container.Name, corev1.ResourceCPU)
+		caller := fmt.Sprintf(callerFormat, klog.KObj(a.Recommendation), a.Recommendation.UID)
+		metricNamer := ResourceToContainerMetricNamer(a.Recommendation.Spec.TargetRef.Namespace, a.Recommendation.Spec.TargetRef.Name, container.Name, corev1.ResourceCPU, caller)
 		cpuConfig := makeCpuConfig(a.ConfigProperties)
 		tsList, err := utils.QueryPredictedValuesOnce(a.Recommendation,
 			percentilePredictor,
-			fmt.Sprintf(callerFormat, a.Recommendation.UID),
+			caller,
 			cpuConfig,
 			metricNamer)
 		if err != nil {
@@ -389,9 +391,10 @@ func GetTargetLabelSelector(target *corev1.ObjectReference, scale *v1.Scale, ds 
 	}
 }
 
-func ResourceToWorkloadMetricNamer(target *corev1.ObjectReference, resourceName *corev1.ResourceName, workloadLabelSelector labels.Selector) metricnaming.MetricNamer {
+func ResourceToWorkloadMetricNamer(target *corev1.ObjectReference, resourceName *corev1.ResourceName, workloadLabelSelector labels.Selector, caller string) metricnaming.MetricNamer {
 	// workload
 	return &metricnaming.GeneralMetricNamer{
+		CallerName: caller,
 		Metric: &metricquery.Metric{
 			Type:       metricquery.WorkloadMetricType,
 			MetricName: resourceName.String(),

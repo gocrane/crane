@@ -158,6 +158,9 @@ func recordMetric(evpa *autoscalingapi.EffectiveVerticalPodAutoscaler, status *a
 		"resourceName": fmt.Sprintf("%s/%s", evpa.Namespace, evpa.Spec.TargetRef.Name),
 	}
 
+	if status.Recommendation == nil {
+		return
+	}
 	for _, container := range status.Recommendation.ContainerRecommendations {
 		resourceRequirement, found := utils.GetResourceByPodTemplate(podTemplate, container.ContainerName)
 		if !found {

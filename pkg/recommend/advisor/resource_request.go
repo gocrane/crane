@@ -17,7 +17,7 @@ import (
 	"github.com/gocrane/crane/pkg/utils"
 )
 
-const callerFormat = "RecommendationCaller-%s"
+const callerFormat = "RecommendationCaller-%s-%s"
 
 const (
 	DefaultNamespace = "default"
@@ -41,9 +41,14 @@ func makeCpuConfig(props map[string]string) *config.Config {
 		marginFraction = "0.15"
 	}
 
+	historyLength, exists := props["resource.cpu-model-history-length"]
+	if !exists {
+		historyLength = "168h"
+	}
 	return &config.Config{
 		Percentile: &predictionapi.Percentile{
 			Aggregated:     true,
+			HistoryLength:  historyLength,
 			SampleInterval: sampleInterval,
 			MarginFraction: marginFraction,
 			Percentile:     percentile,
@@ -70,9 +75,15 @@ func makeMemConfig(props map[string]string) *config.Config {
 		marginFraction = "0.15"
 	}
 
+	historyLength, exists := props["resource.mem-model-history-length"]
+	if !exists {
+		historyLength = "168h"
+	}
+
 	return &config.Config{
 		Percentile: &predictionapi.Percentile{
 			Aggregated:     true,
+			HistoryLength:  historyLength,
 			SampleInterval: sampleInterval,
 			MarginFraction: marginFraction,
 			Percentile:     percentile,
@@ -106,11 +117,11 @@ func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) 
 			Target:        map[corev1.ResourceName]string{},
 		}
 
-		metricNamer := ResourceToContainerMetricNamer(namespace, a.Recommendation.Spec.TargetRef.Name, c.Name, corev1.ResourceCPU)
+		caller := fmt.Sprintf(callerFormat, klog.KObj(a.Recommendation), a.Recommendation.UID)
+		metricNamer := ResourceToContainerMetricNamer(namespace, a.Recommendation.Spec.TargetRef.Name, c.Name, corev1.ResourceCPU, caller)
 		klog.V(6).Infof("CPU query for resource request recommendation: %s", metricNamer.BuildUniqueKey())
 		cpuConfig := makeCpuConfig(a.ConfigProperties)
-		tsList, err := utils.QueryPredictedValuesOnce(a.Recommendation, p,
-			fmt.Sprintf(callerFormat, a.Recommendation.UID), cpuConfig, metricNamer)
+		tsList, err := utils.QueryPredictedValuesOnce(a.Recommendation, p, caller, cpuConfig, metricNamer)
 		if err != nil {
 			return err
 		}
@@ -120,11 +131,10 @@ func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) 
 		v := int64(tsList[0].Samples[0].Value * 1000)
 		cr.Target[corev1.ResourceCPU] = resource.NewMilliQuantity(v, resource.DecimalSI).String()
 
-		metricNamer = ResourceToContainerMetricNamer(namespace, a.Recommendation.Spec.TargetRef.Name, c.Name, corev1.ResourceMemory)
+		metricNamer = ResourceToContainerMetricNamer(namespace, a.Recommendation.Spec.TargetRef.Name, c.Name, corev1.ResourceMemory, caller)
 		klog.V(6).Infof("Memory query for resource request recommendation: %s", metricNamer.BuildUniqueKey())
 		memConfig := makeMemConfig(a.ConfigProperties)
-		tsList, err = utils.QueryPredictedValuesOnce(a.Recommendation, p,
-			fmt.Sprintf(callerFormat, a.Recommendation.UID), memConfig, metricNamer)
+		tsList, err = utils.QueryPredictedValuesOnce(a.Recommendation, p, caller, memConfig, metricNamer)
 		if err != nil {
 			return err
 		}
@@ -145,9 +155,10 @@ func (a *ResourceRequestAdvisor) Name() string {
 	return "ResourceRequestAdvisor"
 }
 
-func ResourceToContainerMetricNamer(namespace, workloadname, containername string, resourceName corev1.ResourceName) metricnaming.MetricNamer {
+func ResourceToContainerMetricNamer(namespace, workloadname, containername string, resourceName corev1.ResourceName, caller string) metricnaming.MetricNamer {
 	// container
 	return &metricnaming.GeneralMetricNamer{
+		CallerName: caller,
 		Metric: &metricquery.Metric{
 			Type:       metricquery.ContainerMetricType,
 			MetricName: resourceName.String(),

@@ -27,10 +27,10 @@ const (
 
 var (
 	NotMatchWorkloadError  = fmt.Errorf("metric type %v, but no WorkloadNamerInfo provided", WorkloadMetricType)
-	NotMatchContainerError = fmt.Errorf("metric type %v, but no WorkloadNamerInfo provided", ContainerMetricType)
-	NotMatchPodError       = fmt.Errorf("metric type %v, but no WorkloadNamerInfo provided", PodMetricType)
-	NotMatchNodeError      = fmt.Errorf("metric type %v, but no WorkloadNamerInfo provided", NodeMetricType)
-	NotMatchPromError      = fmt.Errorf("metric type %v, but no WorkloadNamerInfo provided", PromQLMetricType)
+	NotMatchContainerError = fmt.Errorf("metric type %v, but no ContainerNamerInfo provided", ContainerMetricType)
+	NotMatchPodError       = fmt.Errorf("metric type %v, but no PodNamerInfo provided", PodMetricType)
+	NotMatchNodeError      = fmt.Errorf("metric type %v, but no NodeNamerInfo provided", NodeMetricType)
+	NotMatchPromError      = fmt.Errorf("metric type %v, but no PromNamerInfo provided", PromQLMetricType)
 )
 
 type Metric struct {
@@ -153,7 +153,7 @@ func (m *Metric) keyByWorkload() string {
 		m.Workload.APIVersion,
 		m.Workload.Namespace,
 		m.Workload.Name,
-		selectorStr}, "-")
+		selectorStr}, "_")
 }
 
 func (m *Metric) keyByContainer() string {
@@ -168,7 +168,7 @@ func (m *Metric) keyByContainer() string {
 		m.Container.WorkloadName,
 		m.Container.PodName,
 		m.Container.ContainerName,
-		selectorStr}, "-")
+		selectorStr}, "_")
 }
 
 func (m *Metric) keyByPod() string {
@@ -181,7 +181,7 @@ func (m *Metric) keyByPod() string {
 		strings.ToLower(m.MetricName),
 		m.Pod.Namespace,
 		m.Pod.Name,
-		selectorStr}, "-")
+		selectorStr}, "_")
 }
 func (m *Metric) keyByNode() string {
 	selectorStr := ""
@@ -192,7 +192,7 @@ func (m *Metric) keyByNode() string {
 		string(m.Type),
 		strings.ToLower(m.MetricName),
 		m.Node.Name,
-		selectorStr}, "-")
+		selectorStr}, "_")
 }
 
 func (m *Metric) keyByPromQL() string {
@@ -205,7 +205,7 @@ func (m *Metric) keyByPromQL() string {
 		m.Prom.Namespace,
 		strings.ToLower(m.MetricName),
 		m.Prom.QueryExpr,
-		selectorStr}, "-")
+		selectorStr}, "_")
 }
 
 // Query is used to do query for different data source. you can extends it with your data source query

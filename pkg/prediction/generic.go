@@ -26,6 +26,10 @@ const (
 	StatusNotStarted Status = "NotStarted"
 	StatusUnknown    Status = "Unknown"
 	StatusDeleted    Status = "Deleted"
+	// StatusInitializing means the prediction model is accumulating data until it satisfy the user specified time window such as 12h or 3d or 1w when use some real time data provider
+	// if support recover from checkpoint, then it maybe faster
+	StatusInitializing Status = "Initializing"
+	StatusExpired      Status = "Expired"
 )
 
 type WithMetricEvent struct {

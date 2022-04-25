@@ -19,6 +19,9 @@ type Interface interface {
 
 	DeleteQuery(metricNamer metricnaming.MetricNamer, caller string) error
 
+	// QueryPredictionStatus return the metricNamer prediction status. it is predictable only when it is ready
+	QueryPredictionStatus(ctx context.Context, metricNamer metricnaming.MetricNamer) (Status, error)
+
 	// QueryRealtimePredictedValues returns predicted values based on the specified query expression
 	QueryRealtimePredictedValues(ctx context.Context, metricNamer metricnaming.MetricNamer) ([]*common.TimeSeries, error)
 
