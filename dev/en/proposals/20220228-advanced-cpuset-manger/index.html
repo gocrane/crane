@@ -726,12 +726,12 @@ But kubelet will always exclude assigned cores in shared cores, which may waste 
 </ol>
 <p>In Crane, only need to meet condition No.2</p>
 <h3 id="add-new-annotation-to-describe-the-requirement-of-cpuset-contorl-manger">Add new annotation to describe the  requirement of cpuset contorl manger<a class="headerlink" href="#add-new-annotation-to-describe-the-requirement-of-cpuset-contorl-manger" title="Permanent link">&para;</a></h3>
-<p><code>yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  annotations:
-    qos.gocrane.io/cpu-manager: none/exclusive/share</code>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1"></a><a href="#__codelineno-0-1"><span class="linenos" data-linenos="1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span><span class="w"></span>
+<a id="__codelineno-0-2" name="__codelineno-0-2"></a><a href="#__codelineno-0-2"><span class="linenos" data-linenos="2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Pod</span><span class="w"></span>
+<a id="__codelineno-0-3" name="__codelineno-0-3"></a><a href="#__codelineno-0-3"><span class="linenos" data-linenos="3 "></span></a><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-0-4" name="__codelineno-0-4"></a><a href="#__codelineno-0-4"><span class="linenos" data-linenos="4 "></span></a><span class="w">  </span><span class="nt">annotations</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-0-5" name="__codelineno-0-5"></a><a href="#__codelineno-0-5"><span class="linenos" data-linenos="5 "></span></a><span class="w">    </span><span class="nt">qos.gocrane.io/cpu-manager</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">none/exclusive/share</span><span class="w"></span>
+</code></pre></div>
 Provide three polices for cpuset manager:
 - none: containers of this pod shares a set of cpus which not allocated to exclusive containers
 - exclusive:  containers of this pod monopolize the allocated CPUs , other containers not allowed to use.

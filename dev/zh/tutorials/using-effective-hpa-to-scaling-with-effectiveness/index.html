@@ -662,33 +662,33 @@
 </ul>
 <h2 id="_1">产品功能<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
 <p>一个简单的 EHPA yaml 文件如下：</p>
-<p><code>yaml
-apiVersion: autoscaling.crane.io/v1alpha1
-kind: EffectiveHorizontalPodAutoscaler
-metadata:
-  name: php-apache
-spec:
-  scaleTargetRef: #(1)
-    apiVersion: apps/v1
-    kind: Deployment
-    name: php-apache
-  minReplicas: 1 #(2)
-  maxReplicas: 10 #(3)
-  scaleStrategy: Auto #(4)
-  metrics: #(5)
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 50
-  prediction: #(6)
-    predictionWindowSeconds: 3600 #(7)
-    predictionAlgorithm:
-      algorithmType: dsp
-      dsp:
-        sampleInterval: "60s"
-        historyLength: "3d"</code></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1"></a><a href="#__codelineno-0-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">autoscaling.crane.io/v1alpha1</span><span class="w"></span>
+<a id="__codelineno-0-2" name="__codelineno-0-2"></a><a href="#__codelineno-0-2"><span class="linenos" data-linenos=" 2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">EffectiveHorizontalPodAutoscaler</span><span class="w"></span>
+<a id="__codelineno-0-3" name="__codelineno-0-3"></a><a href="#__codelineno-0-3"><span class="linenos" data-linenos=" 3 "></span></a><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-0-4" name="__codelineno-0-4"></a><a href="#__codelineno-0-4"><span class="linenos" data-linenos=" 4 "></span></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">php-apache</span><span class="w"></span>
+<a id="__codelineno-0-5" name="__codelineno-0-5"></a><a href="#__codelineno-0-5"><span class="linenos" data-linenos=" 5 "></span></a><span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-0-6" name="__codelineno-0-6"></a><a href="#__codelineno-0-6"><span class="linenos" data-linenos=" 6 "></span></a><span class="w">  </span><span class="nt">scaleTargetRef</span><span class="p">:</span><span class="w"> </span><span class="c1">#(1)</span><span class="w"></span>
+<a id="__codelineno-0-7" name="__codelineno-0-7"></a><a href="#__codelineno-0-7"><span class="linenos" data-linenos=" 7 "></span></a><span class="w">    </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">apps/v1</span><span class="w"></span>
+<a id="__codelineno-0-8" name="__codelineno-0-8"></a><a href="#__codelineno-0-8"><span class="linenos" data-linenos=" 8 "></span></a><span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Deployment</span><span class="w"></span>
+<a id="__codelineno-0-9" name="__codelineno-0-9"></a><a href="#__codelineno-0-9"><span class="linenos" data-linenos=" 9 "></span></a><span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">php-apache</span><span class="w"></span>
+<a id="__codelineno-0-10" name="__codelineno-0-10"></a><a href="#__codelineno-0-10"><span class="linenos" data-linenos="10 "></span></a><span class="w">  </span><span class="nt">minReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span><span class="w"> </span><span class="c1">#(2)</span><span class="w"></span>
+<a id="__codelineno-0-11" name="__codelineno-0-11"></a><a href="#__codelineno-0-11"><span class="linenos" data-linenos="11 "></span></a><span class="w">  </span><span class="nt">maxReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span><span class="w"> </span><span class="c1">#(3)</span><span class="w"></span>
+<a id="__codelineno-0-12" name="__codelineno-0-12"></a><a href="#__codelineno-0-12"><span class="linenos" data-linenos="12 "></span></a><span class="w">  </span><span class="nt">scaleStrategy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Auto</span><span class="w"> </span><span class="c1">#(4)</span><span class="w"></span>
+<a id="__codelineno-0-13" name="__codelineno-0-13"></a><a href="#__codelineno-0-13"><span class="linenos" data-linenos="13 "></span></a><span class="w">  </span><span class="nt">metrics</span><span class="p">:</span><span class="w"> </span><span class="c1">#(5)</span><span class="w"></span>
+<a id="__codelineno-0-14" name="__codelineno-0-14"></a><a href="#__codelineno-0-14"><span class="linenos" data-linenos="14 "></span></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Resource</span><span class="w"></span>
+<a id="__codelineno-0-15" name="__codelineno-0-15"></a><a href="#__codelineno-0-15"><span class="linenos" data-linenos="15 "></span></a><span class="w">    </span><span class="nt">resource</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-0-16" name="__codelineno-0-16"></a><a href="#__codelineno-0-16"><span class="linenos" data-linenos="16 "></span></a><span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cpu</span><span class="w"></span>
+<a id="__codelineno-0-17" name="__codelineno-0-17"></a><a href="#__codelineno-0-17"><span class="linenos" data-linenos="17 "></span></a><span class="w">      </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-0-18" name="__codelineno-0-18"></a><a href="#__codelineno-0-18"><span class="linenos" data-linenos="18 "></span></a><span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Utilization</span><span class="w"></span>
+<a id="__codelineno-0-19" name="__codelineno-0-19"></a><a href="#__codelineno-0-19"><span class="linenos" data-linenos="19 "></span></a><span class="w">        </span><span class="nt">averageUtilization</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span><span class="w"></span>
+<a id="__codelineno-0-20" name="__codelineno-0-20"></a><a href="#__codelineno-0-20"><span class="linenos" data-linenos="20 "></span></a><span class="w">  </span><span class="nt">prediction</span><span class="p">:</span><span class="w"> </span><span class="c1">#(6)</span><span class="w"></span>
+<a id="__codelineno-0-21" name="__codelineno-0-21"></a><a href="#__codelineno-0-21"><span class="linenos" data-linenos="21 "></span></a><span class="w">    </span><span class="nt">predictionWindowSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3600</span><span class="w"> </span><span class="c1">#(7)</span><span class="w"></span>
+<a id="__codelineno-0-22" name="__codelineno-0-22"></a><a href="#__codelineno-0-22"><span class="linenos" data-linenos="22 "></span></a><span class="w">    </span><span class="nt">predictionAlgorithm</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-0-23" name="__codelineno-0-23"></a><a href="#__codelineno-0-23"><span class="linenos" data-linenos="23 "></span></a><span class="w">      </span><span class="nt">algorithmType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dsp</span><span class="w"></span>
+<a id="__codelineno-0-24" name="__codelineno-0-24"></a><a href="#__codelineno-0-24"><span class="linenos" data-linenos="24 "></span></a><span class="w">      </span><span class="nt">dsp</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-0-25" name="__codelineno-0-25"></a><a href="#__codelineno-0-25"><span class="linenos" data-linenos="25 "></span></a><span class="w">        </span><span class="nt">sampleInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;60s&quot;</span><span class="w"></span>
+<a id="__codelineno-0-26" name="__codelineno-0-26"></a><a href="#__codelineno-0-26"><span class="linenos" data-linenos="26 "></span></a><span class="w">        </span><span class="nt">historyLength</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;3d&quot;</span><span class="w"></span>
+</code></pre></div>
 <ol>
 <li>ScaleTargetRef 配置你希望弹性的工作负载。</li>
 <li>MinReplicas 指定了自动缩容的最小值。</li>
@@ -701,55 +701,54 @@ spec:
 <h3 id="_2">基于预测的弹性<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
 <p>大多数在线应用的负载都有周期性的特征。我们可以根据按天或者按周的趋势预测未来的负载。EHPA 使用 DSP 算法来预测应用未来的时间序列数据。</p>
 <p>以下是一个开启了预测能力的 EHPA 模版例子：
-```yaml
-apiVersion: autoscaling.crane.io/v1alpha1
-kind: EffectiveHorizontalPodAutoscaler
-spec:
-  prediction:
-    predictionWindowSeconds: 3600
-    predictionAlgorithm:
-      algorithmType: dsp
-      dsp:
-        sampleInterval: "60s"
-        historyLength: "3d"</p>
-<p>```</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1"></a><a href="#__codelineno-1-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">autoscaling.crane.io/v1alpha1</span><span class="w"></span>
+<a id="__codelineno-1-2" name="__codelineno-1-2"></a><a href="#__codelineno-1-2"><span class="linenos" data-linenos=" 2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">EffectiveHorizontalPodAutoscaler</span><span class="w"></span>
+<a id="__codelineno-1-3" name="__codelineno-1-3"></a><a href="#__codelineno-1-3"><span class="linenos" data-linenos=" 3 "></span></a><span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-1-4" name="__codelineno-1-4"></a><a href="#__codelineno-1-4"><span class="linenos" data-linenos=" 4 "></span></a><span class="w">  </span><span class="nt">prediction</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-1-5" name="__codelineno-1-5"></a><a href="#__codelineno-1-5"><span class="linenos" data-linenos=" 5 "></span></a><span class="w">    </span><span class="nt">predictionWindowSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3600</span><span class="w"></span>
+<a id="__codelineno-1-6" name="__codelineno-1-6"></a><a href="#__codelineno-1-6"><span class="linenos" data-linenos=" 6 "></span></a><span class="w">    </span><span class="nt">predictionAlgorithm</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-1-7" name="__codelineno-1-7"></a><a href="#__codelineno-1-7"><span class="linenos" data-linenos=" 7 "></span></a><span class="w">      </span><span class="nt">algorithmType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dsp</span><span class="w"></span>
+<a id="__codelineno-1-8" name="__codelineno-1-8"></a><a href="#__codelineno-1-8"><span class="linenos" data-linenos=" 8 "></span></a><span class="w">      </span><span class="nt">dsp</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-1-9" name="__codelineno-1-9"></a><a href="#__codelineno-1-9"><span class="linenos" data-linenos=" 9 "></span></a><span class="w">        </span><span class="nt">sampleInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;60s&quot;</span><span class="w"></span>
+<a id="__codelineno-1-10" name="__codelineno-1-10"></a><a href="#__codelineno-1-10"><span class="linenos" data-linenos="10 "></span></a><span class="w">        </span><span class="nt">historyLength</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;3d&quot;</span><span class="w"></span>
+</code></pre></div></p>
 <h4 id="_3">监控数据兜底<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h4>
 <p>在使用预测算法预测时，你可能会担心预测数据不准带来一定的风险，EHPA 在计算副本数时，不仅会按预测数据计算，同时也会考虑实际监控数据来兜底，提升了弹性的安全性。
 实现的原理是当你在 EHPA 中定义 <code>spec.metrics</code> 并且开启弹性预测时，EffectiveHPAController 会在创建底层管理的 HPA 时按策略自动生成多条 Metric Spec。</p>
 <p>例如，当用户在 EHPA 的 yaml 里定义如下 Metric Spec：
-<code>yaml
-apiVersion: autoscaling.crane.io/v1alpha1
-kind: EffectiveHorizontalPodAutoscaler
-spec:
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 50</code></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1"></a><a href="#__codelineno-2-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">autoscaling.crane.io/v1alpha1</span><span class="w"></span>
+<a id="__codelineno-2-2" name="__codelineno-2-2"></a><a href="#__codelineno-2-2"><span class="linenos" data-linenos=" 2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">EffectiveHorizontalPodAutoscaler</span><span class="w"></span>
+<a id="__codelineno-2-3" name="__codelineno-2-3"></a><a href="#__codelineno-2-3"><span class="linenos" data-linenos=" 3 "></span></a><span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-2-4" name="__codelineno-2-4"></a><a href="#__codelineno-2-4"><span class="linenos" data-linenos=" 4 "></span></a><span class="w">  </span><span class="nt">metrics</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-2-5" name="__codelineno-2-5"></a><a href="#__codelineno-2-5"><span class="linenos" data-linenos=" 5 "></span></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Resource</span><span class="w"></span>
+<a id="__codelineno-2-6" name="__codelineno-2-6"></a><a href="#__codelineno-2-6"><span class="linenos" data-linenos=" 6 "></span></a><span class="w">    </span><span class="nt">resource</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-2-7" name="__codelineno-2-7"></a><a href="#__codelineno-2-7"><span class="linenos" data-linenos=" 7 "></span></a><span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cpu</span><span class="w"></span>
+<a id="__codelineno-2-8" name="__codelineno-2-8"></a><a href="#__codelineno-2-8"><span class="linenos" data-linenos=" 8 "></span></a><span class="w">      </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-2-9" name="__codelineno-2-9"></a><a href="#__codelineno-2-9"><span class="linenos" data-linenos=" 9 "></span></a><span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Utilization</span><span class="w"></span>
+<a id="__codelineno-2-10" name="__codelineno-2-10"></a><a href="#__codelineno-2-10"><span class="linenos" data-linenos="10 "></span></a><span class="w">        </span><span class="nt">averageUtilization</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span><span class="w"></span>
+</code></pre></div></p>
 <p>它会自动转换成两条 HPA 的阈值配置：
-<code>yaml
-apiVersion: autoscaling/v2beta1
-kind: HorizontalPodAutoscaler
-spec:
-  metrics:
-    - pods:
-        metric:
-          name: crane_pod_cpu_usage
-            selector:
-              matchLabels:
-                autoscaling.crane.io/effective-hpa-uid: f9b92249-eab9-4671-afe0-17925e5987b8
-        target:
-          type: AverageValue
-          averageValue: 100m
-      type: Pods
-    - resource:
-        name: cpu
-        target:
-          type: Utilization
-          averageUtilization: 50
-      type: Resource</code></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1"></a><a href="#__codelineno-3-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">autoscaling/v2beta1</span><span class="w"></span>
+<a id="__codelineno-3-2" name="__codelineno-3-2"></a><a href="#__codelineno-3-2"><span class="linenos" data-linenos=" 2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">HorizontalPodAutoscaler</span><span class="w"></span>
+<a id="__codelineno-3-3" name="__codelineno-3-3"></a><a href="#__codelineno-3-3"><span class="linenos" data-linenos=" 3 "></span></a><span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-3-4" name="__codelineno-3-4"></a><a href="#__codelineno-3-4"><span class="linenos" data-linenos=" 4 "></span></a><span class="w">  </span><span class="nt">metrics</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-3-5" name="__codelineno-3-5"></a><a href="#__codelineno-3-5"><span class="linenos" data-linenos=" 5 "></span></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">pods</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-3-6" name="__codelineno-3-6"></a><a href="#__codelineno-3-6"><span class="linenos" data-linenos=" 6 "></span></a><span class="w">        </span><span class="nt">metric</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-3-7" name="__codelineno-3-7"></a><a href="#__codelineno-3-7"><span class="linenos" data-linenos=" 7 "></span></a><span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">crane_pod_cpu_usage</span><span class="w"></span>
+<a id="__codelineno-3-8" name="__codelineno-3-8"></a><a href="#__codelineno-3-8"><span class="linenos" data-linenos=" 8 "></span></a><span class="w">            </span><span class="l l-Scalar l-Scalar-Plain">selector</span><span class="p p-Indicator">:</span><span class="w"></span>
+<a id="__codelineno-3-9" name="__codelineno-3-9"></a><a href="#__codelineno-3-9"><span class="linenos" data-linenos=" 9 "></span></a><span class="w">              </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-3-10" name="__codelineno-3-10"></a><a href="#__codelineno-3-10"><span class="linenos" data-linenos="10 "></span></a><span class="w">                </span><span class="nt">autoscaling.crane.io/effective-hpa-uid</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">f9b92249-eab9-4671-afe0-17925e5987b8</span><span class="w"></span>
+<a id="__codelineno-3-11" name="__codelineno-3-11"></a><a href="#__codelineno-3-11"><span class="linenos" data-linenos="11 "></span></a><span class="w">        </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-3-12" name="__codelineno-3-12"></a><a href="#__codelineno-3-12"><span class="linenos" data-linenos="12 "></span></a><span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AverageValue</span><span class="w"></span>
+<a id="__codelineno-3-13" name="__codelineno-3-13"></a><a href="#__codelineno-3-13"><span class="linenos" data-linenos="13 "></span></a><span class="w">          </span><span class="nt">averageValue</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100m</span><span class="w"></span>
+<a id="__codelineno-3-14" name="__codelineno-3-14"></a><a href="#__codelineno-3-14"><span class="linenos" data-linenos="14 "></span></a><span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Pods</span><span class="w"></span>
+<a id="__codelineno-3-15" name="__codelineno-3-15"></a><a href="#__codelineno-3-15"><span class="linenos" data-linenos="15 "></span></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">resource</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-3-16" name="__codelineno-3-16"></a><a href="#__codelineno-3-16"><span class="linenos" data-linenos="16 "></span></a><span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cpu</span><span class="w"></span>
+<a id="__codelineno-3-17" name="__codelineno-3-17"></a><a href="#__codelineno-3-17"><span class="linenos" data-linenos="17 "></span></a><span class="w">        </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-3-18" name="__codelineno-3-18"></a><a href="#__codelineno-3-18"><span class="linenos" data-linenos="18 "></span></a><span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Utilization</span><span class="w"></span>
+<a id="__codelineno-3-19" name="__codelineno-3-19"></a><a href="#__codelineno-3-19"><span class="linenos" data-linenos="19 "></span></a><span class="w">          </span><span class="nt">averageUtilization</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span><span class="w"></span>
+<a id="__codelineno-3-20" name="__codelineno-3-20"></a><a href="#__codelineno-3-20"><span class="linenos" data-linenos="20 "></span></a><span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Resource</span><span class="w"></span>
+</code></pre></div></p>
 <p>在上面这个例子中，用户在 EHPA 创建的 Metric 阈值配置会自动转换成底层 HPA 上的两条 Metric 阈值配置：预测 Metric 阈值和实际监控 Metric 阈值</p>
 <ul>
 <li><strong>预测 Metric 阈值</strong> 是一个 custom metric。值通过 Crane 的 MetricAdapter 提供。</li>
@@ -787,39 +786,38 @@ spec:
 <h4 id="preview">Preview<a class="headerlink" href="#preview" title="Permanent link">&para;</a></h4>
 <p>Preview 策略提供了一种让 EHPA 不自动执行弹性的能力。所以你可以通过 EHPA 的 desiredReplicas 字段观测 EHPA 计算出的副本数。用户可以随时在两个模式间切换，当用户切换到 Preview 模式时，用户可以通过 <code>spec.specificReplicas</code> 调整应用的副本数，如果 <code>spec.specificReplicas</code> 为空，则不会对应用执行弹性，但是依然会执行副本数的计算。</p>
 <p>以下是一个配置成 Preview 模式的 EHPA 模版例子：
-<code>yaml
-apiVersion: autoscaling.crane.io/v1alpha1
-kind: EffectiveHorizontalPodAutoscaler
-spec:
-  scaleStrategy: Preview   # ScaleStrategy indicate the strategy to scaling target, value can be "Auto" and "Preview".
-  specificReplicas: 5      # SpecificReplicas specify the target replicas.
-status:
-  expectReplicas: 4        # expectReplicas is the calculated replicas that based on prediction metrics or spec.specificReplicas.
-  currentReplicas: 4       # currentReplicas is actual replicas from target</code></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1"></a><a href="#__codelineno-4-1"><span class="linenos" data-linenos="1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">autoscaling.crane.io/v1alpha1</span><span class="w"></span>
+<a id="__codelineno-4-2" name="__codelineno-4-2"></a><a href="#__codelineno-4-2"><span class="linenos" data-linenos="2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">EffectiveHorizontalPodAutoscaler</span><span class="w"></span>
+<a id="__codelineno-4-3" name="__codelineno-4-3"></a><a href="#__codelineno-4-3"><span class="linenos" data-linenos="3 "></span></a><span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-4-4" name="__codelineno-4-4"></a><a href="#__codelineno-4-4"><span class="linenos" data-linenos="4 "></span></a><span class="w">  </span><span class="nt">scaleStrategy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Preview</span><span class="w">   </span><span class="c1"># ScaleStrategy indicate the strategy to scaling target, value can be &quot;Auto&quot; and &quot;Preview&quot;.</span><span class="w"></span>
+<a id="__codelineno-4-5" name="__codelineno-4-5"></a><a href="#__codelineno-4-5"><span class="linenos" data-linenos="5 "></span></a><span class="w">  </span><span class="nt">specificReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span><span class="w">      </span><span class="c1"># SpecificReplicas specify the target replicas.</span><span class="w"></span>
+<a id="__codelineno-4-6" name="__codelineno-4-6"></a><a href="#__codelineno-4-6"><span class="linenos" data-linenos="6 "></span></a><span class="nt">status</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-4-7" name="__codelineno-4-7"></a><a href="#__codelineno-4-7"><span class="linenos" data-linenos="7 "></span></a><span class="w">  </span><span class="nt">expectReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span><span class="w">        </span><span class="c1"># expectReplicas is the calculated replicas that based on prediction metrics or spec.specificReplicas.</span><span class="w"></span>
+<a id="__codelineno-4-8" name="__codelineno-4-8"></a><a href="#__codelineno-4-8"><span class="linenos" data-linenos="8 "></span></a><span class="w">  </span><span class="nt">currentReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span><span class="w">       </span><span class="c1"># currentReplicas is actual replicas from target</span><span class="w"></span>
+</code></pre></div></p>
 <h3 id="horizontalpodautoscaler">HorizontalPodAutoscaler 社区兼容<a class="headerlink" href="#horizontalpodautoscaler" title="Permanent link">&para;</a></h3>
 <p>EHPA 从设计之出就希望和社区的 HPA 兼容，因为我们不希望重新造一个类似 HPA 的轮子，HPA 在不断演进的过程已经解决了很多通用的问题，EHPA 希望在 HPA 的基础上提供更高阶的 CRD，EHPA 的功能是社区 HPA 的超集。</p>
 <p>EHPA 也会持续跟进支持 HPA 的新功能。</p>
 <h3 id="effectivehorizontalpodautoscaler-status">EffectiveHorizontalPodAutoscaler status<a class="headerlink" href="#effectivehorizontalpodautoscaler-status" title="Permanent link">&para;</a></h3>
 <p>EHPA 的 Status 包括了自身的 Status 同时也汇聚了底层 HPA 的部分 Status。</p>
 <p>以下是一个 EHPA 的 Status yaml例子：
-```yaml
-apiVersion: autoscaling.crane.io/v1alpha1
-kind: EffectiveHorizontalPodAutoscaler
-status:
-  conditions:                                             <br />
-  - lastTransitionTime: "2021-11-30T08:18:59Z"
-    message: the HPA controller was able to get the target's current scale
-    reason: SucceededGetScale
-    status: "True"
-    type: AbleToScale
-  - lastTransitionTime: "2021-11-30T08:18:59Z"
-    message: Effective HPA is ready
-    reason: EffectiveHorizontalPodAutoscalerReady
-    status: "True"
-    type: Ready
-  currentReplicas: 1
-  expectReplicas: 0</p>
-<p>```</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1"></a><a href="#__codelineno-5-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">autoscaling.crane.io/v1alpha1</span><span class="w"></span>
+<a id="__codelineno-5-2" name="__codelineno-5-2"></a><a href="#__codelineno-5-2"><span class="linenos" data-linenos=" 2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">EffectiveHorizontalPodAutoscaler</span><span class="w"></span>
+<a id="__codelineno-5-3" name="__codelineno-5-3"></a><a href="#__codelineno-5-3"><span class="linenos" data-linenos=" 3 "></span></a><span class="nt">status</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-5-4" name="__codelineno-5-4"></a><a href="#__codelineno-5-4"><span class="linenos" data-linenos=" 4 "></span></a><span class="w">  </span><span class="nt">conditions</span><span class="p">:</span><span class="w">                                               </span>
+<a id="__codelineno-5-5" name="__codelineno-5-5"></a><a href="#__codelineno-5-5"><span class="linenos" data-linenos=" 5 "></span></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">lastTransitionTime</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2021-11-30T08:18:59Z&quot;</span><span class="w"></span>
+<a id="__codelineno-5-6" name="__codelineno-5-6"></a><a href="#__codelineno-5-6"><span class="linenos" data-linenos=" 6 "></span></a><span class="w">    </span><span class="nt">message</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">the HPA controller was able to get the target&#39;s current scale</span><span class="w"></span>
+<a id="__codelineno-5-7" name="__codelineno-5-7"></a><a href="#__codelineno-5-7"><span class="linenos" data-linenos=" 7 "></span></a><span class="w">    </span><span class="nt">reason</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SucceededGetScale</span><span class="w"></span>
+<a id="__codelineno-5-8" name="__codelineno-5-8"></a><a href="#__codelineno-5-8"><span class="linenos" data-linenos=" 8 "></span></a><span class="w">    </span><span class="nt">status</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;True&quot;</span><span class="w"></span>
+<a id="__codelineno-5-9" name="__codelineno-5-9"></a><a href="#__codelineno-5-9"><span class="linenos" data-linenos=" 9 "></span></a><span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AbleToScale</span><span class="w"></span>
+<a id="__codelineno-5-10" name="__codelineno-5-10"></a><a href="#__codelineno-5-10"><span class="linenos" data-linenos="10 "></span></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">lastTransitionTime</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2021-11-30T08:18:59Z&quot;</span><span class="w"></span>
+<a id="__codelineno-5-11" name="__codelineno-5-11"></a><a href="#__codelineno-5-11"><span class="linenos" data-linenos="11 "></span></a><span class="w">    </span><span class="nt">message</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Effective HPA is ready</span><span class="w"></span>
+<a id="__codelineno-5-12" name="__codelineno-5-12"></a><a href="#__codelineno-5-12"><span class="linenos" data-linenos="12 "></span></a><span class="w">    </span><span class="nt">reason</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">EffectiveHorizontalPodAutoscalerReady</span><span class="w"></span>
+<a id="__codelineno-5-13" name="__codelineno-5-13"></a><a href="#__codelineno-5-13"><span class="linenos" data-linenos="13 "></span></a><span class="w">    </span><span class="nt">status</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;True&quot;</span><span class="w"></span>
+<a id="__codelineno-5-14" name="__codelineno-5-14"></a><a href="#__codelineno-5-14"><span class="linenos" data-linenos="14 "></span></a><span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Ready</span><span class="w"></span>
+<a id="__codelineno-5-15" name="__codelineno-5-15"></a><a href="#__codelineno-5-15"><span class="linenos" data-linenos="15 "></span></a><span class="w">  </span><span class="nt">currentReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span><span class="w"></span>
+<a id="__codelineno-5-16" name="__codelineno-5-16"></a><a href="#__codelineno-5-16"><span class="linenos" data-linenos="16 "></span></a><span class="w">  </span><span class="nt">expectReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span><span class="w"></span>
+</code></pre></div></p>
 
               
             </article>

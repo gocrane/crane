@@ -629,21 +629,19 @@
 <p>This doc describes the code standards and suggestion for crane project, mainly for new contributor of the project</p>
 <h3 id="import-need-to-be-organized">import need to be organized<a class="headerlink" href="#import-need-to-be-organized" title="Permanent link">&para;</a></h3>
 <p>import should be categorized with blank line as system imports, community imports and crane apis and crane imports, like the following example
-```go
-import (
-    "reflect"
-    "sync"
-    "time"</p>
-<div class="codehilite"><pre><span></span><code>vpa &quot;k8s.io/autoscaler/vertical-pod-autoscaler/pkg/recommender/util&quot;
-
-&quot;github.com/gocrane/api/prediction/v1alpha1&quot;
-
-&quot;github.com/gocrane/crane/pkg/utils&quot;
-&quot;github.com/gocrane/crane/pkg/prediction/config&quot;
-</code></pre></div>
-
-<p>)
-```</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1"></a><a href="#__codelineno-0-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="kn">import</span><span class="w"> </span><span class="p">(</span><span class="w"></span>
+<a id="__codelineno-0-2" name="__codelineno-0-2"></a><a href="#__codelineno-0-2"><span class="linenos" data-linenos=" 2 "></span></a><span class="w">    </span><span class="s">&quot;reflect&quot;</span><span class="w"></span>
+<a id="__codelineno-0-3" name="__codelineno-0-3"></a><a href="#__codelineno-0-3"><span class="linenos" data-linenos=" 3 "></span></a><span class="w">    </span><span class="s">&quot;sync&quot;</span><span class="w"></span>
+<a id="__codelineno-0-4" name="__codelineno-0-4"></a><a href="#__codelineno-0-4"><span class="linenos" data-linenos=" 4 "></span></a><span class="w">    </span><span class="s">&quot;time&quot;</span><span class="w"></span>
+<a id="__codelineno-0-5" name="__codelineno-0-5"></a><a href="#__codelineno-0-5"><span class="linenos" data-linenos=" 5 "></span></a>
+<a id="__codelineno-0-6" name="__codelineno-0-6"></a><a href="#__codelineno-0-6"><span class="linenos" data-linenos=" 6 "></span></a><span class="w">    </span><span class="nx">vpa</span><span class="w"> </span><span class="s">&quot;k8s.io/autoscaler/vertical-pod-autoscaler/pkg/recommender/util&quot;</span><span class="w"></span>
+<a id="__codelineno-0-7" name="__codelineno-0-7"></a><a href="#__codelineno-0-7"><span class="linenos" data-linenos=" 7 "></span></a>
+<a id="__codelineno-0-8" name="__codelineno-0-8"></a><a href="#__codelineno-0-8"><span class="linenos" data-linenos=" 8 "></span></a><span class="w">    </span><span class="s">&quot;github.com/gocrane/api/prediction/v1alpha1&quot;</span><span class="w"></span>
+<a id="__codelineno-0-9" name="__codelineno-0-9"></a><a href="#__codelineno-0-9"><span class="linenos" data-linenos=" 9 "></span></a>
+<a id="__codelineno-0-10" name="__codelineno-0-10"></a><a href="#__codelineno-0-10"><span class="linenos" data-linenos="10 "></span></a><span class="w">    </span><span class="s">&quot;github.com/gocrane/crane/pkg/utils&quot;</span><span class="w"></span>
+<a id="__codelineno-0-11" name="__codelineno-0-11"></a><a href="#__codelineno-0-11"><span class="linenos" data-linenos="11 "></span></a><span class="w">    </span><span class="s">&quot;github.com/gocrane/crane/pkg/prediction/config&quot;</span><span class="w"></span>
+<a id="__codelineno-0-12" name="__codelineno-0-12"></a><a href="#__codelineno-0-12"><span class="linenos" data-linenos="12 "></span></a><span class="p">)</span><span class="w"></span>
+</code></pre></div></p>
 <h3 id="logs-standard">logs standard<a class="headerlink" href="#logs-standard" title="Permanent link">&para;</a></h3>
 <ul>
 <li>logs are required for troubleshooting purpose</li>
@@ -654,43 +652,43 @@ import (
 <li>set 6 for more detail debug level.</li>
 <li>set 10 for massive data log level.</li>
 <li>can use klog.KObj() to contain object key to let we know which object the message is printed for
-<code>go
-klog.Infof("Failed to setup webhook %s", "value")
-klog.V(4).Infof("Debug info %s", "value")
-klog.Errorf("Failed to get scale, ehpa %s error %v", klog.KObj(ehpa), err)
-klog.Error(error)
-klog.ErrorDepth(5, fmt.Errorf("failed to get ehpa %s: %v", klog.KObj(ehpa), err))</code></li>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1"></a><a href="#__codelineno-1-1"><span class="linenos" data-linenos="1 "></span></a><span class="nx">klog</span><span class="p">.</span><span class="nx">Infof</span><span class="p">(</span><span class="s">&quot;Failed to setup webhook %s&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;value&quot;</span><span class="p">)</span><span class="w"></span>
+<a id="__codelineno-1-2" name="__codelineno-1-2"></a><a href="#__codelineno-1-2"><span class="linenos" data-linenos="2 "></span></a><span class="nx">klog</span><span class="p">.</span><span class="nx">V</span><span class="p">(</span><span class="mi">4</span><span class="p">).</span><span class="nx">Infof</span><span class="p">(</span><span class="s">&quot;Debug info %s&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;value&quot;</span><span class="p">)</span><span class="w"></span>
+<a id="__codelineno-1-3" name="__codelineno-1-3"></a><a href="#__codelineno-1-3"><span class="linenos" data-linenos="3 "></span></a><span class="nx">klog</span><span class="p">.</span><span class="nx">Errorf</span><span class="p">(</span><span class="s">&quot;Failed to get scale, ehpa %s error %v&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">klog</span><span class="p">.</span><span class="nx">KObj</span><span class="p">(</span><span class="nx">ehpa</span><span class="p">),</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span><span class="w"></span>
+<a id="__codelineno-1-4" name="__codelineno-1-4"></a><a href="#__codelineno-1-4"><span class="linenos" data-linenos="4 "></span></a><span class="nx">klog</span><span class="p">.</span><span class="nx">Error</span><span class="p">(</span><span class="kt">error</span><span class="p">)</span><span class="w"></span>
+<a id="__codelineno-1-5" name="__codelineno-1-5"></a><a href="#__codelineno-1-5"><span class="linenos" data-linenos="5 "></span></a><span class="nx">klog</span><span class="p">.</span><span class="nx">ErrorDepth</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Errorf</span><span class="p">(</span><span class="s">&quot;failed to get ehpa %s: %v&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">klog</span><span class="p">.</span><span class="nx">KObj</span><span class="p">(</span><span class="nx">ehpa</span><span class="p">),</span><span class="w"> </span><span class="nx">err</span><span class="p">))</span><span class="w"></span>
+</code></pre></div></li>
 </ul>
 <h3 id="event-is-needed-for-critical-reconcile-loop">event is needed for critical reconcile loop<a class="headerlink" href="#event-is-needed-for-critical-reconcile-loop" title="Permanent link">&para;</a></h3>
 <ul>
 <li>event is to let user know what happens on serverside, only print info we want user to know</li>
 <li>consider failure paths and success paths</li>
 <li>event do not need the object key
-<code>go
-c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedGetSubstitute", err.Error())</code></li>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1"></a><a href="#__codelineno-2-1"><span class="linenos" data-linenos="1 "></span></a><span class="nx">c</span><span class="p">.</span><span class="nx">Recorder</span><span class="p">.</span><span class="nx">Event</span><span class="p">(</span><span class="nx">ehpa</span><span class="p">,</span><span class="w"> </span><span class="nx">v1</span><span class="p">.</span><span class="nx">EventTypeNormal</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;FailedGetSubstitute&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">.</span><span class="nx">Error</span><span class="p">())</span><span class="w"></span>
+</code></pre></div></li>
 </ul>
 <h3 id="comment">comment<a class="headerlink" href="#comment" title="Permanent link">&para;</a></h3>
 <ul>
 <li>every interface should have comments to clarify </li>
-<li>
-<p>comment should be a complete sentence 
-```go
-// Interface is a source of monitoring metric that provides metrics that can be used for
-// prediction, such as 'cpu usage', 'memory footprint', 'request per second (qps)', etc.
-type Interface interface {
-    // GetTimeSeries returns the metric time series that meet the given
-    // conditions from the specified time range.
-    GetTimeSeries(metricName string, Conditions []common.QueryCondition,
-        startTime time.Time, endTime time.Time, step time.Duration) ([]*common.TimeSeries, error)</p>
-<p>// GetLatestTimeSeries returns the latest metric values that meet the given conditions.
-GetLatestTimeSeries(metricName string, Conditions []common.QueryCondition) ([]*common.TimeSeries, error)</p>
-<p>// QueryTimeSeries returns the time series based on a promql like query string.
-QueryTimeSeries(queryExpr string, startTime time.Time, endTime time.Time, step time.Duration) ([]*common.TimeSeries, error)</p>
-<p>// QueryLatestTimeSeries returns the latest metric values that meet the given query.
-QueryLatestTimeSeries(queryExpr string) ([]*common.TimeSeries, error)
-}
-```</p>
-</li>
+<li>comment should be a complete sentence 
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1"></a><a href="#__codelineno-3-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="c1">// Interface is a source of monitoring metric that provides metrics that can be used for</span><span class="w"></span>
+<a id="__codelineno-3-2" name="__codelineno-3-2"></a><a href="#__codelineno-3-2"><span class="linenos" data-linenos=" 2 "></span></a><span class="c1">// prediction, such as &#39;cpu usage&#39;, &#39;memory footprint&#39;, &#39;request per second (qps)&#39;, etc.</span><span class="w"></span>
+<a id="__codelineno-3-3" name="__codelineno-3-3"></a><a href="#__codelineno-3-3"><span class="linenos" data-linenos=" 3 "></span></a><span class="kd">type</span><span class="w"> </span><span class="nx">Interface</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<a id="__codelineno-3-4" name="__codelineno-3-4"></a><a href="#__codelineno-3-4"><span class="linenos" data-linenos=" 4 "></span></a><span class="w">    </span><span class="c1">// GetTimeSeries returns the metric time series that meet the given</span><span class="w"></span>
+<a id="__codelineno-3-5" name="__codelineno-3-5"></a><a href="#__codelineno-3-5"><span class="linenos" data-linenos=" 5 "></span></a><span class="w">    </span><span class="c1">// conditions from the specified time range.</span><span class="w"></span>
+<a id="__codelineno-3-6" name="__codelineno-3-6"></a><a href="#__codelineno-3-6"><span class="linenos" data-linenos=" 6 "></span></a><span class="w">    </span><span class="nx">GetTimeSeries</span><span class="p">(</span><span class="nx">metricName</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">Conditions</span><span class="w"> </span><span class="p">[]</span><span class="nx">common</span><span class="p">.</span><span class="nx">QueryCondition</span><span class="p">,</span><span class="w"></span>
+<a id="__codelineno-3-7" name="__codelineno-3-7"></a><a href="#__codelineno-3-7"><span class="linenos" data-linenos=" 7 "></span></a><span class="w">        </span><span class="nx">startTime</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Time</span><span class="p">,</span><span class="w"> </span><span class="nx">endTime</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Time</span><span class="p">,</span><span class="w"> </span><span class="nx">step</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="o">*</span><span class="nx">common</span><span class="p">.</span><span class="nx">TimeSeries</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"></span>
+<a id="__codelineno-3-8" name="__codelineno-3-8"></a><a href="#__codelineno-3-8"><span class="linenos" data-linenos=" 8 "></span></a>
+<a id="__codelineno-3-9" name="__codelineno-3-9"></a><a href="#__codelineno-3-9"><span class="linenos" data-linenos=" 9 "></span></a><span class="w">    </span><span class="c1">// GetLatestTimeSeries returns the latest metric values that meet the given conditions.</span><span class="w"></span>
+<a id="__codelineno-3-10" name="__codelineno-3-10"></a><a href="#__codelineno-3-10"><span class="linenos" data-linenos="10 "></span></a><span class="w">    </span><span class="nx">GetLatestTimeSeries</span><span class="p">(</span><span class="nx">metricName</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">Conditions</span><span class="w"> </span><span class="p">[]</span><span class="nx">common</span><span class="p">.</span><span class="nx">QueryCondition</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="o">*</span><span class="nx">common</span><span class="p">.</span><span class="nx">TimeSeries</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"></span>
+<a id="__codelineno-3-11" name="__codelineno-3-11"></a><a href="#__codelineno-3-11"><span class="linenos" data-linenos="11 "></span></a>
+<a id="__codelineno-3-12" name="__codelineno-3-12"></a><a href="#__codelineno-3-12"><span class="linenos" data-linenos="12 "></span></a><span class="w">    </span><span class="c1">// QueryTimeSeries returns the time series based on a promql like query string.</span><span class="w"></span>
+<a id="__codelineno-3-13" name="__codelineno-3-13"></a><a href="#__codelineno-3-13"><span class="linenos" data-linenos="13 "></span></a><span class="w">    </span><span class="nx">QueryTimeSeries</span><span class="p">(</span><span class="nx">queryExpr</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">startTime</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Time</span><span class="p">,</span><span class="w"> </span><span class="nx">endTime</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Time</span><span class="p">,</span><span class="w"> </span><span class="nx">step</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="o">*</span><span class="nx">common</span><span class="p">.</span><span class="nx">TimeSeries</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"></span>
+<a id="__codelineno-3-14" name="__codelineno-3-14"></a><a href="#__codelineno-3-14"><span class="linenos" data-linenos="14 "></span></a>
+<a id="__codelineno-3-15" name="__codelineno-3-15"></a><a href="#__codelineno-3-15"><span class="linenos" data-linenos="15 "></span></a><span class="w">    </span><span class="c1">// QueryLatestTimeSeries returns the latest metric values that meet the given query.</span><span class="w"></span>
+<a id="__codelineno-3-16" name="__codelineno-3-16"></a><a href="#__codelineno-3-16"><span class="linenos" data-linenos="16 "></span></a><span class="w">    </span><span class="nx">QueryLatestTimeSeries</span><span class="p">(</span><span class="nx">queryExpr</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="o">*</span><span class="nx">common</span><span class="p">.</span><span class="nx">TimeSeries</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"></span>
+<a id="__codelineno-3-17" name="__codelineno-3-17"></a><a href="#__codelineno-3-17"><span class="linenos" data-linenos="17 "></span></a><span class="p">}</span><span class="w"></span>
+</code></pre></div></li>
 </ul>
 <h3 id="functions">functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
 <ul>
