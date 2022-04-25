@@ -41,6 +41,10 @@ const (
 	timeoutRetryAddContainer = 2 * time.Second
 )
 
+var DefaultExclusiveCPUSet = func() cpuset.CPUSet {
+	return cpuset.NewCPUSet()
+}
+
 type AdvancedCpuManager struct {
 	isStarted bool
 
@@ -62,6 +66,8 @@ type AdvancedCpuManager struct {
 
 	// stateFileDirectory holds the directory where the state file for checkpoints is held.
 	stateFileDirectory string
+
+	exclusiveCPUSet cpuset.CPUSet
 
 	cadvisor.Manager
 }
@@ -251,6 +257,8 @@ func (m *AdvancedCpuManager) syncState(doAllocate bool) {
 			}
 		}
 	}
+
+	m.exclusiveCPUSet = m.getExclusiveCpu()
 }
 
 func (m *AdvancedCpuManager) policyRemoveContainerByRef(podUID string, containerName string) error {
@@ -293,6 +301,24 @@ func (m *AdvancedCpuManager) getSharedCpu() cpuset.CPUSet {
 		}
 	}
 	return sharedCPUSet
+}
+
+func (m *AdvancedCpuManager) getExclusiveCpu() cpuset.CPUSet {
+	exclusiveCPUSet := cpuset.NewCPUSet()
+	for _, pod := range m.activepods() {
+		for _, container := range pod.Spec.Containers {
+			if cset, ok := m.state.GetCPUSet(string(pod.UID), container.Name); ok {
+				if csp := GetPodCPUSetType(pod, &container); csp == CPUSetExclusive {
+					exclusiveCPUSet = exclusiveCPUSet.Union(cset)
+				}
+			}
+		}
+	}
+	return exclusiveCPUSet
+}
+
+func (m *AdvancedCpuManager) GetExclusiveCpu() cpuset.CPUSet {
+	return m.exclusiveCPUSet
 }
 
 func (m *AdvancedCpuManager) activepods() []*v1.Pod {

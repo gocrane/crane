@@ -19,7 +19,7 @@ func init() {
 	registerCollector(memoryCollectorName, []types.MetricName{types.MetricNameMemoryTotalUsage, types.MetricNameMemoryTotalUtilization}, collectMemory)
 }
 
-func collectMemory(_ *nodeState) (map[string][]common.TimeSeries, error) {
+func collectMemory(_ *nodeLocalContext) (map[string][]common.TimeSeries, error) {
 	var now = time.Now()
 	stat, err := mem.VirtualMemory()
 	if err != nil {

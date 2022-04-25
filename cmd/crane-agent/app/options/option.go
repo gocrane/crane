@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/spf13/pflag"
+	cliflag "k8s.io/component-base/cli/flag"
 )
 
 // Options hold the command-line options about crane manager
@@ -21,7 +22,8 @@ type Options struct {
 	// MaxInactivity is the maximum time from last recorded activity before automatic restart
 	MaxInactivity time.Duration
 	// Ifaces is the network devices to collect metric
-	Ifaces []string
+	Ifaces               []string
+	NodeResourceReserved map[string]string
 }
 
 // NewOptions builds an empty options.
@@ -47,5 +49,6 @@ func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&o.BindAddr, "bind-address", "0.0.0.0:8081", "The address the agent binds to for metrics, health-check and pprof, default: 0.0.0.0:8081.")
 	flags.DurationVar(&o.CollectInterval, "collect-interval", 10*time.Second, "Period for the state collector to collect metrics, default: 10s")
 	flags.StringArrayVar(&o.Ifaces, "ifaces", []string{"eth0"}, "The network devices to collect metric, use comma to separated, default: eth0")
+	flags.Var(cliflag.NewMapStringString(&o.NodeResourceReserved), "node-resource-reserved", "A set of ResourceName=Percent (e.g. cpu=40%,memory=40%)")
 	flags.DurationVar(&o.MaxInactivity, "max-inactivity", 5*time.Minute, "Maximum time from last recorded activity before automatic restart, default: 5min")
 }

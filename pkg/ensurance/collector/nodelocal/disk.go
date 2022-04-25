@@ -33,8 +33,9 @@ type DiskIOUsage struct {
 	Utilization    float64
 }
 
-func collectDiskIO(nodeState *nodeState) (map[string][]common.TimeSeries, error) {
+func collectDiskIO(nodeLocalContext *nodeLocalContext) (map[string][]common.TimeSeries, error) {
 	var now = time.Now()
+	nodeState := nodeLocalContext.nodeState
 
 	devices, err := sysBlockDevices(sysBlockPath)
 	if err != nil {
@@ -84,7 +85,7 @@ func sysBlockDevices(sysBlockPath string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	devices := []string{}
+	devices := make([]string, 0)
 	for _, dir := range dirs {
 		devices = append(devices, dir.Name())
 	}
