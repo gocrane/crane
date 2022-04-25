@@ -98,7 +98,7 @@ func (a *EHPAAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 		}
 	}
 
-	if predictable && predictableEnabled {
+	if predictable {
 		for _, sample := range tsListPrediction[0].Samples {
 			cpuUsages = append(cpuUsages, sample.Value)
 			if sample.Value > cpuMax {
