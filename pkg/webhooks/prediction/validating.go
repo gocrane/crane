@@ -23,7 +23,7 @@ func (p *ValidationAdmission) ValidateCreate(ctx context.Context, req runtime.Ob
 	tsp, ok := req.(*predictionapi.TimeSeriesPrediction)
 	if ok {
 		if tsp.Spec.TargetRef.Name == "" {
-			return fmt.Errorf("Need TargetRef.Name")
+			return fmt.Errorf("need TargetRef.Name")
 		}
 		if tsp.Spec.PredictionWindowSeconds < 3600 {
 			return fmt.Errorf("PredictionWindowSeconds at least 3600")

@@ -38,7 +38,7 @@ func NewRemoteAdapter(namespace string, name string, port int, config *rest.Conf
 
 	discoveryClientSet, err := discovery.NewDiscoveryClientForConfig(metricConfig)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create discovery client: %v ", err)
+		return nil, fmt.Errorf("failed to create discovery client: %v ", err)
 	}
 
 	apiVersionsGetter := cmClient.NewAvailableAPIsGetter(discoveryClientSet)
@@ -94,7 +94,7 @@ func (p *RemoteAdapter) GetMetricByName(ctx context.Context, name types.Namespac
 
 	kind, err := utils.KindForResource(info.GroupResource.Resource, p.restMapper)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get kind for resource %s: %v ", info.GroupResource.Resource, err)
+		return nil, fmt.Errorf("failed to get kind for resource %s: %v ", info.GroupResource.Resource, err)
 	}
 
 	var object *v1beta2.MetricValue
@@ -115,7 +115,7 @@ func (p *RemoteAdapter) GetMetricByName(ctx context.Context, name types.Namespac
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get metric by name from remote: %v ", err)
+		return nil, fmt.Errorf("failed to get metric by name from remote: %v ", err)
 	}
 
 	return &custom_metrics.MetricValue{
@@ -142,7 +142,7 @@ func (p *RemoteAdapter) GetMetricBySelector(ctx context.Context, namespace strin
 
 	kind, err := utils.KindForResource(info.GroupResource.Resource, p.restMapper)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get kind for resource %s: %v ", info.GroupResource.Resource, err)
+		return nil, fmt.Errorf("failed to get kind for resource %s: %v ", info.GroupResource.Resource, err)
 	}
 
 	var objects *v1beta2.MetricValueList
@@ -168,7 +168,7 @@ func (p *RemoteAdapter) GetMetricBySelector(ctx context.Context, namespace strin
 		)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get metric by selector from remote: %v ", err)
+		return nil, fmt.Errorf("failed to get metric by selector from remote: %v ", err)
 	}
 	values := make([]custom_metrics.MetricValue, len(objects.Items))
 	for i, v := range objects.Items {

@@ -229,8 +229,5 @@ func IsWindowInSamples(start, end time.Time, samples []predictionapi.Sample) boo
 	//startTs := start.Truncate(1 * time.Minute).Unix()
 	endTs := end.Truncate(1 * time.Minute).Unix()
 	// only check the end, start not check, because start is always from now to predict
-	if endTs <= samples[n-1].Timestamp {
-		return true
-	}
-	return false
+	return endTs <= samples[n-1].Timestamp
 }

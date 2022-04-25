@@ -125,12 +125,12 @@ func (o *PodResourceManager) reconcilePod(obj interface{}) {
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
-			utilruntime.HandleError(fmt.Errorf("Couldn't get object from tombstone %#v", obj))
+			utilruntime.HandleError(fmt.Errorf("couldn't get object from tombstone %#v", obj))
 			return
 		}
 		pod, ok = tombstone.Obj.(*v1.Pod)
 		if !ok {
-			utilruntime.HandleError(fmt.Errorf("Tombstone contained object that is not a pod %#v", obj))
+			utilruntime.HandleError(fmt.Errorf("tombstone contained object that is not a pod %#v", obj))
 			return
 		}
 	}
@@ -164,6 +164,9 @@ func (o *PodResourceManager) updatePodExtResToCgroup(pod *v1.Pod) {
 
 				// If container's quota is -1, pod resource manager will convert limit to quota
 				containerCPUQuota, err := executor.GetUsageById(containerCPUQuotas, containerId)
+				if err != nil {
+					klog.Error(err)
+				}
 				if !utils.AlmostEqual(containerCPUQuota.Value, -1.0) && !utils.AlmostEqual(containerCPUQuota.Value, 0) {
 					continue
 				}

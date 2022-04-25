@@ -72,7 +72,7 @@ func (hc *HealthCheck) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if now.After(lastActivity.Add(hc.activityTimeout)) {
 		w.WriteHeader(http.StatusInternalServerError)
 
-		if _, err := w.Write([]byte(fmt.Sprintf("Error: last activity more %v ago", time.Now().Sub(lastActivity).String()))); err != nil {
+		if _, err := w.Write([]byte(fmt.Sprintf("Error: last activity more %v ago", time.Since(lastActivity).String()))); err != nil {
 			klog.Errorf("Http write failed: %v", err)
 			return
 		}
@@ -83,7 +83,7 @@ func (hc *HealthCheck) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if now.After(lastConfigUpdated.Add(hc.activityTimeout)) {
 		w.WriteHeader(http.StatusInternalServerError)
 
-		if _, err := w.Write([]byte(fmt.Sprintf("Error: last config update  more %v ago", time.Now().Sub(lastConfigUpdated).String()))); err != nil {
+		if _, err := w.Write([]byte(fmt.Sprintf("Error: last config update  more %v ago", time.Since(lastConfigUpdated).String()))); err != nil {
 			klog.Errorf("Http write failed: %v", err)
 			return
 		}

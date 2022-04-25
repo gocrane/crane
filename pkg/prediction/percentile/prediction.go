@@ -125,7 +125,7 @@ func (p *percentilePrediction) QueryRealtimePredictedValues(ctx context.Context,
 	return p.getPredictedValues(ctx, namer), nil
 }
 
-// once task, it is only called once then caller will delete the query after call, but this query maybe used by other callers,
+// QueryRealtimePredictedValuesOnce once task, it is only called once then caller will delete the query after call, but this query maybe used by other callers,
 // so when there has already registered this namer query, we get the estimated value from the model directly.
 // when there is no this namer query in state, we fetch history data to recover the histogram model then get the estimated value by a stateless function as data processing way.
 func (p *percentilePrediction) QueryRealtimePredictedValuesOnce(ctx context.Context, namer metricnaming.MetricNamer, config config.Config) ([]*common.TimeSeries, error) {
@@ -144,7 +144,7 @@ func (p *percentilePrediction) QueryRealtimePredictedValuesOnce(ctx context.Cont
 			key := "__all__"
 			signal := signals[key]
 			if signal == nil {
-				return nil, fmt.Errorf("No signal key %v found", key)
+				return nil, fmt.Errorf("no signal key %v found", key)
 			}
 			sample := common.Sample{
 				Value:     estimator.GetEstimation(signal.histogram),
@@ -231,7 +231,7 @@ func (p *percentilePrediction) process(namer metricnaming.MetricNamer, config co
 	if cfg.aggregated {
 		signal := signals[keyAll]
 		if signal == nil {
-			return nil, fmt.Errorf("No signal key %v found", keyAll)
+			return nil, fmt.Errorf("no signal key %v found", keyAll)
 		}
 		sample := common.Sample{
 			Value:     estimator.GetEstimation(signal.histogram),

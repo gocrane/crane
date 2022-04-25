@@ -18,7 +18,7 @@ type WorkloadPodsInspector struct {
 
 func (i *WorkloadPodsInspector) Inspect() error {
 	if len(i.Pods) == 0 {
-		return fmt.Errorf("Existing pods should be larger than 0 ")
+		return fmt.Errorf("existing pods should be larger than 0 ")
 	}
 
 	podMinReadySeconds, err := strconv.ParseInt(i.Context.ConfigProperties["ehpa.pod-min-ready-seconds"], 10, 32)
@@ -39,12 +39,12 @@ func (i *WorkloadPodsInspector) Inspect() error {
 	}
 
 	if readyPods == 0 {
-		return fmt.Errorf("Pod available number must larger than zero. ")
+		return fmt.Errorf("pod available number must larger than zero. ")
 	}
 
 	availableRatio := float64(readyPods) / float64(len(i.Pods))
 	if availableRatio < podAvailableRatio {
-		return fmt.Errorf("Pod available ratio is %.3f less than %.3f ", availableRatio, podAvailableRatio)
+		return fmt.Errorf("pod available ratio is %.3f less than %.3f ", availableRatio, podAvailableRatio)
 	}
 
 	i.Context.ReadyPodNumber = readyPods

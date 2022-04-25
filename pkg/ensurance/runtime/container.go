@@ -98,7 +98,7 @@ func UpdateContainerResources(client pb.RuntimeServiceClient, containerId string
 // copied from kubernetes-sigs/cri-tools/cmd/crictl/container.go
 func RemoveContainer(client pb.RuntimeServiceClient, ContainerId string) error {
 	if ContainerId == "" {
-		return fmt.Errorf("ID cannot be empty")
+		return fmt.Errorf("id cannot be empty")
 	}
 
 	request := &pb.RemoveContainerRequest{

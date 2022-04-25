@@ -7,7 +7,6 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -111,7 +110,7 @@ func (c *Controller) DoAnalytics(ctx context.Context, analytics *analysisv1alph1
 
 	identities, err := c.GetIdentities(ctx, analytics)
 	if err != nil {
-		c.Recorder.Event(analytics, v1.EventTypeNormal, "FailedSelectResource", err.Error())
+		c.Recorder.Event(analytics, corev1.EventTypeNormal, "FailedSelectResource", err.Error())
 		msg := fmt.Sprintf("Failed to get idenitities, Analytics %s error %v", klog.KObj(analytics), err)
 		klog.Errorf(msg)
 		setReadyCondition(newStatus, metav1.ConditionFalse, "FailedSelectResource", msg)
@@ -126,7 +125,7 @@ func (c *Controller) DoAnalytics(ctx context.Context, analytics *analysisv1alph1
 		recommendations, err = c.recommLister.Recommendations(analytics.Namespace).List(labels.Everything())
 	}
 	if err != nil {
-		c.Recorder.Event(analytics, v1.EventTypeNormal, "FailedSelectResource", err.Error())
+		c.Recorder.Event(analytics, corev1.EventTypeNormal, "FailedSelectResource", err.Error())
 		msg := fmt.Sprintf("Failed to get recomendations, Analytics %s error %v", klog.KObj(analytics), err)
 		klog.Errorf(msg)
 		setReadyCondition(newStatus, metav1.ConditionFalse, "FailedSelectResource", msg)
@@ -176,7 +175,7 @@ func (c *Controller) DoAnalytics(ctx context.Context, analytics *analysisv1alph1
 				rCopy := r.DeepCopy()
 				rCopy.OwnerReferences = append(rCopy.OwnerReferences, *newOwnerRef(analytics))
 				if err = c.Update(ctx, rCopy); err != nil {
-					c.Recorder.Event(analytics, v1.EventTypeNormal, "FailedUpdateRecommendation", err.Error())
+					c.Recorder.Event(analytics, corev1.EventTypeNormal, "FailedUpdateRecommendation", err.Error())
 					msg := fmt.Sprintf("Failed to update ownerReferences for recommendation %s, Analytics %s error %v", klog.KObj(rCopy), klog.KObj(analytics), err)
 					klog.Errorf(msg)
 					setReadyCondition(newStatus, metav1.ConditionFalse, "FailedUpdateRecommendation", msg)
@@ -187,7 +186,7 @@ func (c *Controller) DoAnalytics(ctx context.Context, analytics *analysisv1alph1
 			}
 		} else {
 			if err = c.CreateRecommendation(ctx, analytics, id, &refs); err != nil {
-				c.Recorder.Event(analytics, v1.EventTypeNormal, "FailedCreateRecommendation", err.Error())
+				c.Recorder.Event(analytics, corev1.EventTypeNormal, "FailedCreateRecommendation", err.Error())
 				msg := fmt.Sprintf("Failed to create recommendation, Analytics %s error %v", klog.KObj(analytics), err)
 				klog.Errorf(msg)
 				setReadyCondition(newStatus, metav1.ConditionFalse, "FailedCreateRecommendation", msg)
@@ -361,7 +360,7 @@ func (c *Controller) UpdateStatus(ctx context.Context, analytics *analysisv1alph
 		analytics.Status = *newStatus
 		err := c.Update(ctx, analytics)
 		if err != nil {
-			c.Recorder.Event(analytics, v1.EventTypeNormal, "FailedUpdateStatus", err.Error())
+			c.Recorder.Event(analytics, corev1.EventTypeNormal, "FailedUpdateStatus", err.Error())
 			klog.Errorf("Failed to update status, Analytics %s error %v", klog.KObj(analytics), err)
 			return
 		}

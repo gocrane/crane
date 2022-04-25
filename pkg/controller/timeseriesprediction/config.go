@@ -38,10 +38,11 @@ func NewMetricContext(fetcher target.SelectorFetcher, seriesPrediction *predicti
 		predictorMgr:     predictorMgr,
 		fetcher:          fetcher,
 	}
-	if strings.ToLower(c.TargetKind) != strings.ToLower(predconf.TargetKindNode) && seriesPrediction.Spec.TargetRef.Namespace != "" {
+	if !strings.EqualFold(c.TargetKind, predconf.TargetKindNode) && seriesPrediction.Spec.TargetRef.Namespace != "" {
 		c.Namespace = seriesPrediction.Spec.TargetRef.Namespace
 	}
-	if strings.ToLower(c.TargetKind) != strings.ToLower(predconf.TargetKindNode) {
+
+	if !strings.EqualFold(c.TargetKind, predconf.TargetKindNode) {
 		selector, err := c.fetcher.Fetch(&seriesPrediction.Spec.TargetRef)
 		if err != nil {
 			return nil, err
@@ -132,9 +133,7 @@ func metricSelectorToQueryExpr(m *predictionapi.MetricQuery) string {
 	conditions := make([]string, 0, len(m.QueryConditions))
 	for _, cond := range m.QueryConditions {
 		values := make([]string, 0, len(cond.Value))
-		for _, val := range cond.Value {
-			values = append(values, val)
-		}
+		values = append(values, cond.Value...)
 		sort.Strings(values)
 		conditions = append(conditions, fmt.Sprintf("%s%s[%s]", cond.Key, cond.Operator, strings.Join(values, ",")))
 	}
@@ -146,7 +145,7 @@ func (c *MetricContext) ResourceToMetricNamer(resourceName *corev1.ResourceName,
 	var namer metricnaming.GeneralMetricNamer
 
 	// Node
-	if strings.ToLower(c.TargetKind) == strings.ToLower(predconf.TargetKindNode) {
+	if strings.EqualFold(c.TargetKind, predconf.TargetKindNode) {
 		namer = metricnaming.GeneralMetricNamer{
 			CallerName: caller,
 			Metric: &metricquery.Metric{

@@ -21,7 +21,7 @@ type ValidationAdmission struct {
 func (p *ValidationAdmission) Default(ctx context.Context, req runtime.Object) error {
 	analytics, ok := req.(*analysisv1alph1.Analytics)
 	if !ok {
-		return fmt.Errorf("Failed to convert req to Analytics. ")
+		return fmt.Errorf("failed to convert req to Analytics. ")
 	}
 
 	Default(analytics)
@@ -32,7 +32,7 @@ func (p *ValidationAdmission) Default(ctx context.Context, req runtime.Object) e
 func (p *ValidationAdmission) ValidateCreate(ctx context.Context, req runtime.Object) error {
 	analytics, ok := req.(*analysisv1alph1.Analytics)
 	if !ok {
-		return fmt.Errorf("Failed to convert req to Analytics. ")
+		return fmt.Errorf("failed to convert req to Analytics. ")
 	}
 
 	klog.V(4).Info("validate create object %s", klog.KObj(analytics))

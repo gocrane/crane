@@ -46,17 +46,17 @@ func GetPodTemplate(context context.Context, namespace string, name string, kind
 
 		template, found, err := unstructured.NestedMap(unstructed.Object, "spec", "template")
 		if !found || err != nil {
-			return nil, fmt.Errorf("Get template from unstructed object %s failed. ", klog.KObj(unstructed))
+			return nil, fmt.Errorf("get template from unstructed object %s failed. ", klog.KObj(unstructed))
 		}
 
 		templateBytes, err := json.Marshal(template)
 		if err != nil {
-			return nil, fmt.Errorf("Marshal unstructed object failed: %v. ", err)
+			return nil, fmt.Errorf("marshal unstructed object failed: %v. ", err)
 		}
 
 		err = json.Unmarshal(templateBytes, templateSpec)
 		if err != nil {
-			return nil, fmt.Errorf("Unmarshal template bytes failed: %v. ", err)
+			return nil, fmt.Errorf("unmarshal template bytes failed: %v. ", err)
 		}
 	}
 

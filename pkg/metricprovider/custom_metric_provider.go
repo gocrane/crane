@@ -89,7 +89,7 @@ func (p *CustomMetricProvider) GetMetricBySelector(ctx context.Context, namespac
 
 	readyPods := GetReadyPods(pods)
 	if len(readyPods) == 0 {
-		return nil, fmt.Errorf("Failed to get ready pods. ")
+		return nil, fmt.Errorf("failed to get ready pods. ")
 	}
 
 	isPredicting := false
@@ -130,7 +130,7 @@ func (p *CustomMetricProvider) GetMetricBySelector(ctx context.Context, namespac
 
 		valueFloat, err := strconv.ParseFloat(v.Value, 32)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to parse value to float: %v ", err)
+			return nil, fmt.Errorf("failed to parse value to float: %v ", err)
 		}
 		if valueFloat > largestMetricValue.value {
 			largestMetricValue.value = valueFloat
@@ -223,9 +223,9 @@ func (p *CustomMetricProvider) GetPrediction(ctx context.Context, namespace stri
 	}
 	err = p.client.List(ctx, predictionList, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get TimeSeriesPrediction when get custom metric ")
+		return nil, fmt.Errorf("failed to get TimeSeriesPrediction when get custom metric ")
 	} else if len(predictionList.Items) != 1 {
-		return nil, fmt.Errorf("Only one TimeSeriesPrediction should match the selector %s ", metricSelector.String())
+		return nil, fmt.Errorf("only one TimeSeriesPrediction should match the selector %s ", metricSelector.String())
 	}
 
 	return &predictionList.Items[0], nil
@@ -245,7 +245,7 @@ func (p *CustomMetricProvider) GetPods(ctx context.Context, namespace string, se
 	}
 	err = p.client.List(ctx, podList, opts...)
 	if err != nil || len(podList.Items) == 0 {
-		return nil, fmt.Errorf("Failed to get pods when get custom metric ")
+		return nil, fmt.Errorf("failed to get pods when get custom metric ")
 	}
 
 	return podList.Items, nil

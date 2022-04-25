@@ -135,7 +135,7 @@ func (s *Signal) Filter(threshold float64) *Signal {
 	var frequencies []float64
 	for k := range X {
 		// Calculate which frequencies the spectrum contains
-		frequencies = append(frequencies, float64(k)*s.SampleRate/sampleLength)
+		frequencies = append(frequencies, float64(k)*s.SampleRate/sampleLength) //nolint // SA4010: this result of append is never used, except maybe in other appends
 	}
 
 	for k := range X {

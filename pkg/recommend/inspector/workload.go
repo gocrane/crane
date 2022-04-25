@@ -28,24 +28,24 @@ func (i *WorkloadInspector) Inspect() error {
 	}
 
 	if i.Context.Deployment != nil && *i.Context.Deployment.Spec.Replicas < int32(deploymentMinReplicas) {
-		return fmt.Errorf("Deployment replicas %d should be larger than %d ", *i.Context.Deployment.Spec.Replicas, int32(deploymentMinReplicas))
+		return fmt.Errorf("deployment replicas %d should be larger than %d ", *i.Context.Deployment.Spec.Replicas, int32(deploymentMinReplicas))
 	}
 
 	if i.Context.StatefulSet != nil && *i.Context.StatefulSet.Spec.Replicas < int32(statefulsetMinReplicas) {
-		return fmt.Errorf("StatefulSet replicas %d should be larger than %d ", *i.Context.StatefulSet.Spec.Replicas, int32(statefulsetMinReplicas))
+		return fmt.Errorf("statefulSet replicas %d should be larger than %d ", *i.Context.StatefulSet.Spec.Replicas, int32(statefulsetMinReplicas))
 	}
 
 	if i.Context.Scale != nil && i.Context.Scale.Spec.Replicas < int32(workloadMinReplicas) {
-		return fmt.Errorf("Workload replicas %d should be larger than %d ", i.Context.Scale.Spec.Replicas, int32(workloadMinReplicas))
+		return fmt.Errorf("workload replicas %d should be larger than %d ", i.Context.Scale.Spec.Replicas, int32(workloadMinReplicas))
 	}
 
 	for _, container := range i.Context.PodTemplate.Spec.Containers {
 		if container.Resources.Requests.Cpu() == nil {
-			return fmt.Errorf("Container %s resource cpu request is empty ", container.Name)
+			return fmt.Errorf("container %s resource cpu request is empty ", container.Name)
 		}
 
 		if container.Resources.Limits.Cpu() == nil {
-			return fmt.Errorf("Container %s resource cpu limit is empty ", container.Name)
+			return fmt.Errorf("container %s resource cpu limit is empty ", container.Name)
 		}
 	}
 
