@@ -37,6 +37,11 @@ func (a *EHPAAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 		return fmt.Errorf("predictor %v not found", predictionapi.AlgorithmTypeDSP)
 	}
 
+	predictableEnabled, err := strconv.ParseBool(a.Context.ConfigProperties["ehpa.predictable"])
+	if err != nil {
+		predictableEnabled = false
+	}
+
 	resourceCpu := corev1.ResourceCPU
 	target := a.Recommendation.Spec.TargetRef.DeepCopy()
 	if len(target.Namespace) == 0 {
@@ -61,6 +66,7 @@ func (a *EHPAAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 		return fmt.Errorf("EHPAAdvisor query historic metrics data is unexpected, List length is %d ", len(tsList))
 	}
 
+	predictable := true
 	cpuConfig := getPredictionCpuConfig()
 	tsListPrediction, err := utils.QueryPredictedTimeSeriesOnce(p, fmt.Sprintf(callerFormat, a.Recommendation.UID),
 		getPredictionCpuConfig(),
@@ -68,11 +74,17 @@ func (a *EHPAAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 		timeNow,
 		timeNow.Add(time.Hour*24*7))
 	if err != nil {
-		return fmt.Errorf("EHPAAdvisor query predicted time series failed: %v ", err)
+		klog.Warningf("EHPAAdvisor query predicted time series failed: %v ", err)
+		predictable = false
 	}
 
 	if len(tsListPrediction) != 1 {
-		return fmt.Errorf("EHPAAdvisor prediction metrics data is unexpected, List length is %d ", len(tsListPrediction))
+		klog.Warningf("EHPAAdvisor prediction metrics data is unexpected, List length is %d ", len(tsListPrediction))
+		predictable = false
+	}
+
+	if predictableEnabled && !predictable {
+		return fmt.Errorf("EHPAAdvisor cannot predict target: %v ", err)
 	}
 
 	var cpuMax float64
@@ -85,10 +97,12 @@ func (a *EHPAAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 		}
 	}
 
-	for _, sample := range tsListPrediction[0].Samples {
-		cpuUsages = append(cpuUsages, sample.Value)
-		if sample.Value > cpuMax {
-			cpuMax = sample.Value
+	if predictable && predictableEnabled {
+		for _, sample := range tsListPrediction[0].Samples {
+			cpuUsages = append(cpuUsages, sample.Value)
+			if sample.Value > cpuMax {
+				cpuMax = sample.Value
+			}
 		}
 	}
 
@@ -97,7 +111,7 @@ func (a *EHPAAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 		return fmt.Errorf("EHPAAdvisor checkMinCpuUsageThreshold failed: %v", err)
 	}
 
-	medianMin, medianMax, err := a.minMaxMedians(tsListPrediction)
+	medianMin, medianMax, err := a.minMaxMedians(tsList)
 	if err != nil {
 		return fmt.Errorf("EHPAAdvisor minMaxMedians failed: %v", err)
 	}
@@ -138,18 +152,21 @@ func (a *EHPAAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 				},
 			},
 		},
-		Prediction: &autoscalingapi.Prediction{
+	}
+
+	if predictable {
+		proposedEHPA.Prediction = &autoscalingapi.Prediction{
 			PredictionWindowSeconds: &defaultPredictionWindow,
 			PredictionAlgorithm: &autoscalingapi.PredictionAlgorithm{
 				AlgorithmType: predictionapi.AlgorithmTypeDSP,
 				DSP:           cpuConfig.DSP,
 			},
-		},
+		}
 	}
 
 	referenceHpa, err := strconv.ParseBool(a.Context.ConfigProperties["ehpa.reference-hpa"])
 	if err != nil {
-		return err
+		referenceHpa = false
 	}
 
 	// get metric spec from existing hpa and use them
