@@ -30,9 +30,11 @@ const (
 
 type periodicSignalPrediction struct {
 	prediction.GenericPrediction
-	a           aggregateSignals
-	stopChMap   sync.Map
-	modelConfig config.AlgorithmModelConfig
+	a         aggregateSignals
+	stopChMap sync.Map
+	// record the query routine already started
+	queryRoutines sync.Map
+	modelConfig   config.AlgorithmModelConfig
 }
 
 func (p *periodicSignalPrediction) QueryPredictionStatus(ctx context.Context, metricNamer metricnaming.MetricNamer) (prediction.Status, error) {
@@ -45,6 +47,7 @@ func NewPrediction(realtimeProvider providers.RealTime, historyProvider provider
 		GenericPrediction: prediction.NewGenericPrediction(realtimeProvider, historyProvider, withCh, delCh),
 		a:                 newAggregateSignals(),
 		stopChMap:         sync.Map{},
+		queryRoutines:     sync.Map{},
 		modelConfig:       mc,
 	}
 }
@@ -159,11 +162,13 @@ func (p *periodicSignalPrediction) Run(stopCh <-chan struct{}) {
 		for {
 			// Waiting for a WithQuery request
 			qc := <-p.WithCh
-			if !p.a.Add(qc) {
+			// update if the query config updated, idempotent
+			p.a.Add(qc)
+			QueryExpr := qc.MetricNamer.BuildUniqueKey()
+
+			if _, ok := p.queryRoutines.Load(QueryExpr); ok {
 				continue
 			}
-
-			QueryExpr := qc.MetricNamer.BuildUniqueKey()
 			if _, ok := p.stopChMap.Load(QueryExpr); ok {
 				continue
 			}
@@ -171,6 +176,7 @@ func (p *periodicSignalPrediction) Run(stopCh <-chan struct{}) {
 
 			go func(namer metricnaming.MetricNamer) {
 				queryExpr := namer.BuildUniqueKey()
+				p.queryRoutines.Store(queryExpr, struct{}{})
 				ticker := time.NewTicker(p.modelConfig.UpdateInterval)
 				defer ticker.Stop()
 
@@ -184,6 +190,7 @@ func (p *periodicSignalPrediction) Run(stopCh <-chan struct{}) {
 
 					select {
 					case <-predStopCh:
+						p.queryRoutines.Delete(queryExpr)
 						klog.V(4).InfoS("Prediction routine stopped.", "queryExpr", queryExpr)
 						return
 					case <-ticker.C:

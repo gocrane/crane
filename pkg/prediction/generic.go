@@ -40,8 +40,6 @@ type WithMetricEvent struct {
 type GenericPrediction struct {
 	historyProvider  providers.History
 	realtimeProvider providers.RealTime
-	metricsMap       map[string][]common.QueryCondition
-	querySet         map[string]struct{}
 	WithCh           chan QueryExprWithCaller
 	DelCh            chan QueryExprWithCaller
 	mutex            sync.Mutex
@@ -52,8 +50,6 @@ func NewGenericPrediction(realtimeProvider providers.RealTime, historyProvider p
 		WithCh:           withCh,
 		DelCh:            delCh,
 		mutex:            sync.Mutex{},
-		metricsMap:       map[string][]common.QueryCondition{},
-		querySet:         map[string]struct{}{},
 		realtimeProvider: realtimeProvider,
 		historyProvider:  historyProvider,
 	}
@@ -81,11 +77,8 @@ func (p *GenericPrediction) WithQuery(namer metricnaming.MetricNamer, caller str
 		Config:      config,
 	}
 
-	if _, exists := p.querySet[q.String()]; !exists {
-		p.querySet[q.String()] = struct{}{}
-		klog.V(4).InfoS("Put tuple{query,caller,config} into with channel.", "query", q.MetricNamer.BuildUniqueKey(), "caller", q.Caller)
-		p.WithCh <- q
-	}
+	klog.V(4).InfoS("Put tuple{query,caller,config} into with channel.", "query", q.MetricNamer.BuildUniqueKey(), "caller", q.Caller)
+	p.WithCh <- q
 
 	return nil
 }
@@ -103,10 +96,7 @@ func (p *GenericPrediction) DeleteQuery(namer metricnaming.MetricNamer, caller s
 		Caller:      caller,
 	}
 
-	if _, exists := p.querySet[q.String()]; exists {
-		delete(p.querySet, q.String())
-		p.DelCh <- q
-	}
+	p.DelCh <- q
 
 	return nil
 }

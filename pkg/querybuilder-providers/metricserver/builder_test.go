@@ -90,7 +90,7 @@ func TestBuildQuery(t *testing.T) {
 				Type:       metricquery.ContainerMetricType,
 				Container: &metricquery.ContainerNamerInfo{
 					Namespace:     "default",
-					PodName:       "pod-xxx",
+					WorkloadName:  "workload-xxx",
 					ContainerName: "container",
 				},
 			},
@@ -100,7 +100,7 @@ func TestBuildQuery(t *testing.T) {
 					Type:       metricquery.ContainerMetricType,
 					Container: &metricquery.ContainerNamerInfo{
 						Namespace:     "default",
-						PodName:       "pod-xxx",
+						WorkloadName:  "workload-xxx",
 						ContainerName: "container",
 					},
 				},
@@ -113,7 +113,7 @@ func TestBuildQuery(t *testing.T) {
 				Type:       metricquery.ContainerMetricType,
 				Container: &metricquery.ContainerNamerInfo{
 					Namespace:     "default",
-					PodName:       "pod-xxx",
+					WorkloadName:  "workload-xxx",
 					ContainerName: "container",
 				},
 			},
@@ -123,7 +123,7 @@ func TestBuildQuery(t *testing.T) {
 					Type:       metricquery.ContainerMetricType,
 					Container: &metricquery.ContainerNamerInfo{
 						Namespace:     "default",
-						PodName:       "pod-xxx",
+						WorkloadName:  "workload-xxx",
 						ContainerName: "container",
 					},
 				},

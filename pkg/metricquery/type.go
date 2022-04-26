@@ -54,7 +54,8 @@ type WorkloadNamerInfo struct {
 	Kind       string
 	Name       string
 	APIVersion string
-	Selector   labels.Selector
+	// used to fetch workload pods and containers, when use metric server, it is required
+	Selector labels.Selector
 }
 
 type ContainerNamerInfo struct {
@@ -62,9 +63,9 @@ type ContainerNamerInfo struct {
 	WorkloadName  string
 	Kind          string
 	APIVersion    string
-	PodName       string
 	ContainerName string
-	Selector      labels.Selector
+	// used to fetch workload pods and containers, when use metric server, it is required
+	Selector labels.Selector
 }
 
 type PodNamerInfo struct {
@@ -166,7 +167,6 @@ func (m *Metric) keyByContainer() string {
 		strings.ToLower(m.MetricName),
 		m.Container.Namespace,
 		m.Container.WorkloadName,
-		m.Container.PodName,
 		m.Container.ContainerName,
 		selectorStr}, "_")
 }
