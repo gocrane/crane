@@ -97,6 +97,7 @@ Now we only support prometheus as data source. We define the `MetricType` to ort
 
 ### Algorithm
 `Algorithm` define the algorithm type and params to do predict for the metric. Now there are two kinds of algorithms:
+
  - `dsp` is an algorithm to forcasting a time series, it is based on FFT(Fast Fourier Transform), it is good at predicting some time series with seasonality and periods.
  - `percentile` is an algorithm to estimate a time series, and find a recommended value to represent the past time series, it is based on exponentially-decaying weights historgram statistics. it is used to estimate a time series, it is not good at to predict a time sequences, although the percentile can output a time series predicted data, but it is all the same value. so if you want to predict a time sequences, dsp is a better choice.
  
