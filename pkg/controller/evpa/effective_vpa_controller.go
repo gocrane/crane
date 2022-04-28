@@ -23,6 +23,7 @@ import (
 	"github.com/gocrane/crane/pkg/oom"
 	"github.com/gocrane/crane/pkg/prediction"
 	"github.com/gocrane/crane/pkg/utils"
+	"github.com/gocrane/crane/pkg/utils/target"
 )
 
 // EffectiveVPAController is responsible for scaling workload's replica based on EffectiveVerticalPodAutoscaler spec
@@ -34,6 +35,7 @@ type EffectiveVPAController struct {
 	EstimatorManager estimator.ResourceEstimatorManager
 	lastScaleTime    map[string]metav1.Time
 	Predictor        prediction.Interface
+	TargetFetcher    target.SelectorFetcher
 	mu               sync.Mutex
 }
 
@@ -146,7 +148,7 @@ func (c *EffectiveVPAController) UpdateStatus(ctx context.Context, evpa *autosca
 }
 
 func (c *EffectiveVPAController) SetupWithManager(mgr ctrl.Manager) error {
-	estimatorManager := estimator.NewResourceEstimatorManager(mgr.GetClient(), c.OOMRecorder, c.Predictor)
+	estimatorManager := estimator.NewResourceEstimatorManager(mgr.GetClient(), c.TargetFetcher, c.OOMRecorder, c.Predictor)
 	c.EstimatorManager = estimatorManager
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&autoscalingapi.EffectiveVerticalPodAutoscaler{}).

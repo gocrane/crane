@@ -19,8 +19,10 @@ var _ prediction.Interface = &percentilePrediction{}
 
 type percentilePrediction struct {
 	prediction.GenericPrediction
-	a         aggregateSignals
-	stopChMap sync.Map
+	a aggregateSignals
+	// record the query routine already started
+	queryRoutines sync.Map
+	stopChMap     sync.Map
 }
 
 func (p *percentilePrediction) QueryPredictionStatus(ctx context.Context, metricNamer metricnaming.MetricNamer) (prediction.Status, error) {
@@ -265,6 +267,7 @@ func NewPrediction(realtimeProvider providers.RealTime, historyProvider provider
 	return &percentilePrediction{
 		GenericPrediction: prediction.NewGenericPrediction(realtimeProvider, historyProvider, withCh, delCh),
 		a:                 newAggregateSignals(),
+		queryRoutines:     sync.Map{},
 		stopChMap:         sync.Map{},
 	}
 }
@@ -273,11 +276,15 @@ func (p *percentilePrediction) Run(stopCh <-chan struct{}) {
 	go func() {
 		for {
 			qc := <-p.WithCh
-			if !p.a.Add(qc) {
+			// update if the query config updated, idempotent
+			p.a.Add(qc)
+
+			QueryExpr := qc.MetricNamer.BuildUniqueKey()
+
+			if _, ok := p.queryRoutines.Load(QueryExpr); ok {
 				continue
 			}
 
-			QueryExpr := qc.MetricNamer.BuildUniqueKey()
 			if _, ok := p.stopChMap.Load(QueryExpr); ok {
 				continue
 			}
@@ -313,6 +320,7 @@ func (p *percentilePrediction) Run(stopCh <-chan struct{}) {
 			// this is our default policy, one metric only has one config at a time.
 			go func(namer metricnaming.MetricNamer) {
 				queryExpr := namer.BuildUniqueKey()
+				p.queryRoutines.Store(queryExpr, struct{}{})
 				if c := p.a.GetConfig(queryExpr); c != nil {
 					ticker := time.NewTicker(c.sampleInterval)
 					defer ticker.Stop()
@@ -324,6 +332,7 @@ func (p *percentilePrediction) Run(stopCh <-chan struct{}) {
 						p.addSamples(namer)
 						select {
 						case <-predStopCh:
+							p.queryRoutines.Delete(queryExpr)
 							klog.V(4).InfoS("Prediction routine stopped.", "queryExpr", queryExpr)
 							return
 						case <-ticker.C:

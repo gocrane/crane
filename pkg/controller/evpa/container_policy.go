@@ -191,11 +191,17 @@ func GetScaleEventKey(namespace string, workload string, container string, direc
 
 // UpdateRecommendStatus update recommend resource
 func UpdateRecommendStatus(recommendation *vpatypes.RecommendedPodResources, containerName string, recommendResource corev1.ResourceList) {
+	if recommendation == nil {
+		recommendation = &vpatypes.RecommendedPodResources{
+			ContainerRecommendations: make([]vpatypes.RecommendedContainerResources, 0),
+		}
+	}
 	for i := range recommendation.ContainerRecommendations {
 		if recommendation.ContainerRecommendations[i].ContainerName == containerName {
 			ResourceWithTolerance(recommendResource, recommendation.ContainerRecommendations[i].Target)
-			recommendation.ContainerRecommendations[i].Target = recommendResource
-
+			for resource, quantity := range recommendResource {
+				recommendation.ContainerRecommendations[i].Target[resource] = quantity
+			}
 			return
 		}
 	}

@@ -210,6 +210,8 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 		scaleKindResolver,
 	)
 
+	targetSelectorFetcher := target.NewSelectorFetcher(mgr.GetScheme(), mgr.GetRESTMapper(), scaleClient, mgr.GetClient())
+
 	podOOMRecorder := &oom.PodOOMRecorder{
 		Client: mgr.GetClient(),
 	}
@@ -254,17 +256,17 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 		}
 
 		if err := (&evpa.EffectiveVPAController{
-			Client:      mgr.GetClient(),
-			Scheme:      mgr.GetScheme(),
-			Recorder:    mgr.GetEventRecorderFor("effective-vpa-controller"),
-			OOMRecorder: podOOMRecorder,
-			Predictor:   predictorMgr.GetPredictor(predictionapi.AlgorithmTypePercentile),
+			Client:        mgr.GetClient(),
+			Scheme:        mgr.GetScheme(),
+			Recorder:      mgr.GetEventRecorderFor("effective-vpa-controller"),
+			OOMRecorder:   podOOMRecorder,
+			Predictor:     predictorMgr.GetPredictor(predictionapi.AlgorithmTypePercentile),
+			TargetFetcher: targetSelectorFetcher,
 		}).SetupWithManager(mgr); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "EffectiveVPAController")
 		}
 	}
 
-	targetSelectorFetcher := target.NewSelectorFetcher(mgr.GetScheme(), mgr.GetRESTMapper(), scaleClient, mgr.GetClient())
 	// TspController
 	if utilfeature.DefaultFeatureGate.Enabled(features.CraneTimeSeriesPrediction) {
 		tspController := timeseriesprediction.NewController(

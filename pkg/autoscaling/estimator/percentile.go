@@ -1,11 +1,11 @@
 package estimator
 
 import (
+	"context"
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -16,19 +16,29 @@ import (
 	"github.com/gocrane/crane/pkg/metricquery"
 	"github.com/gocrane/crane/pkg/prediction"
 	predictionconfig "github.com/gocrane/crane/pkg/prediction/config"
-	"github.com/gocrane/crane/pkg/utils"
+	"github.com/gocrane/crane/pkg/utils/target"
 )
 
 const callerFormat = "EVPACaller-%s-%s"
 
 type PercentileResourceEstimator struct {
-	Predictor prediction.Interface
-	Client    client.Client
+	Predictor     prediction.Interface
+	Client        client.Client
+	TargetFetcher target.SelectorFetcher
 }
 
 func (e *PercentileResourceEstimator) GetResourceEstimation(evpa *autoscalingapi.EffectiveVerticalPodAutoscaler, config map[string]string, containerName string, currRes *corev1.ResourceRequirements) (corev1.ResourceList, error) {
 	recommendResource := corev1.ResourceList{}
 
+	selector, err := e.TargetFetcher.Fetch(&corev1.ObjectReference{
+		APIVersion: evpa.Spec.TargetRef.APIVersion,
+		Kind:       evpa.Spec.TargetRef.Kind,
+		Name:       evpa.Spec.TargetRef.Name,
+		Namespace:  evpa.Namespace,
+	})
+	if err != nil {
+		klog.ErrorS(err, "Failed to fetch evpa target workload selector.", "evpa", klog.KObj(evpa))
+	}
 	caller := fmt.Sprintf(callerFormat, klog.KObj(evpa), string(evpa.UID))
 	cpuMetricNamer := &metricnaming.GeneralMetricNamer{
 		CallerName: caller,
@@ -39,23 +49,12 @@ func (e *PercentileResourceEstimator) GetResourceEstimation(evpa *autoscalingapi
 				Namespace:     evpa.Namespace,
 				WorkloadName:  evpa.Spec.TargetRef.Name,
 				ContainerName: containerName,
-				Selector:      labels.Everything(),
+				Selector:      selector,
 			},
 		},
 	}
 
 	cpuConfig := getCpuConfig(config)
-	tsList, err := utils.QueryPredictedValues(e.Predictor, caller, cpuConfig, cpuMetricNamer)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(tsList) < 1 || len(tsList[0].Samples) < 1 {
-		return nil, fmt.Errorf("no value retured for queryExpr: %s", cpuMetricNamer.BuildUniqueKey())
-	}
-
-	cpuValue := int64(tsList[0].Samples[0].Value * 1000)
-	recommendResource[corev1.ResourceCPU] = *resource.NewMilliQuantity(cpuValue, resource.DecimalSI)
 
 	memoryMetricNamer := &metricnaming.GeneralMetricNamer{
 		CallerName: caller,
@@ -66,28 +65,71 @@ func (e *PercentileResourceEstimator) GetResourceEstimation(evpa *autoscalingapi
 				Namespace:     evpa.Namespace,
 				WorkloadName:  evpa.Spec.TargetRef.Name,
 				ContainerName: containerName,
-				Selector:      labels.Everything(),
+				Selector:      selector,
 			},
 		},
 	}
-
 	memConfig := getMemConfig(config)
-	tsList, err = utils.QueryPredictedValues(e.Predictor, caller, memConfig, memoryMetricNamer)
+
+	var errs []error
+	// first register cpu & memory, or the memory will be not registered before the cpu prediction succeed
+	err1 := e.Predictor.WithQuery(cpuMetricNamer, caller, *cpuConfig)
+	if err1 != nil {
+		errs = append(errs, err1)
+	}
+	err2 := e.Predictor.WithQuery(memoryMetricNamer, caller, *memConfig)
+	if err2 != nil {
+		errs = append(errs, err2)
+	}
+	if len(errs) > 0 {
+		return nil, fmt.Errorf("failed to register metricNamer: %v", errs)
+	}
+
+	var predictErrs []error
+	var noValueErrs []error
+	tsList, err := e.Predictor.QueryRealtimePredictedValues(context.TODO(), cpuMetricNamer)
 	if err != nil {
-		return nil, err
+		predictErrs = append(predictErrs, err)
 	}
 
-	if len(tsList) < 1 || len(tsList[0].Samples) < 1 {
-		return nil, fmt.Errorf("no value retured for queryExpr: %s", memoryMetricNamer.BuildUniqueKey())
+	if len(tsList) > 1 && len(tsList[0].Samples) > 1 {
+		cpuValue := int64(tsList[0].Samples[0].Value * 1000)
+		recommendResource[corev1.ResourceCPU] = *resource.NewMilliQuantity(cpuValue, resource.DecimalSI)
+	} else {
+		noValueErrs = append(noValueErrs, fmt.Errorf("no value retured for queryExpr: %s", cpuMetricNamer.BuildUniqueKey()))
 	}
 
-	memValue := int64(tsList[0].Samples[0].Value)
-	recommendResource[corev1.ResourceMemory] = *resource.NewQuantity(memValue, resource.BinarySI)
+	tsList, err = e.Predictor.QueryRealtimePredictedValues(context.TODO(), memoryMetricNamer)
+	if err != nil {
+		predictErrs = append(predictErrs, err)
+	}
 
+	if len(tsList) > 1 && len(tsList[0].Samples) > 1 {
+		memValue := int64(tsList[0].Samples[0].Value)
+		recommendResource[corev1.ResourceMemory] = *resource.NewQuantity(memValue, resource.BinarySI)
+	} else {
+		noValueErrs = append(noValueErrs, fmt.Errorf("no value retured for queryExpr: %s", memoryMetricNamer.BuildUniqueKey()))
+	}
+
+	// all failed
+	if len(recommendResource) == 0 {
+		return recommendResource, fmt.Errorf("all resource predicted failed, predictErrs: %v, noValueErrs: %v", predictErrs, noValueErrs)
+	}
+
+	// at least one succeed
 	return recommendResource, nil
 }
 
 func (e *PercentileResourceEstimator) DeleteEstimation(evpa *autoscalingapi.EffectiveVerticalPodAutoscaler) {
+	selector, err := e.TargetFetcher.Fetch(&corev1.ObjectReference{
+		APIVersion: evpa.Spec.TargetRef.APIVersion,
+		Kind:       evpa.Spec.TargetRef.Kind,
+		Name:       evpa.Spec.TargetRef.Name,
+		Namespace:  evpa.Namespace,
+	})
+	if err != nil {
+		klog.ErrorS(err, "Failed to fetch evpa target workload selector.", "evpa", klog.KObj(evpa))
+	}
 	for _, containerPolicy := range evpa.Spec.ResourcePolicy.ContainerPolicies {
 		caller := fmt.Sprintf(callerFormat, klog.KObj(evpa), string(evpa.UID))
 		cpuMetricNamer := &metricnaming.GeneralMetricNamer{
@@ -99,7 +141,7 @@ func (e *PercentileResourceEstimator) DeleteEstimation(evpa *autoscalingapi.Effe
 					Namespace:     evpa.Namespace,
 					WorkloadName:  evpa.Spec.TargetRef.Name,
 					ContainerName: containerPolicy.ContainerName,
-					Selector:      labels.Everything(),
+					Selector:      selector,
 				},
 			},
 		}
@@ -116,7 +158,7 @@ func (e *PercentileResourceEstimator) DeleteEstimation(evpa *autoscalingapi.Effe
 					Namespace:     evpa.Namespace,
 					WorkloadName:  evpa.Spec.TargetRef.Name,
 					ContainerName: containerPolicy.ContainerName,
-					Selector:      labels.Everything(),
+					Selector:      selector,
 				},
 			},
 		}

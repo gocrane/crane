@@ -132,7 +132,8 @@ func (c *resourceMetricsClient) workloadMetric(metric *metricquery.Metric) (Reso
 	if workload.Selector != nil {
 		selector = workload.Selector.String()
 	}
-	metrics, err := c.client.PodMetricses(workload.Namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: selector})
+	// use resourceVersion=0 to avoid traffic for apiserver to etcd
+	metrics, err := c.client.PodMetricses(workload.Namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: selector, ResourceVersion: "0"})
 	if err != nil {
 		return nil, time.Time{}, fmt.Errorf("unable to fetch metrics from resource metrics API: %v", err)
 	}
@@ -141,8 +142,7 @@ func (c *resourceMetricsClient) workloadMetric(metric *metricquery.Metric) (Reso
 		return nil, time.Time{}, fmt.Errorf("no metrics returned from resource metrics API")
 	}
 
-	res := getWorkloadMetrics(v1.ResourceName(metric.MetricName), metrics.Items)
-	timestamp := metrics.Items[0].Timestamp.Time
+	res, timestamp := getWorkloadMetrics(v1.ResourceName(metric.MetricName), metrics.Items)
 	return res, timestamp, nil
 }
 
@@ -153,16 +153,23 @@ func (c *resourceMetricsClient) containerMetric(metric *metricquery.Metric) (Res
 		return nil, time.Time{}, fmt.Errorf("metric ContainerNamerInfo is null")
 	}
 
-	podMetrics, err := c.client.PodMetricses(container.Namespace).Get(context.TODO(), container.PodName, metav1.GetOptions{})
+	selector := ""
+	if container.Selector != nil {
+		selector = container.Selector.String()
+	}
+	// now if we use workloadName info only, then we should first fetch workload pods by kube client, then use PodMetricses to get pods metrics
+	// each metric model's addSample will trigger this two listing.
+	// so we give the workload label selector directly to get pod metricses, use resourceVersion=0 to avoid traffic for apiserver to etcd
+	podMetrics, err := c.client.PodMetricses(container.Namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: selector, ResourceVersion: "0"})
 	if err != nil {
 		return nil, time.Time{}, fmt.Errorf("unable to fetch metrics from resource metrics API: %v", err)
 	}
 
-	res := getContainerMetrics(v1.ResourceName(metric.MetricName), podMetrics, container.ContainerName)
-	if err != nil {
-		return nil, time.Time{}, err
+	if len(podMetrics.Items) == 0 {
+		return nil, time.Time{}, fmt.Errorf("no metrics returned from resource metrics API")
 	}
-	timestamp := podMetrics.Timestamp.Time
+
+	res, timestamp := getContainerMetrics(v1.ResourceName(metric.MetricName), podMetrics.Items, container.ContainerName)
 	return res, timestamp, nil
 }
 
@@ -172,13 +179,12 @@ func (c *resourceMetricsClient) podMetric(metric *metricquery.Metric) (ResourceM
 		return nil, time.Time{}, fmt.Errorf("metric PodNamerInfo is null")
 	}
 
-	podMetrics, err := c.client.PodMetricses(pod.Namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
+	podMetrics, err := c.client.PodMetricses(pod.Namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{ResourceVersion: "0"})
 	if err != nil {
 		return nil, time.Time{}, fmt.Errorf("unable to fetch metrics from resource metrics API: %v", err)
 	}
 
-	res := getPodMetrics(v1.ResourceName(metric.MetricName), podMetrics)
-	timestamp := podMetrics.Timestamp.Time
+	res, timestamp := getPodMetrics(v1.ResourceName(metric.MetricName), podMetrics)
 	return res, timestamp, nil
 }
 
@@ -193,40 +199,39 @@ func (c *resourceMetricsClient) nodeMetric(metric *metricquery.Metric) (Resource
 		return nil, time.Time{}, fmt.Errorf("unable to fetch metrics from resource metrics API: %v", err)
 	}
 
-	res := getNodeMetrics(v1.ResourceName(metric.MetricName), metrics)
-	if err != nil {
-		return nil, time.Time{}, err
-	}
-	timestamp := metrics.Timestamp.Time
+	res, timestamp := getNodeMetrics(v1.ResourceName(metric.MetricName), metrics)
 	return res, timestamp, nil
 }
 
-func getContainerMetrics(resource v1.ResourceName, podMetric *metricsapi.PodMetrics, container string) ResourceMetricInfo {
+func getContainerMetrics(resource v1.ResourceName, podMetricsList []metricsapi.PodMetrics, container string) (ResourceMetricInfo, time.Time) {
 	res := make(ResourceMetricInfo, 0)
 	var total int64
 	var timestamp metav1.Time
 	var window metav1.Duration
-	timestamp = podMetric.Timestamp
-	window = podMetric.Window
-	for _, containerMetric := range podMetric.Containers {
-		if containerMetric.Name != container {
-			continue
-		}
-		if usage, ok := containerMetric.Usage[resource]; ok {
-			total += usage.MilliValue()
+
+	for _, podMetric := range podMetricsList {
+		timestamp = podMetric.Timestamp
+		window = podMetric.Window
+		for _, containerMetric := range podMetric.Containers {
+			if containerMetric.Name != container {
+				continue
+			}
+			if usage, ok := containerMetric.Usage[resource]; ok {
+				total += usage.MilliValue()
+			}
+			// now workload has no labels for promql
+			res = append(res, ResourceMetric{
+				Timestamp: timestamp.Time,
+				Window:    window.Duration,
+				Value:     float64(total) / 1000.,
+				Labels:    []common.Label{},
+			})
 		}
 	}
-	// now workload has no labels for promql
-	res = append(res, ResourceMetric{
-		Timestamp: timestamp.Time,
-		Window:    window.Duration,
-		Value:     float64(total) / 1000.,
-		Labels:    []common.Label{},
-	})
-	return res
+	return res, timestamp.Time
 }
 
-func getPodMetrics(resource v1.ResourceName, podMetric *metricsapi.PodMetrics) ResourceMetricInfo {
+func getPodMetrics(resource v1.ResourceName, podMetric *metricsapi.PodMetrics) (ResourceMetricInfo, time.Time) {
 	res := make(ResourceMetricInfo, 0)
 	var total int64
 	var timestamp metav1.Time
@@ -245,10 +250,10 @@ func getPodMetrics(resource v1.ResourceName, podMetric *metricsapi.PodMetrics) R
 		Value:     float64(total) / 1000.,
 		Labels:    []common.Label{},
 	})
-	return res
+	return res, timestamp.Time
 }
 
-func getWorkloadMetrics(resource v1.ResourceName, podMetrics []metricsapi.PodMetrics) ResourceMetricInfo {
+func getWorkloadMetrics(resource v1.ResourceName, podMetrics []metricsapi.PodMetrics) (ResourceMetricInfo, time.Time) {
 	res := make(ResourceMetricInfo, 0)
 	var total int64
 	var timestamp metav1.Time
@@ -269,10 +274,10 @@ func getWorkloadMetrics(resource v1.ResourceName, podMetrics []metricsapi.PodMet
 		Value:     float64(total) / 1000.,
 		Labels:    []common.Label{},
 	})
-	return res
+	return res, timestamp.Time
 }
 
-func getNodeMetrics(resource v1.ResourceName, nodeMetric *metricsapi.NodeMetrics) ResourceMetricInfo {
+func getNodeMetrics(resource v1.ResourceName, nodeMetric *metricsapi.NodeMetrics) (ResourceMetricInfo, time.Time) {
 	res := make(ResourceMetricInfo, 0)
 	var total int64
 	var timestamp metav1.Time
@@ -290,7 +295,7 @@ func getNodeMetrics(resource v1.ResourceName, nodeMetric *metricsapi.NodeMetrics
 		Value:     float64(total) / 1000.,
 		Labels:    []common.Label{},
 	})
-	return res
+	return res, timestamp.Time
 }
 
 func (cm *customMetricsClient) GetObjectMetric(metric *metricquery.Metric) (*customapi.MetricValue, time.Time, error) {
