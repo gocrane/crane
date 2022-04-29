@@ -1,7 +1,12 @@
 name: Go
 
-on: [pull_request]
-
+on:
+  pull_request:
+    paths:
+      - 'cmd/**'
+      - 'pkg/**'
+      - '**.go'
+      - 'go.*'
 
 jobs:
 

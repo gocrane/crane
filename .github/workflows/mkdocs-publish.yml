@@ -3,7 +3,9 @@ on:
   push:
     branches:
       - "release-*"
-
+    paths:
+      - 'docs/**'
+      - '**.md'
 jobs:
   upload:
     runs-on: ubuntu-latest
