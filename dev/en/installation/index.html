@@ -352,6 +352,13 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#deploying-crane-scheduleroptional" class="md-nav__link">
+    Deploying Crane-scheduler(optional)
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#verify-installation" class="md-nav__link">
     Verify Installation
   </a>
@@ -470,6 +477,20 @@
     <li class="md-nav__item">
       <a href="../tutorials/using-time-series-prediction/" class="md-nav__link">
         Time Series Prediction
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorials/scheduling-pods-based-on-actual-node-load/" class="md-nav__link">
+        Load-aware Scheduling
       </a>
     </li>
   
@@ -654,42 +675,45 @@
 <a id="__codelineno-2-2" name="__codelineno-2-2"></a><a href="#__codelineno-2-2"><span class="linenos" data-linenos="2 "></span></a>helm install crane -n crane-system --create-namespace crane/crane
 <a id="__codelineno-2-3" name="__codelineno-2-3"></a><a href="#__codelineno-2-3"><span class="linenos" data-linenos="3 "></span></a>helm install fadvisor -n crane-system --create-namespace crane/fadvisor
 </code></pre></div>
+<h3 id="deploying-crane-scheduleroptional">Deploying Crane-scheduler(optional)<a class="headerlink" href="#deploying-crane-scheduleroptional" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1"></a><a href="#__codelineno-3-1"><span class="linenos" data-linenos="1 "></span></a>helm install scheduler -n crane-system --create-namespace crane/scheduler
+</code></pre></div>
 <h3 id="verify-installation">Verify Installation<a class="headerlink" href="#verify-installation" title="Permanent link">&para;</a></h3>
 <p>Check deployments are all available by running:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1"></a><a href="#__codelineno-3-1"><span class="linenos" data-linenos="1 "></span></a>kubectl get deploy -n crane-system
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1"></a><a href="#__codelineno-4-1"><span class="linenos" data-linenos="1 "></span></a>kubectl get deploy -n crane-system
 </code></pre></div>
 <p>The output is similar to:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1"></a><a href="#__codelineno-4-1"><span class="linenos" data-linenos=" 1 "></span></a>NAME                                             READY   STATUS    RESTARTS   AGE
-<a id="__codelineno-4-2" name="__codelineno-4-2"></a><a href="#__codelineno-4-2"><span class="linenos" data-linenos=" 2 "></span></a>crane-agent-8h7df                                <span class="m">1</span>/1     Running   <span class="m">0</span>          119m
-<a id="__codelineno-4-3" name="__codelineno-4-3"></a><a href="#__codelineno-4-3"><span class="linenos" data-linenos=" 3 "></span></a>crane-agent-8qf5n                                <span class="m">1</span>/1     Running   <span class="m">0</span>          119m
-<a id="__codelineno-4-4" name="__codelineno-4-4"></a><a href="#__codelineno-4-4"><span class="linenos" data-linenos=" 4 "></span></a>crane-agent-h9h5d                                <span class="m">1</span>/1     Running   <span class="m">0</span>          119m
-<a id="__codelineno-4-5" name="__codelineno-4-5"></a><a href="#__codelineno-4-5"><span class="linenos" data-linenos=" 5 "></span></a>craned-5c69c684d8-dxmhw                          <span class="m">2</span>/2     Running   <span class="m">0</span>          20m
-<a id="__codelineno-4-6" name="__codelineno-4-6"></a><a href="#__codelineno-4-6"><span class="linenos" data-linenos=" 6 "></span></a>grafana-7fddd867b4-kdxv2                         <span class="m">1</span>/1     Running   <span class="m">0</span>          41m
-<a id="__codelineno-4-7" name="__codelineno-4-7"></a><a href="#__codelineno-4-7"><span class="linenos" data-linenos=" 7 "></span></a>metric-adapter-94b6f75b-k8h7z                    <span class="m">1</span>/1     Running   <span class="m">0</span>          119m
-<a id="__codelineno-4-8" name="__codelineno-4-8"></a><a href="#__codelineno-4-8"><span class="linenos" data-linenos=" 8 "></span></a>prometheus-kube-state-metrics-6dbc9cd6c9-dfmkw   <span class="m">1</span>/1     Running   <span class="m">0</span>          45m
-<a id="__codelineno-4-9" name="__codelineno-4-9"></a><a href="#__codelineno-4-9"><span class="linenos" data-linenos=" 9 "></span></a>prometheus-node-exporter-bfv74                   <span class="m">1</span>/1     Running   <span class="m">0</span>          45m
-<a id="__codelineno-4-10" name="__codelineno-4-10"></a><a href="#__codelineno-4-10"><span class="linenos" data-linenos="10 "></span></a>prometheus-node-exporter-s6zps                   <span class="m">1</span>/1     Running   <span class="m">0</span>          45m
-<a id="__codelineno-4-11" name="__codelineno-4-11"></a><a href="#__codelineno-4-11"><span class="linenos" data-linenos="11 "></span></a>prometheus-node-exporter-x5rnm                   <span class="m">1</span>/1     Running   <span class="m">0</span>          45m
-<a id="__codelineno-4-12" name="__codelineno-4-12"></a><a href="#__codelineno-4-12"><span class="linenos" data-linenos="12 "></span></a>prometheus-server-5966b646fd-g9vxl               <span class="m">2</span>/2     Running   <span class="m">0</span>          45m
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1"></a><a href="#__codelineno-5-1"><span class="linenos" data-linenos=" 1 "></span></a>NAME                                             READY   STATUS    RESTARTS   AGE
+<a id="__codelineno-5-2" name="__codelineno-5-2"></a><a href="#__codelineno-5-2"><span class="linenos" data-linenos=" 2 "></span></a>crane-agent-8h7df                                <span class="m">1</span>/1     Running   <span class="m">0</span>          119m
+<a id="__codelineno-5-3" name="__codelineno-5-3"></a><a href="#__codelineno-5-3"><span class="linenos" data-linenos=" 3 "></span></a>crane-agent-8qf5n                                <span class="m">1</span>/1     Running   <span class="m">0</span>          119m
+<a id="__codelineno-5-4" name="__codelineno-5-4"></a><a href="#__codelineno-5-4"><span class="linenos" data-linenos=" 4 "></span></a>crane-agent-h9h5d                                <span class="m">1</span>/1     Running   <span class="m">0</span>          119m
+<a id="__codelineno-5-5" name="__codelineno-5-5"></a><a href="#__codelineno-5-5"><span class="linenos" data-linenos=" 5 "></span></a>craned-5c69c684d8-dxmhw                          <span class="m">2</span>/2     Running   <span class="m">0</span>          20m
+<a id="__codelineno-5-6" name="__codelineno-5-6"></a><a href="#__codelineno-5-6"><span class="linenos" data-linenos=" 6 "></span></a>grafana-7fddd867b4-kdxv2                         <span class="m">1</span>/1     Running   <span class="m">0</span>          41m
+<a id="__codelineno-5-7" name="__codelineno-5-7"></a><a href="#__codelineno-5-7"><span class="linenos" data-linenos=" 7 "></span></a>metric-adapter-94b6f75b-k8h7z                    <span class="m">1</span>/1     Running   <span class="m">0</span>          119m
+<a id="__codelineno-5-8" name="__codelineno-5-8"></a><a href="#__codelineno-5-8"><span class="linenos" data-linenos=" 8 "></span></a>prometheus-kube-state-metrics-6dbc9cd6c9-dfmkw   <span class="m">1</span>/1     Running   <span class="m">0</span>          45m
+<a id="__codelineno-5-9" name="__codelineno-5-9"></a><a href="#__codelineno-5-9"><span class="linenos" data-linenos=" 9 "></span></a>prometheus-node-exporter-bfv74                   <span class="m">1</span>/1     Running   <span class="m">0</span>          45m
+<a id="__codelineno-5-10" name="__codelineno-5-10"></a><a href="#__codelineno-5-10"><span class="linenos" data-linenos="10 "></span></a>prometheus-node-exporter-s6zps                   <span class="m">1</span>/1     Running   <span class="m">0</span>          45m
+<a id="__codelineno-5-11" name="__codelineno-5-11"></a><a href="#__codelineno-5-11"><span class="linenos" data-linenos="11 "></span></a>prometheus-node-exporter-x5rnm                   <span class="m">1</span>/1     Running   <span class="m">0</span>          45m
+<a id="__codelineno-5-12" name="__codelineno-5-12"></a><a href="#__codelineno-5-12"><span class="linenos" data-linenos="12 "></span></a>prometheus-server-5966b646fd-g9vxl               <span class="m">2</span>/2     Running   <span class="m">0</span>          45m
 </code></pre></div></p>
 <p>you can see <a href="https://github.com/gocrane/helm-charts">this</a> to learn more.</p>
 <h2 id="customize-installation">Customize Installation<a class="headerlink" href="#customize-installation" title="Permanent link">&para;</a></h2>
 <p>Deploy <code>Crane</code> by apply YAML declaration.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1"></a><a href="#__codelineno-5-1"><span class="linenos" data-linenos="1 "></span></a>git clone https://github.com/gocrane/crane.git
-<a id="__codelineno-5-2" name="__codelineno-5-2"></a><a href="#__codelineno-5-2"><span class="linenos" data-linenos="2 "></span></a><span class="nv">CRANE_LATEST_VERSION</span><span class="o">=</span><span class="k">$(</span>curl -s https://api.github.com/repos/gocrane/crane/releases/latest <span class="p">|</span> grep -oP <span class="s1">&#39;&quot;tag_name&quot;: &quot;\K(.*)(?=&quot;)&#39;</span><span class="k">)</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3"></a><a href="#__codelineno-5-3"><span class="linenos" data-linenos="3 "></span></a>git checkout <span class="nv">$CRANE_LATEST_VERSION</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4"></a><a href="#__codelineno-5-4"><span class="linenos" data-linenos="4 "></span></a>kubectl apply -f deploy/manifests 
-<a id="__codelineno-5-5" name="__codelineno-5-5"></a><a href="#__codelineno-5-5"><span class="linenos" data-linenos="5 "></span></a>kubectl apply -f deploy/craned 
-<a id="__codelineno-5-6" name="__codelineno-5-6"></a><a href="#__codelineno-5-6"><span class="linenos" data-linenos="6 "></span></a>kubectl apply -f deploy/metric-adapter
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1"></a><a href="#__codelineno-6-1"><span class="linenos" data-linenos="1 "></span></a>git clone https://github.com/gocrane/crane.git
+<a id="__codelineno-6-2" name="__codelineno-6-2"></a><a href="#__codelineno-6-2"><span class="linenos" data-linenos="2 "></span></a><span class="nv">CRANE_LATEST_VERSION</span><span class="o">=</span><span class="k">$(</span>curl -s https://api.github.com/repos/gocrane/crane/releases/latest <span class="p">|</span> grep -oP <span class="s1">&#39;&quot;tag_name&quot;: &quot;\K(.*)(?=&quot;)&#39;</span><span class="k">)</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3"></a><a href="#__codelineno-6-3"><span class="linenos" data-linenos="3 "></span></a>git checkout <span class="nv">$CRANE_LATEST_VERSION</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4"></a><a href="#__codelineno-6-4"><span class="linenos" data-linenos="4 "></span></a>kubectl apply -f deploy/manifests 
+<a id="__codelineno-6-5" name="__codelineno-6-5"></a><a href="#__codelineno-6-5"><span class="linenos" data-linenos="5 "></span></a>kubectl apply -f deploy/craned 
+<a id="__codelineno-6-6" name="__codelineno-6-6"></a><a href="#__codelineno-6-6"><span class="linenos" data-linenos="6 "></span></a>kubectl apply -f deploy/metric-adapter
 </code></pre></div>
 <p>The following command will configure prometheus http address for crane if you want to customize it. Specify <code>CUSTOMIZE_PROMETHEUS</code> if you have existing prometheus server.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1"></a><a href="#__codelineno-6-1"><span class="linenos" data-linenos="1 "></span></a><span class="nb">export</span> <span class="nv">CUSTOMIZE_PROMETHEUS</span><span class="o">=</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2"></a><a href="#__codelineno-6-2"><span class="linenos" data-linenos="2 "></span></a><span class="k">if</span> <span class="o">[</span> <span class="nv">$CUSTOMIZE_PROMETHEUS</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span> sed -i <span class="s1">&#39;&#39;</span> <span class="s2">&quot;s/http:\/\/prometheus-server.crane-system.svc.cluster.local:8080/</span><span class="si">${</span><span class="nv">CUSTOMIZE_PROMETHEUS</span><span class="si">}</span><span class="s2">/&quot;</span> deploy/craned/deployment.yaml <span class="p">;</span> <span class="k">fi</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1"></a><a href="#__codelineno-7-1"><span class="linenos" data-linenos="1 "></span></a><span class="nb">export</span> <span class="nv">CUSTOMIZE_PROMETHEUS</span><span class="o">=</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2"></a><a href="#__codelineno-7-2"><span class="linenos" data-linenos="2 "></span></a><span class="k">if</span> <span class="o">[</span> <span class="nv">$CUSTOMIZE_PROMETHEUS</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span> sed -i <span class="s1">&#39;&#39;</span> <span class="s2">&quot;s/http:\/\/prometheus-server.crane-system.svc.cluster.local:8080/</span><span class="si">${</span><span class="nv">CUSTOMIZE_PROMETHEUS</span><span class="si">}</span><span class="s2">/&quot;</span> deploy/craned/deployment.yaml <span class="p">;</span> <span class="k">fi</span>
 </code></pre></div>
 <h2 id="get-your-kubernetes-cost-report">Get your Kubernetes Cost Report<a class="headerlink" href="#get-your-kubernetes-cost-report" title="Permanent link">&para;</a></h2>
 <p>Get the Grafana URL to visit by running these commands in the same shell:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1"></a><a href="#__codelineno-7-1"><span class="linenos" data-linenos="1 "></span></a><span class="nb">export</span> <span class="nv">POD_NAME</span><span class="o">=</span><span class="k">$(</span>kubectl get pods --namespace crane-system -l <span class="s2">&quot;app.kubernetes.io/name=grafana,app.kubernetes.io/instance=grafana&quot;</span> -o <span class="nv">jsonpath</span><span class="o">=</span><span class="s2">&quot;{.items[0].metadata.name}&quot;</span><span class="k">)</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2"></a><a href="#__codelineno-7-2"><span class="linenos" data-linenos="2 "></span></a>kubectl --namespace crane-system port-forward <span class="nv">$POD_NAME</span> <span class="m">3000</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1"></a><a href="#__codelineno-8-1"><span class="linenos" data-linenos="1 "></span></a><span class="nb">export</span> <span class="nv">POD_NAME</span><span class="o">=</span><span class="k">$(</span>kubectl get pods --namespace crane-system -l <span class="s2">&quot;app.kubernetes.io/name=grafana,app.kubernetes.io/instance=grafana&quot;</span> -o <span class="nv">jsonpath</span><span class="o">=</span><span class="s2">&quot;{.items[0].metadata.name}&quot;</span><span class="k">)</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2"></a><a href="#__codelineno-8-2"><span class="linenos" data-linenos="2 "></span></a>kubectl --namespace crane-system port-forward <span class="nv">$POD_NAME</span> <span class="m">3000</span>
 </code></pre></div>
 <p>visit <a href="http://127.0.0.1:3000/dashboards">Cost Report</a> here with account(admin:admin).</p>
 

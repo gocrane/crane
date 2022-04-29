@@ -57,6 +57,22 @@
          
     </url>
     <url>
+         <loc>tutorials/dynamic-scheduler-plugin/</loc>
+         <lastmod>2022-04-29</lastmod>
+         <changefreq>daily</changefreq>
+         <xhtml:link rel="alternate" hreflang="en" href="en/tutorials/dynamic-scheduler-plugin/"/>
+         <xhtml:link rel="alternate" hreflang="zh" href="zh/tutorials/dynamic-scheduler-plugin/"/>
+         
+    </url>
+    <url>
+         <loc>tutorials/scheduling-pods-based-on-actual-node-load/</loc>
+         <lastmod>2022-04-29</lastmod>
+         <changefreq>daily</changefreq>
+         <xhtml:link rel="alternate" hreflang="en" href="en/tutorials/scheduling-pods-based-on-actual-node-load/"/>
+         <xhtml:link rel="alternate" hreflang="zh" href="zh/tutorials/scheduling-pods-based-on-actual-node-load/"/>
+         
+    </url>
+    <url>
          <loc>tutorials/using-effective-hpa-to-scaling-with-effectiveness/</loc>
          <lastmod>2022-04-29</lastmod>
          <changefreq>daily</changefreq>

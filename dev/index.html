@@ -343,6 +343,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#load-aware-scheduling" class="md-nav__link">
+    Load-aware Scheduling
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#repositories" class="md-nav__link">
     Repositories
   </a>
@@ -456,6 +463,20 @@
     <li class="md-nav__item">
       <a href="tutorials/using-time-series-prediction/" class="md-nav__link">
         Time Series Prediction
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="tutorials/scheduling-pods-based-on-actual-node-load/" class="md-nav__link">
+        Load-aware Scheduling
       </a>
     </li>
   
@@ -625,6 +646,7 @@
 </ul>
 </li>
 <li><strong>Enhanced QoS</strong> based on Pod PriorityClass</li>
+<li><strong>Load-aware Scheduling</strong> </li>
 </ul>
 <p><img alt="Crane Overview" src="images/crane-overview.png" /></p>
 <h2 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h2>
@@ -651,6 +673,9 @@ The prediction module is the core component that other crane components relied o
 <li><strong>Evict</strong>: evict low priority pods</li>
 </ul>
 <p>Please see <a href="tutorials/using-qos-ensurance/">this document</a> to learn more.</p>
+<h2 id="load-aware-scheduling">Load-aware Scheduling<a class="headerlink" href="#load-aware-scheduling" title="Permanent link">&para;</a></h2>
+<p>Native scheduler of kubernetes can only schedule pods by resource request, which can easily cause a series of load uneven problems. In contrast, Crane-scheduler can get the actual load of kubernetes nodes from Prometheus, and achieve more efficient scheduling.</p>
+<p>Please see <a href="tutorials/scheduling-pods-based-on-actual-node-load/">this document</a> to learn more.</p>
 <h2 id="repositories">Repositories<a class="headerlink" href="#repositories" title="Permanent link">&para;</a></h2>
 <p>Crane is composed of the following components:</p>
 <ul>
@@ -667,6 +692,7 @@ The prediction module is the core component that other crane components relied o
 <li><a href="https://github.com/gocrane/crane/tree/main/cmd/crane-agent">crane-agent</a> - Ensure critical workloads SLO based on abnormally detection.</li>
 <li><a href="https://github.com/gocrane/api">gocrane/api</a> - This repository defines component-level APIs for the Crane platform.</li>
 <li><a href="https://github.com/gocrane/fadvisor">gocrane/fadvisor</a> - Financial advisor which collect resource prices from cloud API.</li>
+<li><a href="https://github.com/gocrane/crane-scheduler">gocrane/crane-scheduler</a> - A Kubernetes scheduler which can schedule pod based on actual node load.</li>
 </ul>
 
               
