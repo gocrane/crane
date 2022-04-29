@@ -69,6 +69,7 @@ nav:
       - Analytics and Recommendation: tutorials/analytics-and-recommendation.md
       - Qos Ensurance: tutorials/using-qos-ensurance.md
       - Time Series Prediction: tutorials/using-time-series-prediction.md
+      - Load-aware Scheduling: tutorials/scheduling-pods-based-on-actual-node-load.md
   - Proposals:
       - Advanced CpuSet Manager: proposals/20220228-advanced-cpuset-manger.md
   - Contributing: CONTRIBUTING.md

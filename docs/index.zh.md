@@ -10,6 +10,7 @@ The goal of Crane is to provide a one-stop-shop project to help Kubernetes users
   - Effective Pod Autoscaling (Effective Horizontal & Vertical Pod Autoscaling)
   - Cost Optimization
 - **Enhanced QoS** based on Pod PriorityClass
+- **Load-aware Scheduling** 
 
 ![Crane Overview](images/crane-overview.png)
 
@@ -47,6 +48,10 @@ Avoidance Actions:
 
 Please see [this document](tutorials/using-qos-ensurance.md) to learn more.
 
+## 负载感知调度
+原生的`Kubernetes`调度器只能基于资源的`Request`进行调度业务，这很容易导致集群负载不均的问题。与之对比的是，`Crane-scheudler`可以直接从`Prometheus`获取节点的真实负载情况，从而实现更有效的调度。
+
+更多请参见[文档](tutorials/scheduling-pods-based-on-actual-node-load.md)。
 ## Repositories
 
 Crane is composed of the following components:
@@ -62,4 +67,5 @@ Crane is composed of the following components:
 - [crane-agent](https://github.com/gocrane/crane/tree/main/cmd/crane-agent) - Ensure critical workloads SLO based on abnormally detection.
 - [gocrane/api](https://github.com/gocrane/api) - This repository defines component-level APIs for the Crane platform.
 - [gocrane/fadvisor](https://github.com/gocrane/fadvisor) - Financial advisor which collect resource prices from cloud API.
+- [gocrane/crane-scheduler](https://github.com/gocrane/crane-scheduler) - 一个可以基于真实负载对业务进行调度的 `Kubernestes` 调度器。
 
