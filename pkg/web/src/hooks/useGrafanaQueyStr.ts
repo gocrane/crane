@@ -30,7 +30,7 @@ export const useGrafanaQueryStr = ({ panelId }: { panelId: string }) => {
   );
 
   if (discount) {
-    query = { ...query, ['var-discount']: discount };
+    query = { ...query, ['var-Discount']: discount };
   }
 
   if (isNeedSelectNamespace && selectedNamespace) {
