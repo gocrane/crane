@@ -9,7 +9,7 @@
       
       
       <link rel="icon" href="../../../images/crane.svg">
-      <meta name="generator" content="mkdocs-1.3.0, mkdocs-material-8.2.9">
+      <meta name="generator" content="mkdocs-1.3.0, mkdocs-material-8.2.11">
     
     
       
@@ -17,7 +17,7 @@
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.120efc48.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.8c5ef100.min.css">
       
         
         <link rel="stylesheet" href="../../../assets/stylesheets/palette.9647289d.min.css">
@@ -390,6 +390,20 @@
 
             
           
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../scheduling-pods-based-on-actual-node-load/" class="md-nav__link">
+        Load-aware Scheduling
+      </a>
+    </li>
+  
+
+            
+          
         </ul>
       </nav>
     </li>
@@ -627,9 +641,11 @@
 </ul>
 <p>Now we only support prometheus as data source. We define the <code>MetricType</code> to orthogonal with the datasource. but now maybe some datasources do not support the metricType.</p>
 <h3 id="algorithm">Algorithm<a class="headerlink" href="#algorithm" title="Permanent link">&para;</a></h3>
-<p><code>Algorithm</code> define the algorithm type and params to do predict for the metric. Now there are two kinds of algorithms:
- - <code>dsp</code> is an algorithm to forcasting a time series, it is based on FFT(Fast Fourier Transform), it is good at predicting some time series with seasonality and periods.
- - <code>percentile</code> is an algorithm to estimate a time series, and find a recommended value to represent the past time series, it is based on exponentially-decaying weights historgram statistics. it is used to estimate a time series, it is not good at to predict a time sequences, although the percentile can output a time series predicted data, but it is all the same value. so if you want to predict a time sequences, dsp is a better choice.</p>
+<p><code>Algorithm</code> define the algorithm type and params to do predict for the metric. Now there are two kinds of algorithms:</p>
+<ul>
+<li><code>dsp</code> is an algorithm to forcasting a time series, it is based on FFT(Fast Fourier Transform), it is good at predicting some time series with seasonality and periods.</li>
+<li><code>percentile</code> is an algorithm to estimate a time series, and find a recommended value to represent the past time series, it is based on exponentially-decaying weights historgram statistics. it is used to estimate a time series, it is not good at to predict a time sequences, although the percentile can output a time series predicted data, but it is all the same value. so if you want to predict a time sequences, dsp is a better choice.</li>
+</ul>
 <h4 id="dsp-params">dsp params<a class="headerlink" href="#dsp-params" title="Permanent link">&para;</a></h4>
 <h4 id="percentile-params">percentile params<a class="headerlink" href="#percentile-params" title="Permanent link">&para;</a></h4>
 
@@ -666,13 +682,13 @@
       
       
         
-        <a href="../../proposals/20220228-advanced-cpuset-manger/" class="md-footer__link md-footer__link--next" aria-label="下一页: Advanced CpuSet Manager" rel="next">
+        <a href="../scheduling-pods-based-on-actual-node-load/" class="md-footer__link md-footer__link--next" aria-label="下一页: Load-aware Scheduling" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 下一页
               </span>
-              Advanced CpuSet Manager
+              Load-aware Scheduling
             </div>
           </div>
           <div class="md-footer__button md-icon">
@@ -705,7 +721,7 @@
     <script id="__config" type="application/json">{"base": "../../..", "features": ["toc.integrate", "content.code.annotate", "navigation.top"], "search": "../../../assets/javascripts/workers/search.2a1c317c.min.js", "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.config.lang": "ja", "search.config.pipeline": "trimmer, stemmer", "search.config.separator": "[\\uff0c\\u3002]+", "search.placeholder": "\u641c\u7d22", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version.title": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.6e54b5cd.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.748e2769.min.js"></script>
       
         <script src="../../../assets/util.js"></script>
       
