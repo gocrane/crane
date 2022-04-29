@@ -144,12 +144,14 @@ func getAgentName(nodeName string) string {
 }
 
 func (a *Agent) CreateNodeResourceTsp() (string, error) {
+	foundTsp := true
 	tsp, err := a.craneClient.PredictionV1alpha1().TimeSeriesPredictions(resource.TspNamespace).Get(context.TODO(), a.GenerateNodeResourceTspName(), metav1.GetOptions{})
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			klog.Errorf("Failed to get noderesource tsp : %v", err)
 			return "", err
 		}
+		foundTsp = false
 	}
 	config, err := a.kubeClient.CoreV1().ConfigMaps(resource.TspNamespace).Get(context.TODO(), "noderesource-tsp-template", metav1.GetOptions{})
 
@@ -198,7 +200,7 @@ func (a *Agent) CreateNodeResourceTsp() (string, error) {
 		Name:       a.nodeName,
 	}
 
-	if tsp != nil {
+	if foundTsp {
 		klog.V(4).Infof("Discover the presence of old noderesource tsp and try to contrast the changes: %s", a.GenerateNodeResourceTspName())
 		if reflect.DeepEqual(tsp.Spec, spec) {
 			return a.GenerateNodeResourceTspName(), nil
