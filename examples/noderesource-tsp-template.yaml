@@ -17,8 +17,8 @@ data:
       resourceIdentifier: cpu
       type: ExpressionQuery
       expressionQuery:
-        expression: 'node_cpu_cannot_be_reclaimed_seconds{node=~"({{ .metadata.name }})(:\\d+)?"}'
-    predictionWindowSeconds: 180
+        expression: 'sum(count(node_cpu_seconds_total{mode="idle",instance=~"({{.metadata.name}})(:\\d+)?"}) by (mode, cpu)) - sum(irate(node_cpu_seconds_total{mode="idle",instance=~"({{.metadata.name}})(:\\d+)?"}[5m]))'
+    predictionWindowSeconds: 3600
 kind: ConfigMap
 metadata:
   name: noderesource-tsp-template
