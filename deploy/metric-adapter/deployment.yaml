@@ -47,3 +47,26 @@ spec:
       volumes:
         - name: temp-vol
           emptyDir: {}
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metric-router-config
+  namespace: crane-system
+data:
+  router.yaml: |-
+    apiVersion: metricrouter.crane.io/v1alpha1
+    kind: MetricRouter
+    apiservices:
+      - service:
+          name: hpa-metric-service
+          namespace: kube-system
+        group: external.metrics.k8s.io
+        insecureSkipTLSVerify: true
+      - service:
+          name: hpa-metric-service1
+          namespace: kube-system
+        group: custom.metrics.k8s.io
+        insecureSkipTLSVerify: true
