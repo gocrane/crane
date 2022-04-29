@@ -40,6 +40,11 @@ helm install crane -n crane-system --create-namespace crane/crane
 helm install fadvisor -n crane-system --create-namespace crane/fadvisor
 ```
 
+### Deploying Crane-scheduler(optional)
+```bash
+helm install scheduler -n crane-system --create-namespace crane/scheduler
+```
+
 ### Verify Installation
 
 Check deployments are all available by running:

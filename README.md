@@ -23,6 +23,7 @@ The goal of Crane is to provide a one-stop-shop project to help Kubernetes users
   - Effective Pod Autoscaling (Effective Horizontal & Vertical Pod Autoscaling)
   - Cost Optimization
 - **Enhanced QoS** based on Pod PriorityClass
+- **Load-aware Scheduling** 
 
 <img alt="Crane Overview" height="550" src="docs/images/crane-overview.png" width="800"/>
 

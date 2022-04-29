@@ -49,6 +49,11 @@ helm install crane -n crane-system --create-namespace crane/crane
 helm install fadvisor -n crane-system --create-namespace crane/fadvisor
 ```
 
+### 安装 Crane-scheduler（可选）
+```console
+helm install scheduler -n crane-system --create-namespace crane/scheduler
+```
+
 ## 验证安装是否成功
 
 使用如下命令检查安装的 Deployment 是否正常：
