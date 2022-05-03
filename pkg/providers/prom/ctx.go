@@ -347,38 +347,31 @@ func (c *context) computeShards(query string, window *promapiv1.Range) *QuerySha
 	}
 }
 
-func ComputeWindowShards(window *promapiv1.Range, MaxPointsLimitPerTimeSeries int) []*promapiv1.Range {
-	possiblePoints := 0
-	for start := window.Start; start.Before(window.End) || start.Equal(window.End); start = start.Add(window.Step) {
-		possiblePoints++
-	}
-	var shardsNum int
-	if possiblePoints%MaxPointsLimitPerTimeSeries > 0 {
-		shardsNum = possiblePoints/MaxPointsLimitPerTimeSeries + 1
-	} else {
-		shardsNum = possiblePoints / MaxPointsLimitPerTimeSeries
-	}
-
-	s := window.Start
-	e := window.Start
+func ComputeWindowShards(window *promapiv1.Range, maxPointsLimitPerTimeSeries int) []*promapiv1.Range {
+	shardIndex := 0
+	nextPoint := window.Start
+	prePoint := nextPoint
 	var shards []*promapiv1.Range
-	// assume the bound is a point
-	for i := 0; i < shardsNum; i++ {
-		width := time.Duration(MaxPointsLimitPerTimeSeries-1) * window.Step
-		e = e.Add(width)
-		if e.After(window.End) {
-			e = window.End
+	for {
+		if nextPoint.After(window.End) {
+			shards = append(shards, &promapiv1.Range{
+				Start: prePoint,
+				End:   window.End,
+				Step:  window.Step,
+			})
+			return shards
 		}
-		shardWindow := &promapiv1.Range{
-			Step:  window.Step,
-			Start: s,
-			End:   e,
+		if shardIndex != 0 && shardIndex%maxPointsLimitPerTimeSeries == 0 {
+			shards = append(shards, &promapiv1.Range{
+				Start: prePoint,
+				End:   nextPoint.Add(-window.Step),
+				Step:  window.Step,
+			})
+			prePoint = nextPoint
 		}
-		shards = append(shards, shardWindow)
-		// reset
-		s = e
+		nextPoint = nextPoint.Add(window.Step)
+		shardIndex++
 	}
-	return shards
 }
 
 // shard by time slice only, because we can not decide what the query is, how many time series it will return, it depends on the application level.
