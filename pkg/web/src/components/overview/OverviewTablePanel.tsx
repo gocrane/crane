@@ -29,7 +29,7 @@ export const OverviewTablePanel = memo(() => {
   const selectedClusterId = useSelector(state => state.insight.selectedClusterId);
   const searchText = useSelector(state => state.overview.searchText);
 
-  const clusterList = clusterApi.useFetchClusterListQuery();
+  const clusterList = clusterApi.useFetchClusterListQuery({});
   const [deleteCluster, deleteClusterOptions] = clusterApi.useDeleteClusterMutation();
 
   const columns = useMemo(() => {
