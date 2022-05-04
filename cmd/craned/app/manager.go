@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
 	"strings"
 
@@ -25,6 +26,7 @@ import (
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
 	"github.com/gocrane/crane/cmd/craned/app/options"
+	"github.com/gocrane/crane/pkg/checkpoint"
 	"github.com/gocrane/crane/pkg/controller/analytics"
 	"github.com/gocrane/crane/pkg/controller/cnp"
 	"github.com/gocrane/crane/pkg/controller/ehpa"
@@ -108,7 +110,11 @@ func Run(ctx context.Context, opts *options.Options) error {
 	}
 	// initialize data sources and predictor
 	realtimeDataSources, histroyDataSources, _ := initDataSources(mgr, opts)
-	predictorMgr := initPredictorManager(opts, realtimeDataSources, histroyDataSources)
+	predictorMgr, err := initPredictorManager(opts, realtimeDataSources, histroyDataSources)
+	if err != nil {
+		klog.Error(err, "failed to init predictor mgr")
+		return err
+	}
 
 	initScheme()
 	initWebhooks(mgr, opts)
@@ -197,8 +203,27 @@ func initDataSources(mgr ctrl.Manager, opts *options.Options) (map[providers.Dat
 	return realtimeDataSources, historyDataSources, hybridDataSources
 }
 
-func initPredictorManager(opts *options.Options, realtimeDataSources map[providers.DataSourceType]providers.RealTime, historyDataSources map[providers.DataSourceType]providers.History) predictor.Manager {
-	return predictor.NewManager(realtimeDataSources, historyDataSources, predictor.DefaultPredictorsConfig(opts.AlgorithmModelConfig))
+func initPredictorManager(opts *options.Options, realtimeDataSources map[providers.DataSourceType]providers.RealTime, historyDataSources map[providers.DataSourceType]providers.History) (predictor.Manager, error) {
+	cpStoreType := checkpoint.StoreType(opts.CheckpointerStore)
+	var checkpointer checkpoint.Checkpointer
+	var err error
+	if opts.EnableCheckpointer {
+		switch cpStoreType {
+		case checkpoint.StoreTypeLocal:
+			checkpointer, err = checkpoint.InitCheckpointer(checkpoint.StoreType(opts.CheckpointerStore), opts.CheckpointerLocalConfig)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			return nil, fmt.Errorf("not supported checkpointer store type %v", cpStoreType)
+		}
+	}
+
+	ctx := predictor.CheckPointerContext{
+		Enable:       opts.EnableCheckpointer,
+		Checkpointer: checkpointer,
+	}
+	return predictor.NewManager(realtimeDataSources, historyDataSources, predictor.DefaultPredictorsConfig(opts.AlgorithmModelConfig), ctx), nil
 }
 
 // initControllers setup controllers with manager

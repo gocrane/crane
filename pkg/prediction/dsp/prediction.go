@@ -193,6 +193,9 @@ func (p *periodicSignalPrediction) Run(stopCh <-chan struct{}) {
 						p.queryRoutines.Delete(queryExpr)
 						klog.V(4).InfoS("Prediction routine stopped.", "queryExpr", queryExpr)
 						return
+					case <-stopCh:
+						klog.V(4).InfoS("Craned is stopped. dsp prediction routine stopped.", "queryExpr", queryExpr)
+						return
 					case <-ticker.C:
 						continue
 					}

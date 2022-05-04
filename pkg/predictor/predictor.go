@@ -8,6 +8,7 @@ import (
 
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
+	"github.com/gocrane/crane/pkg/checkpoint"
 	"github.com/gocrane/crane/pkg/prediction"
 	predconf "github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/prediction/dsp"
@@ -66,8 +67,14 @@ type manager struct {
 	historyDataProxys map[predictionapi.AlgorithmType]*providers.HistoryDataProxy
 }
 
+type CheckPointerContext struct {
+	Enable       bool
+	Checkpointer checkpoint.Checkpointer
+}
+
 func NewManager(realtimeProviders map[providers.DataSourceType]providers.RealTime,
-	historyProviders map[providers.DataSourceType]providers.History, predictorsConfig map[predictionapi.AlgorithmType]Config) Manager {
+	historyProviders map[providers.DataSourceType]providers.History, predictorsConfig map[predictionapi.AlgorithmType]Config,
+	checkpointerCtx CheckPointerContext) Manager {
 
 	m := &manager{
 		predictors:         make(map[predictionapi.AlgorithmType]prediction.Interface),
@@ -104,7 +111,7 @@ func NewManager(realtimeProviders map[providers.DataSourceType]providers.RealTim
 
 		switch algo {
 		case predictionapi.AlgorithmTypePercentile:
-			pctPredictor := percentile.NewPrediction(algorithmRealTimeProxy, algorithmHistoryProxy)
+			pctPredictor := percentile.NewPrediction(algorithmRealTimeProxy, algorithmHistoryProxy, checkpointerCtx.Enable, checkpointerCtx.Checkpointer)
 			m.predictors[algo] = pctPredictor
 			m.historyDataProxys[algo] = algorithmHistoryProxy
 			m.realTimeDataProxys[algo] = algorithmRealTimeProxy

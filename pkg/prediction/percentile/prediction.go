@@ -6,9 +6,12 @@ import (
 	"sync"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 
+	"github.com/gocrane/crane/pkg/checkpoint"
 	"github.com/gocrane/crane/pkg/common"
+	"github.com/gocrane/crane/pkg/internal"
 	"github.com/gocrane/crane/pkg/metricnaming"
 	"github.com/gocrane/crane/pkg/prediction"
 	"github.com/gocrane/crane/pkg/prediction/config"
@@ -22,8 +25,10 @@ type percentilePrediction struct {
 	prediction.GenericPrediction
 	a aggregateSignals
 	// record the query routine already started
-	queryRoutines sync.Map
-	stopChMap     sync.Map
+	queryRoutines      sync.Map
+	stopChMap          sync.Map
+	enableCheckpointer bool
+	checkpointer       checkpoint.Checkpointer
 }
 
 func (p *percentilePrediction) QueryPredictionStatus(_ context.Context, metricNamer metricnaming.MetricNamer) (prediction.Status, error) {
@@ -200,19 +205,31 @@ func (p *percentilePrediction) process(namer metricnaming.MetricNamer, cfg *inte
 	return p.getPredictedValuesFromSignals(queryExpr, signals, cfg), nil
 }
 
-func NewPrediction(realtimeProvider providers.RealTime, historyProvider providers.History) prediction.Interface {
+func NewPrediction(realtimeProvider providers.RealTime, historyProvider providers.History, enableCheckpointer bool, checkpointer checkpoint.Checkpointer) prediction.Interface {
 	withCh, delCh := make(chan prediction.QueryExprWithCaller), make(chan prediction.QueryExprWithCaller)
 	return &percentilePrediction{
-		GenericPrediction: prediction.NewGenericPrediction(realtimeProvider, historyProvider, withCh, delCh),
-		a:                 newAggregateSignals(),
-		queryRoutines:     sync.Map{},
-		stopChMap:         sync.Map{},
+		GenericPrediction:  prediction.NewGenericPrediction(realtimeProvider, historyProvider, withCh, delCh),
+		a:                  newAggregateSignals(),
+		queryRoutines:      sync.Map{},
+		stopChMap:          sync.Map{},
+		enableCheckpointer: enableCheckpointer,
+		checkpointer:       checkpointer,
 	}
 }
 
 func (p *percentilePrediction) Run(stopCh <-chan struct{}) {
+	if p.enableCheckpointer {
+		p.checkpointer.Start(stopCh)
+	}
+	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		for {
+			select {
+			case <-stopCh:
+				klog.V(4).InfoS("Craned is stopped. percentile prediction management routine stopped.")
+			}
 			qc := <-p.WithCh
 			// update if the query config updated, idempotent
 			p.a.Add(qc)
@@ -238,13 +255,27 @@ func (p *percentilePrediction) Run(stopCh <-chan struct{}) {
 			var initError error
 			switch c.initMode {
 			case config.ModelInitModeLazyTraining:
-				p.initByRealTimeProvider(qc.MetricNamer)
+				// first try to recover from a checkpoint if checkpointer is enabled, if failed, then use initByRealTimeProvider directly
+				var err error
+				if p.enableCheckpointer {
+					err = p.initByCheckPoint(qc.MetricNamer)
+					if err != nil {
+						klog.ErrorS(err, "Failed to try to recover from checkpoint, init from real time provider directly")
+						p.initByRealTimeProvider(qc.MetricNamer)
+					}
+				} else {
+					p.initByRealTimeProvider(qc.MetricNamer)
+				}
 			case config.ModelInitModeCheckpoint:
-				initError = p.initByCheckPoint(qc.MetricNamer)
+				if p.enableCheckpointer {
+					initError = p.initByCheckPoint(qc.MetricNamer)
+				} else {
+					initError = fmt.Errorf("the predictor checkpointer is not enabled")
+				}
 			case config.ModelInitModeHistory:
 				fallthrough
 			default:
-				// blocking
+				// blocking for long query
 				initError = p.initFromHistory(qc.MetricNamer)
 			}
 
@@ -255,7 +286,9 @@ func (p *percentilePrediction) Run(stopCh <-chan struct{}) {
 
 			// note: same query, but different config means different series analysis, GetConfig always return same config.
 			// this is our default policy, one metric only has one config at a time.
+			wg.Add(1)
 			go func(namer metricnaming.MetricNamer) {
+				defer wg.Done()
 				queryExpr := namer.BuildUniqueKey()
 				p.queryRoutines.Store(queryExpr, struct{}{})
 				if c := p.a.GetConfig(queryExpr); c != nil {
@@ -272,6 +305,9 @@ func (p *percentilePrediction) Run(stopCh <-chan struct{}) {
 							p.queryRoutines.Delete(queryExpr)
 							klog.V(4).InfoS("Prediction routine stopped.", "queryExpr", queryExpr)
 							return
+						case <-stopCh:
+							klog.V(4).InfoS("Craned is stopped. percentile prediction routine stopped.", "queryExpr", queryExpr)
+							return
 						case <-ticker.C:
 							continue
 						}
@@ -281,7 +317,9 @@ func (p *percentilePrediction) Run(stopCh <-chan struct{}) {
 		}
 	}()
 
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		for {
 			qc := <-p.DelCh
 			QueryExpr := qc.MetricNamer.BuildUniqueKey()
@@ -296,12 +334,19 @@ func (p *percentilePrediction) Run(stopCh <-chan struct{}) {
 					}
 				}
 			}(qc)
+			select {
+			case <-stopCh:
+				klog.V(4).InfoS("Craned is stopped. percentile prediction routine stopped.")
+			}
 		}
 	}()
 
 	klog.Infof("predictor %v started", p.Name())
+	wg.Wait()
 
-	<-stopCh
+	if p.enableCheckpointer {
+		p.checkpointer.Flush()
+	}
 
 	klog.Infof("predictor %v stopped", p.Name())
 
@@ -335,14 +380,49 @@ func (p *percentilePrediction) initByRealTimeProvider(namer metricnaming.MetricN
 		p.a.SetSignalWithStatus(queryExpr, keyAll, signal, prediction.StatusInitializing)
 	} else {
 		signals := map[string]*aggregateSignal{}
+		// just only one timeseries, we do not support one metric to mapping to multiple series without aggregated
+		key := prediction.AggregateSignalKey([]common.Label{})
+		signal := newAggregateSignal(cfg)
+		signals[key] = signal
 		p.a.SetSignalsWithStatus(queryExpr, signals, prediction.StatusInitializing)
 	}
 }
 
-// todo:
-// nolint:unused
-func (p *percentilePrediction) initByCheckPoint(_ metricnaming.MetricNamer) error {
-	return fmt.Errorf("checkpoint not supported")
+func (p *percentilePrediction) initByCheckPoint(namer metricnaming.MetricNamer) error {
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancelFunc()
+	checkpoint, err := p.checkpointer.LoadMetricModelCheckpoint(ctx, namer)
+	if err != nil {
+		return err
+	}
+	if checkpoint == nil {
+		return fmt.Errorf("no checkpoints restored for %v", namer.BuildUniqueKey())
+	}
+
+	queryExpr := namer.BuildUniqueKey()
+	cfg := p.a.GetConfig(queryExpr)
+	signal, err := newAggregateSignalFromCheckpoint(cfg, checkpoint)
+	if err != nil {
+		return err
+	}
+	if cfg.aggregated {
+		key := "__all__"
+		if signal.GetAggregationWindowLength() >= cfg.historyLength {
+			p.a.SetSignalWithStatus(queryExpr, key, signal, prediction.StatusReady)
+		} else {
+			p.a.SetSignalWithStatus(queryExpr, key, signal, prediction.StatusInitializing)
+		}
+	} else {
+		signals := map[string]*aggregateSignal{}
+		key := prediction.AggregateSignalKey([]common.Label{})
+		signals[key] = signal
+		if signal.GetAggregationWindowLength() >= cfg.historyLength {
+			p.a.SetSignalsWithStatus(queryExpr, signals, prediction.StatusReady)
+		} else {
+			p.a.SetSignalsWithStatus(queryExpr, signals, prediction.StatusInitializing)
+		}
+	}
+	return fmt.Errorf("Do not support checkpoint now")
 }
 
 func (p *percentilePrediction) initFromHistory(namer metricnaming.MetricNamer) error {
@@ -368,6 +448,7 @@ func (p *percentilePrediction) initFromHistory(namer metricnaming.MetricNamer) e
 		p.a.SetSignal(queryExpr, keyAll, signal)
 	} else {
 		signals := map[string]*aggregateSignal{}
+		// in fact, now there must be only one series. do not support one metric mapping to many series without aggregated mode.
 		for _, ts := range historyTimeSeriesList {
 			if len(ts.Samples) < 1 {
 				continue
@@ -424,8 +505,22 @@ func (p *percentilePrediction) addSamples(namer metricnaming.MetricNamer) {
 			if signal.GetAggregationWindowLength() >= c.historyLength {
 				p.a.SetSignalStatus(queryExpr, keyAll, prediction.StatusReady)
 			}
-
 			klog.V(6).InfoS("Sample added.", "sampleValue", sample.Value, "sampleTime", sampleTime, "queryExpr", queryExpr, "history", c.historyLength, "aggregationWindowLength", signal.GetAggregationWindowLength())
+		}
+		if p.enableCheckpointer && signal.GetAggregationWindowLength() >= c.historyLength {
+			data, err := NewMetricNamerCheckpointContext(signal, namer)
+			if err != nil {
+				klog.ErrorS(err, "Failed to get metric checkpoint", "queryExpr", queryExpr, "key", keyAll)
+				return
+			}
+			ctx := context.Background()
+			ctx, cancelFunc := context.WithTimeout(ctx, 5*time.Minute)
+			defer cancelFunc()
+			err = p.checkpointer.AsyncStoreMetricModelCheckpoint(ctx, data, time.Now())
+			if err != nil {
+				klog.ErrorS(err, "Failed to store checkpoint", "queryExpr", queryExpr, "key", keyAll)
+				return
+			}
 		}
 	} else {
 		// todo: find a way to remove the labels key, although we do not really use it now.
@@ -456,12 +551,47 @@ func (p *percentilePrediction) addSamples(namer metricnaming.MetricNamer) {
 			if signal.GetAggregationWindowLength() >= c.historyLength {
 				p.a.SetSignalStatus(queryExpr, key, prediction.StatusReady)
 			}
-
 			klog.V(6).InfoS("Sample added.", "sampleValue", sample.Value, "sampleTime", sampleTime, "queryExpr", queryExpr, "key", key, "history", c.historyLength, "aggregationWindowLength", signal.GetAggregationWindowLength())
+
+			if p.enableCheckpointer && signal.GetAggregationWindowLength() >= c.historyLength {
+				data, err := NewMetricNamerCheckpointContext(signal, namer)
+				if err != nil {
+					klog.ErrorS(err, "Failed to get metric checkpoint", "queryExpr", queryExpr, "key", key)
+					return
+				}
+				ctx := context.Background()
+				ctx, cancelFunc := context.WithTimeout(ctx, 5*time.Minute)
+				err = p.checkpointer.AsyncStoreMetricModelCheckpoint(ctx, data, time.Now())
+				if err != nil {
+					cancelFunc()
+					klog.ErrorS(err, "Failed to store checkpoint", "queryExpr", queryExpr, "key", key)
+					return
+				}
+				cancelFunc()
+			}
 		}
 	}
 }
 
 func (p *percentilePrediction) Name() string {
 	return "Percentile"
+}
+
+func NewMetricNamerCheckpointContext(signal *aggregateSignal, namer metricnaming.MetricNamer) (*internal.CheckpointContext, error) {
+	histCheckpoint, err := signal.histogram.SaveToChekpoint()
+	if err != nil {
+		return nil, err
+	}
+	return &internal.CheckpointContext{
+		Data: &internal.MetricNamerModelCheckpoint{
+			Metric:            namer.GetMetric(),
+			FirstSampleStart:  metav1.NewTime(signal.firstSampleTime),
+			LastSampleStart:   metav1.NewTime(signal.lastSampleTime),
+			SampleInterval:    metav1.Duration{Duration: signal.sampleInterval},
+			TotalSamplesCount: signal.totalSamplesCount,
+			HistogramModel:    histCheckpoint,
+			Version:           internal.SupportedCheckpointVersion,
+		},
+		Namer: namer,
+	}, nil
 }
