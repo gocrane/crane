@@ -6,7 +6,7 @@ on:
     types: [opened, synchronize, reopened, closed]
     paths:
       - 'docs/**'
-      - '*.md'
+      - '**.md'
 
 jobs:
   preview:

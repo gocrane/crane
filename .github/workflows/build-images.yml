@@ -3,6 +3,11 @@ name: build-images
 on:
   pull_request_target:
     types: [ opened, synchronize, reopened ]
+    paths:
+      - 'cmd/**'
+      - 'pkg/**'
+      - '**.go'
+      - 'go.*'
 
 jobs:
   build-craned:
