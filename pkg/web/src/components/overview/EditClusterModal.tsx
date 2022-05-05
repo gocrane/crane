@@ -3,7 +3,8 @@ import clsx from 'clsx';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDispatch } from 'react-redux';
-import { Alert, Button, Dialog, Form, Input, Tabs } from 'tdesign-react';
+import { ControlPlatformIcon, LinkIcon } from 'tdesign-icons-react';
+import { Alert, Button, Dialog, Form, Input, MessagePlugin, Tabs } from 'tdesign-react';
 
 import { clusterApi } from '../../apis/clusterApi';
 import { useSelector } from '../../hooks';
@@ -89,6 +90,22 @@ export const EditClusterModal = React.memo(() => {
         craneUrl: res
       }
     }));
+
+    if (!res.error) {
+      const result: any = dispatch(clusterApi.endpoints.fetchClusterListMu.initiate({ craneUrl: cluster.craneUrl }));
+      result
+        .unwrap()
+        .then(() => MessagePlugin.success(t('成功连接: {craneUrl}', { craneUrl: cluster.craneUrl })))
+        .catch(() =>
+          MessagePlugin.error(
+            {
+              content: t('无法连接: {craneUrl} , 请检查填写信息以及后端服务', { craneUrl: cluster.craneUrl }),
+              closeBtn: true
+            },
+            10000
+          )
+        );
+    }
 
     return res;
   };
@@ -193,7 +210,7 @@ export const EditClusterModal = React.memo(() => {
       }}
     >
       <div style={{ marginBottom: 10 }}>{t('请输入一个可访问的CRANE Endpoint，以获得新集群的相关成本数据')}</div>
-      <Form >
+      <Form>
         <Tabs
           addable={mode === 'create'}
           style={{ border: '1px solid var(--td-component-stroke)' }}
@@ -237,20 +254,24 @@ export const EditClusterModal = React.memo(() => {
                     name={`clusters[${index}].clusterName`}
                     requiredMark
                   >
-                    <Input
-                      value={cluster.clusterName}
-                      onBlur={() => {
-                        validateClusterName(cluster.id);
-                      }}
-                      onChange={(clusterName: string) => {
-                        dispatch(
-                          editClusterActions.updateCluster({
-                            id: cluster.id,
-                            data: { clusterName }
-                          })
-                        );
-                      }}
-                    />
+                    <div style={{ width: '100%' }}>
+                      <Input
+                        placeholder={t('测试集群')}
+                        prefixIcon={<ControlPlatformIcon />}
+                        value={cluster.clusterName}
+                        onBlur={() => {
+                          validateClusterName(cluster.id);
+                        }}
+                        onChange={(clusterName: string) => {
+                          dispatch(
+                            editClusterActions.updateCluster({
+                              id: cluster.id,
+                              data: { clusterName }
+                            })
+                          );
+                        }}
+                      />
+                    </div>
                   </Form.FormItem>
                   <Form.FormItem
                     className={clsx({ isError: validation[cluster.id]?.craneUrl?.error })}
@@ -265,20 +286,24 @@ export const EditClusterModal = React.memo(() => {
                     label={t('CRANE URL')}
                     name={`clusters[${index}].craneUrl`}
                   >
-                    <Input
-                      value={cluster.craneUrl}
-                      onBlur={() => {
-                        validateCraneUrl(cluster.id);
-                      }}
-                      onChange={(craneUrl: string) => {
-                        dispatch(
-                          editClusterActions.updateCluster({
-                            id: cluster.id,
-                            data: { craneUrl }
-                          })
-                        );
-                      }}
-                    />
+                    <div style={{ width: '100%' }}>
+                      <Input
+                        placeholder={'http(s)://(ip/domain):port e.g. http://192.168.1.1:9090 https://gocrane.io:9090'}
+                        prefixIcon={<LinkIcon />}
+                        value={cluster.craneUrl}
+                        onBlur={() => {
+                          validateCraneUrl(cluster.id);
+                        }}
+                        onChange={(craneUrl: string) => {
+                          dispatch(
+                            editClusterActions.updateCluster({
+                              id: cluster.id,
+                              data: { craneUrl }
+                            })
+                          );
+                        }}
+                      />
+                    </div>
                   </Form.FormItem>
                 </div>
               </Tabs.TabPanel>

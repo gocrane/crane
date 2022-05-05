@@ -8,7 +8,7 @@ interface AddClusterArgs {
   };
 }
 
-type FetchClusterListArgs = void | {};
+type FetchClusterListArgs = { craneUrl?: string };
 
 interface FetchClusterListResult {
   error?: string;
@@ -72,6 +72,14 @@ export const clusterApi = createApi({
       query: () => {
         return {
           url: '',
+          method: 'get'
+        };
+      }
+    }),
+    fetchClusterListMu: builder.mutation<FetchClusterListResult, FetchClusterListArgs>({
+      query: args => {
+        return {
+          url: `${args.craneUrl ?? ''}/api/v1/cluster`,
           method: 'get'
         };
       }

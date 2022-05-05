@@ -16,7 +16,7 @@ export const ContentHeader = React.memo(() => {
 
   const selectedClusterId = useSelector(state => state.insight.selectedClusterId);
 
-  const clusterList = clusterApi.useFetchClusterListQuery();
+  const clusterList = clusterApi.useFetchClusterListQuery({});
 
   const options = React.useMemo(() => {
     return (clusterList.data?.data?.items ?? []).map(item => ({
