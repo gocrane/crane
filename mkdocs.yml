@@ -5,7 +5,6 @@ theme:
 #  custom_dir: overrides
   language: en
   features:
-    - toc.integrate
     - content.code.annotate
     - navigation.top
   palette:
