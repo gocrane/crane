@@ -559,27 +559,34 @@
 
 <h1 id="dynamic-scheduler-a-load-aware-scheduler-plugin">Dynamic-scheduler: a load-aware scheduler plugin<a class="headerlink" href="#dynamic-scheduler-a-load-aware-scheduler-plugin" title="Permanent link">&para;</a></h1>
 <h2 id="introduction">Introduction<a class="headerlink" href="#introduction" title="Permanent link">&para;</a></h2>
-<p>Native scheduler of kubernetes can only schedule pods by resource request, which can easily cause a series of load uneven problems:
-- for some nodes, the actual load is not much different from the resource request, which will lead to a very high probability of stability problems.
-- for others, the actual load is much smaller than the resource request, which will lead to a huge waste of resources.</p>
+<p>Native scheduler of kubernetes can only schedule pods by resource request, which can easily cause a series of load uneven problems:</p>
+<ul>
+<li>for some nodes, the actual load is not much different from the resource request, which will lead to a very high probability of stability problems.</li>
+<li>for others, the actual load is much smaller than the resource request, which will lead to a huge waste of resources.</li>
+</ul>
 <p>To solve these problems, Dynamic scheduler builds a simple but efficient model based on actual node utilization data，and filters out those nodes with high load to balance the cluster.</p>
 <h2 id="design-details">Design Details<a class="headerlink" href="#design-details" title="Permanent link">&para;</a></h2>
 <h3 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h3>
-<p><img src="./../images/dynamic-scheduler-plugin.png" div align=“center” width="600" height="350"/></p>
-<p>As shown above, Dynamic scheduler relies on <code>Prometheus</code> and <code>Node-exporter</code> to collect and aggregate metrics data, and it consists of two components:
-- <code>Node-annotator</code> periodically pulls data from Prometheus and marks them with timestamp on the node in the form of annotations.</p>
-<blockquote>
-<p><strong>Note:</strong> <code>Node-annotator</code> is currently a module of <code>Crane-scheduler-controller</code>.
-- <code>Dynamic plugin</code> reads the load data directly from the node's annotation, filters and scores candidates based on a simple algorithm.</p>
-</blockquote>
+<p><img alt="" src="../../images/dynamic-scheduler-plugin.png" /></p>
+<p>As shown above, Dynamic scheduler relies on <code>Prometheus</code> and <code>Node-exporter</code> to collect and aggregate metrics data, and it consists of two components:</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code>Node-annotator</code> is currently a module of <code>Crane-scheduler-controller</code>.</p>
+</div>
+<ul>
+<li><code>Node-annotator</code> periodically pulls data from Prometheus and marks them with timestamp on the node in the form of annotations.</li>
+<li><code>Dynamic plugin</code> reads the load data directly from the node's annotation, filters and scores candidates based on a simple algorithm.</li>
+</ul>
 <h3 id="scheduler-policy">Scheduler Policy<a class="headerlink" href="#scheduler-policy" title="Permanent link">&para;</a></h3>
-<p>Dynamic provides a default <a href="../deploy/manifests/policy.yaml">scheduler policy</a> and supports user-defined policies. The default policy reies on following metrics:
-- <code>cpu_usage_avg_5m</code> 
-- <code>cpu_usage_max_avg_1h</code>
-- <code>cpu_usage_max_avg_1d</code>
-- <code>mem_usage_avg_5m</code>
-- <code>mem_usage_max_avg_1h</code>
-- <code>mem_usage_max_avg_1d</code></p>
+<p>Dynamic provides a default <a href="../deploy/manifests/policy.yaml">scheduler policy</a> and supports user-defined policies. The default policy reies on following metrics:</p>
+<ul>
+<li><code>cpu_usage_avg_5m</code> </li>
+<li><code>cpu_usage_max_avg_1h</code></li>
+<li><code>cpu_usage_max_avg_1d</code></li>
+<li><code>mem_usage_avg_5m</code></li>
+<li><code>mem_usage_max_avg_1h</code></li>
+<li><code>mem_usage_max_avg_1d</code></li>
+</ul>
 <p>At the scheduling <code>Filter</code> stage, the node will be filtered if the actual usage rate of this node is greater than the threshold of any of the above metrics. And at the <code>Score</code> stage, the final score is the weighted sum of these metrics' values.</p>
 <h3 id="hot-value">Hot Value<a class="headerlink" href="#hot-value" title="Permanent link">&para;</a></h3>
 <p>In the production cluster, scheduling hotspots may occur frequently because the load of the nodes can not increase immediately after the pod is created. Therefore, we define an extra metrics named <code>Hot Value</code>, which represents the scheduling frequency of the node in recent times. And the final priority of the node is the final score minus the <code>Hot Value</code>.</p>
