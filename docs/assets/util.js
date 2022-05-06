@@ -12,6 +12,19 @@ setTimeout(function () {
           parentChinldNodes[0].remove()
         }
       }
+
+      // Handle tab label click
+      const labels = document.querySelectorAll("div.tabbed-labels > label")
+      for (let i = 0; i < labels.length; i++) {
+        let tmp = labels[i]
+        tmp.onclick = () => {
+          for (const label of labels) {
+            if (label.textContent === tmp.textContent) {
+              label.click()
+            }
+          }
+        }
+      }
     })
   })
 },1)
