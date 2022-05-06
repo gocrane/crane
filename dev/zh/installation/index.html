@@ -9,7 +9,7 @@
       
       
       <link rel="icon" href="../../images/crane.svg">
-      <meta name="generator" content="mkdocs-1.3.0, mkdocs-material-8.2.11">
+      <meta name="generator" content="mkdocs-1.3.0, mkdocs-material-8.2.13">
     
     
       
@@ -17,10 +17,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.8c5ef100.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.e411adfe.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.9647289d.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.cc9b2e1e.min.css">
         
           
           
@@ -696,6 +696,21 @@
   
 
     
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../mirror/" class="md-nav__link">
+        镜像仓库
+      </a>
+    </li>
+  
+
+    
   </ul>
 </nav>
                   </div>
@@ -735,44 +750,100 @@
 <p>建议参考 Helm 官网<a href="https://helm.sh/docs/intro/install/">安装文档</a>。</p>
 <h3 id="prometheus-grafana">安装 Prometheus 和 Grafana<a class="headerlink" href="#prometheus-grafana" title="Permanent link">&para;</a></h3>
 <p>使用 Helm 安装 Prometheus 和 Grafana。</p>
-<blockquote>
-<p>注意：如果您已经在环境中部署了 Prometheus 和 Grafana，可以跳过该步骤。</p>
-</blockquote>
+<div class="admonition note">
+<p class="admonition-title">注意</p>
+<p>如果您已经在环境中部署了 Prometheus 和 Grafana，可以跳过该步骤。</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">网络问题</p>
+<p>如果你的网络无法访问GitHub资源(GitHub Release, GitHub Raw Content <code>raw.githubusercontent.com</code>)。</p>
+<p>那么你可以尝试镜像仓库。但镜像仓库具有一定的<strong>时延</strong>。<a href="../mirror/">镜像仓库</a></p>
+</div>
 <p>Crane 使用 Prometheus 抓取集群工作负载对资源的使用情况。安装 Prometheus：</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Main</label><label for="__tabbed_1_2">Mirror</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1"></a><a href="#__codelineno-0-1"><span class="linenos" data-linenos="1 "></span></a>helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-<a id="__codelineno-0-2" name="__codelineno-0-2"></a><a href="#__codelineno-0-2"><span class="linenos" data-linenos="2 "></span></a>helm install prometheus -n crane-system --set pushgateway.enabled<span class="o">=</span><span class="nb">false</span> --set alertmanager.enabled<span class="o">=</span><span class="nb">false</span> --set server.persistentVolume.enabled<span class="o">=</span><span class="nb">false</span> -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/prometheus/override_values.yaml --create-namespace  prometheus-community/prometheus
+<a id="__codelineno-0-2" name="__codelineno-0-2"></a><a href="#__codelineno-0-2"><span class="linenos" data-linenos="2 "></span></a>helm install prometheus -n crane-system <span class="se">\</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3"></a><a href="#__codelineno-0-3"><span class="linenos" data-linenos="3 "></span></a>                        --set pushgateway.enabled<span class="o">=</span><span class="nb">false</span> <span class="se">\</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4"></a><a href="#__codelineno-0-4"><span class="linenos" data-linenos="4 "></span></a>                        --set alertmanager.enabled<span class="o">=</span><span class="nb">false</span> <span class="se">\</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5"></a><a href="#__codelineno-0-5"><span class="linenos" data-linenos="5 "></span></a>                        --set server.persistentVolume.enabled<span class="o">=</span><span class="nb">false</span> <span class="se">\</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6"></a><a href="#__codelineno-0-6"><span class="linenos" data-linenos="6 "></span></a>                        -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/prometheus/override_values.yaml <span class="se">\</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7"></a><a href="#__codelineno-0-7"><span class="linenos" data-linenos="7 "></span></a>                        --create-namespace  prometheus-community/prometheus
 </code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1"></a><a href="#__codelineno-1-1"><span class="linenos" data-linenos="1 "></span></a>helm repo add prometheus-community https://finops-helm.pkg.coding.net/gocrane/prometheus-community
+<a id="__codelineno-1-2" name="__codelineno-1-2"></a><a href="#__codelineno-1-2"><span class="linenos" data-linenos="2 "></span></a>helm install prometheus -n crane-system <span class="se">\</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3"></a><a href="#__codelineno-1-3"><span class="linenos" data-linenos="3 "></span></a>                        --set pushgateway.enabled<span class="o">=</span><span class="nb">false</span> <span class="se">\</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4"></a><a href="#__codelineno-1-4"><span class="linenos" data-linenos="4 "></span></a>                        --set alertmanager.enabled<span class="o">=</span><span class="nb">false</span> <span class="se">\</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5"></a><a href="#__codelineno-1-5"><span class="linenos" data-linenos="5 "></span></a>                        --set server.persistentVolume.enabled<span class="o">=</span><span class="nb">false</span> <span class="se">\</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6"></a><a href="#__codelineno-1-6"><span class="linenos" data-linenos="6 "></span></a>                        -f https://finops.coding.net/p/gocrane/d/helm-charts/git/raw/main/integration/prometheus/override_values.yaml?download<span class="o">=</span><span class="nb">false</span> <span class="se">\</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7"></a><a href="#__codelineno-1-7"><span class="linenos" data-linenos="7 "></span></a>                        --create-namespace  prometheus-community/prometheus
+</code></pre></div>
+</div>
+</div>
+</div>
 <p>Crane 的 Fadvisor 使用 Grafana 展示成本预估。安装 Grafana：</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1"></a><a href="#__codelineno-1-1"><span class="linenos" data-linenos="1 "></span></a><span class="go">helm repo add grafana https://grafana.github.io/helm-charts</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2"></a><a href="#__codelineno-1-2"><span class="linenos" data-linenos="2 "></span></a><span class="go">helm install grafana -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/grafana/override_values.yaml -n crane-system --create-namespace grafana/grafana</span>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Main</label><label for="__tabbed_2_2">Mirror</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1"></a><a href="#__codelineno-2-1"><span class="linenos" data-linenos="1 "></span></a>helm repo add grafana https://grafana.github.io/helm-charts
+<a id="__codelineno-2-2" name="__codelineno-2-2"></a><a href="#__codelineno-2-2"><span class="linenos" data-linenos="2 "></span></a>helm install grafana <span class="se">\</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3"></a><a href="#__codelineno-2-3"><span class="linenos" data-linenos="3 "></span></a>             -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/grafana/override_values.yaml <span class="se">\</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4"></a><a href="#__codelineno-2-4"><span class="linenos" data-linenos="4 "></span></a>             -n crane-system <span class="se">\</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5"></a><a href="#__codelineno-2-5"><span class="linenos" data-linenos="5 "></span></a>             --create-namespace grafana/grafana
 </code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1"></a><a href="#__codelineno-3-1"><span class="linenos" data-linenos="1 "></span></a>helm repo add grafana https://finops-helm.pkg.coding.net/gocrane/grafana
+<a id="__codelineno-3-2" name="__codelineno-3-2"></a><a href="#__codelineno-3-2"><span class="linenos" data-linenos="2 "></span></a>helm install grafana <span class="se">\</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3"></a><a href="#__codelineno-3-3"><span class="linenos" data-linenos="3 "></span></a>             -f https://finops.coding.net/p/gocrane/d/helm-charts/git/raw/main/integration/grafana/override_values.yaml?download<span class="o">=</span><span class="nb">false</span> <span class="se">\</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4"></a><a href="#__codelineno-3-4"><span class="linenos" data-linenos="4 "></span></a>             -n crane-system <span class="se">\</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5"></a><a href="#__codelineno-3-5"><span class="linenos" data-linenos="5 "></span></a>             --create-namespace grafana/grafana
+</code></pre></div>
+</div>
+</div>
+</div>
 <h3 id="crane-fadvisor">安装 Crane 和 Fadvisor<a class="headerlink" href="#crane-fadvisor" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1"></a><a href="#__codelineno-2-1"><span class="linenos" data-linenos="1 "></span></a><span class="go">helm repo add crane https://gocrane.github.io/helm-charts</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2"></a><a href="#__codelineno-2-2"><span class="linenos" data-linenos="2 "></span></a><span class="go">helm install crane -n crane-system --create-namespace crane/crane</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3"></a><a href="#__codelineno-2-3"><span class="linenos" data-linenos="3 "></span></a><span class="go">helm install fadvisor -n crane-system --create-namespace crane/fadvisor</span>
+<div class="tabbed-set tabbed-alternate" data-tabs="3:2"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1">Main</label><label for="__tabbed_3_2">Mirror</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1"></a><a href="#__codelineno-4-1"><span class="linenos" data-linenos="1 "></span></a>helm repo add crane https://gocrane.github.io/helm-charts
+<a id="__codelineno-4-2" name="__codelineno-4-2"></a><a href="#__codelineno-4-2"><span class="linenos" data-linenos="2 "></span></a>helm install crane -n crane-system --create-namespace crane/crane
+<a id="__codelineno-4-3" name="__codelineno-4-3"></a><a href="#__codelineno-4-3"><span class="linenos" data-linenos="3 "></span></a>helm install fadvisor -n crane-system --create-namespace crane/fadvisor
 </code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1"></a><a href="#__codelineno-5-1"><span class="linenos" data-linenos="1 "></span></a>helm repo add crane https://finops-helm.pkg.coding.net/gocrane/gocrane
+<a id="__codelineno-5-2" name="__codelineno-5-2"></a><a href="#__codelineno-5-2"><span class="linenos" data-linenos="2 "></span></a>helm install crane -n crane-system --create-namespace crane/crane
+<a id="__codelineno-5-3" name="__codelineno-5-3"></a><a href="#__codelineno-5-3"><span class="linenos" data-linenos="3 "></span></a>helm install fadvisor -n crane-system --create-namespace crane/fadvisor
+</code></pre></div>
+</div>
+</div>
+</div>
 <h3 id="crane-scheduler">安装 Crane-scheduler（可选）<a class="headerlink" href="#crane-scheduler" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1"></a><a href="#__codelineno-3-1"><span class="linenos" data-linenos="1 "></span></a><span class="go">helm install scheduler -n crane-system --create-namespace crane/scheduler</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1"></a><a href="#__codelineno-6-1"><span class="linenos" data-linenos="1 "></span></a><span class="go">helm install scheduler -n crane-system --create-namespace crane/scheduler</span>
 </code></pre></div>
 <h2 id="_4">验证安装是否成功<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
 <p>使用如下命令检查安装的 Deployment 是否正常：</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1"></a><a href="#__codelineno-4-1"><span class="linenos" data-linenos="1 "></span></a><span class="go">kubectl get deploy -n crane-system</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1"></a><a href="#__codelineno-7-1"><span class="linenos" data-linenos="1 "></span></a><span class="go">kubectl get deploy -n crane-system</span>
 </code></pre></div>
 <p>结果类似如下：</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1"></a><a href="#__codelineno-5-1"><span class="linenos" data-linenos="1 "></span></a>NAME                            READY   UP-TO-DATE   AVAILABLE   AGE
-<a id="__codelineno-5-2" name="__codelineno-5-2"></a><a href="#__codelineno-5-2"><span class="linenos" data-linenos="2 "></span></a>craned                          <span class="m">1</span>/1     <span class="m">1</span>            <span class="m">1</span>           31m
-<a id="__codelineno-5-3" name="__codelineno-5-3"></a><a href="#__codelineno-5-3"><span class="linenos" data-linenos="3 "></span></a>fadvisor                        <span class="m">1</span>/1     <span class="m">1</span>            <span class="m">1</span>           41m
-<a id="__codelineno-5-4" name="__codelineno-5-4"></a><a href="#__codelineno-5-4"><span class="linenos" data-linenos="4 "></span></a>grafana                         <span class="m">1</span>/1     <span class="m">1</span>            <span class="m">1</span>           42m
-<a id="__codelineno-5-5" name="__codelineno-5-5"></a><a href="#__codelineno-5-5"><span class="linenos" data-linenos="5 "></span></a>metric-adapter                  <span class="m">1</span>/1     <span class="m">1</span>            <span class="m">1</span>           31m
-<a id="__codelineno-5-6" name="__codelineno-5-6"></a><a href="#__codelineno-5-6"><span class="linenos" data-linenos="6 "></span></a>prometheus-kube-state-metrics   <span class="m">1</span>/1     <span class="m">1</span>            <span class="m">1</span>           43m
-<a id="__codelineno-5-7" name="__codelineno-5-7"></a><a href="#__codelineno-5-7"><span class="linenos" data-linenos="7 "></span></a>prometheus-server               <span class="m">1</span>/1     <span class="m">1</span>            <span class="m">1</span>           43m
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1"></a><a href="#__codelineno-8-1"><span class="linenos" data-linenos="1 "></span></a>NAME                            READY   UP-TO-DATE   AVAILABLE   AGE
+<a id="__codelineno-8-2" name="__codelineno-8-2"></a><a href="#__codelineno-8-2"><span class="linenos" data-linenos="2 "></span></a>craned                          <span class="m">1</span>/1     <span class="m">1</span>            <span class="m">1</span>           31m
+<a id="__codelineno-8-3" name="__codelineno-8-3"></a><a href="#__codelineno-8-3"><span class="linenos" data-linenos="3 "></span></a>fadvisor                        <span class="m">1</span>/1     <span class="m">1</span>            <span class="m">1</span>           41m
+<a id="__codelineno-8-4" name="__codelineno-8-4"></a><a href="#__codelineno-8-4"><span class="linenos" data-linenos="4 "></span></a>grafana                         <span class="m">1</span>/1     <span class="m">1</span>            <span class="m">1</span>           42m
+<a id="__codelineno-8-5" name="__codelineno-8-5"></a><a href="#__codelineno-8-5"><span class="linenos" data-linenos="5 "></span></a>metric-adapter                  <span class="m">1</span>/1     <span class="m">1</span>            <span class="m">1</span>           31m
+<a id="__codelineno-8-6" name="__codelineno-8-6"></a><a href="#__codelineno-8-6"><span class="linenos" data-linenos="6 "></span></a>prometheus-kube-state-metrics   <span class="m">1</span>/1     <span class="m">1</span>            <span class="m">1</span>           43m
+<a id="__codelineno-8-7" name="__codelineno-8-7"></a><a href="#__codelineno-8-7"><span class="linenos" data-linenos="7 "></span></a>prometheus-server               <span class="m">1</span>/1     <span class="m">1</span>            <span class="m">1</span>           43m
 </code></pre></div>
 <p>可以查看本篇<a href="https://github.com/gocrane/helm-charts/blob/main/charts/crane/README.md">文档</a>获取更多有关 Crane Helm Chart 的信息。</p>
 <h2 id="_5">成本展示<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <h3 id="crane">打开 Crane 控制台<a class="headerlink" href="#crane" title="Permanent link">&para;</a></h3>
 <p>注意：Crane 的控制台地址就是 Crane 的 URL 地址，可以将其添加到统一的控制台查看多个部署 Crane 的集群的信息。</p>
 <p>利用 <a href="https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/">Port forwarding</a> 命令，可以在本地计算机的浏览器打开 Crane 控制台：</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1"></a><a href="#__codelineno-6-1"><span class="linenos" data-linenos="1 "></span></a>kubectl port-forward -n crane-system svc/craned 9090
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1"></a><a href="#__codelineno-9-1"><span class="linenos" data-linenos="1 "></span></a>kubectl port-forward -n crane-system svc/craned 9090
 </code></pre></div>
 <p>执行上述命令后，不要关闭命令行工具，在本地计算机的浏览器地址里输入 <code>localhost:9090</code>即可打开 Crane 的控制台：</p>
 <p><img alt="" src="../images/crane-dashboard.png" /></p>
@@ -782,19 +853,36 @@
 <p>若您想添加其它集群，实现多集群的资源使用和成本分析。可以在别的集群中也安装完 Crane 之后，将 Crane 的 URL 添加进来。</p>
 <h2 id="_6">自定义安装<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <p>通过 YAML 安装 <code>Crane</code> 。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1"></a><a href="#__codelineno-7-1"><span class="linenos" data-linenos="1 "></span></a><span class="go">git checkout v0.2.0</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2"></a><a href="#__codelineno-7-2"><span class="linenos" data-linenos="2 "></span></a><span class="go">kubectl apply -f deploy/manifests </span>
-<a id="__codelineno-7-3" name="__codelineno-7-3"></a><a href="#__codelineno-7-3"><span class="linenos" data-linenos="3 "></span></a><span class="go">kubectl apply -f deploy/craned </span>
-<a id="__codelineno-7-4" name="__codelineno-7-4"></a><a href="#__codelineno-7-4"><span class="linenos" data-linenos="4 "></span></a><span class="go">kubectl apply -f deploy/metric-adapter</span>
+<div class="tabbed-set tabbed-alternate" data-tabs="4:2"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><input id="__tabbed_4_2" name="__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="__tabbed_4_1">Main</label><label for="__tabbed_4_2">Mirror</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1"></a><a href="#__codelineno-10-1"><span class="linenos" data-linenos="1 "></span></a>git clone https://github.com/gocrane/crane.git
+<a id="__codelineno-10-2" name="__codelineno-10-2"></a><a href="#__codelineno-10-2"><span class="linenos" data-linenos="2 "></span></a><span class="nv">CRANE_LATEST_VERSION</span><span class="o">=</span><span class="k">$(</span>curl -s https://api.github.com/repos/gocrane/crane/releases/latest <span class="p">|</span> grep -oP <span class="s1">&#39;&quot;tag_name&quot;: &quot;\K(.*)(?=&quot;)&#39;</span><span class="k">)</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3"></a><a href="#__codelineno-10-3"><span class="linenos" data-linenos="3 "></span></a>git checkout <span class="nv">$CRANE_LATEST_VERSION</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4"></a><a href="#__codelineno-10-4"><span class="linenos" data-linenos="4 "></span></a>kubectl apply -f deploy/manifests 
+<a id="__codelineno-10-5" name="__codelineno-10-5"></a><a href="#__codelineno-10-5"><span class="linenos" data-linenos="5 "></span></a>kubectl apply -f deploy/craned 
+<a id="__codelineno-10-6" name="__codelineno-10-6"></a><a href="#__codelineno-10-6"><span class="linenos" data-linenos="6 "></span></a>kubectl apply -f deploy/metric-adapter
 </code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1"></a><a href="#__codelineno-11-1"><span class="linenos" data-linenos="1 "></span></a>git clone https://e.coding.net/finops/gocrane/crane.git
+<a id="__codelineno-11-2" name="__codelineno-11-2"></a><a href="#__codelineno-11-2"><span class="linenos" data-linenos="2 "></span></a><span class="nv">CRANE_LATEST_VERSION</span><span class="o">=</span><span class="k">$(</span>curl -s https://api.github.com/repos/gocrane/crane/releases/latest <span class="p">|</span> grep -oP <span class="s1">&#39;&quot;tag_name&quot;: &quot;\K(.*)(?=&quot;)&#39;</span><span class="k">)</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3"></a><a href="#__codelineno-11-3"><span class="linenos" data-linenos="3 "></span></a>git checkout <span class="nv">$CRANE_LATEST_VERSION</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4"></a><a href="#__codelineno-11-4"><span class="linenos" data-linenos="4 "></span></a>kubectl apply -f deploy/manifests
+<a id="__codelineno-11-5" name="__codelineno-11-5"></a><a href="#__codelineno-11-5"><span class="linenos" data-linenos="5 "></span></a>kubectl apply -f deploy/craned
+<a id="__codelineno-11-6" name="__codelineno-11-6"></a><a href="#__codelineno-11-6"><span class="linenos" data-linenos="6 "></span></a>kubectl apply -f deploy/metric-adapter
+</code></pre></div>
+</div>
+</div>
+</div>
 <p>如果您想自定义 Crane 里配置 Prometheus 的 HTTP 地址，请参考以下的命令。如果您在集群里已存在一个 Prometheus，请将 Server 地址填于<code>CUSTOMIZE_PROMETHEUS</code> 。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1"></a><a href="#__codelineno-8-1"><span class="linenos" data-linenos="1 "></span></a><span class="go">export CUSTOMIZE_PROMETHEUS=</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2"></a><a href="#__codelineno-8-2"><span class="linenos" data-linenos="2 "></span></a><span class="go">if [ $CUSTOMIZE_PROMETHEUS ]; then sed -i &#39;&#39; &quot;s/http:\/\/prometheus-server.crane-system.svc.cluster.local:8080/${CUSTOMIZE_PROMETHEUS}/&quot; deploy/craned/deployment.yaml ; fi</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1"></a><a href="#__codelineno-12-1"><span class="linenos" data-linenos="1 "></span></a><span class="go">export CUSTOMIZE_PROMETHEUS=</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2"></a><a href="#__codelineno-12-2"><span class="linenos" data-linenos="2 "></span></a><span class="go">if [ $CUSTOMIZE_PROMETHEUS ]; then sed -i &#39;&#39; &quot;s/http:\/\/prometheus-server.crane-system.svc.cluster.local:8080/${CUSTOMIZE_PROMETHEUS}/&quot; deploy/craned/deployment.yaml ; fi</span>
 </code></pre></div>
 <h2 id="_7">安装常见问题<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h2>
 <h3 id="crane_2">安装 Crane 报错<a class="headerlink" href="#crane_2" title="Permanent link">&para;</a></h3>
 <p>当您执行 <code>helm install crane -n crane-system --create-namespace crane/crane</code> 命令时，可能会遇到如下错误：</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1"></a><a href="#__codelineno-9-1"><span class="linenos" data-linenos="1 "></span></a>Error: rendered manifests contain a resource that already exists. Unable to <span class="k">continue</span> with install: APIService <span class="s2">&quot;v1beta1.custom.metrics.k8s.io&quot;</span> <span class="k">in</span> namespace <span class="s2">&quot;&quot;</span> exists and cannot be imported into the current release: invalid ownership metadata<span class="p">;</span> label validation error: missing key <span class="s2">&quot;app.kubernetes.io/managed-by&quot;</span>: must be <span class="nb">set</span> to <span class="s2">&quot;Helm&quot;</span><span class="p">;</span> annotation validation error: missing key <span class="s2">&quot;meta.helm.sh/release-name&quot;</span>: must be <span class="nb">set</span> to <span class="s2">&quot;crane&quot;</span><span class="p">;</span> annotation validation error: missing key <span class="s2">&quot;meta.helm.sh/release-namespace&quot;</span>: must be <span class="nb">set</span> to <span class="s2">&quot;crane-system&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1"></a><a href="#__codelineno-13-1"><span class="linenos" data-linenos="1 "></span></a>Error: rendered manifests contain a resource that already exists. Unable to <span class="k">continue</span> with install: APIService <span class="s2">&quot;v1beta1.custom.metrics.k8s.io&quot;</span> <span class="k">in</span> namespace <span class="s2">&quot;&quot;</span> exists and cannot be imported into the current release: invalid ownership metadata<span class="p">;</span> label validation error: missing key <span class="s2">&quot;app.kubernetes.io/managed-by&quot;</span>: must be <span class="nb">set</span> to <span class="s2">&quot;Helm&quot;</span><span class="p">;</span> annotation validation error: missing key <span class="s2">&quot;meta.helm.sh/release-name&quot;</span>: must be <span class="nb">set</span> to <span class="s2">&quot;crane&quot;</span><span class="p">;</span> annotation validation error: missing key <span class="s2">&quot;meta.helm.sh/release-namespace&quot;</span>: must be <span class="nb">set</span> to <span class="s2">&quot;crane-system&quot;</span>
 </code></pre></div>
 <p>原因：集群安装过 custom metric 的 APIService，所以报错。可以把之前的删除再重新执行安装 Crane 的命令，删除方式：<code>kubectl delete apiservice v1beta1.custom.metrics.k8s.io</code>。</p>
 <h3 id="crane-url">获取 Crane URL 的其它方式<a class="headerlink" href="#crane-url" title="Permanent link">&para;</a></h3>
@@ -879,7 +967,7 @@
     <script id="__config" type="application/json">{"base": "../..", "features": ["toc.integrate", "content.code.annotate", "navigation.top"], "search": "../../assets/javascripts/workers/search.2a1c317c.min.js", "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.config.lang": "ja", "search.config.pipeline": "trimmer, stemmer", "search.config.separator": "[\\uff0c\\u3002]+", "search.placeholder": "\u641c\u7d22", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version.title": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.748e2769.min.js"></script>
+      <script src="../../assets/javascripts/bundle.ed9748b7.min.js"></script>
       
         <script src="../../assets/util.js"></script>
       
