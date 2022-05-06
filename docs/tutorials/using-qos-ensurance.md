@@ -71,7 +71,7 @@ spec:
 
 Please check the video to learn more about the scheduling disable actions.
 
-[![disable scheduling example video](https://asciinema.org/a/480735.svg)](https://asciinema.org/a/480735)
+<script id="asciicast-480735" src="https://asciinema.org/a/480735.js" async></script>
 
 ## Throttle
 
