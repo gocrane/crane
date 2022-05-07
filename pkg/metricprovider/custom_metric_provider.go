@@ -120,11 +120,11 @@ func (p *CustomMetricProvider) GetMetricBySelector(ctx context.Context, namespac
 	// get the largest value from timeSeries
 	// use the largest value will bring up the scaling up and defer the scaling down
 	timestampStart := time.Now()
-	timestamepEnd := timestampStart.Add(time.Duration(prediction.Spec.PredictionWindowSeconds) * time.Second)
+	timestampEnd := timestampStart.Add(time.Duration(prediction.Spec.PredictionWindowSeconds) * time.Second)
 	largestMetricValue := &metricValue{}
 	for _, v := range timeSeries.Samples {
 		// exclude values that not in time range
-		if v.Timestamp < timestampStart.Unix() || v.Timestamp > timestamepEnd.Unix() {
+		if v.Timestamp < timestampStart.Unix() || v.Timestamp > timestampEnd.Unix() {
 			continue
 		}
 

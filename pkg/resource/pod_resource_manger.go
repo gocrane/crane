@@ -48,7 +48,7 @@ type PodResourceManager struct {
 
 func NewPodResourceManager(client clientset.Interface, nodeName string, podInformer coreinformers.PodInformer,
 	runtimeEndpoint string, stateChann chan map[string][]common.TimeSeries, cadvisorManager cadvisor.Manager) *PodResourceManager {
-	runtimeClient, runtimeConn, err := cruntime.GetRuntimeClient(runtimeEndpoint, true)
+	runtimeClient, runtimeConn, err := cruntime.GetRuntimeClient(runtimeEndpoint)
 	if err != nil {
 		klog.Errorf("GetRuntimeClient failed %s", err.Error())
 		return nil

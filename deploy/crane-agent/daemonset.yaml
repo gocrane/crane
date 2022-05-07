@@ -34,12 +34,11 @@ spec:
           command:
             - /crane-agent
             - -v=4
-            - --runtime-endpoint=unix:///rootvar/run/dockershim.sock
           name: crane-agent
           volumeMounts:
             - mountPath: /sys
               name: sys
-            - mountPath: /rootvar/run
+            - mountPath: /run
               name: run
           livenessProbe:
             httpGet:
@@ -54,6 +53,6 @@ spec:
             type: ""
           name: sys
         - hostPath:
-            path: /var/run
+            path: /run
             type: ""
           name: run

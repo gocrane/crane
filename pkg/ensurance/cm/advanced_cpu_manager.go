@@ -73,7 +73,7 @@ type AdvancedCpuManager struct {
 }
 
 func NewAdvancedCpuManager(podInformer coreinformers.PodInformer, runtimeEndpoint string, cadvisorManager cadvisor.Manager) *AdvancedCpuManager {
-	runtimeClient, runtimeConn, err := cruntime.GetRuntimeClient(runtimeEndpoint, true)
+	runtimeClient, runtimeConn, err := cruntime.GetRuntimeClient(runtimeEndpoint)
 	if err != nil {
 		klog.Errorf("GetRuntimeClient failed %s", err.Error())
 		return nil

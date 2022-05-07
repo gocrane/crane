@@ -36,7 +36,7 @@ type ActionExecutor struct {
 func NewActionExecutor(client clientset.Interface, nodeName string, podInformer coreinformers.PodInformer, nodeInformer coreinformers.NodeInformer,
 	noticeCh <-chan AvoidanceExecutor, runtimeEndpoint string) *ActionExecutor {
 
-	runtimeClient, runtimeConn, err := cruntime.GetRuntimeClient(runtimeEndpoint, true)
+	runtimeClient, runtimeConn, err := cruntime.GetRuntimeClient(runtimeEndpoint)
 	if err != nil {
 		klog.Errorf("GetRuntimeClient failed %s", err.Error())
 		return nil
