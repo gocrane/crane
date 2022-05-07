@@ -138,7 +138,7 @@ func (c *Controller) UpdateStatus(ctx context.Context, recommendation *analysisv
 		timeNow := metav1.Now()
 		recommendation.Status.LastUpdateTime = &timeNow
 
-		err := c.Update(ctx, recommendation)
+		err := c.Status().Update(ctx, recommendation)
 		if err != nil {
 			c.Recorder.Event(recommendation, v1.EventTypeWarning, "FailedUpdateStatus", err.Error())
 			klog.Errorf("Failed to update status, Recommendation %s error %v", klog.KObj(recommendation), err)
