@@ -92,7 +92,7 @@ func (e *PercentileResourceEstimator) GetResourceEstimation(evpa *autoscalingapi
 		predictErrs = append(predictErrs, err)
 	}
 
-	if len(tsList) > 1 && len(tsList[0].Samples) > 1 {
+	if len(tsList) > 0 && len(tsList[0].Samples) > 0 {
 		cpuValue := int64(tsList[0].Samples[0].Value * 1000)
 		recommendResource[corev1.ResourceCPU] = *resource.NewMilliQuantity(cpuValue, resource.DecimalSI)
 	} else {
@@ -104,7 +104,7 @@ func (e *PercentileResourceEstimator) GetResourceEstimation(evpa *autoscalingapi
 		predictErrs = append(predictErrs, err)
 	}
 
-	if len(tsList) > 1 && len(tsList[0].Samples) > 1 {
+	if len(tsList) > 0 && len(tsList[0].Samples) > 0 {
 		memValue := int64(tsList[0].Samples[0].Value)
 		recommendResource[corev1.ResourceMemory] = *resource.NewQuantity(memValue, resource.BinarySI)
 	} else {

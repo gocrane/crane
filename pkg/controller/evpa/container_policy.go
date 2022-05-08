@@ -28,16 +28,19 @@ func (c *EffectiveVPAController) ReconcileContainerPolicies(evpa *autoscalingapi
 	recommendation = evpa.Status.Recommendation
 
 	rankedEstimators := RankEstimators(resourceEstimators)
-	for _, containerPolicy := range evpa.Spec.ResourcePolicy.ContainerPolicies {
-		// container scaling is disabled
-		if (containerPolicy.ScaleUpPolicy.ScaleMode != nil && *containerPolicy.ScaleUpPolicy.ScaleMode == vpatypes.ContainerScalingModeOff) ||
-			(containerPolicy.ScaleDownPolicy.ScaleMode != nil && *containerPolicy.ScaleDownPolicy.ScaleMode == vpatypes.ContainerScalingModeOff) {
-			continue
+	needReconciledContainers := make(map[string]autoscalingapi.ContainerResourcePolicy)
+	for _, container := range podTemplate.Spec.Containers {
+		for _, containerPolicy := range evpa.Spec.ResourcePolicy.ContainerPolicies {
+			if containerPolicy.ContainerName == "*" || containerPolicy.ContainerName == container.Name {
+				out := containerPolicy.DeepCopy()
+				out.ContainerName = container.Name
+				needReconciledContainers[container.Name] = *out
+			}
 		}
-
+	}
+	for container, containerPolicy := range needReconciledContainers {
 		// get current resource by pod template
-		// todo: support "*"
-		resourceRequirement, found := utils.GetResourceByPodTemplate(podTemplate, containerPolicy.ContainerName)
+		resourceRequirement, found := utils.GetResourceByPodTemplate(podTemplate, container)
 		if !found {
 			klog.Warningf("ContainerName %s not found", containerPolicy.ContainerName)
 			continue
@@ -45,6 +48,8 @@ func (c *EffectiveVPAController) ReconcileContainerPolicies(evpa *autoscalingapi
 
 		// loop estimator and get final estimated resource for container
 		recommendResourceContainer, currentStatus := GetEstimatedResourceForContainer(evpa, containerPolicy, resourceRequirement, rankedEstimators, currentEstimatorStatus)
+		// record the recommended resource each time to do estimating. so we can get more observability
+		recordResourceRecommendation(evpa, containerPolicy, recommendResourceContainer)
 		currentEstimatorStatus = currentStatus
 		if IsResourceListEmpty(recommendResourceContainer) {
 			klog.V(4).Infof("Container %s recommend resource is empty, skip scaling. ", containerPolicy.ContainerName)
