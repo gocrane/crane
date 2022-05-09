@@ -34,8 +34,10 @@ Analytics model analyzes the workload and provide recommendations about resource
 
 Two Recommendations are currently supported:
 
-- **ResourceRecommend**: Recommend container requests & limit resources based on historic metrics.
-- **Effective HPARecommend**: Recommend which workloads are suitable for autoscaling and provide optimized configurations such as minReplicas, maxReplicas.
+- [**ResourceRecommend**](tutorials/resource-recommendation.md): Recommend container requests & limit resources based on historic metrics.
+- [**Effective HPARecommend**](tutorials/hpa-recommendation.md): Recommend which workloads are suitable for autoscaling and provide optimized configurations such as minReplicas, maxReplicas.
+
+Please see [this document](tutorials/analytics-and-recommendation.md) to learn more.
 
 ### QoS Ensurance
 Kubernetes is capable of starting multiple pods on same node, and as a result, some of the user applications may be impacted when there are resources(e.g. cpu) consumption competition. To mitigate this, Crane allows users defining PrioirtyClass for the pods and QoSEnsurancePolicy, and then detects disruption and ensure the high priority pods not being impacted by resource competition.

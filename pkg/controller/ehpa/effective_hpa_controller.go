@@ -17,10 +17,12 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
+	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/utils"
 )
@@ -101,6 +103,26 @@ func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	setHPACondition(newStatus, hpa.Status.Conditions)
+
+	// sync custom metric to annotations
+	if hpa.Status.CurrentMetrics != nil {
+		var currentMetrics string
+		if ehpa.Annotations == nil {
+			ehpa.Annotations = map[string]string{}
+		}
+		currentMetrics = ehpa.Annotations[known.EffectiveHorizontalPodAutoscalerCurrentMetricsAnnotation]
+
+		valueBytes, err := yaml.Marshal(hpa.Status.CurrentMetrics)
+		if err == nil && currentMetrics != string(valueBytes) {
+			ehpa.Annotations[known.EffectiveHorizontalPodAutoscalerCurrentMetricsAnnotation] = string(valueBytes)
+			klog.V(4).Infof("Updating ehpa %s current metrics: %s.", klog.KObj(ehpa), string(valueBytes))
+			err := c.Client.Update(ctx, ehpa)
+			if err != nil {
+				klog.Errorf("Failed to update current metrics for ehpa %s: %v", klog.KObj(ehpa), err)
+			}
+			klog.Infof("Updated ehpa %s current metrics: %s.", klog.KObj(ehpa), string(valueBytes))
+		}
+	}
 
 	// scale target to its specific replicas for Preview strategy
 	if ehpa.Spec.ScaleStrategy == autoscalingapi.ScaleStrategyPreview && ehpa.Spec.SpecificReplicas != nil && *ehpa.Spec.SpecificReplicas != scale.Status.Replicas {

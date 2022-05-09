@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -19,11 +20,13 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/scale"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 
 	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
 	craneclient "github.com/gocrane/api/pkg/generated/clientset/versioned"
@@ -31,6 +34,13 @@ import (
 	analysislister "github.com/gocrane/api/pkg/generated/listers/analysis/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/known"
+	predictormgr "github.com/gocrane/crane/pkg/predictor"
+	"github.com/gocrane/crane/pkg/providers"
+	"github.com/gocrane/crane/pkg/recommend"
+)
+
+const (
+	RecommendationMissionMessageSuccess = "Success"
 )
 
 type Controller struct {
@@ -43,6 +53,10 @@ type Controller struct {
 	discoveryClient discovery.DiscoveryInterface
 	recommLister    analysislister.RecommendationLister
 	K8SVersion      *version.Version
+	ScaleClient     scale.ScalesGetter
+	PredictorMgr    predictormgr.Manager
+	Provider        providers.History
+	ConfigSet       *analysisv1alph1.ConfigSet
 }
 
 func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -69,9 +83,9 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	}
 
-	c.DoAnalytics(ctx, analytics)
+	finished := c.DoAnalytics(ctx, analytics)
 
-	if analytics.Spec.CompletionStrategy.CompletionStrategyType == analysisv1alph1.CompletionStrategyPeriodical {
+	if finished && analytics.Spec.CompletionStrategy.CompletionStrategyType == analysisv1alph1.CompletionStrategyPeriodical {
 		if analytics.Spec.CompletionStrategy.PeriodSeconds != nil {
 			d := time.Second * time.Duration(*analytics.Spec.CompletionStrategy.PeriodSeconds)
 			klog.V(4).InfoS("Will re-sync", "after", d)
@@ -81,7 +95,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{RequeueAfter: time.Second * 1}, nil
 }
 
 // ShouldAnalytics decide if we need do analytics according to status
@@ -105,7 +119,7 @@ func (c *Controller) ShouldAnalytics(analytics *analysisv1alph1.Analytics) bool 
 	return true
 }
 
-func (c *Controller) DoAnalytics(ctx context.Context, analytics *analysisv1alph1.Analytics) {
+func (c *Controller) DoAnalytics(ctx context.Context, analytics *analysisv1alph1.Analytics) bool {
 	newStatus := analytics.Status.DeepCopy()
 
 	identities, err := c.GetIdentities(ctx, analytics)
@@ -115,14 +129,41 @@ func (c *Controller) DoAnalytics(ctx context.Context, analytics *analysisv1alph1
 		klog.Errorf(msg)
 		setReadyCondition(newStatus, metav1.ConditionFalse, "FailedSelectResource", msg)
 		c.UpdateStatus(ctx, analytics, newStatus)
-		return
+		return false
 	}
 
-	var recommendations []*analysisv1alph1.Recommendation
+	timeNow := metav1.Now()
+
+	// if the first mission start time is last round, reset currMissions here
+	currMissions := newStatus.Recommendations
+	if currMissions != nil && len(currMissions) > 0 {
+		firstMissionStartTime := currMissions[0].LastStartTime
+		if firstMissionStartTime.IsZero() {
+			currMissions = nil
+		} else {
+			planingTime := firstMissionStartTime.Add(time.Duration(*analytics.Spec.CompletionStrategy.PeriodSeconds) * time.Second)
+			if time.Now().After(planingTime) {
+				currMissions = nil // reset missions to trigger creation for missions
+			}
+		}
+	}
+
+	if currMissions == nil {
+		// create recommendation Missions for this round
+		for _, id := range identities {
+			currMissions = append(currMissions, analysisv1alph1.RecommendationMission{
+				TargetRef: corev1.ObjectReference{Kind: id.Kind, APIVersion: id.APIVersion, Namespace: id.Namespace, Name: id.Name},
+			})
+		}
+	}
+
+	var currRecommendations []*analysisv1alph1.Recommendation
+	labelSet := labels.Set{}
+	labelSet[known.AnalyticsUidLabel] = string(analytics.UID)
 	if analytics.Namespace == known.CraneSystemNamespace {
-		recommendations, err = c.recommLister.List(labels.Everything())
+		currRecommendations, err = c.recommLister.List(labels.SelectorFromSet(labelSet))
 	} else {
-		recommendations, err = c.recommLister.Recommendations(analytics.Namespace).List(labels.Everything())
+		currRecommendations, err = c.recommLister.Recommendations(analytics.Namespace).List(labels.SelectorFromSet(labelSet))
 	}
 	if err != nil {
 		c.Recorder.Event(analytics, corev1.EventTypeNormal, "FailedSelectResource", err.Error())
@@ -130,83 +171,88 @@ func (c *Controller) DoAnalytics(ctx context.Context, analytics *analysisv1alph1
 		klog.Errorf(msg)
 		setReadyCondition(newStatus, metav1.ConditionFalse, "FailedSelectResource", msg)
 		c.UpdateStatus(ctx, analytics, newStatus)
-		return
-	}
-
-	recommendationMap := map[string]*analysisv1alph1.Recommendation{}
-	for _, r := range recommendations {
-		k := objRefKey(r.Spec.TargetRef.Kind, r.Spec.TargetRef.APIVersion, r.Spec.TargetRef.Namespace, r.Spec.TargetRef.Name, string(r.Spec.Type))
-		recommendationMap[k] = r.DeepCopy()
+		return false
 	}
 
 	if klog.V(6).Enabled() {
-		// Print recommendations
-		for k, r := range recommendationMap {
-			klog.V(6).InfoS("recommendations", "analytics", klog.KObj(analytics), "key", k, "namespace", r.Namespace, "name", r.Name)
-		}
 		// Print identities
 		for k, id := range identities {
 			klog.V(6).InfoS("identities", "analytics", klog.KObj(analytics), "key", k, "apiVersion", id.APIVersion, "kind", id.Kind, "namespace", id.Namespace, "name", id.Name)
 		}
 	}
 
-	var refs []analysisv1alph1.RecommendationReference
-
-	for k, id := range identities {
-		if r, exists := recommendationMap[k]; exists {
-			refs = append(refs, analysisv1alph1.RecommendationReference{
-				ObjectReference: corev1.ObjectReference{
-					Kind:       recommendationMap[k].Kind,
-					Name:       recommendationMap[k].Name,
-					Namespace:  recommendationMap[k].Namespace,
-					APIVersion: recommendationMap[k].APIVersion,
-					UID:        recommendationMap[k].UID,
-				},
-				TargetRef: recommendationMap[k].Spec.TargetRef,
-			})
-			found := false
-			for _, or := range r.OwnerReferences {
-				if or.Name == analytics.Name && or.Kind == analytics.Kind && or.APIVersion == analytics.APIVersion {
-					found = true
-					break
-				}
-			}
-			if !found {
-				rCopy := r.DeepCopy()
-				rCopy.OwnerReferences = append(rCopy.OwnerReferences, *newOwnerRef(analytics))
-				if err = c.Update(ctx, rCopy); err != nil {
-					c.Recorder.Event(analytics, corev1.EventTypeNormal, "FailedUpdateRecommendation", err.Error())
-					msg := fmt.Sprintf("Failed to update ownerReferences for recommendation %s, Analytics %s error %v", klog.KObj(rCopy), klog.KObj(analytics), err)
-					klog.Errorf(msg)
-					setReadyCondition(newStatus, metav1.ConditionFalse, "FailedUpdateRecommendation", msg)
-					c.UpdateStatus(ctx, analytics, newStatus)
-					return
-				}
-				klog.InfoS("Successful to update ownerReferences", "Recommendation", rCopy, "Analytics", analytics)
-			}
-		} else {
-			if err = c.CreateRecommendation(ctx, analytics, id, &refs); err != nil {
-				c.Recorder.Event(analytics, corev1.EventTypeNormal, "FailedCreateRecommendation", err.Error())
-				msg := fmt.Sprintf("Failed to create recommendation, Analytics %s error %v", klog.KObj(analytics), err)
-				klog.Errorf(msg)
-				setReadyCondition(newStatus, metav1.ConditionFalse, "FailedCreateRecommendation", msg)
-				c.UpdateStatus(ctx, analytics, newStatus)
-				return
-			}
+	maxConcurrency := 10
+	executeIndex := -1
+	var concurrency int
+	for index, mission := range currMissions {
+		if mission.LastStartTime != nil {
+			continue
+		}
+		if executeIndex == -1 {
+			executeIndex = index
+		}
+		if concurrency < maxConcurrency {
+			concurrency++
 		}
 	}
-	newStatus.Recommendations = refs
-	timeNow := metav1.Now()
-	newStatus.LastUpdateTime = &timeNow
+
+	wg := sync.WaitGroup{}
+	wg.Add(concurrency)
+	for index := range currMissions {
+		if index < executeIndex || index >= concurrency+executeIndex {
+			continue
+		}
+
+		var existRecommendation *analysisv1alph1.Recommendation
+		for _, r := range currRecommendations {
+			if currMissions[index].UID == r.UID {
+				existRecommendation = r
+			}
+		}
+
+		go c.ExecuteMission(ctx, &wg, analytics, identities, &currMissions[index], existRecommendation, timeNow)
+	}
+
+	wg.Wait()
+
+	finished := false
+	if executeIndex+concurrency == len(currMissions) {
+		finished = true
+	}
+
+	if finished {
+		newStatus.LastUpdateTime = &timeNow
+
+		// clean orphan recommendation
+		for _, recommendation := range currRecommendations {
+			exist := false
+			for _, mission := range currMissions {
+				if recommendation.UID == mission.UID {
+					exist = true
+				}
+			}
+
+			if !exist {
+				klog.Infof("Deleting recommendation %s.", klog.KObj(recommendation))
+				err = c.Client.Delete(ctx, recommendation)
+				if err != nil {
+					klog.Errorf("Delete recommendation %s failed: %v", klog.KObj(recommendation), err)
+				}
+			}
+		}
+
+	}
+
+	newStatus.Recommendations = currMissions
 	setReadyCondition(newStatus, metav1.ConditionTrue, "AnalyticsReady", "Analytics is ready")
 
 	c.UpdateStatus(ctx, analytics, newStatus)
+	return finished
 }
 
-func (c *Controller) CreateRecommendation(ctx context.Context, analytics *analysisv1alph1.Analytics,
-	id ObjectIdentity, refs *[]analysisv1alph1.RecommendationReference) error {
+func (c *Controller) CreateRecommendationObject(ctx context.Context, analytics *analysisv1alph1.Analytics,
+	target corev1.ObjectReference, id ObjectIdentity) *analysisv1alph1.Recommendation {
 
-	targetRef := corev1.ObjectReference{Kind: id.Kind, APIVersion: id.APIVersion, Namespace: id.Namespace, Name: id.Name}
 	recommendation := &analysisv1alph1.Recommendation{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: fmt.Sprintf("%s-%s-", analytics.Name, strings.ToLower(string(analytics.Spec.Type))),
@@ -217,31 +263,19 @@ func (c *Controller) CreateRecommendation(ctx context.Context, analytics *analys
 			Labels: id.Labels,
 		},
 		Spec: analysisv1alph1.RecommendationSpec{
-			TargetRef:          targetRef,
-			Type:               analytics.Spec.Type,
-			CompletionStrategy: analytics.Spec.CompletionStrategy,
+			TargetRef: target,
+			Type:      analytics.Spec.Type,
 		},
 	}
 
-	if err := c.Create(ctx, recommendation); err != nil {
-		klog.Error(err, "Failed to create Recommendation")
-		return err
+	if recommendation.Labels == nil {
+		recommendation.Labels = map[string]string{}
 	}
+	recommendation.Labels[known.AnalyticsNameLabel] = analytics.Name
+	recommendation.Labels[known.AnalyticsUidLabel] = string(analytics.UID)
+	recommendation.Labels[known.AnalyticsTypeLabel] = string(analytics.Spec.Type)
 
-	klog.InfoS("Successful to create", "Recommendation", klog.KObj(recommendation), "Analytics", klog.KObj(analytics))
-
-	*refs = append(*refs, analysisv1alph1.RecommendationReference{
-		ObjectReference: corev1.ObjectReference{
-			Kind:       recommendation.Kind,
-			Name:       recommendation.Name,
-			Namespace:  recommendation.Namespace,
-			APIVersion: recommendation.APIVersion,
-			UID:        recommendation.UID,
-		},
-		TargetRef: targetRef,
-	})
-
-	return nil
+	return recommendation
 }
 
 func (c *Controller) SetupWithManager(mgr ctrl.Manager) error {
@@ -352,7 +386,86 @@ func (c *Controller) GetIdentities(ctx context.Context, analytics *analysisv1alp
 		}
 	}
 
+	if len(identities) == 0 {
+		return nil, fmt.Errorf("no resource matched resource selector")
+	}
+
 	return identities, nil
+}
+
+func (c *Controller) ExecuteMission(ctx context.Context, wg *sync.WaitGroup, analytics *analysisv1alph1.Analytics, identities map[string]ObjectIdentity, mission *analysisv1alph1.RecommendationMission, existRecommendation *analysisv1alph1.Recommendation, timeNow metav1.Time) {
+	defer func() {
+		mission.LastStartTime = &timeNow
+		klog.Infof("Mission message: %s", mission.Message)
+
+		wg.Done()
+	}()
+
+	k := objRefKey(mission.TargetRef.Kind, mission.TargetRef.APIVersion, mission.TargetRef.Namespace, mission.TargetRef.Name, string(analytics.Spec.Type))
+	if id, exist := identities[k]; !exist {
+		mission.Message = fmt.Sprintf("Failed to get identity, key %s. ", k)
+		return
+	} else {
+		recommendation := existRecommendation
+		if recommendation == nil {
+			recommendation = c.CreateRecommendationObject(ctx, analytics, mission.TargetRef, id)
+		}
+		// do recommendation
+		recommender, err := recommend.NewRecommender(c.Client, c.RestMapper, c.ScaleClient, recommendation, c.PredictorMgr, c.Provider, c.ConfigSet, analytics.Spec.Config)
+		if err != nil {
+			mission.Message = fmt.Sprintf("Failed to create recommender, Recommendation %s error %v", klog.KObj(recommendation), err)
+			return
+		}
+
+		proposed, err := recommender.Offer()
+		if err != nil {
+			mission.Message = fmt.Sprintf("Failed to offer recommend, Recommendation %s: %v", klog.KObj(recommendation), err)
+			return
+		}
+
+		var value string
+		if proposed.ResourceRequest != nil {
+			valueBytes, err := yaml.Marshal(proposed.ResourceRequest)
+			if err != nil {
+				mission.Message = err.Error()
+				return
+			}
+			value = string(valueBytes)
+		} else if proposed.EffectiveHPA != nil {
+			valueBytes, err := yaml.Marshal(proposed.EffectiveHPA)
+			if err != nil {
+				mission.Message = err.Error()
+				return
+			}
+			value = string(valueBytes)
+		}
+
+		recommendation.Status.RecommendedValue = value
+		if existRecommendation != nil {
+			klog.Infof("Update recommendation %s", klog.KObj(recommendation))
+			if err := c.Update(ctx, recommendation); err != nil {
+				mission.Message = fmt.Sprintf("Failed to create recommendation %s: %v", klog.KObj(recommendation), err)
+				return
+			}
+
+			klog.Infof("Successful to update Recommendation %s", klog.KObj(recommendation))
+		} else {
+			klog.Infof("Create recommendation %s", klog.KObj(recommendation))
+			if err := c.Create(ctx, recommendation); err != nil {
+				mission.Message = fmt.Sprintf("Failed to create recommendation %s: %v", klog.KObj(recommendation), err)
+				return
+			}
+
+			klog.Infof("Successful to create Recommendation %s", klog.KObj(recommendation))
+		}
+
+		mission.Message = "Success"
+		mission.UID = recommendation.UID
+		mission.Name = recommendation.Name
+		mission.Namespace = recommendation.Namespace
+		mission.Kind = recommendation.Kind
+		mission.APIVersion = recommendation.APIVersion
+	}
 }
 
 func (c *Controller) UpdateStatus(ctx context.Context, analytics *analysisv1alph1.Analytics, newStatus *analysisv1alph1.AnalyticsStatus) {

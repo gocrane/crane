@@ -68,6 +68,8 @@ nav:
   - Tutorials:
       - Effective HPA: tutorials/using-effective-hpa-to-scaling-with-effectiveness.md
       - Analytics and Recommendation: tutorials/analytics-and-recommendation.md
+        - Resource Recommendation: tutorials/resource-recommendation.md
+        - HPA Recommendation: tutorials/hpa-recommendation.md
       - Qos Ensurance: tutorials/using-qos-ensurance.md
       - Time Series Prediction: tutorials/using-time-series-prediction.md
       - Load-aware Scheduling: tutorials/scheduling-pods-based-on-actual-node-load.md
