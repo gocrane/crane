@@ -117,7 +117,7 @@ func (c *EffectiveHPAController) NewHPAObject(ctx context.Context, ehpa *autosca
 	var behavior *autoscalingv2.HorizontalPodAutoscalerBehavior
 	// Behavior works in k8s version > 1.18
 	if c.K8SVersion.Minor() >= 18 && ehpa.Spec.Behavior != nil {
-		behavior = hpa.Spec.Behavior
+		behavior = ehpa.Spec.Behavior
 	} else {
 		behavior = nil
 	}
