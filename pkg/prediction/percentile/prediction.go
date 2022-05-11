@@ -282,10 +282,12 @@ func (p *percentilePrediction) Run(stopCh <-chan struct{}) {
 			QueryExpr := qc.MetricNamer.BuildUniqueKey()
 
 			if _, ok := p.queryRoutines.Load(QueryExpr); ok {
+				klog.V(6).InfoS("Prediction percentile routine %v already registered.", "queryExpr", QueryExpr, "caller", qc.Caller)
 				continue
 			}
 
 			if _, ok := p.stopChMap.Load(QueryExpr); ok {
+				klog.V(6).InfoS("Prediction percentile routine %v already stopped.", "queryExpr", QueryExpr, "caller", qc.Caller)
 				continue
 			}
 
@@ -466,6 +468,11 @@ func (p *percentilePrediction) addSamples(namer metricnaming.MetricNamer) {
 		if signal == nil {
 			return
 		}
+		// maybe we can use other aggregated way to deal with the container instances of the same container in different pods of the same workload,
+		// aggregated by reducing all the samples to just one p99 or avg value and so on.
+		// saw that when the workload is daemonset, container in different node has very different resource usage. this is unexpected in production, maybe the daemonset in different nodes has different loads.
+		// NOTE: now it there are N instance of the workload, there are N samples in latest, then the aggregationWindowLength is N times growth to accumulate data fastly.
+		// it is not a time dimension, but we use N samples of different container instances of the workload to represent the N intervals samples
 		for _, ts := range latestTimeSeriesList {
 			if len(ts.Samples) < 1 {
 				klog.V(4).InfoS("Sample not found.", "key", key)

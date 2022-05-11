@@ -92,7 +92,7 @@ func (c *EffectiveVPAController) Reconcile(ctx context.Context, req ctrl.Request
 			c.UpdateStatus(ctx, evpa, newStatus)
 			return ctrl.Result{}, err
 		}
-		c.Recorder.Event(evpa, v1.EventTypeNormal, "RemoveFinalizers", err.Error())
+		c.Recorder.Event(evpa, v1.EventTypeNormal, "RemoveFinalizers", "")
 	} else if !utils.ContainsString(evpa.Finalizers, known.AutoscalingFinalizer) {
 		evpa.Finalizers = append(evpa.Finalizers, known.AutoscalingFinalizer)
 		err = c.Client.Update(ctx, evpa)
@@ -155,15 +155,38 @@ func (c *EffectiveVPAController) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(c)
 }
 
-func recordMetric(evpa *autoscalingapi.EffectiveVerticalPodAutoscaler, status *autoscalingapi.EffectiveVerticalPodAutoscalerStatus, podTemplate *v1.PodTemplateSpec) {
-	labels := map[string]string{
-		"resourceName": fmt.Sprintf("%s/%s", evpa.Namespace, evpa.Spec.TargetRef.Name),
+func recordResourceRecommendation(evpa *autoscalingapi.EffectiveVerticalPodAutoscaler, containerPolicy autoscalingapi.ContainerResourcePolicy, resourceList v1.ResourceList) {
+	for resourceName, resource := range resourceList {
+		labels := map[string]string{
+			"apiversion": evpa.Spec.TargetRef.APIVersion,
+			"owner_kind": evpa.Spec.TargetRef.Kind,
+			"namespace":  evpa.Namespace,
+			"owner_name": evpa.Spec.TargetRef.Name,
+			"container":  containerPolicy.ContainerName,
+			"resource":   resourceName.String(),
+		}
+		switch resourceName {
+		case v1.ResourceCPU:
+			metrics.EVPAResourceRecommendation.With(labels).Set(float64(resource.MilliValue()) / 1000.)
+		case v1.ResourceMemory:
+			metrics.EVPAResourceRecommendation.With(labels).Set(float64(resource.Value()))
+		}
 	}
+}
+
+func recordMetric(evpa *autoscalingapi.EffectiveVerticalPodAutoscaler, status *autoscalingapi.EffectiveVerticalPodAutoscalerStatus, podTemplate *v1.PodTemplateSpec) {
 
 	if status.Recommendation == nil {
 		return
 	}
 	for _, container := range status.Recommendation.ContainerRecommendations {
+		labels := map[string]string{
+			"apiversion": evpa.Spec.TargetRef.APIVersion,
+			"owner_kind": evpa.Spec.TargetRef.Kind,
+			"namespace":  evpa.Namespace,
+			"owner_name": evpa.Spec.TargetRef.Name,
+			"container":  container.ContainerName,
+		}
 		resourceRequirement, found := utils.GetResourceByPodTemplate(podTemplate, container.ContainerName)
 		if !found {
 			klog.Warningf("ContainerName %s not found", container.ContainerName)
@@ -172,30 +195,32 @@ func recordMetric(evpa *autoscalingapi.EffectiveVerticalPodAutoscaler, status *a
 
 		recommendCpu := container.Target[v1.ResourceCPU]
 		currentCpu := resourceRequirement.Requests[v1.ResourceCPU]
+		labels["resource"] = v1.ResourceCPU.String()
 		if currentCpu.Cmp(recommendCpu) > 0 {
 			// scale down
 			currCopy := currentCpu.DeepCopy()
 			currCopy.Sub(recommendCpu)
-			metrics.EVPACpuScaleDownMilliCores.With(labels).Set(float64(currCopy.MilliValue()))
+			metrics.EVPACpuScaleDown.With(labels).Set(float64(currCopy.MilliValue()) / 1000.)
 		} else if currentCpu.Cmp(recommendCpu) < 0 {
 			// scale up
 			recommendCopy := recommendCpu.DeepCopy()
 			recommendCopy.Sub(currentCpu)
-			metrics.EVPACpuScaleUpMilliCores.With(labels).Set(float64(recommendCopy.MilliValue()))
+			metrics.EVPACpuScaleUp.With(labels).Set(float64(recommendCopy.MilliValue()) / 1000.)
 		}
 
 		recommendMem := container.Target[v1.ResourceMemory]
 		currentMem := resourceRequirement.Requests[v1.ResourceMemory]
+		labels["resource"] = v1.ResourceMemory.String()
 		if currentMem.Cmp(recommendMem) > 0 {
 			// scale down
 			currCopy := currentMem.DeepCopy()
 			currCopy.Sub(recommendMem)
-			metrics.EVPAMemoryScaleDownMB.With(labels).Set(float64(currCopy.Value() / 1024 / 1024))
+			metrics.EVPAMemoryScaleDown.With(labels).Set(float64(currCopy.Value()))
 		} else if currentMem.Cmp(recommendMem) < 0 {
 			// scale up
 			recommendCopy := recommendMem.DeepCopy()
 			recommendCopy.Sub(currentMem)
-			metrics.EVPAMemoryScaleUpMB.With(labels).Set(float64(recommendCopy.Value() / 1024 / 1024))
+			metrics.EVPAMemoryScaleUp.With(labels).Set(float64(recommendCopy.Value()))
 		}
 	}
 }
