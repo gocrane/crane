@@ -45,11 +45,18 @@ func (auth *ClientAuth) Apply(req *http.Request) {
 type MockConfig struct {
 	SeedFile string
 }
-
 type DataSourceType string
 
 const (
 	MockDataSource         DataSourceType = "mock"
 	PrometheusDataSource   DataSourceType = "prom"
 	MetricServerDataSource DataSourceType = "metricserver"
+	InfluxDataSource       DataSourceType = "influxdb"
 )
+// InfluxDBConfig represents the config of prometheus
+type InfluxDBConfig struct {
+	Url            string
+	Token          string
+	QueryOrg       string
+	Timeout        time.Duration
+}

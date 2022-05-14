@@ -13,16 +13,18 @@ type MetricSource string
 const (
 	PrometheusMetricSource   MetricSource = "prom"
 	MetricServerMetricSource MetricSource = "metricserver"
+	InfluxDBMetricSource     MetricSource = "influxdb"
 )
 
 type MetricType string
 
 const (
-	WorkloadMetricType  MetricType = "workload"
-	PodMetricType       MetricType = "pod"
-	ContainerMetricType MetricType = "container"
-	NodeMetricType      MetricType = "node"
-	PromQLMetricType    MetricType = "promql"
+	WorkloadMetricType   MetricType = "workload"
+	PodMetricType        MetricType = "pod"
+	ContainerMetricType  MetricType = "container"
+	NodeMetricType       MetricType = "node"
+	PromQLMetricType     MetricType = "promql"
+	InfluxDBQLMetricType MetricType = "influxdbql"
 )
 
 var (
@@ -47,6 +49,8 @@ type Metric struct {
 	Node *NodeNamerInfo
 	// Prom can support any MetricName, user give the promQL
 	Prom *PromNamerInfo
+	// InfluxDB can support any MetricName, user give the influxQL
+	InfluxDB *InfluxDBNamerInfo
 }
 
 type WorkloadNamerInfo struct {
@@ -84,6 +88,13 @@ type PromNamerInfo struct {
 	Namespace string
 	Selector  labels.Selector
 }
+
+type InfluxDBNamerInfo struct {
+	QueryExpr string
+	Namespace string
+	Selector  labels.Selector
+}
+
 
 func (m *Metric) ValidateMetric() error {
 	if m == nil {
@@ -213,6 +224,7 @@ type Query struct {
 	Type         MetricSource
 	MetricServer *MetricServerQuery
 	Prometheus   *PrometheusQuery
+	InfluxDB     *InfluxDBQuery
 }
 
 // MetricServerQuery is used to do query for metric server
@@ -222,5 +234,10 @@ type MetricServerQuery struct {
 
 // PrometheusQuery is used to do query for prometheus
 type PrometheusQuery struct {
+	Query string
+}
+
+// InfluxDBQuery is used to do query for prometheus
+type InfluxDBQuery struct {
 	Query string
 }

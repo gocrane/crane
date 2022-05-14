@@ -33,6 +33,8 @@ type Options struct {
 	DataSourcePromConfig providers.PromConfig
 	// DataSourceMockConfig is the mock data provider
 	DataSourceMockConfig providers.MockConfig
+	// DataSourceInfluxDBConfig is the prometheus datasource config
+	DataSourceInfluxDBConfig providers.InfluxDBConfig
 
 	// AlgorithmModelConfig
 	AlgorithmModelConfig config.AlgorithmModelConfig

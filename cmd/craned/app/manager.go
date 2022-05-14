@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"flag"
+	"github.com/gocrane/crane/pkg/providers/influxdb"
 	"os"
 	"strings"
 
@@ -176,6 +177,14 @@ func initializationDataSource(mgr ctrl.Manager, opts *options.Options) (map[prov
 				klog.Exitf("unable to create datasource provider %v, err: %v", datasource, err)
 			}
 			hybridDataSources[providers.MockDataSource] = provider
+		case "influxdb":
+			provider, err := influxdb.NewProvider(&opts.DataSourceInfluxDBConfig)
+			if err != nil {
+				klog.Exitf("unable to create datasource provider %v, err: %v", datasource, err)
+			}
+			hybridDataSources[providers.InfluxDataSource] = provider
+			realtimeDataSources[providers.InfluxDataSource] = provider
+			historyDataSources[providers.InfluxDataSource] = provider
 		case "prometheus", "prom":
 			fallthrough
 		default:
