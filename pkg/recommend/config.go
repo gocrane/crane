@@ -43,7 +43,7 @@ func loadConfigSetFromBytes(configSetBytes []byte) (*analysisv1alpha1.ConfigSet,
 	return configSet, nil
 }
 
-func GetProperties(configSet *analysisv1alpha1.ConfigSet, dst analysisv1alpha1.Target) map[string]string {
+func GetProperties(configSet *analysisv1alpha1.ConfigSet, dst analysisv1alpha1.Target, analyticsConfig map[string]string) map[string]string {
 	var selectedProps map[string]string
 	maxMatchLevel := -1
 	for i, config := range configSet.Configs {
@@ -60,6 +60,14 @@ func GetProperties(configSet *analysisv1alpha1.ConfigSet, dst analysisv1alpha1.T
 			}
 		}
 	}
+
+	// override by analytics config
+	if analyticsConfig != nil {
+		for k, v := range analyticsConfig {
+			selectedProps[k] = v
+		}
+	}
+
 	bytes, _ := json.Marshal(dst)
 	klog.V(4).Infof("Got properties %v for target %s", selectedProps, string(bytes))
 	return selectedProps

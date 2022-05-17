@@ -240,6 +240,7 @@ func (a *EHPAAdvisor) minMaxMedians(predictionTs []*common.TimeSeries) (float64,
 			medianMin = value
 		}
 	}
+
 	klog.V(4).Infof("EHPAAdvisor minMaxMedians medianMax %f, medianMin %f, medianUsages %v", medianMax, medianMin, medianUsages)
 
 	return medianMin, medianMax, nil
@@ -253,7 +254,7 @@ func (a *EHPAAdvisor) checkFluctuation(medianMin, medianMax float64) error {
 	}
 
 	if medianMin == 0 {
-		return fmt.Errorf("mean cpu usage is zero. ")
+		medianMin = 0.1 // use a small value to continue calculate
 	}
 
 	fluctuation := medianMax / medianMin

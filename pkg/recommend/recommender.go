@@ -29,8 +29,8 @@ import (
 func NewRecommender(kubeClient client.Client, restMapper meta.RESTMapper,
 	scaleClient scale.ScalesGetter, recommendation *analysisapi.Recommendation,
 	predictorMgr predictormgr.Manager, dataSource providers.History,
-	configSet *analysisapi.ConfigSet) (*Recommender, error) {
-	c, err := GetContext(kubeClient, restMapper, scaleClient, recommendation, predictorMgr, dataSource, configSet)
+	configSet *analysisapi.ConfigSet, analyticsConfig map[string]string) (*Recommender, error) {
+	c, err := GetContext(kubeClient, restMapper, scaleClient, recommendation, predictorMgr, dataSource, configSet, analyticsConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +93,7 @@ func (r *Recommender) Offer() (proposed *types.ProposedRecommendation, err error
 func GetContext(kubeClient client.Client, restMapper meta.RESTMapper,
 	scaleClient scale.ScalesGetter, recommendation *analysisapi.Recommendation,
 	predictorMgr predictormgr.Manager, dataSource providers.History,
-	configSet *analysisapi.ConfigSet) (*types.Context, error) {
+	configSet *analysisapi.ConfigSet, analyticsConfig map[string]string) (*types.Context, error) {
 	c := &types.Context{}
 
 	targetRef := autoscalingv2.CrossVersionObjectReference{
@@ -107,7 +107,7 @@ func GetContext(kubeClient client.Client, restMapper meta.RESTMapper,
 		Namespace: recommendation.Spec.TargetRef.Namespace,
 		Name:      recommendation.Spec.TargetRef.Name,
 	}
-	c.ConfigProperties = GetProperties(configSet, target)
+	c.ConfigProperties = GetProperties(configSet, target, analyticsConfig)
 
 	var scale *autoscalingv1.Scale
 	var mapping *meta.RESTMapping

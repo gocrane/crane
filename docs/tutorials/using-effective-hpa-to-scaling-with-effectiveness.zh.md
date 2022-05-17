@@ -195,3 +195,26 @@ status:
   expectReplicas: 0
 
 ```
+
+## 常见问题
+
+### 错误: unable to get metric crane_pod_cpu_usage
+
+当你查看 EffectiveHorizontalPodAutoscaler 的 Status 时，可以会看到这样的错误：
+
+```yaml
+- lastTransitionTime: "2022-05-15T14:05:43Z"
+  message: 'the HPA was unable to compute the replica count: unable to get metric
+    crane_pod_cpu_usage: unable to fetch metrics from custom metrics API: TimeSeriesPrediction
+    is not ready. '
+  reason: FailedGetPodsMetric
+  status: "False"
+  type: ScalingActive
+```
+
+原因：不是所有的工作负载的 CPU 使用率都是可预测的，当无法预测时就会显示以上错误。
+
+解决方案：
+
+- 等一段时间再看。预测算法 `DSP` 需要一定时间的数据才能进行预测。希望了解算法细节的可以查看算法的文档。
+- EffectiveHorizontalPodAutoscaler 提供一种保护机制，当预测失效时依然能通过实际的 CPU 使用率工作。

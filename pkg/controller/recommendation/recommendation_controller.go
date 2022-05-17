@@ -3,7 +3,6 @@ package recommendation
 import (
 	"context"
 	"fmt"
-	"time"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -17,9 +16,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
+
 	predictormgr "github.com/gocrane/crane/pkg/predictor"
 	"github.com/gocrane/crane/pkg/providers"
-	"github.com/gocrane/crane/pkg/recommend"
 )
 
 // Controller is responsible for reconcile Recommendation
@@ -47,89 +46,31 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	}
 
-	shouldRecommend := c.ShouldRecommend(recommendation)
-	if !shouldRecommend {
-		klog.V(4).Infof("Nothing happens for Recommendation %s", req.NamespacedName)
-		return ctrl.Result{}, nil
-	}
-
 	// defaulting for TargetRef.Namespace
 	if recommendation.Spec.TargetRef.Namespace == "" {
 		recommendation.Spec.TargetRef.Namespace = recommendation.Namespace
 	}
 
-	c.DoRecommend(ctx, recommendation)
-
-	if recommendation.Spec.CompletionStrategy.CompletionStrategyType == analysisv1alph1.CompletionStrategyPeriodical {
-		if recommendation.Spec.CompletionStrategy.PeriodSeconds != nil {
-			d := time.Second * time.Duration(*recommendation.Spec.CompletionStrategy.PeriodSeconds)
-			klog.V(4).InfoS("Will re-sync", "after", d)
-			return ctrl.Result{
-				RequeueAfter: d,
-			}, nil
-		}
-	}
-	return ctrl.Result{}, nil
-}
-
-// ShouldRecommend decide if we need do recommendation according to status
-func (c *Controller) ShouldRecommend(recommendation *analysisv1alph1.Recommendation) bool {
-	lastUpdateTime := recommendation.Status.LastUpdateTime
-
-	if recommendation.Spec.CompletionStrategy.CompletionStrategyType == analysisv1alph1.CompletionStrategyOnce {
-		if lastUpdateTime != nil {
-			// already finish recommendation
-			return false
-		}
-	} else {
-		if lastUpdateTime != nil {
-			planingTime := lastUpdateTime.Add(time.Duration(*recommendation.Spec.CompletionStrategy.PeriodSeconds) * time.Second)
-			if time.Now().Before(planingTime) {
-				return false
-			}
-		}
-	}
-
-	return true
-}
-
-func (c *Controller) DoRecommend(ctx context.Context, recommendation *analysisv1alph1.Recommendation) {
-	klog.V(4).Infof("Starting to process Recommendation %s", klog.KObj(recommendation))
-
 	newStatus := recommendation.Status.DeepCopy()
 
-	recommender, err := recommend.NewRecommender(c.Client, c.RestMapper, c.ScaleClient, recommendation, c.PredictorMgr, c.Provider, c.ConfigSet)
-	if err != nil {
-		c.Recorder.Event(recommendation, v1.EventTypeWarning, "FailedCreateRecommender", err.Error())
-		msg := fmt.Sprintf("Failed to create recommender, Recommendation %s error %v", klog.KObj(recommendation), err)
-		klog.Errorf(msg)
-		setReadyCondition(newStatus, metav1.ConditionFalse, "FailedCreateRecommender", msg)
-		c.UpdateStatus(ctx, recommendation, newStatus)
-		return
-	}
-
-	proposed, err := recommender.Offer()
-	if err != nil {
-		c.Recorder.Event(recommendation, v1.EventTypeWarning, "FailedOfferRecommendation", err.Error())
-		msg := fmt.Sprintf("Failed to offer recommend, Recommendation %s: %v", klog.KObj(recommendation), err)
-		klog.Errorf(msg)
-		setReadyCondition(newStatus, metav1.ConditionFalse, "FailedOfferRecommend", msg)
-		c.UpdateStatus(ctx, recommendation, newStatus)
-		return
-	}
-
-	err = c.UpdateRecommendation(ctx, recommendation, proposed, newStatus)
+	updated, err := c.UpdateRecommendation(ctx, recommendation)
 	if err != nil {
 		c.Recorder.Event(recommendation, v1.EventTypeWarning, "FailedUpdateRecommendationValue", err.Error())
 		msg := fmt.Sprintf("Failed to update recommendation value, Recommendation %s: %v", klog.KObj(recommendation), err)
 		klog.Errorf(msg)
 		setReadyCondition(newStatus, metav1.ConditionFalse, "FailedUpdateRecommendationValue", msg)
 		c.UpdateStatus(ctx, recommendation, newStatus)
-		return
+		return ctrl.Result{}, err
 	}
 
-	setReadyCondition(newStatus, metav1.ConditionTrue, "RecommendationReady", "Recommendation is ready")
-	c.UpdateStatus(ctx, recommendation, newStatus)
+	if updated {
+		c.Recorder.Event(recommendation, v1.EventTypeNormal, "UpdatedRecommendationValue", "")
+
+		setReadyCondition(newStatus, metav1.ConditionTrue, "RecommendationReady", "Recommendation is ready")
+		c.UpdateStatus(ctx, recommendation, newStatus)
+	}
+
+	return ctrl.Result{}, nil
 }
 
 func (c *Controller) UpdateStatus(ctx context.Context, recommendation *analysisv1alph1.Recommendation, newStatus *analysisv1alph1.RecommendationStatus) {

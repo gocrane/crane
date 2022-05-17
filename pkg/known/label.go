@@ -9,3 +9,9 @@ const (
 	EnsuranceAnalyzedPressureTaintKey     = "ensurance.crane.io/analyzed-pressure"
 	EnsuranceAnalyzedPressureConditionKey = "analyzed-pressure"
 )
+
+const (
+	AnalyticsNameLabel = "analysis.crane.io/analytics-name"
+	AnalyticsUidLabel  = "analysis.crane.io/analytics-uid"
+	AnalyticsTypeLabel = "analysis.crane.io/analytics-type"
+)
