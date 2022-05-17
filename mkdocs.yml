@@ -66,7 +66,7 @@ nav:
       - Installation: installation.md
   - Tutorials:
       - Effective HPA: tutorials/using-effective-hpa-to-scaling-with-effectiveness.md
-      - Analytics and Recommendation: tutorials/analytics-and-recommendation.md
+      - Analytics and Recommendation:
         - Resource Recommendation: tutorials/resource-recommendation.md
         - HPA Recommendation: tutorials/hpa-recommendation.md
       - Qos Ensurance: tutorials/using-qos-ensurance.md
