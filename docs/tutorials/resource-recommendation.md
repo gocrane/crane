@@ -6,11 +6,23 @@ Resource recommendation allows you to obtain recommended values for resources in
 
 Create an **Resource** `Analytics` to give recommendation for deployment: `nginx-deployment` as a sample.
 
-```bash
-kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/nginx-deployment.yaml
-kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/analytics-resource.yaml
-kubectl get analytics -n crane-system
-```
+
+=== "Main"
+
+      ```bash
+      kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/nginx-deployment.yaml
+      kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/analytics-resource.yaml
+      kubectl get analytics -n crane-system
+      ```
+
+=== "Mirror"
+
+      ```bash
+      kubectl apply -f https://finops.coding.net/p/gocrane/d/crane/git/raw/main/examples/analytics/nginx-deployment.yaml?download=false
+      kubectl apply -f https://finops.coding.net/p/gocrane/d/crane/git/raw/main/examples/analytics/analytics-resource.yaml?download=false
+      kubectl get analytics -n crane-system
+      ```
+
 
 ```yaml title="analytics-resource.yaml"  hl_lines="7 24 11-14 28-31"
 apiVersion: analysis.crane.io/v1alpha1
@@ -43,7 +55,7 @@ kubectl get analytics nginx-resource -o yaml
 
 The output is similar to:
 
-```yaml
+```yaml hl_lines="27"
 apiVersion: analysis.crane.io/v1alpha1
 kind: Analytics
 metadata:
@@ -85,7 +97,7 @@ The recommendation name presents on `status.recommendations[0].name`. Then you c
 ## Recommendation: Analytics result
 
 ```bash
-kubectl get recommend -n crane-system craned-resource-resource-j7shb -o yaml
+kubectl get recommend -n crane-system nginx-resource-resource-w45nq -o yaml
 ```
 
 The output is similar to:

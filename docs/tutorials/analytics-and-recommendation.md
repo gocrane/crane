@@ -15,8 +15,8 @@ Two Recommendations are currently supported:
 
 1. Users create `Analytics` object and config ResourceSelector to select resources to be analyzed. Multiple types of resource selection (based on Group,Kind, and Version) are supported. 
 2. Analyze each selected resource in parallel and try to execute analysis and give recommendation. Each analysis process is divided into two stages: inspecting and advising:
-   1. Inspecting: Filter resources that don't match the recommended conditions. For example, for hpa recommendation, the workload that have many not running pod is excluded
-   2. Advising: Analysis and calculate based on algorithm model then provide the recommendation result.
+     1. Inspecting: Filter resources that don't match the recommended conditions. For example, for hpa recommendation, the workload that has many not running pod is excluded
+     2. Advising: Analysis and calculation based on algorithm model then provide the recommendation result.
 3. If you paas the above two stages, it will create `Recommendation` object and display the result in `recommendation.Status`
 4. You can find the failure reasons from `analytics.status.recommendations`
 5. Wait for the next analytics based on the interval

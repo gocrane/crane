@@ -6,11 +6,22 @@
 
 创建一个**弹性分析** `Analytics`，这里我们通过实例 deployment: `nginx` 作为一个例子
 
-```bash
-kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/nginx-deployment.yaml
-kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/analytics-hpa.yaml
-kubectl get analytics
-```
+=== "Main"
+
+      ```bash
+      kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/nginx-deployment.yaml
+      kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/analytics-hpa.yaml
+      kubectl get analytics
+      ```
+
+=== "Mirror"
+
+      ```bash
+      kubectl apply -f https://finops.coding.net/p/gocrane/d/crane/git/raw/main/examples/analytics/nginx-deployment.yaml?download=false
+      kubectl apply -f https://finops.coding.net/p/gocrane/d/crane/git/raw/main/examples/analytics/analytics-hpa.yaml?download=false
+      kubectl get analytics
+      ```
+
 
 ```yaml title="analytics-hpa.yaml"
 apiVersion: analysis.crane.io/v1alpha1
@@ -47,7 +58,7 @@ kubectl get analytics nginx-hpa -o yaml
 
 结果如下:
 
-```yaml
+```yaml hl_lines="32"
 apiVersion: analysis.crane.io/v1alpha1
 kind: Analytics
 metadata:
@@ -154,10 +165,10 @@ status:
 
 ### 筛选阶段
 
-1. 低副本数的工作负载: 过低的副本数可能弹性需求不高，关联配置: ehpa.deployment-min-replicas | ehpa.statefulset-min-replicas | ehpa.workload-min-replicas
-2. 存在一定比例非 Running Pod 的工作负载: 如果工作负载的 Pod 大多不能正常运行，可能不适合弹性，关联配置: ehpa.pod-min-ready-seconds | ehpa.pod-available-ratio
-3. 低 CPU 使用量的工作负载: 过低使用量的工作负载意味着没有业务压力，此时通过使用率推荐弹性不准，关联配置: ehpa.min-cpu-usage-threshold
-4. CPU 使用量的波动率过低: 使用量的最大值和最小值的倍数定义为波动率，波动率过低的工作负载通过弹性降本的收益不大，关联配置: ehpa.fluctuation-threshold
+1. 低副本数的工作负载: 过低的副本数可能弹性需求不高，关联配置: `ehpa.deployment-min-replicas` | `ehpa.statefulset-min-replicas` | `ehpa.workload-min-replicas`
+2. 存在一定比例非 Running Pod 的工作负载: 如果工作负载的 Pod 大多不能正常运行，可能不适合弹性，关联配置: `ehpa.pod-min-ready-seconds` | `ehpa.pod-available-ratio`
+3. 低 CPU 使用量的工作负载: 过低使用量的工作负载意味着没有业务压力，此时通过使用率推荐弹性不准，关联配置: `ehpa.min-cpu-usage-threshold`
+4. CPU 使用量的波动率过低: 使用量的最大值和最小值的倍数定义为波动率，波动率过低的工作负载通过弹性降本的收益不大，关联配置: `ehpa.fluctuation-threshold`
 
 ### 推荐
 

@@ -6,11 +6,23 @@
 
 创建一个**资源分析** `Analytics`，这里我们通过实例 deployment: `nginx` 作为一个例子
 
-```bash
-kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/nginx-deployment.yaml
-kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/analytics-resource.yaml
-kubectl get analytics
-```
+
+=== "Main"
+
+      ```bash
+      kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/nginx-deployment.yaml
+      kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/analytics-resource.yaml
+      kubectl get analytics
+      ```
+
+=== "Mirror"
+
+      ```bash
+      kubectl apply -f https://finops.coding.net/p/gocrane/d/crane/git/raw/main/examples/analytics/nginx-deployment.yaml?download=false
+      kubectl apply -f https://finops.coding.net/p/gocrane/d/crane/git/raw/main/examples/analytics/analytics-resource.yaml?download=false
+      kubectl get analytics
+      ```
+
 
 ```yaml title="analytics-resource.yaml"
 apiVersion: analysis.crane.io/v1alpha1
@@ -43,7 +55,7 @@ kubectl get analytics nginx-resource -o yaml
 
 结果如下:
 
-```yaml
+```yaml hl_lines="27"
 apiVersion: analysis.crane.io/v1alpha1
 kind: Analytics
 metadata:
