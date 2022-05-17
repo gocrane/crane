@@ -9,7 +9,7 @@
       
       
       <link rel="icon" href="../../images/crane.svg">
-      <meta name="generator" content="mkdocs-1.3.0, mkdocs-material-8.2.13">
+      <meta name="generator" content="mkdocs-1.3.0, mkdocs-material-8.2.15">
     
     
       
@@ -17,7 +17,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.e411adfe.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.c382b1dc.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.cc9b2e1e.min.css">
@@ -449,6 +449,26 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#faq" class="md-nav__link">
+    FAQ
+  </a>
+  
+    <nav class="md-nav" aria-label="FAQ">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#error-unable-to-get-metric-crane_pod_cpu_usage" class="md-nav__link">
+    error: unable to get metric crane_pod_cpu_usage
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -463,10 +483,57 @@
   
   
   
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_2" type="checkbox" id="__nav_2_2" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2_2">
+          Analytics and Recommendation
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Analytics and Recommendation" data-md-level="2">
+        <label class="md-nav__title" for="__nav_2_2">
+          <span class="md-nav__icon md-icon"></span>
+          Analytics and Recommendation
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
     <li class="md-nav__item">
-      <a href="../analytics-and-recommendation/" class="md-nav__link">
-        Analytics and Recommendation
+      <a href="../resource-recommendation/" class="md-nav__link">
+        Resource Recommendation
       </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hpa-recommendation/" class="md-nav__link">
+        HPA Recommendation
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
     </li>
   
 
@@ -775,6 +842,26 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#faq" class="md-nav__link">
+    FAQ
+  </a>
+  
+    <nav class="md-nav" aria-label="FAQ">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#error-unable-to-get-metric-crane_pod_cpu_usage" class="md-nav__link">
+    error: unable to get metric crane_pod_cpu_usage
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -956,6 +1043,21 @@
 <a id="__codelineno-5-15" name="__codelineno-5-15"></a><a href="#__codelineno-5-15"><span class="linenos" data-linenos="15 "></span></a><span class="w">  </span><span class="nt">currentReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span><span class="w"></span>
 <a id="__codelineno-5-16" name="__codelineno-5-16"></a><a href="#__codelineno-5-16"><span class="linenos" data-linenos="16 "></span></a><span class="w">  </span><span class="nt">expectReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span><span class="w"></span>
 </code></pre></div></p>
+<h2 id="faq">FAQ<a class="headerlink" href="#faq" title="Permanent link">&para;</a></h2>
+<h3 id="error-unable-to-get-metric-crane_pod_cpu_usage">error: unable to get metric crane_pod_cpu_usage<a class="headerlink" href="#error-unable-to-get-metric-crane_pod_cpu_usage" title="Permanent link">&para;</a></h3>
+<p>When checking the status for EffectiveHorizontalPodAutoscaler, you may see this error: </p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1"></a><a href="#__codelineno-6-1"><span class="linenos" data-linenos="1 "></span></a><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">lastTransitionTime</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2022-05-15T14:05:43Z&quot;</span><span class="w"></span>
+<a id="__codelineno-6-2" name="__codelineno-6-2"></a><a href="#__codelineno-6-2"><span class="linenos" data-linenos="2 "></span></a><span class="w">  </span><span class="nt">message</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;the</span><span class="nv"> </span><span class="s">HPA</span><span class="nv"> </span><span class="s">was</span><span class="nv"> </span><span class="s">unable</span><span class="nv"> </span><span class="s">to</span><span class="nv"> </span><span class="s">compute</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">replica</span><span class="nv"> </span><span class="s">count:</span><span class="nv"> </span><span class="s">unable</span><span class="nv"> </span><span class="s">to</span><span class="nv"> </span><span class="s">get</span><span class="nv"> </span><span class="s">metric</span><span class="w"></span>
+<a id="__codelineno-6-3" name="__codelineno-6-3"></a><a href="#__codelineno-6-3"><span class="linenos" data-linenos="3 "></span></a><span class="w">    </span><span class="s">crane_pod_cpu_usage:</span><span class="nv"> </span><span class="s">unable</span><span class="nv"> </span><span class="s">to</span><span class="nv"> </span><span class="s">fetch</span><span class="nv"> </span><span class="s">metrics</span><span class="nv"> </span><span class="s">from</span><span class="nv"> </span><span class="s">custom</span><span class="nv"> </span><span class="s">metrics</span><span class="nv"> </span><span class="s">API:</span><span class="nv"> </span><span class="s">TimeSeriesPrediction</span><span class="w"></span>
+<a id="__codelineno-6-4" name="__codelineno-6-4"></a><a href="#__codelineno-6-4"><span class="linenos" data-linenos="4 "></span></a><span class="w">    </span><span class="s">is</span><span class="nv"> </span><span class="s">not</span><span class="nv"> </span><span class="s">ready.</span><span class="nv"> </span><span class="s">&#39;</span><span class="w"></span>
+<a id="__codelineno-6-5" name="__codelineno-6-5"></a><a href="#__codelineno-6-5"><span class="linenos" data-linenos="5 "></span></a><span class="w">  </span><span class="nt">reason</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">FailedGetPodsMetric</span><span class="w"></span>
+<a id="__codelineno-6-6" name="__codelineno-6-6"></a><a href="#__codelineno-6-6"><span class="linenos" data-linenos="6 "></span></a><span class="w">  </span><span class="nt">status</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;False&quot;</span><span class="w"></span>
+<a id="__codelineno-6-7" name="__codelineno-6-7"></a><a href="#__codelineno-6-7"><span class="linenos" data-linenos="7 "></span></a><span class="w">  </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ScalingActive</span><span class="w"></span>
+</code></pre></div>
+<p>reason: Not all workload's cpu metric are predictable, if predict your workload failed, it will show above errors. </p>
+<p>solution: 
+- Just waiting. the Prediction algorithm need more time, you can see <code>DSP</code> section to know more about this algorithm.
+- EffectiveHorizontalPodAutoscaler have a protection mechanism when prediction failed, it will use the actual cpu utilization to do autoscaling.</p>
 
               
             </article>
@@ -990,13 +1092,13 @@
       
       
         
-        <a href="../analytics-and-recommendation/" class="md-footer__link md-footer__link--next" aria-label="Next: Analytics and Recommendation" rel="next">
+        <a href="../resource-recommendation/" class="md-footer__link md-footer__link--next" aria-label="Next: Resource Recommendation" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              Analytics and Recommendation
+              Resource Recommendation
             </div>
           </div>
           <div class="md-footer__button md-icon">
@@ -1029,7 +1131,7 @@
     <script id="__config" type="application/json">{"base": "../..", "features": ["content.code.annotate", "navigation.top"], "search": "../../assets/javascripts/workers/search.2a1c317c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.ed9748b7.min.js"></script>
+      <script src="../../assets/javascripts/bundle.a6c66575.min.js"></script>
       
         <script src="../../assets/util.js"></script>
       
