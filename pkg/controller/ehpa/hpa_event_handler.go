@@ -1,7 +1,6 @@
 package ehpa
 
 import (
-	"fmt"
 	"strings"
 
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
@@ -43,15 +42,10 @@ func (h *hpaEventHandler) Update(evt event.UpdateEvent, q workqueue.RateLimiting
 					scaleType = "ehpa"
 				}
 
-				direction := "Down"
-				if newHpa.Status.DesiredReplicas > oldHpa.Status.DesiredReplicas {
-					direction = "Up"
-				}
-
 				labels := map[string]string{
-					"resourceName": fmt.Sprintf("%s/%s", newHpa.Namespace, newHpa.Name),
-					"type":         scaleType,
-					"direction":    direction,
+					"namespace": newHpa.Namespace,
+					"name":      newHpa.Name,
+					"type":      scaleType,
 				}
 				metrics.HPAScaleCount.With(labels).Inc()
 
