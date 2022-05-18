@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	CgroupKubePods  = "/kubepods"
+	CgroupKubePods  = "kubepods"
 	CgroupPodPrefix = "pod"
 )
 

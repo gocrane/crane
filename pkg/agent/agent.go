@@ -53,7 +53,7 @@ type Agent struct {
 }
 
 func NewAgent(ctx context.Context,
-	nodeName, runtimeEndpoint string,
+	nodeName, runtimeEndpoint, cgroupDriver string,
 	kubeClient *kubernetes.Clientset,
 	craneClient *craneclientset.Clientset,
 	podInformer coreinformers.PodInformer,
@@ -77,7 +77,7 @@ func NewAgent(ctx context.Context,
 	}
 
 	utilruntime.Must(ensuranceapi.AddToScheme(scheme.Scheme))
-	cadvisorManager := cadvisor.NewCadvisorManager()
+	cadvisorManager := cadvisor.NewCadvisorManager(cgroupDriver)
 	exclusiveCPUSet := cm.DefaultExclusiveCPUSet
 	if craneCpuSetManager := utilfeature.DefaultFeatureGate.Enabled(features.CraneCpuSetManager); craneCpuSetManager {
 		cpuManager := cm.NewAdvancedCpuManager(podInformer, runtimeEndpoint, cadvisorManager)

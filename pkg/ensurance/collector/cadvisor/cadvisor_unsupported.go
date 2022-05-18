@@ -22,9 +22,11 @@ type CadvisorCollectorUnsupport struct {
 
 type CadvisorManagerUnsupport struct{}
 
-func NewCadvisorManager() Manager {
+func NewCadvisorManager(_ string) Manager {
 	return &CadvisorManagerUnsupport{}
 }
+
+var _ Manager = new(CadvisorManagerUnsupport)
 
 func NewCadvisorCollector(_ corelisters.PodLister, manager Manager) *CadvisorCollectorUnsupport {
 	return &CadvisorCollectorUnsupport{}
@@ -52,6 +54,10 @@ func (m *CadvisorManagerUnsupport) GetContainerInfo(containerName string, query 
 
 func (m *CadvisorManagerUnsupport) GetMachineInfo() (*info.MachineInfo, error) {
 	return nil, errUnsupported
+}
+
+func (m *CadvisorManagerUnsupport) GetCgroupDriver() string {
+	return ""
 }
 
 func CheckMetricNameExist(name string) bool {

@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/kubernetes/pkg/kubelet/cm"
 
 	"github.com/gocrane/crane/pkg/utils"
 )
@@ -53,18 +54,26 @@ const (
 	MetricNameExtResContainerCpuTotalUsage MetricName = "ext_res_container_cpu_total_usage"
 )
 
-func GetCgroupPath(p *v1.Pod) string {
-	var pathArrays = []string{utils.CgroupKubePods}
-
-	switch p.Status.QOSClass {
-	case v1.PodQOSGuaranteed:
-		pathArrays = append(pathArrays, utils.CgroupPodPrefix+string(p.UID))
-	case v1.PodQOSBurstable:
-		pathArrays = append(pathArrays, strings.ToLower(string(v1.PodQOSBurstable)), utils.CgroupPodPrefix+string(p.UID))
-	case v1.PodQOSBestEffort:
-		pathArrays = append(pathArrays, strings.ToLower(string(v1.PodQOSBestEffort)), utils.CgroupPodPrefix+string(p.UID))
+func GetCgroupPath(p *v1.Pod, cgroupDriver string) string {
+	cgroupName := GetCgroupName(p)
+	switch cgroupDriver {
+	case "stytemd":
+		return cgroupName.ToSystemd()
+	case "cgroupfs":
+		return cgroupName.ToCgroupfs()
 	default:
 		return ""
 	}
-	return strings.Join(pathArrays, "/")
+}
+func GetCgroupName(p *v1.Pod) cm.CgroupName {
+	switch p.Status.QOSClass {
+	case v1.PodQOSGuaranteed:
+		return cm.NewCgroupName(cm.RootCgroupName, utils.CgroupKubePods, cm.GetPodCgroupNameSuffix(p.UID))
+	case v1.PodQOSBurstable:
+		return cm.NewCgroupName(cm.RootCgroupName, utils.CgroupKubePods, strings.ToLower(string(v1.PodQOSBurstable)), cm.GetPodCgroupNameSuffix(p.UID))
+	case v1.PodQOSBestEffort:
+		return cm.NewCgroupName(cm.RootCgroupName, utils.CgroupKubePods, strings.ToLower(string(v1.PodQOSBestEffort)), cm.GetPodCgroupNameSuffix(p.UID))
+	default:
+		return cm.RootCgroupName
+	}
 }
