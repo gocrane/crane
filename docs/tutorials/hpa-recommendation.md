@@ -1,6 +1,6 @@
 # HPA Recommendation
 
-Using hpa recommendations, you can find resources in the cluster that are suitable for autoscaling, and use Crane's recommended result to create an autoscaling object: [Effective HorizontalPodAutoscaler](using-time-series-prediction.md).
+Using hpa recommendations, you can find resources in the cluster that are suitable for autoscaling, and use Crane's recommended result to create an autoscaling object: [Effective HorizontalPodAutoscaler](using-effective-hpa-to-scaling-with-effectiveness.md).
 
 ## Create HPA Analytics
 
@@ -178,25 +178,40 @@ In the advising phase, one EffectiveHPA Spec is recommended using the following 
 
 Principle: Use Pod P99 resource utilization to recommend hpa. Because if the application can accept this utilization over P99 time, it can be inferred as a target for elasticity.
 
-1. Get the Pod P99 usage of the past seven days by Percentile algorithm: pod_cpu_usage_p99
-2. Corresponding utilization: target_pod_CPU_utilization = pod_cpu_usage_p99 / pod_cpu_request
+1. Get the Pod P99 usage of the past seven days by Percentile algorithm: $pod\_cpu\_usage\_p99$
+2. Corresponding utilization:
+
+      $target\_pod\_CPU\_utilization = \frac{pod\_cpu\_usage\_p99}{pod\_cpu\_request}$
+
 3. To prevent over-utilization or under-utilization, target_pod_cpu_utilization needs to be less than ehpa.min-cpu-target-utilization and greater than ehpa. max-cpu-target-utilization
+
+   $ehpa.max\mbox{-}cpu\mbox{-}target\mbox{-}utilization  < target\_pod\_cpu\_utilization < ehpa.min\mbox{-}cpu\mbox{-}target\mbox{-}utilization$
 
 **Recommend minReplicas**
 
 Principle: MinReplicas are recommended for the lowest hourly workload utilization for the past seven days.
 
-1. Calculate the lowest median workload cpu usage of the past seven days: workload_cpu_usage_medium_min
-2. Corresponding replicas: minReplicas = workload_cpu_usage_medium_min / pod_cpu_request / ehpa.max-cpu-target-utilization
+1. Calculate the lowest median workload cpu usage of the past seven days: $workload\_cpu\_usage\_medium\_min$
+2. Corresponding replicas: 
+
+      $minReplicas = \frac{\mathrm{workload\_cpu\_usage\_medium\_min} }{pod\_cpu\_request \times ehpa.max-cpu-target-utilization}$
+
 3. To prevent the minReplicas being too small, the minReplicas must be greater than or equal to ehpa.default-min-replicas
+
+      $minReplicas \geq ehpa.default\mbox{-}min\mbox{-}replicas$
 
 **Recommend maxReplicas**
 
 Principle: Use workload's past and future seven days load to recommend maximum replicas.
 
-1. Calculate P95 workload CPU usage for the past seven days and the next seven days: workload_cpu_usage_p95
-2. Corresponding replicas: max_replicas_origin = workload_cpu_usage_p95 / pod_cpu_request / target_cpu_utilization
-3. To handle with the peak traffic, Magnify by a certain factor: max_replicas = max_replicas_origin * ehpa.max-replicas-factor
+1. Calculate P95 workload CPU usage for the past seven days and the next seven days: $workload\_cpu\_usage\_p95$
+2. Corresponding replicas:
+
+     $max\_replicas\_origin = \frac{\mathrm{workload\_cpu\_usage\_p95} }{pod\_cpu\_request \times target\_cpu\_utilization}$
+
+3. To handle with the peak traffic, Magnify by a certain factor: 
+
+   $max\_replicas = max\_replicas\_origin \times  ehpa.max\mbox{-}replicas\mbox{-}factor$
 
 **Recommend MetricSpec(except CpuUtilization)**
 
@@ -214,15 +229,17 @@ Principle: Use workload's past and future seven days load to recommend maximum r
 
 ## Configurations for HPA Recommendation
 
-- ehpa.deployment-min-replicas: the default value is 1，hpa recommendations are not made for workloads smaller than this value
-- ehpa.statefulset-min-replicas: the default value is 1，hpa recommendations are not made for workloads smaller than this value
-- ehpa.workload-min-replicas: the default value is 1，Workload replicas smaller than this value are not recommended for hpa.
-- ehpa.pod-min-ready-seconds: the default value is 30，specifies the number of seconds in decide whether a POD is ready.
-- ehpa.pod-available-ratio: the default value is 0.5，Workloads whose Ready pod ratio is smaller than this value are not recommended for hpa.
-- ehpa.default-min-replicas: the default value is 2，the default minimum minReplicas.
-- ehpa.max-replicas-factor: the default value is 3，the factor for calculate maxReplicas.
-- ehpa.min-cpu-usage-threshold: the default value is 10, hpa recommendations are not made for workloads smaller than this value.
-- ehpa.fluctuation-threshold: the default value is 1.5, hpa recommendations are not made for workloads smaller than this value.
-- ehpa.min-cpu-target-utilization: the default value is 30
-- ehpa.max-cpu-target-utilization: the default value is 75
-- ehpa.reference-hpa: the default value is true, which means inherits the existing HPA configuration
+| Configuration | Default Value | Description |
+| ------------- | ------------- | ----------- |
+| ehpa.deployment-min-replicas | 1 | hpa recommendations are not made for workloads smaller than this value. |
+| ehpa.statefulset-min-replicas| 1 | hpa recommendations are not made for workloads smaller than this value. |
+| ehpa.workload-min-replicas| 1 | Workload replicas smaller than this value are not recommended for hpa. |
+| ehpa.pod-min-ready-seconds| 30 | specifies the number of seconds in decide whether a POD is ready. |
+| ehpa.pod-available-ratio| 0.5 | Workloads whose Ready pod ratio is smaller than this value are not recommended for hpa. |
+| ehpa.default-min-replicas| 2 | the default minimum minReplicas.|
+| ehpa.max-replicas-factor| 3 | the factor for calculate maxReplicas. |
+| ehpa.min-cpu-usage-threshold| 10| hpa recommendations are not made for workloads smaller than this value.|
+| ehpa.fluctuation-threshold| 1.5 | hpa recommendations are not made for workloads smaller than this value.|
+| ehpa.min-cpu-target-utilization| 30 | |
+| ehpa.max-cpu-target-utilization| 75 | |
+| ehpa.reference-hpa| true | inherits the existing HPA configuration |
