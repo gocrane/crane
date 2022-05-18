@@ -13,7 +13,7 @@ var (
 			Name:      "hpa_replicas",
 			Help:      "Replicas for HPA",
 		},
-		[]string{"resourceName"},
+		[]string{"namespace", "name"},
 	)
 	EHPAReplicas = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -22,7 +22,7 @@ var (
 			Name:      "effective_hpa_replicas",
 			Help:      "Replicas for Effective HPA",
 		},
-		[]string{"resourceName", "strategy"},
+		[]string{"namespace", "name"},
 	)
 	HPAScaleCount = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -31,7 +31,7 @@ var (
 			Name:      "hpa_scale_count",
 			Help:      "Scale count for HPA",
 		},
-		[]string{"resourceName", "type", "direction"},
+		[]string{"namespace", "name", "type"},
 	)
 	OOMCount = prometheus.NewCounterVec(
 		prometheus.CounterOpts{

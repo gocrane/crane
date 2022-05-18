@@ -34,7 +34,8 @@ func (c *HPAObserverController) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	labels := map[string]string{
-		"resourceName": klog.KObj(hpa).String(),
+		"namespace": hpa.Namespace,
+		"name":      hpa.Name,
 	}
 	metrics.HPAReplicas.With(labels).Set(float64(hpa.Status.DesiredReplicas))
 
