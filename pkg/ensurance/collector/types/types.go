@@ -16,6 +16,7 @@ const (
 	CadvisorCollectorType      CollectType = "cadvisor"
 	EbpfCollectorType          CollectType = "ebpf"
 	MetricsServerCollectorType CollectType = "metrics-server"
+	NodeResourceCollectorType  CollectType = "node-resource"
 )
 
 type MetricName string
@@ -52,6 +53,7 @@ const (
 	MetricNameContainerSchedRunQueueTime MetricName = "container_sched_run_queue_time"
 
 	MetricNameExtResContainerCpuTotalUsage MetricName = "ext_res_container_cpu_total_usage"
+	MetricNameExtCpuTotalDistribute        MetricName = "ext_cpu_total_distribute"
 )
 
 func GetCgroupPath(p *v1.Pod, cgroupDriver string) string {
