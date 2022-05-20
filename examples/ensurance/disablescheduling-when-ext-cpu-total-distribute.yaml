@@ -1,0 +1,20 @@
+apiVersion: ensurance.crane.io/v1alpha1
+kind: NodeQOSEnsurancePolicy
+metadata:
+  name: "disablescheduling-when-ext-cpu-total-distribute"
+  labels:
+    app: "system"
+spec:
+  nodeQualityProbe:
+    timeoutSeconds: 10
+    nodeLocalGet:
+      localCacheTTLSeconds: 60
+  objectiveEnsurances:
+    - name: "ext_cpu_total_distribute"
+      avoidanceThreshold: 2
+      restoreThreshold: 2
+      actionName: "disablescheduling"
+      strategy: "None"
+      metricRule:
+        name: "ext_cpu_total_distribute"
+        value: 110

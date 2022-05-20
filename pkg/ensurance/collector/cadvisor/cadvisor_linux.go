@@ -46,7 +46,12 @@ type CadvisorCollector struct {
 }
 
 type CadvisorManager struct {
+	cgroupDriver string
 	cmanager.Manager
+}
+
+func (m *CadvisorManager) GetCgroupDriver() string {
+	return m.cgroupDriver
 }
 
 var _ Manager = new(CadvisorManager)
@@ -59,7 +64,7 @@ func NewCadvisorCollector(podLister corelisters.PodLister, manager Manager) *Cad
 	return &c
 }
 
-func NewCadvisorManager() Manager {
+func NewCadvisorManager(cgroupDriver string) Manager {
 	var includedMetrics = cadvisorcontainer.MetricSet{
 		cadvisorcontainer.CpuUsageMetrics:         struct{}{},
 		cadvisorcontainer.ProcessSchedulerMetrics: struct{}{},
@@ -71,7 +76,7 @@ func NewCadvisorManager() Manager {
 	sysfs := csysfs.NewRealSysFs()
 	maxHousekeepingConfig := cmanager.HouskeepingConfig{Interval: &maxHousekeepingInterval, AllowDynamic: &allowDynamic}
 
-	m, err := cmanager.New(memCache, sysfs, maxHousekeepingConfig, includedMetrics, http.DefaultClient, []string{utils.CgroupKubePods}, "")
+	m, err := cmanager.New(memCache, sysfs, maxHousekeepingConfig, includedMetrics, http.DefaultClient, []string{"/" + utils.CgroupKubePods}, "")
 	if err != nil {
 		klog.Errorf("Failed to create cadvisor manager start: %v", err)
 		return nil
@@ -83,7 +88,8 @@ func NewCadvisorManager() Manager {
 	}
 
 	return &CadvisorManager{
-		m,
+		cgroupDriver: cgroupDriver,
+		Manager:      m,
 	}
 }
 
@@ -109,7 +115,7 @@ func (c *CadvisorCollector) Collect() (map[string][]common.TimeSeries, error) {
 	var stateMap = make(map[string][]common.TimeSeries)
 	for _, pod := range allPods {
 		var now = time.Now()
-		containers, err := c.Manager.GetContainerInfoV2(types.GetCgroupPath(pod), cadvisorapiv2.RequestOptions{
+		containers, err := c.Manager.GetContainerInfoV2(types.GetCgroupPath(pod, c.Manager.GetCgroupDriver()), cadvisorapiv2.RequestOptions{
 			IdType:    cadvisorapiv2.TypeName,
 			Count:     1,
 			Recursive: true,

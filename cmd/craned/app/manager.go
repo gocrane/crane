@@ -23,6 +23,7 @@ import (
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
+
 	"github.com/gocrane/crane/cmd/craned/app/options"
 	"github.com/gocrane/crane/pkg/controller/analytics"
 	"github.com/gocrane/crane/pkg/controller/cnp"
@@ -282,29 +283,30 @@ func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *opti
 	}
 
 	if utilfeature.DefaultMutableFeatureGate.Enabled(features.CraneAnalysis) {
-		if err := (&analytics.Controller{
-			Client:     mgr.GetClient(),
-			Scheme:     mgr.GetScheme(),
-			RestMapper: mgr.GetRESTMapper(),
-			Recorder:   mgr.GetEventRecorderFor("analytics-controller"),
-		}).SetupWithManager(mgr); err != nil {
-			klog.Exit(err, "unable to create controller", "controller", "AnalyticsController")
-		}
-
 		configSet, err := recommend.LoadConfigSetFromFile(opts.RecommendationConfigFile)
 		if err != nil {
 			klog.Errorf("Failed to load recommendation config file: %v", err)
 			os.Exit(1)
 		}
-		if err := (&recommendation.Controller{
+
+		if err := (&analytics.Controller{
 			Client:       mgr.GetClient(),
-			ConfigSet:    configSet,
 			Scheme:       mgr.GetScheme(),
 			RestMapper:   mgr.GetRESTMapper(),
-			Recorder:     mgr.GetEventRecorderFor("recommendation-controller"),
+			Recorder:     mgr.GetEventRecorderFor("analytics-controller"),
+			ConfigSet:    configSet,
 			ScaleClient:  scaleClient,
 			PredictorMgr: predictorMgr,
 			Provider:     historyDataSource,
+		}).SetupWithManager(mgr); err != nil {
+			klog.Exit(err, "unable to create controller", "controller", "AnalyticsController")
+		}
+
+		if err := (&recommendation.Controller{
+			Client:     mgr.GetClient(),
+			Scheme:     mgr.GetScheme(),
+			RestMapper: mgr.GetRESTMapper(),
+			Recorder:   mgr.GetEventRecorderFor("recommendation-controller"),
 		}).SetupWithManager(mgr); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "RecommendationController")
 		}

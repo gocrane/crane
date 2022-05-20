@@ -14,6 +14,7 @@ import (
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/ensurance/collector/cadvisor"
 	"github.com/gocrane/crane/pkg/ensurance/collector/nodelocal"
+	"github.com/gocrane/crane/pkg/ensurance/collector/noderesource"
 	"github.com/gocrane/crane/pkg/ensurance/collector/types"
 	"github.com/gocrane/crane/pkg/features"
 	"github.com/gocrane/crane/pkg/known"
@@ -178,6 +179,15 @@ func (s *StateCollector) UpdateCollectors() {
 
 		if _, exists := s.collectors.Load(types.CadvisorCollectorType); !exists {
 			s.collectors.Store(types.CadvisorCollectorType, cadvisor.NewCadvisorCollector(s.podLister, s.GetCadvisorManager()))
+		}
+
+		if nodeResourceGate := utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResource); nodeResourceGate {
+			if _, exists := s.collectors.Load(types.NodeResourceCollectorType); !exists {
+				c := noderesource.NewNodeResourceCollector(s.nodeName, s.nodeLister, s.podLister)
+				if c != nil {
+					s.collectors.Store(types.NodeResourceCollectorType, c)
+				}
+			}
 		}
 		break
 	}
