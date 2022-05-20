@@ -23,22 +23,12 @@ import (
 )
 
 func (c *Controller) UpdateRecommendation(ctx context.Context, recommendation *analysisapi.Recommendation) (bool, error) {
-	var proposedEHPA recommendtypes.EffectiveHorizontalPodAutoscalerRecommendation
-	var proposedResource recommendtypes.ProposedRecommendation
+	var proposedRecommendation recommendtypes.ProposedRecommendation
 	needUpdate := false
 
-	if recommendation.Spec.Type == analysisapi.AnalysisTypeResource {
-		err := yaml.Unmarshal([]byte(recommendation.Status.RecommendedValue), &proposedResource)
-		if err != nil {
-			return false, err
-		}
-	}
-
-	if recommendation.Spec.Type == analysisapi.AnalysisTypeReplicas {
-		err := yaml.Unmarshal([]byte(recommendation.Status.RecommendedValue), &proposedEHPA)
-		if err != nil {
-			return false, err
-		}
+	err := yaml.Unmarshal([]byte(recommendation.Status.RecommendedValue), &proposedRecommendation)
+	if err != nil {
+		return false, err
 	}
 
 	if recommendation.Spec.AdoptionType == analysisapi.AdoptionTypeStatus {
@@ -48,7 +38,7 @@ func (c *Controller) UpdateRecommendation(ctx context.Context, recommendation *a
 	unstructed := &unstructured.Unstructured{}
 	unstructed.SetAPIVersion(recommendation.Spec.TargetRef.APIVersion)
 	unstructed.SetKind(recommendation.Spec.TargetRef.Kind)
-	err := c.Client.Get(ctx, client.ObjectKey{Name: recommendation.Spec.TargetRef.Name, Namespace: recommendation.Spec.TargetRef.Namespace}, unstructed)
+	err = c.Client.Get(ctx, client.ObjectKey{Name: recommendation.Spec.TargetRef.Name, Namespace: recommendation.Spec.TargetRef.Namespace}, unstructed)
 	if err != nil {
 		return false, fmt.Errorf("get target object failed: %v. ", err)
 	}
@@ -61,14 +51,40 @@ func (c *Controller) UpdateRecommendation(ctx context.Context, recommendation *a
 
 		switch recommendation.Spec.Type {
 		case analysisapi.AnalysisTypeResource:
-			if annotation[known.ResourceRecommendationValueAnnotation] != recommendation.Status.RecommendedValue {
-				annotation[known.ResourceRecommendationValueAnnotation] = recommendation.Status.RecommendedValue
-				needUpdate = true
+			if proposedRecommendation.ResourceRequest != nil {
+				resourceValue, err := yaml.Marshal(proposedRecommendation.ResourceRequest)
+				if err != nil {
+					return false, fmt.Errorf("marshal ResourceRequest failed: %v. ", err)
+				}
+
+				if annotation[known.ResourceRecommendationValueAnnotation] != string(resourceValue) {
+					annotation[known.ResourceRecommendationValueAnnotation] = string(resourceValue)
+					needUpdate = true
+				}
 			}
 		case analysisapi.AnalysisTypeReplicas:
-			if annotation[known.HPARecommendationValueAnnotation] != recommendation.Status.RecommendedValue {
-				annotation[known.HPARecommendationValueAnnotation] = recommendation.Status.RecommendedValue
-				needUpdate = true
+			if proposedRecommendation.ReplicasRecommendation != nil {
+				replicasValue, err := yaml.Marshal(proposedRecommendation.ReplicasRecommendation)
+				if err != nil {
+					return false, fmt.Errorf("marshal ReplicasRecommendation failed: %v. ", err)
+				}
+
+				if annotation[known.ReplicasRecommendationValueAnnotation] != string(replicasValue) {
+					annotation[known.ReplicasRecommendationValueAnnotation] = string(replicasValue)
+					needUpdate = true
+				}
+			}
+
+			if proposedRecommendation.EffectiveHPA != nil {
+				ehpaValue, err := yaml.Marshal(proposedRecommendation.EffectiveHPA)
+				if err != nil {
+					return false, fmt.Errorf("marshal EffectiveHPA failed: %v. ", err)
+				}
+
+				if annotation[known.HPARecommendationValueAnnotation] != string(ehpaValue) {
+					annotation[known.HPARecommendationValueAnnotation] = string(ehpaValue)
+					needUpdate = true
+				}
 			}
 		}
 
@@ -83,7 +99,7 @@ func (c *Controller) UpdateRecommendation(ctx context.Context, recommendation *a
 
 	// Only support Auto Type for EHPA recommendation
 	if recommendation.Spec.AdoptionType == analysisapi.AdoptionTypeAuto {
-		if recommendation.Spec.Type == analysisapi.AnalysisTypeReplicas {
+		if recommendation.Spec.Type == analysisapi.AnalysisTypeReplicas && proposedRecommendation.EffectiveHPA != nil {
 			ehpa, err := utils.GetEHPAFromScaleTarget(ctx, c.Client, recommendation.Spec.TargetRef.Namespace, recommendation.Spec.TargetRef)
 			if err != nil {
 				return false, fmt.Errorf("get EHPA from target failed: %v. ", err)
@@ -95,11 +111,11 @@ func (c *Controller) UpdateRecommendation(ctx context.Context, recommendation *a
 						Name:      recommendation.Spec.TargetRef.Name,
 					},
 					Spec: autoscalingapi.EffectiveHorizontalPodAutoscalerSpec{
-						MinReplicas:   proposedEHPA.MinReplicas,
-						MaxReplicas:   *proposedEHPA.MaxReplicas,
-						Metrics:       proposedEHPA.Metrics,
+						MinReplicas:   proposedRecommendation.EffectiveHPA.MinReplicas,
+						MaxReplicas:   *proposedRecommendation.EffectiveHPA.MaxReplicas,
+						Metrics:       proposedRecommendation.EffectiveHPA.Metrics,
 						ScaleStrategy: autoscalingapi.ScaleStrategyPreview,
-						Prediction:    proposedEHPA.Prediction,
+						Prediction:    proposedRecommendation.EffectiveHPA.Prediction,
 						ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
 							Kind:       recommendation.Spec.TargetRef.Kind,
 							APIVersion: recommendation.Spec.TargetRef.APIVersion,
@@ -119,9 +135,9 @@ func (c *Controller) UpdateRecommendation(ctx context.Context, recommendation *a
 				// if user change it, we don't want to override it.
 				// The reason for Prediction is the same.
 				ehpaUpdate := ehpa.DeepCopy()
-				ehpaUpdate.Spec.MinReplicas = proposedEHPA.MinReplicas
-				ehpaUpdate.Spec.MaxReplicas = *proposedEHPA.MaxReplicas
-				ehpaUpdate.Spec.Metrics = proposedEHPA.Metrics
+				ehpaUpdate.Spec.MinReplicas = proposedRecommendation.EffectiveHPA.MinReplicas
+				ehpaUpdate.Spec.MaxReplicas = *proposedRecommendation.EffectiveHPA.MaxReplicas
+				ehpaUpdate.Spec.Metrics = proposedRecommendation.EffectiveHPA.Metrics
 
 				if !equality.Semantic.DeepEqual(&ehpaUpdate.Spec, &ehpa.Spec) {
 					if err = c.Client.Update(ctx, ehpaUpdate); err != nil {

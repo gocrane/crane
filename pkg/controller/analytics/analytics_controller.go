@@ -420,21 +420,12 @@ func (c *Controller) ExecuteMission(ctx context.Context, wg *sync.WaitGroup, ana
 		}
 
 		var value string
-		if proposed.ResourceRequest != nil {
-			valueBytes, err := yaml.Marshal(proposed.ResourceRequest)
-			if err != nil {
-				mission.Message = err.Error()
-				return
-			}
-			value = string(valueBytes)
-		} else if proposed.EffectiveHPA != nil {
-			valueBytes, err := yaml.Marshal(proposed.EffectiveHPA)
-			if err != nil {
-				mission.Message = err.Error()
-				return
-			}
-			value = string(valueBytes)
+		valueBytes, err := yaml.Marshal(proposed)
+		if err != nil {
+			mission.Message = err.Error()
+			return
 		}
+		value = string(valueBytes)
 
 		recommendation.Status.RecommendedValue = value
 		if existingRecommendation != nil {

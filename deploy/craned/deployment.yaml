@@ -101,18 +101,18 @@ data:
       - targets: []
         properties:
           resource.cpu-request-percentile: "0.98"
-          ehpa.deployment-min-replicas: "1"
-          ehpa.statefulset-min-replicas: "1"
-          ehpa.workload-min-replicas: "1"
-          ehpa.pod-min-ready-seconds: "30"
-          ehpa.pod-available-ratio: "0.5"
-          ehpa.default-min-replicas: "2"
-          ehpa.max-replicas-factor: "3"
-          ehpa.min-cpu-usage-threshold: "10"
-          ehpa.fluctuation-threshold: "1.5"
-          ehpa.min-cpu-target-utilization: "30"
-          ehpa.max-cpu-target-utilization: "75"
-          ehpa.reference-hpa: "true"
+          replicas.workload-min-replicas: "1"
+          replicas.pod-min-ready-seconds: "30"
+          replicas.pod-available-ratio: "0.5"
+          replicas.default-min-replicas: "2"
+          replicas.max-replicas-factor: "3"
+          replicas.min-cpu-usage-threshold: "10"
+          replicas.fluctuation-threshold: "1.5"
+          replicas.min-cpu-target-utilization: "30"
+          replicas.max-cpu-target-utilization: "75"
+          replicas.cpu-target-utilization: "50"
+          replicas.cpu-percentile: "95"
+          replicas.reference-hpa: "true"
 
 ---
 apiVersion: v1
