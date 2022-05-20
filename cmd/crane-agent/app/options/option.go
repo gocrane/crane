@@ -13,6 +13,8 @@ type Options struct {
 	HostnameOverride string
 	// RuntimeEndpoint is the endpoint of runtime
 	RuntimeEndpoint string
+	// driver that the kubelet uses to manipulate cgroups on the host (cgroupfs or systemd)
+	CgroupDriver string
 	// Is debug/pprof endpoint enabled
 	EnableProfiling bool
 	// BindAddr is the address the endpoint binds to.
@@ -45,6 +47,7 @@ func (o *Options) Validate() error {
 func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&o.HostnameOverride, "hostname-override", "", "Which is the name of k8s node be used to filtered.")
 	flags.StringVar(&o.RuntimeEndpoint, "runtime-endpoint", "", "The runtime endpoint docker: unix:///var/run/dockershim.sock, containerd: unix:///run/containerd/containerd.sock, cri-o: unix:///run/crio/crio.sock, k3s: unix:///run/k3s/containerd/containerd.sock.")
+	flags.StringVar(&o.CgroupDriver, "cgroup-driver", "cgroupfs", "Driver that the kubelet uses to manipulate cgroups on the host.  Possible values: 'cgroupfs', 'systemd'. Default to 'cgroupfs'")
 	flags.Bool("enable-profiling", false, "Is debug/pprof endpoint enabled, default: false")
 	flags.StringVar(&o.BindAddr, "bind-address", "0.0.0.0:8081", "The address the agent binds to for metrics, health-check and pprof, default: 0.0.0.0:8081.")
 	flags.DurationVar(&o.CollectInterval, "collect-interval", 10*time.Second, "Period for the state collector to collect metrics, default: 10s")
