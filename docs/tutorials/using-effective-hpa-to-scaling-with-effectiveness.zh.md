@@ -203,9 +203,9 @@ EffectiveHorizontalPodAutoscaler 支持基于 cron 的自动缩放。
 
 对于一些非 web 流量的应用，比如一些应用不需要在周末使用，可以把工作负载的副本数减少到 1，也可以配置 cron 来降低你的服务成本。
 
-以下是 EHPA 规范中的 cron 主要字段：
+以下是 `EHPA Spec` 中的 cron 主要字段：
 
-- `CronSpec`：可以设置多个 cron 自动伸缩配置，cron cycle 可以设置循环的开始时间和结束时间，并且工作负载的副本数可以在时间范围内持续保证为设定的目标值。
+- `CronSpec`：可以设置多个 cron 自动伸缩配置，cron cycle 可以设置循环的开始时间和结束时间，并且工作负载的副本数可以在时间范围内持续保持为设定的目标值。
 - `Name`：cron 标识符
 - `TargetReplicas`：此 cron 时间范围内工作负载的目标副本数。
 - `Start`：cron 的开始时间，标准 linux crontab 格式
@@ -224,7 +224,7 @@ EffectiveHorizontalPodAutoscaler 支持基于 cron 的自动缩放。
 
 针对以上问题，EHPA 实现的 cron autoscaling 是在与 HPA 兼容的基础上设计的，cron 作为 HPA 的一个指标，与其他指标一起作用于工作负载。
 
-另外，cron 的设置也很简单。单独配置 cron 时，不在活动时间范围内时，不会执行工作负载的默认缩放。
+另外，cron 的设置也很简单。单独配置 cron 时，不在活动时间范围内时，不会对工作负载执行缩放。
 
 
 #### Cron working without other metrics
@@ -250,7 +250,7 @@ spec:
   #                    |       |    |        |       |         |
   #10       ------------       -----         --------          ----------
   #(time)   0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23
-  #本地时区(timezone: "Local")意味着您使用Craned运行的服务器（或者可能是容器）的时区。例如，当Craned 是以UTC时区开始，那么它就是UTC。如果一开始是Asia/Shanghai，那么它就是Asia/Shanghai。
+  #本地时区(timezone: "Local")意味着您使用运行Craned所在的服务器（或者可能是容器）的时区。例如，当Craned 是以UTC时区开始，那么它就是UTC。如果一开始是Asia/Shanghai，那么它就是Asia/Shanghai。
   crons:
     - name: "cron1"
       timezone: "Local"
@@ -339,7 +339,7 @@ cron 驱动和扩展过程有六个步骤：
 2. `HPAController` 从 `KubeApiServer` 读取 `external cron metrics`
 3. `KubeApiServer` 将请求转发给 `MetricAdapter` 和 `MetricServer`
 4. `MetricAdapter` 找到目标 hpa 的 `cron scaler`，并检测 `cron scaler` 是否处于活动状态。这意味着当前时间介于 cron 开始和结束计划时间之间。它将返回`TargetReplicas`中定义的`CronSpec`。
-5. `HPAController` 计算所有 metrics 结果，并通过选择最大的一个为目标副本数。并由此提出一个新的`scale replicas`。
+5. `HPAController` 计算所有 metrics 结果，并通过选择最大的一个为目标副本数。并由此创建一个新的`scale replicas`。
 6. `HPAController` 使用 `Scale Api` 缩放目标
 
 
@@ -347,7 +347,7 @@ cron 驱动和扩展过程有六个步骤：
 
 一个 EHPA 的多个 crons 将转换为一个`external metrics`。
 
-HPA 将获取`external metrics`并在协调时计算目标副本。HPA 将选择最大的副本数来扩展来自多个指标的工作负载。
+HPA 将获取`external metrics`并在协调时计算目标副本。当存在多个指标的工作负载时，HPA 将选择最大的副本数来扩展。
 
 
 
@@ -409,7 +409,7 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: php-apache
-  minReplicas: 1        # MinReplicas : 缩放的最少副本数
+  minReplicas: 1        # MinReplicas : 缩放的最小副本数
   maxReplicas: 100       # MaxReplicas : 缩放的最大副本数 
   scaleStrategy: Auto   # ScaleStrategy : 缩放工作负载时候，所采用的策略。可选值为 "Auto" "Manual"
   # Metrics 包含了用于计算所需副本数的指标。
