@@ -26,6 +26,10 @@ const (
 	ExecutorErrorTotal    = "executor_error_total"
 	ExecutorEvictTotal    = "executor_evict_total"
 	PodResourceErrorTotal = "pod_resource_error_total"
+
+	NodeCpuCannotBeReclaimedSeconds = "node_cpu_cannot_be_reclaimed_seconds"
+	NodeResourceRecommended         = "node_resource_recommended"
+	NodeResourceRecommendedFrom     = "node_resource_recommended_from"
 )
 
 type StepLabel string
@@ -42,15 +46,18 @@ const (
 	// Step for pod resource manager
 	StepGetPeriod   StepLabel = "getPeriod"
 	StepUpdateQuota StepLabel = "updateQuota"
+
+	StepGetExtResourceRecommended StepLabel = "getExtResourceRecommended"
 )
 
 type SubComponent string
 
 const (
-	SubComponentSchedule    SubComponent = "schedule"
-	SubComponentThrottle    SubComponent = "throttle"
-	SubComponentEvict       SubComponent = "evict"
-	SubComponentPodResource SubComponent = "pod-resource-manager"
+	SubComponentSchedule     SubComponent = "schedule"
+	SubComponentThrottle     SubComponent = "throttle"
+	SubComponentEvict        SubComponent = "evict"
+	SubComponentPodResource  SubComponent = "pod-resource-manager"
+	SubComponentNodeResource SubComponent = "node-resource-manager"
 )
 
 type AnalyzeType string
@@ -180,6 +187,39 @@ var (
 			StabilityLevel: k8smetrics.ALPHA,
 		}, []string{"subcomponent", "step"},
 	)
+
+	// LastActivity records the last activity time of each steps
+	nodeCpuCannotBeReclaimedSeconds = k8smetrics.NewGaugeVec(
+		&k8smetrics.GaugeOpts{
+			Namespace:      CraneNamespace,
+			Subsystem:      CraneAgentSubsystem,
+			Name:           NodeCpuCannotBeReclaimedSeconds,
+			Help:           "The cpu seconds that cannot be reclaimed.",
+			StabilityLevel: k8smetrics.ALPHA,
+		}, []string{},
+	)
+
+	//NodeResourceRecommended
+	nodeResourceRecommended = k8smetrics.NewGaugeVec(
+		&k8smetrics.GaugeOpts{
+			Namespace:      CraneNamespace,
+			Subsystem:      CraneAgentSubsystem,
+			Name:           NodeResourceRecommended,
+			Help:           "The value of recommendation.",
+			StabilityLevel: k8smetrics.ALPHA,
+		}, []string{"subcomponent", "step", "resourceName"},
+	)
+
+	//NodeResourceRecommended
+	nodeResourceRecommendedFrom = k8smetrics.NewGaugeVec(
+		&k8smetrics.GaugeOpts{
+			Namespace:      CraneNamespace,
+			Subsystem:      CraneAgentSubsystem,
+			Name:           NodeResourceRecommendedFrom,
+			Help:           "Where the recommended values come from. (tsp: 1, local: 0)",
+			StabilityLevel: k8smetrics.ALPHA,
+		}, []string{"subcomponent", "step", "resourceName"},
+	)
 )
 
 var registerCraneAgentMetricsOnce sync.Once
@@ -195,6 +235,9 @@ func RegisterCraneAgent() {
 		legacyregistry.MustRegister(executorStatusCounts)
 		legacyregistry.MustRegister(executorErrorCounts)
 		legacyregistry.MustRegister(executorEvictCounts)
+		legacyregistry.MustRegister(nodeCpuCannotBeReclaimedSeconds)
+		legacyregistry.MustRegister(nodeResourceRecommended)
+		legacyregistry.MustRegister(nodeResourceRecommendedFrom)
 	})
 }
 
@@ -257,4 +300,24 @@ func PodResourceUpdateErrorCounterInc(subComponent SubComponent, stepName StepLa
 
 func ExecutorEvictCountsInc() {
 	executorEvictCounts.Inc()
+}
+
+func UpdateNodeCpuCannotBeReclaimedSeconds(value float64) {
+	nodeCpuCannotBeReclaimedSeconds.With(prometheus.Labels{}).Set(value)
+}
+
+func UpdateNodeResourceRecommendedValue(subComponent SubComponent, stepName StepLabel, resourceName string, from string, value float64) {
+	nodeResourceRecommended.With(prometheus.Labels{"subcomponent": string(subComponent), "step": string(stepName), "resourceName": resourceName}).Set(value)
+	switch from {
+	case "tsp":
+		UpdateNodeResourceRecommendedFromValue(subComponent, stepName, resourceName, 1)
+	case "local":
+		UpdateNodeResourceRecommendedFromValue(subComponent, stepName, resourceName, 0)
+	default:
+		UpdateNodeResourceRecommendedFromValue(subComponent, stepName, resourceName, -1)
+	}
+}
+
+func UpdateNodeResourceRecommendedFromValue(subComponent SubComponent, stepName StepLabel, resourceName string, value float64) {
+	nodeResourceRecommendedFrom.With(prometheus.Labels{"subcomponent": string(subComponent), "step": string(stepName), "resourceName": resourceName}).Set(value)
 }
