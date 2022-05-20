@@ -242,6 +242,7 @@ spec:
   scaleStrategy: Auto   # ScaleStrategy indicate the strategy to scaling target, value can be "Auto" and "Manual".
   # Better to setting cron to fill the one complete time period such as one day, one week
   # Below is one day cron scheduling, it
+  #(targetReplicas)
   #80                  --------     ---------        ----------
   #                    |       |    |        |       |         |
   #10       ------------       -----         --------          ----------
@@ -293,6 +294,7 @@ spec:
 ``` 
 
 CronSpec has following fields.
+
 * **name** defines the name of the cron, cron name must be unique in the same ehpa
 * **description** defines the details description of the cron. it can be empty.
 * **timezone** defines the timezone of the cron which the crane to schedule in. If unspecified, default use `UTC` timezone. you can set it to `Local` which means you use timezone of the container of crane service running in. Also, `America/Los_Angeles` is ok.
@@ -314,8 +316,8 @@ Remember **not to set start time is after end**. For example, when you set follo
     - name: "cron2"
       timezone: "Local"
       description: "scale up"
-      start: "0 6 ? * *"
-      end: "0 9 ? * *"
+      start: "0 9 ? * *"
+      end: "0 6 ? * *"
       targetReplicas: 80
 ```
 Above is not valid because the start will be always later than end. The hpa controller will always get the workload's desired replica to scale, which means keep the original replicas.
@@ -323,6 +325,7 @@ Above is not valid because the start will be always later than end. The hpa cont
 
 #### Horizontal scaling process
 There are six steps of cron-driven and scaling process:
+
 1. EffectiveHPAController creates HorizontalPodAutoscaler which is injected to external cron metrics in spec.
 2. HPAController reads cron external metrics from KubeApiServer
 3. KubeApiServer forwards requests to MetricAdapter and MetricServer
@@ -351,6 +354,15 @@ This is a powerful feature. Because HPA always pick the largest replicas calcula
 #### Mechanism
 When metrics adapter deal with the external cron metric requests, metrics adapter will do following steps.
 
+``` mermaid
+graph LR
+  A[Start] --> B{Active Cron?};
+  B -->|Yes| C(largest targetReplicas) --> F;
+  B -->|No| D{Work together with other metrics?};
+  D -->|Yes| G(minimum replicas) --> F;
+  D -->|No| H(current replicas) --> F;
+  F[Result workload replicas];
+```
 
 1. No active cron now, there are two cases:
    
