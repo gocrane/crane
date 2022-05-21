@@ -1331,9 +1331,11 @@ Above is not valid because the start will be always later than end. The hpa cont
 <a id="__codelineno-10-7" name="__codelineno-10-7"></a><a href="#__codelineno-10-7"><span class="linenos" data-linenos="7 "></span></a><span class="w">  </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ScalingActive</span><span class="w"></span>
 </code></pre></div>
 <p>reason: Not all workload's cpu metric are predictable, if predict your workload failed, it will show above errors. </p>
-<p>solution: 
-- Just waiting. the Prediction algorithm need more time, you can see <code>DSP</code> section to know more about this algorithm.
-- EffectiveHorizontalPodAutoscaler have a protection mechanism when prediction failed, it will use the actual cpu utilization to do autoscaling.</p>
+<p>solution: </p>
+<ul>
+<li>Just waiting. the Prediction algorithm need more time, you can see <code>DSP</code> section to know more about this algorithm.</li>
+<li>EffectiveHorizontalPodAutoscaler have a protection mechanism when prediction failed, it will use the actual cpu utilization to do autoscaling.</li>
+</ul>
 
               
             </article>
