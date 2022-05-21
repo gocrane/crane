@@ -425,5 +425,6 @@ When checking the status for EffectiveHorizontalPodAutoscaler, you may see this 
 reason: Not all workload's cpu metric are predictable, if predict your workload failed, it will show above errors. 
 
 solution: 
+
 - Just waiting. the Prediction algorithm need more time, you can see `DSP` section to know more about this algorithm.
 - EffectiveHorizontalPodAutoscaler have a protection mechanism when prediction failed, it will use the actual cpu utilization to do autoscaling.
