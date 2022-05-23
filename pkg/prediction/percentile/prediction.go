@@ -230,9 +230,6 @@ func (p *percentilePrediction) Run(stopCh <-chan struct{}) {
 			// We just init the signal and setting the status
 			// we start the real time model updating directly. but there is a window time for each metricNamer in the algorithm config to ready status
 			c := p.a.GetConfig(QueryExpr)
-			if c == nil {
-				c = &defaultInternalConfig
-			}
 
 			var initError error
 			switch c.initMode {

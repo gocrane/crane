@@ -27,6 +27,7 @@ var defaultInternalConfig = internalConfig{
 	marginFraction:         defaultMarginFraction,
 	percentile:             defaultPercentile,
 	histogramOptions:       defaultHistogramOptions,
+	targetUtilization:      defaultTargetUtilization,
 	historyLength:          time.Hour * 24 * 7,
 }
 
@@ -44,8 +45,8 @@ type internalConfig struct {
 }
 
 func (c *internalConfig) String() string {
-	return fmt.Sprintf("{aggregated: %v, historyLength: %v, sampleInterval: %v, histogramDecayHalfLife: %v, minSampleWeight: %v, marginFraction: %v, percentile: %v}",
-		c.aggregated, c.historyLength, c.sampleInterval, c.histogramDecayHalfLife, c.minSampleWeight, c.marginFraction, c.percentile)
+	return fmt.Sprintf("{aggregated: %v, historyLength: %v, sampleInterval: %v, histogramDecayHalfLife: %v, minSampleWeight: %v, marginFraction: %v, percentile: %v, targetUtilization: %v}",
+		c.aggregated, c.historyLength, c.sampleInterval, c.histogramDecayHalfLife, c.minSampleWeight, c.marginFraction, c.percentile, c.targetUtilization)
 }
 
 // todo: later better to refine the algorithm params to a map not a struct to get more extendability,
