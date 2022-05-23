@@ -13,6 +13,8 @@ spec:
     kind: PodQOSEnsurancePolicy
     listKind: PodQOSEnsurancePolicyList
     plural: podqosensurancepolicies
+    shortNames:
+    - qep
     singular: podqosensurancepolicy
   scope: Namespaced
   versions:
@@ -182,12 +184,9 @@ spec:
                     required:
                     - port
                     type: object
-                  initialDelaySeconds:
-                    description: Init delay time for handler Defaults to 5
-                    format: int32
-                    type: integer
                   timeoutSeconds:
-                    description: Timeout for request. Defaults to 0, instead not timeout
+                    description: TimeoutSeconds is the timeout for request. Defaults
+                      to 0, no timeout forever
                     format: int32
                     type: integer
                 type: object

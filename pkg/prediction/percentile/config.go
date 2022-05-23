@@ -14,8 +14,9 @@ import (
 )
 
 var defaultMinSampleWeight float64 = 1e-5
-var defaultMarginFraction float64 = .25
+var defaultMarginFraction float64 = 0.0
 var defaultPercentile float64 = .99
+var defaultTargetUtilization float64 = 1.0
 var defaultHistogramOptions, _ = vpa.NewLinearHistogramOptions(100.0, 0.1, 1e-10)
 
 var defaultInternalConfig = internalConfig{
@@ -38,6 +39,7 @@ type internalConfig struct {
 	minSampleWeight        float64
 	marginFraction         float64
 	percentile             float64
+	targetUtilization      float64
 	initMode               config.ModelInitMode
 }
 
@@ -131,6 +133,11 @@ func makeInternalConfig(p *v1alpha1.Percentile, initMode *config.ModelInitMode) 
 		return nil, err
 	}
 
+	targetUtilization, err := utils.ParseFloat(p.TargetUtilization, defaultTargetUtilization)
+	if err != nil {
+		return nil, err
+	}
+
 	// default use history
 	mode := config.ModelInitModeHistory
 	if initMode != nil {
@@ -146,6 +153,7 @@ func makeInternalConfig(p *v1alpha1.Percentile, initMode *config.ModelInitMode) 
 		minSampleWeight:        minSampleWeight,
 		marginFraction:         marginFraction,
 		percentile:             percentile,
+		targetUtilization:      targetUtilization,
 	}
 	klog.InfoS("Made an internal config.", "internalConfig", c)
 

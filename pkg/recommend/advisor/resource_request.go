@@ -40,18 +40,23 @@ func makeCpuConfig(props map[string]string) *config.Config {
 	if !exists {
 		marginFraction = "0.15"
 	}
-
+	targetUtilization, exists := props["resource.cpu-target-utilization"]
+	if !exists {
+		targetUtilization = "1.0"
+	}
 	historyLength, exists := props["resource.cpu-model-history-length"]
 	if !exists {
 		historyLength = "168h"
 	}
+
 	return &config.Config{
 		Percentile: &predictionapi.Percentile{
-			Aggregated:     true,
-			HistoryLength:  historyLength,
-			SampleInterval: sampleInterval,
-			MarginFraction: marginFraction,
-			Percentile:     percentile,
+			Aggregated:        true,
+			HistoryLength:     historyLength,
+			SampleInterval:    sampleInterval,
+			MarginFraction:    marginFraction,
+			TargetUtilization: targetUtilization,
+			Percentile:        percentile,
 			Histogram: predictionapi.HistogramConfig{
 				HalfLife:   "24h",
 				BucketSize: "0.1",
@@ -74,7 +79,10 @@ func makeMemConfig(props map[string]string) *config.Config {
 	if !exists {
 		marginFraction = "0.15"
 	}
-
+	targetUtilization, exists := props["resource.mem-target-utilization"]
+	if !exists {
+		targetUtilization = "1.0"
+	}
 	historyLength, exists := props["resource.mem-model-history-length"]
 	if !exists {
 		historyLength = "168h"
@@ -82,11 +90,12 @@ func makeMemConfig(props map[string]string) *config.Config {
 
 	return &config.Config{
 		Percentile: &predictionapi.Percentile{
-			Aggregated:     true,
-			HistoryLength:  historyLength,
-			SampleInterval: sampleInterval,
-			MarginFraction: marginFraction,
-			Percentile:     percentile,
+			Aggregated:        true,
+			HistoryLength:     historyLength,
+			SampleInterval:    sampleInterval,
+			MarginFraction:    marginFraction,
+			Percentile:        percentile,
+			TargetUtilization: targetUtilization,
 			Histogram: predictionapi.HistogramConfig{
 				HalfLife:   "48h",
 				BucketSize: "104857600",
