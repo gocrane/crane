@@ -3,6 +3,7 @@ package analytics
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -149,7 +150,7 @@ func (c *Controller) DoAnalytics(ctx context.Context, analytics *analysisv1alph1
 	}
 
 	if currMissions == nil {
-		// create recommendation Missions for this round
+		// create recommendation missions for this round
 		for _, id := range identities {
 			currMissions = append(currMissions, analysisv1alph1.RecommendationMission{
 				TargetRef: corev1.ObjectReference{Kind: id.Kind, APIVersion: id.APIVersion, Namespace: id.Namespace, Name: id.Name},
@@ -157,14 +158,19 @@ func (c *Controller) DoAnalytics(ctx context.Context, analytics *analysisv1alph1
 		}
 	}
 
+	if currMissions == nil {
+		klog.Infof("No missions, return.")
+		return true
+	}
+
 	var currRecommendations []*analysisv1alph1.Recommendation
 	labelSet := labels.Set{}
 	labelSet[known.AnalyticsUidLabel] = string(analytics.UID)
-	if analytics.Namespace == known.CraneSystemNamespace {
-		currRecommendations, err = c.recommLister.List(labels.SelectorFromSet(labelSet))
-	} else {
-		currRecommendations, err = c.recommLister.Recommendations(analytics.Namespace).List(labels.SelectorFromSet(labelSet))
-	}
+	//if analytics.Namespace == known.CraneSystemNamespace {
+	//	currRecommendations, err = c.recommLister.List(labels.SelectorFromSet(labelSet))
+	//} else {
+	currRecommendations, err = c.recommLister.Recommendations(analytics.Namespace).List(labels.SelectorFromSet(labelSet))
+	//}
 	if err != nil {
 		c.Recorder.Event(analytics, corev1.EventTypeNormal, "FailedSelectResource", err.Error())
 		msg := fmt.Sprintf("Failed to get recomendations, Analytics %s error %v", klog.KObj(analytics), err)
@@ -182,14 +188,14 @@ func (c *Controller) DoAnalytics(ctx context.Context, analytics *analysisv1alph1
 	}
 
 	maxConcurrency := 10
-	executeIndex := -1
+	executionIndex := -1
 	var concurrency int
 	for index, mission := range currMissions {
 		if mission.LastStartTime != nil {
 			continue
 		}
-		if executeIndex == -1 {
-			executeIndex = index
+		if executionIndex == -1 {
+			executionIndex = index
 		}
 		if concurrency < maxConcurrency {
 			concurrency++
@@ -198,45 +204,44 @@ func (c *Controller) DoAnalytics(ctx context.Context, analytics *analysisv1alph1
 
 	wg := sync.WaitGroup{}
 	wg.Add(concurrency)
-	for index := range currMissions {
-		if index < executeIndex || index >= concurrency+executeIndex {
-			continue
-		}
-
-		var existRecommendation *analysisv1alph1.Recommendation
+	for index := executionIndex; index < len(currMissions) && index < concurrency+executionIndex; index++ {
+		var existingRecommendation *analysisv1alph1.Recommendation
 		for _, r := range currRecommendations {
-			if currMissions[index].UID == r.UID {
-				existRecommendation = r
+			if reflect.DeepEqual(currMissions[index].TargetRef, r.Spec.TargetRef) {
+				existingRecommendation = r
+				break
 			}
 		}
 
-		go c.ExecuteMission(ctx, &wg, analytics, identities, &currMissions[index], existRecommendation, timeNow)
+		go c.ExecuteMission(ctx, &wg, analytics, identities, &currMissions[index], existingRecommendation, timeNow)
 	}
 
 	wg.Wait()
 
 	finished := false
-	if executeIndex+concurrency == len(currMissions) {
+	if executionIndex+concurrency == len(currMissions) {
 		finished = true
 	}
 
 	if finished {
 		newStatus.LastUpdateTime = &timeNow
 
-		// clean orphan recommendation
+		// clean orphan recommendations
 		for _, recommendation := range currRecommendations {
 			exist := false
 			for _, mission := range currMissions {
 				if recommendation.UID == mission.UID {
 					exist = true
+					break
 				}
 			}
 
 			if !exist {
-				klog.Infof("Deleting recommendation %s.", klog.KObj(recommendation))
 				err = c.Client.Delete(ctx, recommendation)
 				if err != nil {
-					klog.Errorf("Delete recommendation %s failed: %v", klog.KObj(recommendation), err)
+					klog.ErrorS(err, "Failed to delete recommendation.", "recommendation", klog.KObj(recommendation))
+				} else {
+					klog.Infof("Deleted orphan recommendation %v.", klog.KObj(recommendation))
 				}
 			}
 		}
@@ -393,7 +398,7 @@ func (c *Controller) GetIdentities(ctx context.Context, analytics *analysisv1alp
 	return identities, nil
 }
 
-func (c *Controller) ExecuteMission(ctx context.Context, wg *sync.WaitGroup, analytics *analysisv1alph1.Analytics, identities map[string]ObjectIdentity, mission *analysisv1alph1.RecommendationMission, existRecommendation *analysisv1alph1.Recommendation, timeNow metav1.Time) {
+func (c *Controller) ExecuteMission(ctx context.Context, wg *sync.WaitGroup, analytics *analysisv1alph1.Analytics, identities map[string]ObjectIdentity, mission *analysisv1alph1.RecommendationMission, existingRecommendation *analysisv1alph1.Recommendation, timeNow metav1.Time) {
 	defer func() {
 		mission.LastStartTime = &timeNow
 		klog.Infof("Mission message: %s", mission.Message)
@@ -406,7 +411,7 @@ func (c *Controller) ExecuteMission(ctx context.Context, wg *sync.WaitGroup, ana
 		mission.Message = fmt.Sprintf("Failed to get identity, key %s. ", k)
 		return
 	} else {
-		recommendation := existRecommendation
+		recommendation := existingRecommendation
 		if recommendation == nil {
 			recommendation = c.CreateRecommendationObject(ctx, analytics, mission.TargetRef, id)
 		}
@@ -441,14 +446,14 @@ func (c *Controller) ExecuteMission(ctx context.Context, wg *sync.WaitGroup, ana
 		}
 
 		recommendation.Status.RecommendedValue = value
-		if existRecommendation != nil {
+		if existingRecommendation != nil {
 			klog.Infof("Update recommendation %s", klog.KObj(recommendation))
 			if err := c.Update(ctx, recommendation); err != nil {
 				mission.Message = fmt.Sprintf("Failed to create recommendation %s: %v", klog.KObj(recommendation), err)
 				return
 			}
 
-			klog.Infof("Successful to update Recommendation %s", klog.KObj(recommendation))
+			klog.Infof("Successfully to update Recommendation %s", klog.KObj(recommendation))
 		} else {
 			klog.Infof("Create recommendation %s", klog.KObj(recommendation))
 			if err := c.Create(ctx, recommendation); err != nil {
@@ -456,7 +461,7 @@ func (c *Controller) ExecuteMission(ctx context.Context, wg *sync.WaitGroup, ana
 				return
 			}
 
-			klog.Infof("Successful to create Recommendation %s", klog.KObj(recommendation))
+			klog.Infof("Successfully to create Recommendation %s", klog.KObj(recommendation))
 		}
 
 		mission.Message = "Success"
