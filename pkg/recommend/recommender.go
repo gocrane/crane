@@ -160,7 +160,7 @@ func GetContext(kubeClient client.Client, restMapper meta.RESTMapper,
 		return nil, err
 	}
 
-	if recommendation.Spec.Type == analysisapi.AnalysisTypeHPA {
+	if recommendation.Spec.Type == analysisapi.AnalysisTypeReplicas {
 		c.PodTemplate, err = utils.GetPodTemplate(context.TODO(),
 			recommendation.Spec.TargetRef.Namespace,
 			recommendation.Spec.TargetRef.Name,

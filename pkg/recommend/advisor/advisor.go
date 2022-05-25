@@ -22,7 +22,7 @@ func NewAdvisors(ctx *types.Context) (advisors []Advisor) {
 				Context: ctx,
 			},
 		}
-	case analysisapi.AnalysisTypeHPA:
+	case analysisapi.AnalysisTypeReplicas:
 		advisors = []Advisor{
 			&EHPAAdvisor{
 				Context: ctx,

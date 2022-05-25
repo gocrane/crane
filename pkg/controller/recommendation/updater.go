@@ -34,7 +34,7 @@ func (c *Controller) UpdateRecommendation(ctx context.Context, recommendation *a
 		}
 	}
 
-	if recommendation.Spec.Type == analysisapi.AnalysisTypeHPA {
+	if recommendation.Spec.Type == analysisapi.AnalysisTypeReplicas {
 		err := yaml.Unmarshal([]byte(recommendation.Status.RecommendedValue), &proposedEHPA)
 		if err != nil {
 			return false, err
@@ -65,7 +65,7 @@ func (c *Controller) UpdateRecommendation(ctx context.Context, recommendation *a
 				annotation[known.ResourceRecommendationValueAnnotation] = recommendation.Status.RecommendedValue
 				needUpdate = true
 			}
-		case analysisapi.AnalysisTypeHPA:
+		case analysisapi.AnalysisTypeReplicas:
 			if annotation[known.HPARecommendationValueAnnotation] != recommendation.Status.RecommendedValue {
 				annotation[known.HPARecommendationValueAnnotation] = recommendation.Status.RecommendedValue
 				needUpdate = true
@@ -83,7 +83,7 @@ func (c *Controller) UpdateRecommendation(ctx context.Context, recommendation *a
 
 	// Only support Auto Type for EHPA recommendation
 	if recommendation.Spec.AdoptionType == analysisapi.AdoptionTypeAuto {
-		if recommendation.Spec.Type == analysisapi.AnalysisTypeHPA {
+		if recommendation.Spec.Type == analysisapi.AnalysisTypeReplicas {
 			ehpa, err := utils.GetEHPAFromScaleTarget(ctx, c.Client, recommendation.Spec.TargetRef.Namespace, recommendation.Spec.TargetRef)
 			if err != nil {
 				return false, fmt.Errorf("get EHPA from target failed: %v. ", err)
