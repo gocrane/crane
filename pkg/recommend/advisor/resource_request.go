@@ -12,6 +12,7 @@ import (
 
 	"github.com/gocrane/crane/pkg/metricnaming"
 	"github.com/gocrane/crane/pkg/metricquery"
+	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/recommend/types"
 	"github.com/gocrane/crane/pkg/utils"
@@ -138,7 +139,10 @@ func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) 
 			return fmt.Errorf("no value retured for queryExpr: %s", metricNamer.BuildUniqueKey())
 		}
 		v := int64(tsList[0].Samples[0].Value * 1000)
-		cr.Target[corev1.ResourceCPU] = resource.NewMilliQuantity(v, resource.DecimalSI).String()
+		q := resource.NewMilliQuantity(v, resource.DecimalSI)
+		cr.Target[corev1.ResourceCPU] = q.String()
+		// export recommended values as prom metrics
+		a.recordResourceRecommendation(c.Name, corev1.ResourceCPU, q)
 
 		metricNamer = ResourceToContainerMetricNamer(namespace, a.Recommendation.Spec.TargetRef.Name, c.Name, corev1.ResourceMemory, caller)
 		klog.V(6).Infof("Memory query for resource request recommendation: %s", metricNamer.BuildUniqueKey())
@@ -151,13 +155,33 @@ func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) 
 			return fmt.Errorf("no value retured for queryExpr: %s", metricNamer.BuildUniqueKey())
 		}
 		v = int64(tsList[0].Samples[0].Value)
-		cr.Target[corev1.ResourceMemory] = resource.NewQuantity(v, resource.BinarySI).String()
+		q = resource.NewQuantity(v, resource.BinarySI)
+		cr.Target[corev1.ResourceMemory] = q.String()
+		// export recommended values as prom metrics
+		a.recordResourceRecommendation(c.Name, corev1.ResourceMemory, q)
 
 		r.Containers = append(r.Containers, cr)
 	}
 
 	proposed.ResourceRequest = r
 	return nil
+}
+
+func (a *ResourceRequestAdvisor) recordResourceRecommendation(containerName string, resName corev1.ResourceName, quantity *resource.Quantity) {
+	labels := map[string]string{
+		"apiversion": a.Recommendation.Spec.TargetRef.APIVersion,
+		"owner_kind": a.Recommendation.Spec.TargetRef.Kind,
+		"namespace":  a.Recommendation.Spec.TargetRef.Namespace,
+		"owner_name": a.Recommendation.Spec.TargetRef.Name,
+		"container":  containerName,
+		"resource":   resName.String(),
+	}
+	switch resName {
+	case corev1.ResourceCPU:
+		metrics.ResourceRecommendation.With(labels).Set(float64(quantity.MilliValue()) / 1000.)
+	case corev1.ResourceMemory:
+		metrics.ResourceRecommendation.With(labels).Set(float64(quantity.Value()))
+	}
 }
 
 func (a *ResourceRequestAdvisor) Name() string {
