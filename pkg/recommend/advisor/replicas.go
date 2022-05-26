@@ -25,19 +25,19 @@ import (
 	"github.com/gocrane/crane/pkg/utils"
 )
 
-var _ Advisor = &EHPAAdvisor{}
+var _ Advisor = &ReplicasAdvisor{}
 
-type EHPAAdvisor struct {
+type ReplicasAdvisor struct {
 	*types.Context
 }
 
-func (a *EHPAAdvisor) Advise(proposed *types.ProposedRecommendation) error {
+func (a *ReplicasAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 	p := a.PredictorMgr.GetPredictor(predictionapi.AlgorithmTypeDSP)
 	if p == nil {
 		return fmt.Errorf("predictor %v not found", predictionapi.AlgorithmTypeDSP)
 	}
 
-	predictableEnabled, err := strconv.ParseBool(a.Context.ConfigProperties["ehpa.predictable"])
+	predictableEnabled, err := strconv.ParseBool(a.Context.ConfigProperties["replicas.predictable"])
 	if err != nil {
 		predictableEnabled = false
 	}
@@ -57,14 +57,14 @@ func (a *EHPAAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 	if err := metricNamer.Validate(); err != nil {
 		return err
 	}
-	klog.V(4).Infof("EHPAAdvisor CpuQuery %s Recommendation %s", metricNamer.BuildUniqueKey(), klog.KObj(a.Recommendation))
+	klog.V(4).Infof("ReplicasAdvisor CpuQuery %s Recommendation %s", metricNamer.BuildUniqueKey(), klog.KObj(a.Recommendation))
 	timeNow := time.Now()
 	tsList, err := a.DataSource.QueryTimeSeries(metricNamer, timeNow.Add(-time.Hour*24*7), timeNow, time.Minute)
 	if err != nil {
-		return fmt.Errorf("EHPAAdvisor query historic metrics failed: %v ", err)
+		return fmt.Errorf("ReplicasAdvisor query historic metrics failed: %v ", err)
 	}
 	if len(tsList) != 1 {
-		return fmt.Errorf("EHPAAdvisor query historic metrics data is unexpected, List length is %d ", len(tsList))
+		return fmt.Errorf("ReplicasAdvisor query historic metrics data is unexpected, List length is %d ", len(tsList))
 	}
 
 	predictable := true
@@ -75,17 +75,17 @@ func (a *EHPAAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 		timeNow,
 		timeNow.Add(time.Hour*24*7))
 	if err != nil {
-		klog.Warningf("EHPAAdvisor query predicted time series failed: %v ", err)
+		klog.Warningf("ReplicasAdvisor query predicted time series failed: %v ", err)
 		predictable = false
 	}
 
 	if len(tsListPrediction) != 1 {
-		klog.Warningf("EHPAAdvisor prediction metrics data is unexpected, List length is %d ", len(tsListPrediction))
+		klog.Warningf("ReplicasAdvisor prediction metrics data is unexpected, List length is %d ", len(tsListPrediction))
 		predictable = false
 	}
 
 	if predictableEnabled && !predictable {
-		return fmt.Errorf("EHPAAdvisor cannot predict target: %v ", err)
+		return fmt.Errorf("ReplicasAdvisor cannot predict target: %v ", err)
 	}
 
 	var cpuMax float64
@@ -107,34 +107,39 @@ func (a *EHPAAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 		}
 	}
 
+	cpuPercentile, err := strconv.ParseFloat(a.Context.ConfigProperties["replicas.cpu-percentile"], 64)
+	if err != nil {
+		return fmt.Errorf("ReplicasAdvisor parse replicas.cpu-percentile failed: %v", err)
+	}
+
 	err = a.checkMinCpuUsageThreshold(cpuMax)
 	if err != nil {
-		return fmt.Errorf("EHPAAdvisor checkMinCpuUsageThreshold failed: %v", err)
+		return fmt.Errorf("ReplicasAdvisor checkMinCpuUsageThreshold failed: %v", err)
 	}
 
 	medianMin, medianMax, err := a.minMaxMedians(tsList)
 	if err != nil {
-		return fmt.Errorf("EHPAAdvisor minMaxMedians failed: %v", err)
+		return fmt.Errorf("ReplicasAdvisor minMaxMedians failed: %v", err)
 	}
 
 	err = a.checkFluctuation(medianMin, medianMax)
 	if err != nil {
-		return fmt.Errorf("EHPAAdvisor checkFluctuation failed: %v", err)
+		return fmt.Errorf("ReplicasAdvisor checkFluctuation failed: %v", err)
 	}
 
 	targetUtilization, requestTotal, err := a.proposeTargetUtilization()
 	if err != nil {
-		return fmt.Errorf("EHPAAdvisor proposeTargetUtilization failed: %v", err)
+		return fmt.Errorf("ReplicasAdvisor proposeTargetUtilization failed: %v", err)
 	}
 
 	minReplicas, err := a.proposeMinReplicas(medianMin, requestTotal)
 	if err != nil {
-		return fmt.Errorf("EHPAAdvisor proposeMinReplicas failed: %v", err)
+		return fmt.Errorf("ReplicasAdvisor proposeMinReplicas failed: %v", err)
 	}
 
-	maxReplicas, err := a.proposeMaxReplicas(cpuUsages, targetUtilization, minReplicas)
+	maxReplicas, err := a.proposeMaxReplicas(cpuUsages, cpuPercentile, targetUtilization, minReplicas)
 	if err != nil {
-		return fmt.Errorf("EHPAAdvisor proposeMaxReplicas failed: %v", err)
+		return fmt.Errorf("ReplicasAdvisor proposeMaxReplicas failed: %v", err)
 	}
 
 	defaultPredictionWindow := int32(3600)
@@ -165,7 +170,7 @@ func (a *EHPAAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 		}
 	}
 
-	referenceHpa, err := strconv.ParseBool(a.Context.ConfigProperties["ehpa.reference-hpa"])
+	referenceHpa, err := strconv.ParseBool(a.Context.ConfigProperties["replicas.reference-hpa"])
 	if err != nil {
 		referenceHpa = false
 	}
@@ -182,30 +187,35 @@ func (a *EHPAAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 		}
 	}
 
+	replicasRecommendation := &types.ReplicasRecommendation{
+		Replicas: &minReplicas,
+	}
+
 	proposed.EffectiveHPA = proposedEHPA
+	proposed.ReplicasRecommendation = replicasRecommendation
 	return nil
 }
 
-func (a *EHPAAdvisor) Name() string {
-	return "EHPAAdvisor"
+func (a *ReplicasAdvisor) Name() string {
+	return "ReplicasAdvisor"
 }
 
-// checkMinCpuUsageThreshold check if the max cpu for target is reach to ehpa.min-cpu-usage-threshold
-func (a *EHPAAdvisor) checkMinCpuUsageThreshold(cpuMax float64) error {
-	minCpuUsageThreshold, err := strconv.ParseFloat(a.Context.ConfigProperties["ehpa.min-cpu-usage-threshold"], 64)
+// checkMinCpuUsageThreshold check if the max cpu for target is reach to replicas.min-cpu-usage-threshold
+func (a *ReplicasAdvisor) checkMinCpuUsageThreshold(cpuMax float64) error {
+	minCpuUsageThreshold, err := strconv.ParseFloat(a.Context.ConfigProperties["replicas.min-cpu-usage-threshold"], 64)
 	if err != nil {
 		return err
 	}
 
-	klog.V(4).Infof("EHPAAdvisor checkMinCpuUsageThreshold, cpuMax %f threshold %f", cpuMax, minCpuUsageThreshold)
+	klog.V(4).Infof("ReplicasAdvisor checkMinCpuUsageThreshold, cpuMax %f threshold %f", cpuMax, minCpuUsageThreshold)
 	if cpuMax < minCpuUsageThreshold {
-		return fmt.Errorf("target cpuusage %f is under ehpa.min-cpu-usage-threshold %f. ", cpuMax, minCpuUsageThreshold)
+		return fmt.Errorf("target cpuusage %f is under replicas.min-cpu-usage-threshold %f. ", cpuMax, minCpuUsageThreshold)
 	}
 
 	return nil
 }
 
-func (a *EHPAAdvisor) minMaxMedians(predictionTs []*common.TimeSeries) (float64, float64, error) {
+func (a *ReplicasAdvisor) minMaxMedians(predictionTs []*common.TimeSeries) (float64, float64, error) {
 	// aggregate with time's hour
 	cpuUsagePredictionMap := make(map[int][]float64)
 	for _, sample := range predictionTs[0].Samples {
@@ -241,14 +251,14 @@ func (a *EHPAAdvisor) minMaxMedians(predictionTs []*common.TimeSeries) (float64,
 		}
 	}
 
-	klog.V(4).Infof("EHPAAdvisor minMaxMedians medianMax %f, medianMin %f, medianUsages %v", medianMax, medianMin, medianUsages)
+	klog.V(4).Infof("ReplicasAdvisor minMaxMedians medianMax %f, medianMin %f, medianUsages %v", medianMax, medianMin, medianUsages)
 
 	return medianMin, medianMax, nil
 }
 
-// checkFluctuation check if the time series fluctuation is reach to ehpa.fluctuation-threshold
-func (a *EHPAAdvisor) checkFluctuation(medianMin, medianMax float64) error {
-	fluctuationThreshold, err := strconv.ParseFloat(a.Context.ConfigProperties["ehpa.fluctuation-threshold"], 64)
+// checkFluctuation check if the time series fluctuation is reach to replicas.fluctuation-threshold
+func (a *ReplicasAdvisor) checkFluctuation(medianMin, medianMax float64) error {
+	fluctuationThreshold, err := strconv.ParseFloat(a.Context.ConfigProperties["replicas.fluctuation-threshold"], 64)
 	if err != nil {
 		return err
 	}
@@ -259,7 +269,7 @@ func (a *EHPAAdvisor) checkFluctuation(medianMin, medianMax float64) error {
 
 	fluctuation := medianMax / medianMin
 	if fluctuation < fluctuationThreshold {
-		return fmt.Errorf("target cpu fluctuation %f is under ehpa.fluctuation-threshold %f. ", fluctuation, fluctuationThreshold)
+		return fmt.Errorf("target cpu fluctuation %f is under replicas.fluctuation-threshold %f. ", fluctuation, fluctuationThreshold)
 	}
 
 	return nil
@@ -268,13 +278,13 @@ func (a *EHPAAdvisor) checkFluctuation(medianMin, medianMax float64) error {
 // proposeTargetUtilization use the 99 percentile cpu usage to propose target utilization,
 // since we think if pod have reach the top usage before, maybe this is a suitable target to running.
 // Considering too high or too low utilization are both invalid, we will be capping target utilization finally.
-func (a *EHPAAdvisor) proposeTargetUtilization() (int32, int64, error) {
-	minCpuTargetUtilization, err := strconv.ParseInt(a.Context.ConfigProperties["ehpa.min-cpu-target-utilization"], 10, 32)
+func (a *ReplicasAdvisor) proposeTargetUtilization() (int32, int64, error) {
+	minCpuTargetUtilization, err := strconv.ParseInt(a.Context.ConfigProperties["replicas.min-cpu-target-utilization"], 10, 32)
 	if err != nil {
 		return 0, 0, err
 	}
 
-	maxCpuTargetUtilization, err := strconv.ParseInt(a.Context.ConfigProperties["ehpa.max-cpu-target-utilization"], 10, 32)
+	maxCpuTargetUtilization, err := strconv.ParseInt(a.Context.ConfigProperties["replicas.max-cpu-target-utilization"], 10, 32)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -306,7 +316,7 @@ func (a *EHPAAdvisor) proposeTargetUtilization() (int32, int64, error) {
 		return 0, 0, err
 	}
 
-	klog.V(4).Infof("EHPAAdvisor propose targetUtilization, cpuUsage %f requestsPod %d", cpuUsage, requestTotal)
+	klog.V(4).Infof("ReplicasAdvisor propose targetUtilization, cpuUsage %f requestsPod %d", cpuUsage, requestTotal)
 	targetUtilization := int32(math.Ceil((cpuUsage * 1000 / float64(requestTotal)) * 100))
 
 	// capping
@@ -322,14 +332,14 @@ func (a *EHPAAdvisor) proposeTargetUtilization() (int32, int64, error) {
 	return targetUtilization, requestTotal, nil
 }
 
-// proposeMinReplicas calculate min replicas based on ehpa.default-min-replicas
-func (a *EHPAAdvisor) proposeMinReplicas(medianMin float64, requestTotal int64) (int32, error) {
-	defaultMinReplicas, err := strconv.ParseInt(a.Context.ConfigProperties["ehpa.default-min-replicas"], 10, 32)
+// proposeMinReplicas calculate min replicas based on replicas.default-min-replicas
+func (a *ReplicasAdvisor) proposeMinReplicas(workloadCpu float64, requestTotal int64) (int32, error) {
+	defaultMinReplicas, err := strconv.ParseInt(a.Context.ConfigProperties["replicas.default-min-replicas"], 10, 32)
 	if err != nil {
 		return 0, err
 	}
 
-	maxCpuTargetUtilization, err := strconv.ParseInt(a.Context.ConfigProperties["ehpa.max-cpu-target-utilization"], 10, 32)
+	targetUtilization, err := strconv.ParseInt(a.Context.ConfigProperties["replicas.cpu-target-utilization"], 10, 32)
 	if err != nil {
 		return 0, err
 	}
@@ -341,7 +351,7 @@ func (a *EHPAAdvisor) proposeMinReplicas(medianMin float64, requestTotal int64) 
 		minReplicas = 1
 	}
 
-	min := int32(math.Ceil(medianMin / (float64(maxCpuTargetUtilization) / 100. * float64(requestTotal) / 1000.)))
+	min := int32(math.Ceil(workloadCpu / (float64(targetUtilization) / 100. * float64(requestTotal) / 1000.)))
 	if min > minReplicas {
 		minReplicas = min
 	}
@@ -350,13 +360,13 @@ func (a *EHPAAdvisor) proposeMinReplicas(medianMin float64, requestTotal int64) 
 }
 
 // proposeMaxReplicas use max cpu usage to compare with target pod cpu usage to get the max replicas.
-func (a *EHPAAdvisor) proposeMaxReplicas(cpuUsages []float64, targetUtilization int32, minReplicas int32) (int32, error) {
-	maxReplicasFactor, err := strconv.ParseFloat(a.Context.ConfigProperties["ehpa.max-replicas-factor"], 64)
+func (a *ReplicasAdvisor) proposeMaxReplicas(cpuUsages []float64, cpuPercentile float64, targetUtilization int32, minReplicas int32) (int32, error) {
+	maxReplicasFactor, err := strconv.ParseFloat(a.Context.ConfigProperties["replicas.max-replicas-factor"], 64)
 	if err != nil {
 		return 0, err
 	}
 	// use percentile to deburring data
-	p95thCpu, err := stats.Percentile(cpuUsages, 95)
+	p95thCpu, err := stats.Percentile(cpuUsages, cpuPercentile)
 	if err != nil {
 		return 0, err
 	}
@@ -365,7 +375,7 @@ func (a *EHPAAdvisor) proposeMaxReplicas(cpuUsages []float64, targetUtilization 
 		return 0, err
 	}
 
-	klog.V(4).Infof("EHPAAdvisor proposeMaxReplicas, p95thCpu %f requestsPod %d targetUtilization %d", p95thCpu, requestsPod, targetUtilization)
+	klog.V(4).Infof("ReplicasAdvisor proposeMaxReplicas, p95thCpu %f requestsPod %d targetUtilization %d", p95thCpu, requestsPod, targetUtilization)
 
 	// request * targetUtilization is the target average cpu usage, use total p95thCpu to divide, we can get the expect max replicas.
 	calcMaxReplicas := (p95thCpu * 100 * 1000 * maxReplicasFactor) / float64(int32(requestsPod)*targetUtilization)
@@ -384,11 +394,7 @@ func getPredictionCpuConfig() *config.Config {
 		DSP: &predictionapi.DSP{
 			SampleInterval: "1m",
 			HistoryLength:  "5d",
-			Estimators: predictionapi.Estimators{
-				FFTEstimators: []*predictionapi.FFTEstimator{
-					{MarginFraction: "0.05", LowAmplitudeThreshold: "1.0", HighFrequencyThreshold: "0.05"},
-				},
-			},
+			Estimators:     predictionapi.Estimators{},
 		},
 	}
 }

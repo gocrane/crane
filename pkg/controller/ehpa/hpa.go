@@ -223,12 +223,17 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 						return nil, fmt.Errorf("no pods returns from scale object. ")
 					}
 
-					requests, err := utils.CalculatePodRequests(pods, metric.Resource.Name)
+					availablePods := utils.GetAvailablePods(pods)
+					if len(availablePods) == 0 {
+						return nil, fmt.Errorf("failed to get available pods. ")
+					}
+
+					requests, err := utils.CalculatePodRequests(availablePods, metric.Resource.Name)
 					if err != nil {
 						return nil, err
 					}
 
-					averageValue := int64((float64(requests) * float64(*metric.Resource.Target.AverageUtilization) / 100) / float64(len(pods)))
+					averageValue := int64((float64(requests) * float64(*metric.Resource.Target.AverageUtilization) / 100) / float64(len(availablePods)))
 					customMetric.Target.AverageValue = resource.NewMilliQuantity(averageValue, resource.DecimalSI)
 				} else {
 					customMetric.Target.AverageValue = metric.Resource.Target.AverageValue
