@@ -21,6 +21,19 @@ const (
 	ExtResourcePrefixFormat = "gocrane.io/%s"
 )
 
+// GetAvailablePods return a set with pod names that paas IsPodAvailable check
+func GetAvailablePods(pods []v1.Pod) []v1.Pod {
+	var availablePods []v1.Pod
+	timeNow := metav1.Now()
+
+	for _, pod := range pods {
+		if IsPodAvailable(&pod, 30, timeNow) {
+			availablePods = append(availablePods, pod)
+		}
+	}
+	return availablePods
+}
+
 // IsPodAvailable returns true if a pod is available; false otherwise.
 // copied from k8s.io/kubernetes/pkg/api/v1/pod.go
 func IsPodAvailable(pod *v1.Pod, minReadySeconds int32, now metav1.Time) bool {
@@ -37,8 +50,11 @@ func IsPodAvailable(pod *v1.Pod, minReadySeconds int32, now metav1.Time) bool {
 }
 
 // IsPodReady returns true if a pod is ready; false otherwise.
-// copied from k8s.io/kubernetes/pkg/api/v1/pod.go
+// copied from k8s.io/kubernetes/pkg/api/v1/pod.go and modified
 func IsPodReady(pod *v1.Pod) bool {
+	if pod.DeletionTimestamp != nil || pod.Status.Phase != v1.PodRunning {
+		return false
+	}
 	condition := GetPodReadyCondition(pod.Status)
 	return condition != nil && condition.Status == v1.ConditionTrue
 }
