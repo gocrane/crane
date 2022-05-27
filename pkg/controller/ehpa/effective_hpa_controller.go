@@ -88,7 +88,7 @@ func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 		setPredictionCondition(newStatus, prediction.Status.Conditions)
 	}
 
-	hpa, err := c.ReconcileHPA(ctx, ehpa, substitute)
+	hpa, err := c.ReconcileHPA(ctx, ehpa, substitute, newStatus)
 	if err != nil {
 		setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedReconcileHPA", err.Error())
 		c.UpdateStatus(ctx, ehpa, newStatus)
