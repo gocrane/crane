@@ -106,20 +106,20 @@ func Run(ctx context.Context, opts *options.Options) error {
 		return err
 	}
 	// initialize data sources and predictor
-	realtimeDataSources, histroyDataSources, _ := initializationDataSource(mgr, opts)
-	predictorMgr := initializationPredictorManager(opts, realtimeDataSources, histroyDataSources)
+	realtimeDataSources, histroyDataSources, _ := initDataSources(mgr, opts)
+	predictorMgr := initPredictorManager(opts, realtimeDataSources, histroyDataSources)
 
-	initializationScheme()
-	initializationWebhooks(mgr, opts)
-	initializationControllers(ctx, mgr, opts, predictorMgr, histroyDataSources[providers.PrometheusDataSource])
-	// initialization custom collector metrics
-	initializationMetricCollector(mgr)
+	initScheme()
+	initWebhooks(mgr, opts)
+	initControllers(ctx, mgr, opts, predictorMgr, histroyDataSources[providers.PrometheusDataSource])
+	// initialize custom collector metrics
+	initMetricCollector(mgr)
 	runAll(ctx, mgr, predictorMgr, opts)
 
 	return nil
 }
 
-func initializationScheme() {
+func initScheme() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	if utilfeature.DefaultFeatureGate.Enabled(features.CraneAutoscaling) {
 		utilruntime.Must(autoscalingapi.AddToScheme(scheme))
@@ -135,12 +135,12 @@ func initializationScheme() {
 	}
 }
 
-func initializationMetricCollector(mgr ctrl.Manager) {
+func initMetricCollector(mgr ctrl.Manager) {
 	// register as prometheus metric collector
 	metrics.CustomCollectorRegister(metrics.NewTspMetricCollector(mgr.GetClient()))
 }
 
-func initializationWebhooks(mgr ctrl.Manager, opts *options.Options) {
+func initWebhooks(mgr ctrl.Manager, opts *options.Options) {
 	if !opts.WebhookConfig.Enabled {
 		return
 	}
@@ -159,7 +159,7 @@ func initializationWebhooks(mgr ctrl.Manager, opts *options.Options) {
 	}
 }
 
-func initializationDataSource(mgr ctrl.Manager, opts *options.Options) (map[providers.DataSourceType]providers.RealTime, map[providers.DataSourceType]providers.History, map[providers.DataSourceType]providers.Interface) {
+func initDataSources(mgr ctrl.Manager, opts *options.Options) (map[providers.DataSourceType]providers.RealTime, map[providers.DataSourceType]providers.History, map[providers.DataSourceType]providers.Interface) {
 	realtimeDataSources := make(map[providers.DataSourceType]providers.RealTime)
 	historyDataSources := make(map[providers.DataSourceType]providers.History)
 	hybridDataSources := make(map[providers.DataSourceType]providers.Interface)
@@ -193,12 +193,12 @@ func initializationDataSource(mgr ctrl.Manager, opts *options.Options) (map[prov
 	return realtimeDataSources, historyDataSources, hybridDataSources
 }
 
-func initializationPredictorManager(opts *options.Options, realtimeDataSources map[providers.DataSourceType]providers.RealTime, historyDataSources map[providers.DataSourceType]providers.History) predictor.Manager {
+func initPredictorManager(opts *options.Options, realtimeDataSources map[providers.DataSourceType]providers.RealTime, historyDataSources map[providers.DataSourceType]providers.History) predictor.Manager {
 	return predictor.NewManager(realtimeDataSources, historyDataSources, predictor.DefaultPredictorsConfig(opts.AlgorithmModelConfig))
 }
 
-// initializationControllers setup controllers with manager
-func initializationControllers(ctx context.Context, mgr ctrl.Manager, opts *options.Options, predictorMgr predictor.Manager, historyDataSource providers.History) {
+// initControllers setup controllers with manager
+func initControllers(ctx context.Context, mgr ctrl.Manager, opts *options.Options, predictorMgr predictor.Manager, historyDataSource providers.History) {
 	discoveryClientSet, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
 	if err != nil {
 		klog.Exit(err, "Unable to create discover client")
