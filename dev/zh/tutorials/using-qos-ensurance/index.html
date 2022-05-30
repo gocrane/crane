@@ -9,7 +9,7 @@
       
       
       <link rel="icon" href="../../../images/crane.svg">
-      <meta name="generator" content="mkdocs-1.3.0, mkdocs-material-8.2.15">
+      <meta name="generator" content="mkdocs-1.3.0, mkdocs-material-8.2.16">
     
     
       
@@ -17,7 +17,7 @@
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.c382b1dc.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.1c3799f8.min.css">
       
         
         <link rel="stylesheet" href="../../../assets/stylesheets/palette.cc9b2e1e.min.css">
@@ -437,8 +437,8 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#qos-ensurance-architecture" class="md-nav__link">
-    Qos Ensurance Architecture
+  <a href="#qos-ensurance_1" class="md-nav__link">
+    Qos Ensurance 架构
   </a>
   
 </li>
@@ -682,8 +682,8 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#qos-ensurance-architecture" class="md-nav__link">
-    Qos Ensurance Architecture
+  <a href="#qos-ensurance_1" class="md-nav__link">
+    Qos Ensurance 架构
   </a>
   
 </li>
@@ -728,37 +728,38 @@
             <article class="md-content__inner md-typeset">
               
                 
-  <a href="https://github.com/gocrane/crane/edit/master/docs/tutorials/using-qos-ensurance.md" title="编辑此页" class="md-content__button md-icon">
+  <a href="https://github.com/gocrane/crane/edit/master/docs/tutorials/using-qos-ensurance.zh.md" title="编辑此页" class="md-content__button md-icon">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25Z"/></svg>
   </a>
 
 
 
 <h1 id="qos-ensurance">Qos Ensurance<a class="headerlink" href="#qos-ensurance" title="Permanent link">&para;</a></h1>
-<p>QoS ensurance guarantees the stability of the pods running on Kubernetes.
-Disable schedule, throttle, evict will be applied to low priority pods when the higher priority pods is impacted by resource competition.</p>
-<h2 id="qos-ensurance-architecture">Qos Ensurance Architecture<a class="headerlink" href="#qos-ensurance-architecture" title="Permanent link">&para;</a></h2>
-<p>Qos ensurance's architecture is shown as below. It contains three modules.</p>
+<p>Qos Ensurance 保证了运行在 Kubernetes 上的 Pod 的稳定性。
+当较高优先级的 Pod 受到资源竞争的影响时，Disable Schedule、Throttle以及Evict 将应用于低优先级的 Pod。</p>
+<h2 id="qos-ensurance_1">Qos Ensurance 架构<a class="headerlink" href="#qos-ensurance_1" title="Permanent link">&para;</a></h2>
+<p>Qos ensurance 的架构如下图所示。它包含三个模块。</p>
 <ol>
-<li>state collector: collect metrics periodically</li>
-<li>anomaly analyzer: analyze the node triggered anomaly used collected metrics</li>
-<li>action executor: execute avoidance actions, include disable scheduling, throttle and eviction.</li>
+<li><code>State Collector</code>：定期收集指标</li>
+<li><code>Anomaly Analyzer</code>：使用收集指标，以分析节点是否发生异常</li>
+<li><code>Action Executor</code>：执行回避动作，包括 Disable Scheduling、Throttle 和 Eviction。</li>
 </ol>
 <p><img alt="crane-qos-enurance" src="../../images/crane-qos-ensurance.png" /></p>
-<p>The main process:</p>
+<p>主要流程：</p>
 <ol>
-<li>State collector synchronizes policies from kube-apiserver.</li>
-<li>If the policies are changed, the state collector updates the collectors.</li>
-<li>State collector collects metrics periodically.</li>
-<li>State collector transmits metrics to anomaly analyzer.</li>
-<li>Anomaly analyzer ranges all rules to analyze the avoidance threshold or the restored threshold reached.</li>
-<li>Anomaly analyzer merges the analyzed results and notices the avoidance actions.</li>
-<li>Action executor executes actions based on the analyzed results.</li>
+<li><code>State Collector</code> 从 kube-apiserver 同步策略。</li>
+<li>如果策略发生更改，<code>State Collector</code>会更新指标收集规则。</li>
+<li><code>State Collector</code>定期收集指标。</li>
+<li><code>State Collector</code>将指标传输到<code>Anomaly Analyzer</code>。</li>
+<li><code>Anomaly Analyzer</code>对所有规则进行范围分析，以分析达到的回避阈值或恢复阈值。</li>
+<li><code>Anomaly Analyzer</code>合并分析结果并通知<code>Action Executor</code>执行回避动作。</li>
+<li><code>Action Executor</code>根据分析结果执行动作。</li>
 </ol>
 <h2 id="disable-scheduling">Disable Scheduling<a class="headerlink" href="#disable-scheduling" title="Permanent link">&para;</a></h2>
-<p>The following AvoidanceAction and NodeQOSEnsurancePolicy can be defined. As a result, when the node CPU usage triggers the threshold, disable schedule action for the node will be executed.</p>
-<p>The sample YAML looks like below:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1"></a><a href="#__codelineno-0-1"><span class="linenos" data-linenos="1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ensurance.crane.io/v1alpha1</span><span class="w"></span>
+<p>定义 <code>AvoidanceAction</code> 和 <code>NodeQOSEnsurancePolicy</code>。</p>
+<p>当节点 CPU 使用率触发回避阈值时，将该节点设置为禁用调度。</p>
+<p>示例 YAML 如下所示：</p>
+<div class="highlight"><span class="filename">AvoidanceAction</span><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1"></a><a href="#__codelineno-0-1"><span class="linenos" data-linenos="1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ensurance.crane.io/v1alpha1</span><span class="w"></span>
 <a id="__codelineno-0-2" name="__codelineno-0-2"></a><a href="#__codelineno-0-2"><span class="linenos" data-linenos="2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AvoidanceAction</span><span class="w"></span>
 <a id="__codelineno-0-3" name="__codelineno-0-3"></a><a href="#__codelineno-0-3"><span class="linenos" data-linenos="3 "></span></a><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
 <a id="__codelineno-0-4" name="__codelineno-0-4"></a><a href="#__codelineno-0-4"><span class="linenos" data-linenos="4 "></span></a><span class="w">  </span><span class="nt">labels</span><span class="p">:</span><span class="w"></span>
@@ -766,9 +767,12 @@ Disable schedule, throttle, evict will be applied to low priority pods when the 
 <a id="__codelineno-0-6" name="__codelineno-0-6"></a><a href="#__codelineno-0-6"><span class="linenos" data-linenos="6 "></span></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">disablescheduling</span><span class="w"></span>
 <a id="__codelineno-0-7" name="__codelineno-0-7"></a><a href="#__codelineno-0-7"><span class="linenos" data-linenos="7 "></span></a><span class="nt">spec</span><span class="p">:</span><span class="w"></span>
 <a id="__codelineno-0-8" name="__codelineno-0-8"></a><a href="#__codelineno-0-8"><span class="linenos" data-linenos="8 "></span></a><span class="w">  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">disable schedule new pods to the node</span><span class="w"></span>
-<a id="__codelineno-0-9" name="__codelineno-0-9"></a><a href="#__codelineno-0-9"><span class="linenos" data-linenos="9 "></span></a><span class="w">  </span><span class="nt">coolDownSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">300</span><span class="w">  </span><span class="c1"># The minimum wait time of the node from  scheduling disable status to normal status</span><span class="w"></span>
+<a id="__codelineno-0-9" name="__codelineno-0-9"></a><a href="#__codelineno-0-9"><span class="linenos" data-linenos="9 "></span></a><span class="w">  </span><span class="nt">coolDownSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">300</span><span class="w">  </span><span class="c1">#(1) </span><span class="w"></span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1"></a><a href="#__codelineno-1-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ensurance.crane.io/v1alpha1</span><span class="w"></span>
+<ol>
+<li>节点从禁止调度状态到正常状态的最小等待时间</li>
+</ol>
+<div class="highlight"><span class="filename">NodeQOSEnsurancePolicy</span><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1"></a><a href="#__codelineno-1-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ensurance.crane.io/v1alpha1</span><span class="w"></span>
 <a id="__codelineno-1-2" name="__codelineno-1-2"></a><a href="#__codelineno-1-2"><span class="linenos" data-linenos=" 2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NodeQOSEnsurancePolicy</span><span class="w"></span>
 <a id="__codelineno-1-3" name="__codelineno-1-3"></a><a href="#__codelineno-1-3"><span class="linenos" data-linenos=" 3 "></span></a><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
 <a id="__codelineno-1-4" name="__codelineno-1-4"></a><a href="#__codelineno-1-4"><span class="linenos" data-linenos=" 4 "></span></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;waterline1&quot;</span><span class="w"></span>
@@ -790,20 +794,21 @@ Disable schedule, throttle, evict will be applied to low priority pods when the 
 <a id="__codelineno-1-20" name="__codelineno-1-20"></a><a href="#__codelineno-1-20"><span class="linenos" data-linenos="20 "></span></a><span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4000</span><span class="w"> </span><span class="c1">#(6) </span><span class="w"></span>
 </code></pre></div>
 <ol>
-<li>We consider the rule is triggered, when the threshold reached continued so many times</li>
-<li>We consider the rule is restored, when the threshold not reached continued so many times</li>
-<li>Name of AvoidanceAction which be associated</li>
-<li>Strategy for the action, you can set it "Preview" to not perform actually</li>
-<li>Name of metric</li>
-<li>Threshold of metric</li>
+<li>当达到阈值并持续多次，那么我们认为规则被触发</li>
+<li>当阈值未达到并继续多次, 那么我们认为规则已恢复</li>
+<li>关联到 AvoidanceAction 名称</li>
+<li>动作的策略，你可以将其设置为“预览”以不实际执行</li>
+<li>指标名称</li>
+<li>指标的阈值</li>
 </ol>
-<p>Please check the video to learn more about the scheduling disable actions.</p>
+<p>请观看视频以了解更多<code>Disable Scheduling</code>的细节。</p>
 <script id="asciicast-480735" src="https://asciinema.org/a/480735.js" async></script>
 
 <h2 id="throttle">Throttle<a class="headerlink" href="#throttle" title="Permanent link">&para;</a></h2>
-<p>The following AvoidanceAction and NodeQOSEnsurancePolicy can be defined. As a result, when the node CPU usage triggers the threshold, throttle action for the node will be executed.</p>
-<p>The sample YAML looks like below:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1"></a><a href="#__codelineno-2-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ensurance.crane.io/v1alpha1</span><span class="w"></span>
+<p>定义 <code>AvoidanceAction</code> 和 <code>NodeQOSEnsurancePolicy</code>。</p>
+<p>当节点 CPU 使用率触发回避阈值时，将执行节点的<code>Throttle Action</code>。</p>
+<p>示例 YAML 如下所示：</p>
+<div class="highlight"><span class="filename">AvoidanceAction</span><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1"></a><a href="#__codelineno-2-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ensurance.crane.io/v1alpha1</span><span class="w"></span>
 <a id="__codelineno-2-2" name="__codelineno-2-2"></a><a href="#__codelineno-2-2"><span class="linenos" data-linenos=" 2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AvoidanceAction</span><span class="w"></span>
 <a id="__codelineno-2-3" name="__codelineno-2-3"></a><a href="#__codelineno-2-3"><span class="linenos" data-linenos=" 3 "></span></a><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
 <a id="__codelineno-2-4" name="__codelineno-2-4"></a><a href="#__codelineno-2-4"><span class="linenos" data-linenos=" 4 "></span></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">throttle</span><span class="w"></span>
@@ -818,10 +823,10 @@ Disable schedule, throttle, evict will be applied to low priority pods when the 
 <a id="__codelineno-2-13" name="__codelineno-2-13"></a><a href="#__codelineno-2-13"><span class="linenos" data-linenos="13 "></span></a><span class="w">  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;throttle</span><span class="nv"> </span><span class="s">low</span><span class="nv"> </span><span class="s">priority</span><span class="nv"> </span><span class="s">pods&quot;</span><span class="w"></span>
 </code></pre></div>
 <ol>
-<li>The minimal ratio of the CPU quota, if the pod is throttled lower than this ratio, it will be set to this.</li>
-<li>The step for throttle action. It will reduce this percentage of CPU quota in each avoidance triggered.It will increase this percentage of CPU quota in each restored.</li>
+<li>CPU 配额的最小比例，如果 pod 被限制低于这个比例，就会被设置为这个。</li>
+<li>该配置设置给<code>Throttle Action</code>。它将在每个触发的回避动作中减少这个 CPU 配额占比。它会在每个恢复动作中增加这个 CPU 配额占比。</li>
 </ol>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1"></a><a href="#__codelineno-3-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ensurance.crane.io/v1alpha1</span><span class="w"></span>
+<div class="highlight"><span class="filename">NodeQOSEnsurancePolicy</span><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1"></a><a href="#__codelineno-3-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ensurance.crane.io/v1alpha1</span><span class="w"></span>
 <a id="__codelineno-3-2" name="__codelineno-3-2"></a><a href="#__codelineno-3-2"><span class="linenos" data-linenos=" 2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NodeQOSEnsurancePolicy</span><span class="w"></span>
 <a id="__codelineno-3-3" name="__codelineno-3-3"></a><a href="#__codelineno-3-3"><span class="linenos" data-linenos=" 3 "></span></a><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
 <a id="__codelineno-3-4" name="__codelineno-3-4"></a><a href="#__codelineno-3-4"><span class="linenos" data-linenos=" 4 "></span></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;waterline2&quot;</span><span class="w"></span>
@@ -843,8 +848,8 @@ Disable schedule, throttle, evict will be applied to low priority pods when the 
 <a id="__codelineno-3-20" name="__codelineno-3-20"></a><a href="#__codelineno-3-20"><span class="linenos" data-linenos="20 "></span></a><span class="w">        </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">6000</span><span class="w"></span>
 </code></pre></div>
 <h2 id="eviction">Eviction<a class="headerlink" href="#eviction" title="Permanent link">&para;</a></h2>
-<p>The following YAML is another case, low priority pods on the node will be evicted, when the node CPU usage trigger the threshold.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1"></a><a href="#__codelineno-4-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ensurance.crane.io/v1alpha1</span><span class="w"></span>
+<p>下面的 YAML 是另一种情况，当节点 CPU 使用率触发阈值时，节点上的低优先级 pod 将被驱逐。</p>
+<div class="highlight"><span class="filename">AvoidanceAction</span><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1"></a><a href="#__codelineno-4-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ensurance.crane.io/v1alpha1</span><span class="w"></span>
 <a id="__codelineno-4-2" name="__codelineno-4-2"></a><a href="#__codelineno-4-2"><span class="linenos" data-linenos=" 2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AvoidanceAction</span><span class="w"></span>
 <a id="__codelineno-4-3" name="__codelineno-4-3"></a><a href="#__codelineno-4-3"><span class="linenos" data-linenos=" 3 "></span></a><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
 <a id="__codelineno-4-4" name="__codelineno-4-4"></a><a href="#__codelineno-4-4"><span class="linenos" data-linenos=" 4 "></span></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eviction</span><span class="w"></span>
@@ -857,9 +862,9 @@ Disable schedule, throttle, evict will be applied to low priority pods when the 
 <a id="__codelineno-4-11" name="__codelineno-4-11"></a><a href="#__codelineno-4-11"><span class="linenos" data-linenos="11 "></span></a><span class="w">  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;evict</span><span class="nv"> </span><span class="s">low</span><span class="nv"> </span><span class="s">priority</span><span class="nv"> </span><span class="s">pods&quot;</span><span class="w"></span>
 </code></pre></div>
 <ol>
-<li>Duration in seconds the pod needs to terminate gracefully.</li>
+<li>pod 需要优雅终止的持续时间（以秒为单位）。</li>
 </ol>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1"></a><a href="#__codelineno-5-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ensurance.crane.io/v1alpha1</span><span class="w"></span>
+<div class="highlight"><span class="filename">NodeQOSEnsurancePolicy</span><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1"></a><a href="#__codelineno-5-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ensurance.crane.io/v1alpha1</span><span class="w"></span>
 <a id="__codelineno-5-2" name="__codelineno-5-2"></a><a href="#__codelineno-5-2"><span class="linenos" data-linenos=" 2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NodeQOSEnsurancePolicy</span><span class="w"></span>
 <a id="__codelineno-5-3" name="__codelineno-5-3"></a><a href="#__codelineno-5-3"><span class="linenos" data-linenos=" 3 "></span></a><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
 <a id="__codelineno-5-4" name="__codelineno-5-4"></a><a href="#__codelineno-5-4"><span class="linenos" data-linenos=" 4 "></span></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;waterline3&quot;</span><span class="w"></span>
@@ -881,7 +886,7 @@ Disable schedule, throttle, evict will be applied to low priority pods when the 
 <a id="__codelineno-5-20" name="__codelineno-5-20"></a><a href="#__codelineno-5-20"><span class="linenos" data-linenos="20 "></span></a><span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">6000</span><span class="w"></span>
 </code></pre></div>
 <ol>
-<li>Strategy for the action, "Preview" to not perform actually</li>
+<li>回避动作策略。当设置为<code>Preview</code>时，将不会被实际执行</li>
 </ol>
 <h2 id="supported-metrics">Supported Metrics<a class="headerlink" href="#supported-metrics" title="Permanent link">&para;</a></h2>
 <table>
@@ -975,7 +980,7 @@ Disable schedule, throttle, evict will be applied to low priority pods when the 
     <script id="__config" type="application/json">{"base": "../../..", "features": ["content.code.annotate", "navigation.top"], "search": "../../../assets/javascripts/workers/search.2a1c317c.min.js", "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.config.lang": "ja", "search.config.pipeline": "trimmer, stemmer", "search.config.separator": "[\\s\\-\uff0c\u3002]+", "search.placeholder": "\u641c\u7d22", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version.title": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.a6c66575.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.3a4b43e5.min.js"></script>
       
         <script src="../../../assets/util.js"></script>
       

@@ -9,15 +9,15 @@
       
       
       <link rel="icon" href="../../../images/crane.svg">
-      <meta name="generator" content="mkdocs-1.3.0, mkdocs-material-8.2.15">
+      <meta name="generator" content="mkdocs-1.3.0, mkdocs-material-8.2.16">
     
     
       
-        <title>Dynamic-scheduler: a load-aware scheduler plugin - Crane - Cloud Resource Analytics and Economics</title>
+        <title>Dynamic Scheduler：负载感知调度器插件 - Crane - Cloud Resource Analytics and Economics</title>
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.c382b1dc.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.1c3799f8.min.css">
       
         
         <link rel="stylesheet" href="../../../assets/stylesheets/palette.cc9b2e1e.min.css">
@@ -65,7 +65,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#dynamic-scheduler-a-load-aware-scheduler-plugin" class="md-skip">
+        <a href="#dynamic-scheduler" class="md-skip">
           跳转至
         </a>
       
@@ -103,7 +103,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Dynamic-scheduler: a load-aware scheduler plugin
+              Dynamic Scheduler：负载感知调度器插件
             
           </span>
         </div>
@@ -611,30 +611,30 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#introduction" class="md-nav__link">
-    Introduction
+  <a href="#_1" class="md-nav__link">
+    介绍
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#design-details" class="md-nav__link">
-    Design Details
+  <a href="#_2" class="md-nav__link">
+    设计细节
   </a>
   
-    <nav class="md-nav" aria-label="Design Details">
+    <nav class="md-nav" aria-label="设计细节">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#architecture" class="md-nav__link">
-    Architecture
+  <a href="#_3" class="md-nav__link">
+    架构
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#scheduler-policy" class="md-nav__link">
-    Scheduler Policy
+  <a href="#_4" class="md-nav__link">
+    调度策略
   </a>
   
 </li>
@@ -663,45 +663,45 @@
             <article class="md-content__inner md-typeset">
               
                 
-  <a href="https://github.com/gocrane/crane/edit/master/docs/tutorials/dynamic-scheduler-plugin.md" title="编辑此页" class="md-content__button md-icon">
+  <a href="https://github.com/gocrane/crane/edit/master/docs/tutorials/dynamic-scheduler-plugin.zh.md" title="编辑此页" class="md-content__button md-icon">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25Z"/></svg>
   </a>
 
 
 
-<h1 id="dynamic-scheduler-a-load-aware-scheduler-plugin">Dynamic-scheduler: a load-aware scheduler plugin<a class="headerlink" href="#dynamic-scheduler-a-load-aware-scheduler-plugin" title="Permanent link">&para;</a></h1>
-<h2 id="introduction">Introduction<a class="headerlink" href="#introduction" title="Permanent link">&para;</a></h2>
-<p>Native scheduler of kubernetes can only schedule pods by resource request, which can easily cause a series of load uneven problems:</p>
+<h1 id="dynamic-scheduler">Dynamic Scheduler：负载感知调度器插件<a class="headerlink" href="#dynamic-scheduler" title="Permanent link">&para;</a></h1>
+<h2 id="_1">介绍<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>kubernetes 的原生调度器只能通过资源请求来调度 pod，这很容易造成一系列负载不均的问题：</p>
 <ul>
-<li>for some nodes, the actual load is not much different from the resource request, which will lead to a very high probability of stability problems.</li>
-<li>for others, the actual load is much smaller than the resource request, which will lead to a huge waste of resources.</li>
+<li>对于某些节点，实际负载与资源请求相差不大，这会导致很大概率出现稳定性问题。</li>
+<li>对于其他节点来说，实际负载远小于资源请求，这将导致资源的巨大浪费。</li>
 </ul>
-<p>To solve these problems, Dynamic scheduler builds a simple but efficient model based on actual node utilization data，and filters out those nodes with high load to balance the cluster.</p>
-<h2 id="design-details">Design Details<a class="headerlink" href="#design-details" title="Permanent link">&para;</a></h2>
-<h3 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h3>
+<p>为了解决这些问题，动态调度器根据实际的节点利用率构建了一个简单但高效的模型，并过滤掉那些负载高的节点来平衡集群。</p>
+<h2 id="_2">设计细节<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<h3 id="_3">架构<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
 <p><img alt="" src="../../images/dynamic-scheduler-plugin.png" /></p>
-<p>As shown above, Dynamic scheduler relies on <code>Prometheus</code> and <code>Node-exporter</code> to collect and aggregate metrics data, and it consists of two components:</p>
+<p>如上图，动态调度器依赖于<code>Prometheus</code>和<code>Node-exporter</code>收集和汇总指标数据，它由两个组件组成：</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><code>Node-annotator</code> is currently a module of <code>Crane-scheduler-controller</code>.</p>
+<p><code>Node-annotator</code> 目前是 <code>Crane-scheduler-controller</code>的一个模块.</p>
 </div>
 <ul>
-<li><code>Node-annotator</code> periodically pulls data from Prometheus and marks them with timestamp on the node in the form of annotations.</li>
-<li><code>Dynamic plugin</code> reads the load data directly from the node's annotation, filters and scores candidates based on a simple algorithm.</li>
+<li><code>Node-annotator</code>定期从 Prometheus 拉取数据，并以注释的形式在节点上用时间戳标记它们。</li>
+<li><code>Dynamic plugin</code>直接从节点的注释中读取负载数据，过滤并基于简单的算法对候选节点进行评分。</li>
 </ul>
-<h3 id="scheduler-policy">Scheduler Policy<a class="headerlink" href="#scheduler-policy" title="Permanent link">&para;</a></h3>
-<p>Dynamic provides a default <a href="../deploy/manifests/policy.yaml">scheduler policy</a> and supports user-defined policies. The default policy reies on following metrics:</p>
+<h3 id="_4">调度策略<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h3>
+<p>动态调度器提供了一个默认值<a href="../deploy/manifests/policy.yaml">调度策略</a>并支持用户自定义策略。默认策略依赖于以下指标：</p>
 <ul>
-<li><code>cpu_usage_avg_5m</code> </li>
+<li><code>cpu_usage_avg_5m</code></li>
 <li><code>cpu_usage_max_avg_1h</code></li>
 <li><code>cpu_usage_max_avg_1d</code></li>
 <li><code>mem_usage_avg_5m</code></li>
 <li><code>mem_usage_max_avg_1h</code></li>
 <li><code>mem_usage_max_avg_1d</code></li>
 </ul>
-<p>At the scheduling <code>Filter</code> stage, the node will be filtered if the actual usage rate of this node is greater than the threshold of any of the above metrics. And at the <code>Score</code> stage, the final score is the weighted sum of these metrics' values.</p>
+<p>在调度的<code>Filter</code>阶段，如果该节点的实际使用率大于上述任一指标的阈值，则该节点将被过滤。而在<code>Score</code>阶段，最终得分是这些指标值的加权和。</p>
 <h3 id="hot-value">Hot Value<a class="headerlink" href="#hot-value" title="Permanent link">&para;</a></h3>
-<p>In the production cluster, scheduling hotspots may occur frequently because the load of the nodes can not increase immediately after the pod is created. Therefore, we define an extra metrics named <code>Hot Value</code>, which represents the scheduling frequency of the node in recent times. And the final priority of the node is the final score minus the <code>Hot Value</code>.</p>
+<p>在生产集群中，可能会频繁出现调度热点，因为创建 Pod 后节点的负载不能立即增加。因此，我们定义了一个额外的指标，名为<code>Hot Value</code>，表示节点最近几次的调度频率。并且节点的最终优先级是最终得分减去<code>Hot Value</code>。</p>
 
               
             </article>
@@ -740,7 +740,7 @@
     <script id="__config" type="application/json">{"base": "../../..", "features": ["content.code.annotate", "navigation.top"], "search": "../../../assets/javascripts/workers/search.2a1c317c.min.js", "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.config.lang": "ja", "search.config.pipeline": "trimmer, stemmer", "search.config.separator": "[\\s\\-\uff0c\u3002]+", "search.placeholder": "\u641c\u7d22", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version.title": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.a6c66575.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.3a4b43e5.min.js"></script>
       
         <script src="../../../assets/util.js"></script>
       

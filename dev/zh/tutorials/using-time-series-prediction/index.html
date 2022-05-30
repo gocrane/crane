@@ -9,7 +9,7 @@
       
       
       <link rel="icon" href="../../../images/crane.svg">
-      <meta name="generator" content="mkdocs-1.3.0, mkdocs-material-8.2.15">
+      <meta name="generator" content="mkdocs-1.3.0, mkdocs-material-8.2.16">
     
     
       
@@ -17,7 +17,7 @@
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.c382b1dc.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.1c3799f8.min.css">
       
         
         <link rel="stylesheet" href="../../../assets/stylesheets/palette.cc9b2e1e.min.css">
@@ -426,9 +426,94 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Time Series Prediction
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         Time Series Prediction
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    Overview
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#features" class="md-nav__link">
+    Features
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prediction-metrics" class="md-nav__link">
+    Prediction Metrics
+  </a>
+  
+    <nav class="md-nav" aria-label="Prediction Metrics">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#metric-type" class="md-nav__link">
+    Metric Type
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#algorithm" class="md-nav__link">
+    Algorithm
+  </a>
+  
+    <nav class="md-nav" aria-label="Algorithm">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dsp-params" class="md-nav__link">
+    dsp params
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#percentile-params" class="md-nav__link">
+    percentile params
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -616,6 +701,75 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    Overview
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#features" class="md-nav__link">
+    Features
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prediction-metrics" class="md-nav__link">
+    Prediction Metrics
+  </a>
+  
+    <nav class="md-nav" aria-label="Prediction Metrics">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#metric-type" class="md-nav__link">
+    Metric Type
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#algorithm" class="md-nav__link">
+    Algorithm
+  </a>
+  
+    <nav class="md-nav" aria-label="Algorithm">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dsp-params" class="md-nav__link">
+    dsp params
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#percentile-params" class="md-nav__link">
+    percentile params
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -626,20 +780,21 @@
             <article class="md-content__inner md-typeset">
               
                 
-  <a href="https://github.com/gocrane/crane/edit/master/docs/tutorials/using-time-series-prediction.md" title="编辑此页" class="md-content__button md-icon">
+  <a href="https://github.com/gocrane/crane/edit/master/docs/tutorials/using-time-series-prediction.zh.md" title="编辑此页" class="md-content__button md-icon">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25Z"/></svg>
   </a>
 
 
 
 <h1 id="timeseriesprediction">TimeSeriesPrediction<a class="headerlink" href="#timeseriesprediction" title="Permanent link">&para;</a></h1>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
 <p>Knowing the future makes things easier for us.</p>
 <hr />
-<p>Many businesses are naturally cyclical in time series, especially for those that directly or indirectly serve "people". This periodicity is determined by the regularity of people’s daily activities. For example, people are accustomed to ordering take-out at noon and in the evenings; there are always traffic peaks in the morning and evening; even for services that don't have such obvious patterns, such as searching, the amount of requests at night is much lower than that during business hours. For applications related to this kind of business, it is a natural idea to infer the next day's metrics from the historical data of the past few days, or to infer the coming Monday's access traffic from the data of last Monday. With predicted metrics or traffic patterns in the next 24 hours, we can better manage our application instances, stabilize our system, and meanwhile, reduce the cost.</p>
-<p>TimeSeriesPrediction is used to forecast the kubernetes object metric. It is based on PredictionCore to do forecast.</p>
-<h1 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h1>
-<p>A TimeSeriesPrediction sample yaml looks like below:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1"></a><a href="#__codelineno-0-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">prediction.crane.io/v1alpha1</span><span class="w"></span>
+<p>许多业务在时间序列上天然存在周期性的，尤其是对于那些直接或间接为“人”服务的业务。这种周期性是由人们日常活动的规律性决定的。例如，人们习惯于中午和晚上点外卖；早晚总有交通高峰；即使是搜索等模式不那么明显的服务，夜间的请求量也远低于白天时间。对于这类业务相关的应用来说，从过去几天的历史数据中推断出次日的指标，或者从上周一的数据中推断出下周一的访问量是很自然的想法。通过预测未来 24 小时内的指标或流量模式，我们可以更好地管理我们的应用程序实例，稳定我们的系统，同时降低成本。</p>
+<p><code>TimeSeriesPrediction</code> 被用于预测 Kubernetes 对象指标。它基于 <code>PredictionCore</code> 进行预测。</p>
+<h2 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h2>
+<p><code>TimeSeriesPrediction</code> 的示例 yaml 如下所示：</p>
+<div class="highlight"><span class="filename">TimeSeriesPrediction</span><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1"></a><a href="#__codelineno-0-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">prediction.crane.io/v1alpha1</span><span class="w"></span>
 <a id="__codelineno-0-2" name="__codelineno-0-2"></a><a href="#__codelineno-0-2"><span class="linenos" data-linenos=" 2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">TimeSeriesPrediction</span><span class="w"></span>
 <a id="__codelineno-0-3" name="__codelineno-0-3"></a><a href="#__codelineno-0-3"><span class="linenos" data-linenos=" 3 "></span></a><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
 <a id="__codelineno-0-4" name="__codelineno-0-4"></a><a href="#__codelineno-0-4"><span class="linenos" data-linenos=" 4 "></span></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">node-resource-percentile</span><span class="w"></span>
@@ -680,14 +835,14 @@
 <a id="__codelineno-0-39" name="__codelineno-0-39"></a><a href="#__codelineno-0-39"><span class="linenos" data-linenos="39 "></span></a><span class="w">            </span><span class="nt">bucketSize</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;10&quot;</span><span class="w"></span>
 <a id="__codelineno-0-40" name="__codelineno-0-40"></a><a href="#__codelineno-0-40"><span class="linenos" data-linenos="40 "></span></a><span class="w">            </span><span class="nt">firstBucketSize</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;40&quot;</span><span class="w"></span>
 <a id="__codelineno-0-41" name="__codelineno-0-41"></a><a href="#__codelineno-0-41"><span class="linenos" data-linenos="41 "></span></a><span class="w">            </span><span class="nt">bucketSizeGrowthRatio</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1.5&quot;</span><span class="w"></span>
-</code></pre></div></p>
+</code></pre></div>
 <ul>
-<li>spec.targetRef defines the reference to the kubernetes object including Node or other workload such as Deployment.</li>
-<li>spec.predictionMetrics defines the metrics about the spec.targetRef.</li>
-<li>spec.predictionWindowSeconds is a prediction time series duration. the TimeSeriesPredictionController will rotate the predicted data in spec.Status for consumer to consume the predicted time series data.</li>
+<li><code>spec.targetRef</code> 定义了对 Kubernetes 对象的引用，包括 Node 或其他工作负载，例如 Deployment。</li>
+<li><code>spec.predictionMetrics</code> 定义了关于 <code>spec.targetRef</code> 的指标。</li>
+<li><code>spec.predictionWindowSeconds</code> 是预测时间序列持续时间。<code>TimeSeriesPredictionController</code> 将轮换 <code>spec.Status</code> 中的预测数据，以供消费者使用预测的时间序列数据。</li>
 </ul>
-<h2 id="predictionmetrics">PredictionMetrics<a class="headerlink" href="#predictionmetrics" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1"></a><a href="#__codelineno-1-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">prediction.crane.io/v1alpha1</span><span class="w"></span>
+<h2 id="prediction-metrics">Prediction Metrics<a class="headerlink" href="#prediction-metrics" title="Permanent link">&para;</a></h2>
+<div class="highlight"><span class="filename">TimeSeriesPrediction</span><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1"></a><a href="#__codelineno-1-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">prediction.crane.io/v1alpha1</span><span class="w"></span>
 <a id="__codelineno-1-2" name="__codelineno-1-2"></a><a href="#__codelineno-1-2"><span class="linenos" data-linenos=" 2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">TimeSeriesPrediction</span><span class="w"></span>
 <a id="__codelineno-1-3" name="__codelineno-1-3"></a><a href="#__codelineno-1-3"><span class="linenos" data-linenos=" 3 "></span></a><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
 <a id="__codelineno-1-4" name="__codelineno-1-4"></a><a href="#__codelineno-1-4"><span class="linenos" data-linenos=" 4 "></span></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">node-resource-percentile</span><span class="w"></span>
@@ -710,19 +865,19 @@
 <a id="__codelineno-1-21" name="__codelineno-1-21"></a><a href="#__codelineno-1-21"><span class="linenos" data-linenos="21 "></span></a><span class="w">            </span><span class="nt">firstBucketSize</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;40&quot;</span><span class="w"></span>
 <a id="__codelineno-1-22" name="__codelineno-1-22"></a><a href="#__codelineno-1-22"><span class="linenos" data-linenos="22 "></span></a><span class="w">            </span><span class="nt">bucketSizeGrowthRatio</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1.5&quot;</span><span class="w"></span>
 </code></pre></div>
-<h3 id="metrictype">MetricType<a class="headerlink" href="#metrictype" title="Permanent link">&para;</a></h3>
-<p>There are three types of the metric query:</p>
+<h3 id="metric-type">Metric Type<a class="headerlink" href="#metric-type" title="Permanent link">&para;</a></h3>
+<p>现在我们只支持 <code>prometheus</code> 作为数据源。我们定义<code>MetricType</code>与数据源进行结合。但是现在可能有些数据源不支持 <code>MetricType</code>。</p>
+<p>指标查询有以下三种类型：</p>
 <ul>
-<li><code>ResourceQuery</code> is a kubernetes built-in resource metric such as cpu or memory. crane supports only cpu and memory  now.</li>
-<li><code>RawQuery</code> is a query by DSL, such as prometheus query language. now support prometheus.</li>
-<li><code>ExpressionQuery</code> is a query by Expression selector. </li>
+<li><code>ResourceQuery</code>是 kubernetes 内置的资源指标，例如 cpu 或 memory。Crane目前只支持 CPU 和内存。</li>
+<li><code>RawQuery</code>是通过 DSL 的查询，比如 prometheus 查询语句。现在已支持 Prometheus 。</li>
+<li><code>ExpressionQuery</code>是一个表达式查询。</li>
 </ul>
-<p>Now we only support prometheus as data source. We define the <code>MetricType</code> to orthogonal with the datasource. but now maybe some datasources do not support the metricType.</p>
 <h3 id="algorithm">Algorithm<a class="headerlink" href="#algorithm" title="Permanent link">&para;</a></h3>
-<p><code>Algorithm</code> define the algorithm type and params to do predict for the metric. Now there are two kinds of algorithms:</p>
+<p><code>Algorithm</code>定义算法类型和参数来预测指标。现在有两种算法：</p>
 <ul>
-<li><code>dsp</code> is an algorithm to forcasting a time series, it is based on FFT(Fast Fourier Transform), it is good at predicting some time series with seasonality and periods.</li>
-<li><code>percentile</code> is an algorithm to estimate a time series, and find a recommended value to represent the past time series, it is based on exponentially-decaying weights historgram statistics. it is used to estimate a time series, it is not good at to predict a time sequences, although the percentile can output a time series predicted data, but it is all the same value. so if you want to predict a time sequences, dsp is a better choice.</li>
+<li><code>dsp</code>是一种预测时间序列的算法，它基于 FFT（快速傅里叶变换），擅长预测一些具有季节性和周期的时间序列。</li>
+<li><code>percentile</code>是一种估计时间序列，并找到代表过去时间序列的推荐值的算法，它基于指数衰减权重直方图统计。它是用来估计一个时间序列的，它不擅长预测一个时间序列，虽然<code>percentile</code>可以输出一个时间序列的预测数据，但是都是一样的值。<strong>所以如果你想预测一个时间序列，dsp 是一个更好的选择。</strong></li>
 </ul>
 <h4 id="dsp-params">dsp params<a class="headerlink" href="#dsp-params" title="Permanent link">&para;</a></h4>
 <h4 id="percentile-params">percentile params<a class="headerlink" href="#percentile-params" title="Permanent link">&para;</a></h4>
@@ -799,7 +954,7 @@
     <script id="__config" type="application/json">{"base": "../../..", "features": ["content.code.annotate", "navigation.top"], "search": "../../../assets/javascripts/workers/search.2a1c317c.min.js", "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.config.lang": "ja", "search.config.pipeline": "trimmer, stemmer", "search.config.separator": "[\\s\\-\uff0c\u3002]+", "search.placeholder": "\u641c\u7d22", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version.title": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.a6c66575.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.3a4b43e5.min.js"></script>
       
         <script src="../../../assets/util.js"></script>
       
