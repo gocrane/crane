@@ -3,6 +3,7 @@ package ehpa
 import (
 	"context"
 	"fmt"
+	"github.com/gocrane/crane/pkg/utils"
 
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	v1 "k8s.io/api/core/v1"
@@ -127,7 +128,7 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 	for _, metric := range ehpa.Spec.Metrics {
 		// Convert resource metric into prediction metric
 		if metric.Type == autoscalingv2.ResourceMetricSourceType {
-			metricName := GetPredictionMetricName(metric.Resource.Name)
+			metricName := utils.GetPredictionMetricName(metric.Resource.Name)
 			if len(metricName) == 0 {
 				continue
 			}
