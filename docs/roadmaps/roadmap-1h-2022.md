@@ -23,10 +23,14 @@ Please let us know if you have urgent needs which are not presented in the plan.
 - Dynamic Scheduler
 - UI to support EPA.					
 ### 0.5.0 [May]
-- HPC open source
-- Node & Pod QoS Ensurance for DiskIO and Network
-- Prediction with DiskIO, Network				
+- Resource and Replicas Recommendation
+- Load-aware Scheduler
 ### 0.6.0 [June]
 - Scalability to support 3k TSP and 3k EPA		
-- Application Portrait	
-- SLO based Application QoS for CPU and Mem
+- Algorithm and QoS Documentation
+- EHPA grafana dashboard
+### 0.7.0 [July]
+- Support apiservice router for multiple metric adapters
+- Prediction with Business Metrics
+### 0.8.0 [August]
+- Algorithm estimate notebook
