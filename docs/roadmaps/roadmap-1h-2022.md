@@ -18,9 +18,7 @@ Please let us know if you have urgent needs which are not presented in the plan.
 - Node QoS Ensurance for Mem
 - Prediction with CPU, Memory, and Business Metrics
 - Scalability to support 1K TSP and 1K EPA			
-### 0.4.0 [April]
-- EVPA support
-- Dynamic Scheduler
+### 0.4.0 [released]
 - UI to support EPA.					
 ### 0.5.0 [May]
 - Resource and Replicas Recommendation
