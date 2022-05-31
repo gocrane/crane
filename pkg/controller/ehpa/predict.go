@@ -3,7 +3,6 @@ package ehpa
 import (
 	"context"
 	"fmt"
-	"github.com/gocrane/crane/pkg/utils"
 
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	v1 "k8s.io/api/core/v1"
@@ -18,6 +17,7 @@ import (
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/known"
+	"github.com/gocrane/crane/pkg/utils"
 )
 
 func (c *EffectiveHPAController) ReconcilePredication(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) (*predictionapi.TimeSeriesPrediction, error) {
