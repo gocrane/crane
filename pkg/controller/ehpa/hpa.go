@@ -5,12 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gocrane/crane/pkg/known"
-	"github.com/gocrane/crane/pkg/metricprovider"
-	"github.com/gocrane/crane/pkg/utils"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -18,8 +12,14 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
+
+	"github.com/gocrane/crane/pkg/known"
+	"github.com/gocrane/crane/pkg/metricprovider"
+	"github.com/gocrane/crane/pkg/utils"
 )
 
 func (c *EffectiveHPAController) ReconcileHPA(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, substitute *autoscalingapi.Substitute, status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus) (*autoscalingv2.HorizontalPodAutoscaler, error) {

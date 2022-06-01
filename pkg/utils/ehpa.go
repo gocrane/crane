@@ -1,10 +1,12 @@
 package utils
 
 import (
-	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
-	"github.com/gocrane/crane/pkg/known"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	v1 "k8s.io/api/core/v1"
+
+	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
+
+	"github.com/gocrane/crane/pkg/known"
 )
 
 func IsEHPAPredictionEnabled(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) bool {
