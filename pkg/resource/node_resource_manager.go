@@ -228,6 +228,7 @@ func (o *NodeResourceManager) BuildNodeStatus(node *v1.Node) map[v1.ResourceName
 		if nextRecommendation < 0 {
 			nextRecommendation = 0
 		}
+		metrics.UpdateNodeResourceRecommendedValue(metrics.SubComponentNodeResource, metrics.StepGetExtResourceRecommended, string(resourceName), resourceFrom, nextRecommendation)
 		extResourceName := fmt.Sprintf(utils.ExtResourcePrefixFormat, string(resourceName))
 		resValue, exists := node.Status.Capacity[v1.ResourceName(extResourceName)]
 		if exists && resValue.Value() != 0 &&
@@ -335,7 +336,9 @@ func (o *NodeResourceManager) GetCpuCoreCanNotBeReclaimedFromLocal() float64 {
 
 	// 1. Exclusive tethered CPU cannot be reclaimed even if the free part is free, so add the exclusive CPUIdle to the CanNotBeReclaimed CPU
 	// 2. The CPU used by extRes-container needs to be reclaimed, otherwise it will be double-counted due to the allotted mechanism of k8s, so the extResContainerCpuUsageTotal is subtracted from the CanNotBeReclaimedCpu
-	return nodeCpuUsageTotal + exclusiveCPUIdle - extResContainerCpuUsageTotal
+	nodeCpuCannotBeReclaimedSeconds := nodeCpuUsageTotal + exclusiveCPUIdle - extResContainerCpuUsageTotal
+	metrics.UpdateNodeCpuCannotBeReclaimedSeconds(nodeCpuCannotBeReclaimedSeconds)
+	return nodeCpuCannotBeReclaimedSeconds
 }
 
 func getReserveResourcePercentFromNodeAnnotations(annotations map[string]string, resourceName string) (float64, bool) {

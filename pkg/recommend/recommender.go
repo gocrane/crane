@@ -129,22 +129,6 @@ func GetContext(kubeClient client.Client, restMapper meta.RESTMapper,
 		return nil, err
 	}
 
-	if recommendation.Spec.TargetRef.Kind == "Deployment" && mapping.GroupVersionKind.Group == "apps" {
-		var deployment appsv1.Deployment
-		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructured.UnstructuredContent(), &deployment); err != nil {
-			return nil, err
-		}
-		c.Deployment = &deployment
-	}
-
-	if recommendation.Spec.TargetRef.Kind == "StatefulSet" && mapping.GroupVersionKind.Group == "apps" {
-		var statefulSet appsv1.StatefulSet
-		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructured.UnstructuredContent(), &statefulSet); err != nil {
-			return nil, err
-		}
-		c.StatefulSet = &statefulSet
-	}
-
 	var pods []corev1.Pod
 	if recommendation.Spec.TargetRef.Kind != "DaemonSet" {
 		pods, err = utils.GetPodsFromScale(kubeClient, scale)
@@ -160,7 +144,7 @@ func GetContext(kubeClient client.Client, restMapper meta.RESTMapper,
 		return nil, err
 	}
 
-	if recommendation.Spec.Type == analysisapi.AnalysisTypeHPA {
+	if recommendation.Spec.Type == analysisapi.AnalysisTypeReplicas {
 		c.PodTemplate, err = utils.GetPodTemplate(context.TODO(),
 			recommendation.Spec.TargetRef.Namespace,
 			recommendation.Spec.TargetRef.Name,

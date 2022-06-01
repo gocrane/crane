@@ -16,6 +16,7 @@ import (
 )
 
 var _ prediction.Interface = &percentilePrediction{}
+var keyAll = "__all__"
 
 type percentilePrediction struct {
 	prediction.GenericPrediction
@@ -25,7 +26,7 @@ type percentilePrediction struct {
 	stopChMap     sync.Map
 }
 
-func (p *percentilePrediction) QueryPredictionStatus(ctx context.Context, metricNamer metricnaming.MetricNamer) (prediction.Status, error) {
+func (p *percentilePrediction) QueryPredictionStatus(_ context.Context, metricNamer metricnaming.MetricNamer) (prediction.Status, error) {
 	_, status := p.a.GetSignals(metricNamer.BuildUniqueKey())
 	return status, nil
 }
@@ -57,6 +58,46 @@ func generateSamplesFromWindow(value float64, start time.Time, end time.Time, st
 	return result
 }
 
+func (p *percentilePrediction) getPredictedValuesFromSignals(queryExpr string, signals map[string]*aggregateSignal) []*common.TimeSeries {
+	var predictedTimeSeriesList []*common.TimeSeries
+
+	cfg := p.a.GetConfig(queryExpr)
+	estimator := NewPercentileEstimator(cfg.percentile)
+	estimator = WithMargin(cfg.marginFraction, estimator)
+	estimator = WithTargetUtilization(cfg.targetUtilization, estimator)
+	now := time.Now().Unix()
+
+	if cfg.aggregated {
+		signal := signals[keyAll]
+		if signal != nil {
+			sample := common.Sample{
+				Value:     estimator.GetEstimation(signal.histogram),
+				Timestamp: now,
+			}
+			predictedTimeSeriesList = append(predictedTimeSeriesList, &common.TimeSeries{
+				Labels:  nil,
+				Samples: []common.Sample{sample},
+			})
+		}
+	} else {
+		for key, signal := range signals {
+			if key == keyAll {
+				continue
+			}
+			sample := common.Sample{
+				Value:     estimator.GetEstimation(signal.histogram),
+				Timestamp: now,
+			}
+			predictedTimeSeriesList = append(predictedTimeSeriesList, &common.TimeSeries{
+				Labels:  signal.labels,
+				Samples: []common.Sample{sample},
+			})
+		}
+	}
+
+	return predictedTimeSeriesList
+}
+
 func (p *percentilePrediction) getPredictedValues(ctx context.Context, namer metricnaming.MetricNamer) []*common.TimeSeries {
 	var predictedTimeSeriesList []*common.TimeSeries
 
@@ -71,42 +112,7 @@ func (p *percentilePrediction) getPredictedValues(ctx context.Context, namer met
 			return predictedTimeSeriesList
 		}
 		if signals != nil && status == prediction.StatusReady {
-			cfg := p.a.GetConfig(queryExpr)
-			estimator := NewPercentileEstimator(cfg.percentile)
-			estimator = WithMargin(cfg.marginFraction, estimator)
-			now := time.Now().Unix()
-
-			if cfg.aggregated {
-				key := "__all__"
-				signal := signals[key]
-				if signal == nil {
-					return nil
-				}
-				sample := common.Sample{
-					Value:     estimator.GetEstimation(signal.histogram),
-					Timestamp: now,
-				}
-				predictedTimeSeriesList = append(predictedTimeSeriesList, &common.TimeSeries{
-					Labels:  nil,
-					Samples: []common.Sample{sample},
-				})
-				return predictedTimeSeriesList
-			} else {
-				for key, signal := range signals {
-					if key == "__all__" {
-						continue
-					}
-					sample := common.Sample{
-						Value:     estimator.GetEstimation(signal.histogram),
-						Timestamp: now,
-					}
-					predictedTimeSeriesList = append(predictedTimeSeriesList, &common.TimeSeries{
-						Labels:  signal.labels,
-						Samples: []common.Sample{sample},
-					})
-				}
-				return predictedTimeSeriesList
-			}
+			return p.getPredictedValuesFromSignals(queryExpr, signals)
 		}
 		select {
 		case <-ctx.Done():
@@ -127,52 +133,15 @@ func (p *percentilePrediction) QueryRealtimePredictedValues(ctx context.Context,
 	return p.getPredictedValues(ctx, namer), nil
 }
 
-// QueryRealtimePredictedValuesOnce once task, it is only called once then caller will delete the query after call, but this query maybe used by other callers,
-// so when there has already registered this namer query, we get the estimated value from the model directly.
-// when there is no this namer query in state, we fetch history data to recover the histogram model then get the estimated value by a stateless function as data processing way.
-func (p *percentilePrediction) QueryRealtimePredictedValuesOnce(ctx context.Context, namer metricnaming.MetricNamer, config config.Config) ([]*common.TimeSeries, error) {
-	var predictedTimeSeriesList []*common.TimeSeries
-
+// QueryRealtimePredictedValuesOnce is a one-off task, and the query will be deleted by the caller after the call. However, this query maybe has already been used by other callers,
+// if so, we get the estimated value from the model directly.
+// When the query is not found, we fetch the history data to build the histogram, and then get the estimated value by a stateless function as data processing way.
+func (p *percentilePrediction) QueryRealtimePredictedValuesOnce(_ context.Context, namer metricnaming.MetricNamer, config config.Config) ([]*common.TimeSeries, error) {
 	queryExpr := namer.BuildUniqueKey()
 
 	signals, status := p.a.GetSignals(queryExpr)
 	if signals != nil && status == prediction.StatusReady {
-		cfg := p.a.GetConfig(queryExpr)
-		estimator := NewPercentileEstimator(cfg.percentile)
-		estimator = WithMargin(cfg.marginFraction, estimator)
-		now := time.Now().Unix()
-
-		if cfg.aggregated {
-			key := "__all__"
-			signal := signals[key]
-			if signal == nil {
-				return nil, fmt.Errorf("no signal key %v found", key)
-			}
-			sample := common.Sample{
-				Value:     estimator.GetEstimation(signal.histogram),
-				Timestamp: now,
-			}
-			predictedTimeSeriesList = append(predictedTimeSeriesList, &common.TimeSeries{
-				Labels:  nil,
-				Samples: []common.Sample{sample},
-			})
-			return predictedTimeSeriesList, nil
-		} else {
-			for key, signal := range signals {
-				if key == "__all__" {
-					continue
-				}
-				sample := common.Sample{
-					Value:     estimator.GetEstimation(signal.histogram),
-					Timestamp: now,
-				}
-				predictedTimeSeriesList = append(predictedTimeSeriesList, &common.TimeSeries{
-					Labels:  signal.labels,
-					Samples: []common.Sample{sample},
-				})
-			}
-			return predictedTimeSeriesList, nil
-		}
+		return p.getPredictedValuesFromSignals(queryExpr, signals), nil
 	} else {
 		// namer metric query is firstly registered by this caller
 		// we first fetch history data to construct the histogram model, then get estimation.
@@ -183,7 +152,6 @@ func (p *percentilePrediction) QueryRealtimePredictedValuesOnce(ctx context.Cont
 
 // process is a stateless function to get estimation of a metric series by constructing a histogram then get estimation data.
 func (p *percentilePrediction) process(namer metricnaming.MetricNamer, config config.Config) ([]*common.TimeSeries, error) {
-	var predictedTimeSeriesList []*common.TimeSeries
 	var historyTimeSeriesList []*common.TimeSeries
 	var err error
 	queryExpr := namer.BuildUniqueKey()
@@ -200,7 +168,6 @@ func (p *percentilePrediction) process(namer metricnaming.MetricNamer, config co
 	}
 
 	signals := map[string]*aggregateSignal{}
-	keyAll := "__all__"
 	if cfg.aggregated {
 		signal := newAggregateSignal(cfg)
 		for _, ts := range historyTimeSeriesList {
@@ -226,40 +193,7 @@ func (p *percentilePrediction) process(namer metricnaming.MetricNamer, config co
 		}
 	}
 
-	estimator := NewPercentileEstimator(cfg.percentile)
-	estimator = WithMargin(cfg.marginFraction, estimator)
-	now := time.Now().Unix()
-
-	if cfg.aggregated {
-		signal := signals[keyAll]
-		if signal == nil {
-			return nil, fmt.Errorf("no signal key %v found", keyAll)
-		}
-		sample := common.Sample{
-			Value:     estimator.GetEstimation(signal.histogram),
-			Timestamp: now,
-		}
-		predictedTimeSeriesList = append(predictedTimeSeriesList, &common.TimeSeries{
-			Labels:  nil,
-			Samples: []common.Sample{sample},
-		})
-		return predictedTimeSeriesList, nil
-	} else {
-		for key, signal := range signals {
-			if key == "__all__" {
-				continue
-			}
-			sample := common.Sample{
-				Value:     estimator.GetEstimation(signal.histogram),
-				Timestamp: now,
-			}
-			predictedTimeSeriesList = append(predictedTimeSeriesList, &common.TimeSeries{
-				Labels:  signal.labels,
-				Samples: []common.Sample{sample},
-			})
-		}
-		return predictedTimeSeriesList, nil
-	}
+	return p.getPredictedValuesFromSignals(queryExpr, signals), nil
 }
 
 func NewPrediction(realtimeProvider providers.RealTime, historyProvider providers.History) prediction.Interface {
@@ -296,9 +230,6 @@ func (p *percentilePrediction) Run(stopCh <-chan struct{}) {
 			// We just init the signal and setting the status
 			// we start the real time model updating directly. but there is a window time for each metricNamer in the algorithm config to ready status
 			c := p.a.GetConfig(QueryExpr)
-			if c == nil {
-				c = &defaultInternalConfig
-			}
 
 			var initError error
 			switch c.initMode {
@@ -397,7 +328,7 @@ func (p *percentilePrediction) initByRealTimeProvider(namer metricnaming.MetricN
 	if cfg.aggregated {
 		signal := newAggregateSignal(cfg)
 
-		p.a.SetSignalWithStatus(queryExpr, "__all__", signal, prediction.StatusInitializing)
+		p.a.SetSignalWithStatus(queryExpr, keyAll, signal, prediction.StatusInitializing)
 	} else {
 		signals := map[string]*aggregateSignal{}
 		p.a.SetSignalsWithStatus(queryExpr, signals, prediction.StatusInitializing)
@@ -406,8 +337,8 @@ func (p *percentilePrediction) initByRealTimeProvider(namer metricnaming.MetricN
 
 // todo:
 // nolint:unused
-func (p *percentilePrediction) initByCheckPoint(namer metricnaming.MetricNamer) error {
-	return fmt.Errorf("Do not support checkpoint now")
+func (p *percentilePrediction) initByCheckPoint(_ metricnaming.MetricNamer) error {
+	return fmt.Errorf("checkpoint not supported")
 }
 
 func (p *percentilePrediction) initFromHistory(namer metricnaming.MetricNamer) error {
@@ -430,7 +361,7 @@ func (p *percentilePrediction) initFromHistory(namer metricnaming.MetricNamer) e
 				signal.addSample(t, s.Value)
 			}
 		}
-		p.a.SetSignal(queryExpr, "__all__", signal)
+		p.a.SetSignal(queryExpr, keyAll, signal)
 	} else {
 		signals := map[string]*aggregateSignal{}
 		for _, ts := range historyTimeSeriesList {
@@ -463,8 +394,7 @@ func (p *percentilePrediction) addSamples(namer metricnaming.MetricNamer) {
 	c := p.a.GetConfig(queryExpr)
 
 	if c.aggregated {
-		key := "__all__"
-		signal := p.a.GetSignal(queryExpr, key)
+		signal := p.a.GetSignal(queryExpr, keyAll)
 		if signal == nil {
 			return
 		}
@@ -475,7 +405,7 @@ func (p *percentilePrediction) addSamples(namer metricnaming.MetricNamer) {
 		// it is not a time dimension, but we use N samples of different container instances of the workload to represent the N intervals samples
 		for _, ts := range latestTimeSeriesList {
 			if len(ts.Samples) < 1 {
-				klog.V(4).InfoS("Sample not found.", "key", key)
+				klog.V(4).InfoS("Sample not found.", "key", keyAll)
 				continue
 			}
 			sample := ts.Samples[len(ts.Samples)-1]
@@ -488,7 +418,7 @@ func (p *percentilePrediction) addSamples(namer metricnaming.MetricNamer) {
 			// LazyTraining: directly accumulating data from real time metric provider until the data is enough
 			// Checkpoint: directly recover the model from a checkpoint, and then updating the model until accumulated data is enough
 			if signal.GetAggregationWindowLength() >= c.historyLength {
-				p.a.SetSignalStatus(queryExpr, key, prediction.StatusReady)
+				p.a.SetSignalStatus(queryExpr, keyAll, prediction.StatusReady)
 			}
 
 			klog.V(6).InfoS("Sample added.", "sampleValue", sample.Value, "sampleTime", sampleTime, "queryExpr", queryExpr, "history", c.historyLength, "aggregationWindowLength", signal.GetAggregationWindowLength())

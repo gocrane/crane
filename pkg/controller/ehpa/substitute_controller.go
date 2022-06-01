@@ -56,6 +56,19 @@ func (c *SubstituteController) Reconcile(ctx context.Context, req ctrl.Request) 
 		Replicas:      substitute.Spec.Replicas,
 	}
 
+	if substitute.Spec.Replicas != scale.Status.Replicas {
+		substitute.Spec.Replicas = scale.Status.Replicas
+
+		err := c.Update(ctx, substitute)
+		if err != nil {
+			c.Recorder.Event(substitute, v1.EventTypeNormal, "FailedUpdateSubstitute", err.Error())
+			klog.Errorf("Failed to update Substitute %s, error %v", klog.KObj(substitute), err)
+			return ctrl.Result{}, err
+		}
+
+		klog.Infof("Update Substitute successful, Substitute %s", klog.KObj(substitute))
+	}
+
 	if !equality.Semantic.DeepEqual(&substitute.Status, &newStatus) {
 		substitute.Status = newStatus
 		err := c.Status().Update(ctx, substitute)

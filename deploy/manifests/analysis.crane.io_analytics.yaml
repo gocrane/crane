@@ -57,6 +57,11 @@ spec:
                     format: int64
                     type: integer
                 type: object
+              config:
+                additionalProperties:
+                  type: string
+                description: Override Recommendation configs
+                type: object
               resourceSelectors:
                 description: ResourceSelector indicates how to select resources(e.g.
                   a set of Deployments) for an Analytics.
@@ -210,8 +215,8 @@ spec:
                 format: date-time
                 type: string
               recommendations:
-                description: Recommendations is a list of pointers to recommendations
-                  that are updated by this analytics.
+                description: Recommendations is a list of RecommendationMission that
+                  run parallel.
                 items:
                   properties:
                     apiVersion:
@@ -232,6 +237,14 @@ spec:
                       type: string
                     kind:
                       description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                      type: string
+                    lastStartTime:
+                      description: LastStartTime is last time we start a recommendation
+                        mission.
+                      format: date-time
+                      type: string
+                    message:
+                      description: Message presents the running message for this mission
                       type: string
                     name:
                       description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'

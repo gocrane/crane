@@ -21,12 +21,12 @@ func (i *WorkloadPodsInspector) Inspect() error {
 		return fmt.Errorf("existing pods should be larger than 0 ")
 	}
 
-	podMinReadySeconds, err := strconv.ParseInt(i.Context.ConfigProperties["ehpa.pod-min-ready-seconds"], 10, 32)
+	podMinReadySeconds, err := strconv.ParseInt(i.Context.ConfigProperties["replicas.pod-min-ready-seconds"], 10, 32)
 	if err != nil {
 		return err
 	}
 
-	podAvailableRatio, err := strconv.ParseFloat(i.Context.ConfigProperties["ehpa.pod-available-ratio"], 64)
+	podAvailableRatio, err := strconv.ParseFloat(i.Context.ConfigProperties["replicas.pod-available-ratio"], 64)
 	if err != nil {
 		return err
 	}

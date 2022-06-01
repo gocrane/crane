@@ -163,3 +163,13 @@ func setPredictionCondition(status *autoscalingapi.EffectiveHorizontalPodAutosca
 		}
 	}
 }
+
+func isPredictionReady(status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus) bool {
+	for _, cond := range status.Conditions {
+		if cond.Type == string(autoscalingapi.PredictionReady) && cond.Status == metav1.ConditionTrue {
+			return true
+		}
+	}
+
+	return false
+}

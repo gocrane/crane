@@ -5,3 +5,7 @@
 .arithmatex {
   font-size: 0.85rem;
 }
+
+foreignObject > div {
+  font-size: 0.85rem;
+}

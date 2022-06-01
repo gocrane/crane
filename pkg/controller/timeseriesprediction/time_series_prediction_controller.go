@@ -14,7 +14,9 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 	predictormgr "github.com/gocrane/crane/pkg/predictor"
@@ -90,7 +92,7 @@ func (tc *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Res
 // SetupWithManager creates a controller and register to controller manager.
 func (tc *Controller) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&predictionapi.TimeSeriesPrediction{}).
+		For(&predictionapi.TimeSeriesPrediction{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(tc)
 }
 

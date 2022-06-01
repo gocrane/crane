@@ -14,7 +14,7 @@ import (
 )
 
 func TestCheckFluctuation(t *testing.T) {
-	a := &EHPAAdvisor{
+	a := &ReplicasAdvisor{
 		Context: &types.Context{
 			ConfigProperties: map[string]string{},
 		},
@@ -53,7 +53,7 @@ func TestCheckFluctuation(t *testing.T) {
 	medianMin, medianMax, _ := a.minMaxMedians(tsList)
 
 	for _, test := range tests {
-		a.Context.ConfigProperties["ehpa.fluctuation-threshold"] = test.threshold
+		a.Context.ConfigProperties["replicas.fluctuation-threshold"] = test.threshold
 		err := a.checkFluctuation(medianMin, medianMax)
 		if err != nil && !test.expectError {
 			t.Errorf("Failed to checkFluctuation: %v", err)
@@ -63,10 +63,10 @@ func TestCheckFluctuation(t *testing.T) {
 
 func TestProposeMaxReplicas(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
-	a := &EHPAAdvisor{
+	a := &ReplicasAdvisor{
 		Context: &types.Context{
 			ConfigProperties: map[string]string{
-				"ehpa.max-replicas-factor": "3",
+				"replicas.max-replicas-factor": "3",
 			},
 			PodTemplate: &corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
@@ -128,7 +128,7 @@ func TestProposeMaxReplicas(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		maxReplicas, err := a.proposeMaxReplicas(cpuUsages, test.targetUtilization, test.minReplicas)
+		maxReplicas, err := a.proposeMaxReplicas(cpuUsages, 95, test.targetUtilization, test.minReplicas)
 		if err != nil {
 			t.Errorf("Failed to checkFluctuation: %v", err)
 		}

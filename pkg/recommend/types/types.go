@@ -22,8 +22,6 @@ type Context struct {
 	Recommendation   *analysisapi.Recommendation
 	Scale            *autoscalingapiv1.Scale
 	RestMapping      *meta.RESTMapping
-	Deployment       *appsv1.Deployment
-	StatefulSet      *appsv1.StatefulSet
 	DaemonSet        *appsv1.DaemonSet
 	Pods             []corev1.Pod
 	PodTemplate      *corev1.PodTemplateSpec
@@ -33,11 +31,18 @@ type Context struct {
 
 // ProposedRecommendation is the result for one recommendation
 type ProposedRecommendation struct {
-	// EffectiveHPA is the proposed recommendation for type HPA
-	EffectiveHPA *EffectiveHorizontalPodAutoscalerRecommendation
+	// EffectiveHPA is the proposed recommendation for type Replicas
+	EffectiveHPA *EffectiveHorizontalPodAutoscalerRecommendation `json:"effectiveHPA,omitempty"`
+
+	// ReplicasRecommendation is the proposed replicas for type Replicas
+	ReplicasRecommendation *ReplicasRecommendation `json:"replicasRecommendation,omitempty"`
 
 	// ResourceRequest is the proposed recommendation for type Resource
-	ResourceRequest *ResourceRequestRecommendation
+	ResourceRequest *ResourceRequestRecommendation `json:"resourceRequest,omitempty"`
+}
+
+type ReplicasRecommendation struct {
+	Replicas *int32 `json:"replicas,omitempty"`
 }
 
 type EffectiveHorizontalPodAutoscalerRecommendation struct {

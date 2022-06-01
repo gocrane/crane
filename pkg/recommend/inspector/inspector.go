@@ -22,7 +22,7 @@ func NewInspectors(ctx *types.Context) []Inspector {
 		if ctx.Pods != nil {
 			inspectors = append(inspectors, &ResourceRequestInspector{Context: ctx})
 		}
-	case analysisapi.AnalysisTypeHPA:
+	case analysisapi.AnalysisTypeReplicas:
 		if ctx.Scale != nil {
 			inspector := &WorkloadInspector{
 				Context: ctx,

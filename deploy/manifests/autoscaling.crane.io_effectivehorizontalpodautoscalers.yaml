@@ -785,6 +785,8 @@ spec:
                             type: string
                           sampleInterval:
                             type: string
+                          targetUtilization:
+                            type: string
                         type: object
                     type: object
                   predictionWindowSeconds:

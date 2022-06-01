@@ -14,7 +14,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
@@ -24,6 +23,7 @@ import (
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/known"
+	"github.com/gocrane/crane/pkg/utils"
 )
 
 type metricValue struct {
@@ -87,9 +87,9 @@ func (p *CustomMetricProvider) GetMetricBySelector(ctx context.Context, namespac
 		return nil, err
 	}
 
-	readyPods := GetReadyPods(pods)
-	if len(readyPods) == 0 {
-		return nil, fmt.Errorf("failed to get ready pods. ")
+	availablePods := utils.GetAvailablePods(pods)
+	if len(availablePods) == 0 {
+		return nil, fmt.Errorf("failed to get available pods. ")
 	}
 
 	isPredicting := false
@@ -122,6 +122,7 @@ func (p *CustomMetricProvider) GetMetricBySelector(ctx context.Context, namespac
 	timestampStart := time.Now()
 	timestampEnd := timestampStart.Add(time.Duration(prediction.Spec.PredictionWindowSeconds) * time.Second)
 	largestMetricValue := &metricValue{}
+	hasValidSample := false
 	for _, v := range timeSeries.Samples {
 		// exclude values that not in time range
 		if v.Timestamp < timestampStart.Unix() || v.Timestamp > timestampEnd.Unix() {
@@ -133,21 +134,26 @@ func (p *CustomMetricProvider) GetMetricBySelector(ctx context.Context, namespac
 			return nil, fmt.Errorf("failed to parse value to float: %v ", err)
 		}
 		if valueFloat > largestMetricValue.value {
+			hasValidSample = true
 			largestMetricValue.value = valueFloat
 			largestMetricValue.timestamp = v.Timestamp
 		}
 	}
 
-	averageValue := int64(math.Round(largestMetricValue.value * 1000 / float64(len(readyPods))))
+	if !hasValidSample {
+		return nil, fmt.Errorf("TimeSeries is outdated, metric name %s", info.Metric)
+	}
+
+	averageValue := int64(math.Round(largestMetricValue.value * 1000 / float64(len(availablePods))))
 
 	klog.Infof("Provide custom metric %s average value %f.", info.Metric, float64(averageValue)/1000)
 
-	for name := range readyPods {
+	for _, pod := range availablePods {
 		metric := custom_metrics.MetricValue{
 			DescribedObject: custom_metrics.ObjectReference{
 				APIVersion: "v1",
 				Kind:       "Pod",
-				Name:       name,
+				Name:       pod.Name,
 				Namespace:  namespace,
 			},
 			Metric: custom_metrics.MetricIdentifier{
@@ -249,17 +255,4 @@ func (p *CustomMetricProvider) GetPods(ctx context.Context, namespace string, se
 	}
 
 	return podList.Items, nil
-}
-
-// GetReadyPods return a set with ready pod names
-func GetReadyPods(pods []v1.Pod) sets.String {
-	readyPods := sets.String{}
-
-	for _, pod := range pods {
-		if pod.DeletionTimestamp != nil || pod.Status.Phase != v1.PodRunning {
-			continue
-		}
-		readyPods.Insert(pod.Name)
-	}
-	return readyPods
 }

@@ -88,7 +88,7 @@ func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 		setPredictionCondition(newStatus, prediction.Status.Conditions)
 	}
 
-	hpa, err := c.ReconcileHPA(ctx, ehpa, substitute)
+	hpa, err := c.ReconcileHPA(ctx, ehpa, substitute, newStatus)
 	if err != nil {
 		setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedReconcileHPA", err.Error())
 		c.UpdateStatus(ctx, ehpa, newStatus)
@@ -206,8 +206,8 @@ func setCondition(status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus,
 func RecordMetrics(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) {
 	if ehpa.Status.ExpectReplicas != nil {
 		labels := map[string]string{
-			"resourceName": klog.KObj(ehpa).String(),
-			"strategy":     string(ehpa.Spec.ScaleStrategy),
+			"namespace": ehpa.Namespace,
+			"name":      ehpa.Name,
 		}
 		metrics.EHPAReplicas.With(labels).Set(float64(*ehpa.Status.ExpectReplicas))
 	}

@@ -13,6 +13,8 @@ spec:
     kind: NodeQOSEnsurancePolicy
     listKind: NodeQOSEnsurancePolicyList
     plural: nodeqosensurancepolicies
+    shortNames:
+    - nep
     singular: nodeqosensurancepolicy
   scope: Cluster
   versions:
@@ -95,7 +97,8 @@ spec:
                         type: integer
                     type: object
                   timeoutSeconds:
-                    description: TimeoutSeconds is the timeout for request
+                    description: TimeoutSeconds is the timeout for request. Defaults
+                      to 0, no timeout forever.
                     format: int32
                     type: integer
                 type: object

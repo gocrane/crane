@@ -22,7 +22,7 @@ import (
 	"github.com/gocrane/crane/pkg/utils"
 )
 
-func (c *EffectiveHPAController) ReconcileHPA(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, substitute *autoscalingapi.Substitute) (*autoscalingv2.HorizontalPodAutoscaler, error) {
+func (c *EffectiveHPAController) ReconcileHPA(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, substitute *autoscalingapi.Substitute, status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus) (*autoscalingv2.HorizontalPodAutoscaler, error) {
 	hpaList := &autoscalingv2.HorizontalPodAutoscalerList{}
 	opts := []client.ListOption{
 		client.MatchingLabels(map[string]string{known.EffectiveHorizontalPodAutoscalerUidLabel: string(ehpa.UID)}),
@@ -30,17 +30,17 @@ func (c *EffectiveHPAController) ReconcileHPA(ctx context.Context, ehpa *autosca
 	err := c.Client.List(ctx, hpaList, opts...)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return c.CreateHPA(ctx, ehpa, substitute)
+			return c.CreateHPA(ctx, ehpa, substitute, status)
 		} else {
 			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedGetHPA", err.Error())
 			klog.Error("Failed to get HPA, ehpa %s error %v", klog.KObj(ehpa), err)
 			return nil, err
 		}
 	} else if len(hpaList.Items) == 0 {
-		return c.CreateHPA(ctx, ehpa, substitute)
+		return c.CreateHPA(ctx, ehpa, substitute, status)
 	}
 
-	return c.UpdateHPAIfNeed(ctx, ehpa, &hpaList.Items[0], substitute)
+	return c.UpdateHPAIfNeed(ctx, ehpa, &hpaList.Items[0], substitute, status)
 }
 
 func (c *EffectiveHPAController) GetHPA(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) (*autoscalingv2.HorizontalPodAutoscaler, error) {
@@ -58,8 +58,8 @@ func (c *EffectiveHPAController) GetHPA(ctx context.Context, ehpa *autoscalingap
 	return &hpaList.Items[0], nil
 }
 
-func (c *EffectiveHPAController) CreateHPA(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, substitute *autoscalingapi.Substitute) (*autoscalingv2.HorizontalPodAutoscaler, error) {
-	hpa, err := c.NewHPAObject(ctx, ehpa, substitute)
+func (c *EffectiveHPAController) CreateHPA(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, substitute *autoscalingapi.Substitute, status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus) (*autoscalingv2.HorizontalPodAutoscaler, error) {
+	hpa, err := c.NewHPAObject(ctx, ehpa, substitute, status)
 	if err != nil {
 		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreateHPAObject", err.Error())
 		klog.Errorf("Failed to create object, HorizontalPodAutoscaler %s error %v", klog.KObj(hpa), err)
@@ -79,8 +79,8 @@ func (c *EffectiveHPAController) CreateHPA(ctx context.Context, ehpa *autoscalin
 	return hpa, nil
 }
 
-func (c *EffectiveHPAController) NewHPAObject(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, substitute *autoscalingapi.Substitute) (*autoscalingv2.HorizontalPodAutoscaler, error) {
-	metrics, err := c.GetHPAMetrics(ctx, ehpa)
+func (c *EffectiveHPAController) NewHPAObject(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, substitute *autoscalingapi.Substitute, status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus) (*autoscalingv2.HorizontalPodAutoscaler, error) {
+	metrics, err := c.GetHPAMetrics(ctx, ehpa, status)
 	if err != nil {
 		return nil, err
 	}
@@ -135,9 +135,9 @@ func (c *EffectiveHPAController) NewHPAObject(ctx context.Context, ehpa *autosca
 	return hpa, nil
 }
 
-func (c *EffectiveHPAController) UpdateHPAIfNeed(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, hpaExist *autoscalingv2.HorizontalPodAutoscaler, substitute *autoscalingapi.Substitute) (*autoscalingv2.HorizontalPodAutoscaler, error) {
+func (c *EffectiveHPAController) UpdateHPAIfNeed(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, hpaExist *autoscalingv2.HorizontalPodAutoscaler, substitute *autoscalingapi.Substitute, status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus) (*autoscalingv2.HorizontalPodAutoscaler, error) {
 	var needUpdate bool
-	hpa, err := c.NewHPAObject(ctx, ehpa, substitute)
+	hpa, err := c.NewHPAObject(ctx, ehpa, substitute, status)
 	if err != nil {
 		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreateHPAObject", err.Error())
 		klog.Errorf("Failed to create object, HorizontalPodAutoscaler %s error %v", klog.KObj(hpa), err)
@@ -173,14 +173,14 @@ func (c *EffectiveHPAController) UpdateHPAIfNeed(ctx context.Context, ehpa *auto
 }
 
 // GetHPAMetrics loop metricSpec in EffectiveHorizontalPodAutoscaler and generate metricSpec for HPA
-func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) ([]autoscalingv2.MetricSpec, error) {
+func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus) ([]autoscalingv2.MetricSpec, error) {
 	var metrics []autoscalingv2.MetricSpec
 	for _, metric := range ehpa.Spec.Metrics {
 		copyMetric := metric.DeepCopy()
 		metrics = append(metrics, *copyMetric)
 	}
 
-	if utils.IsEHPAPredictionEnabled(ehpa) {
+	if utils.IsEHPAPredictionEnabled(ehpa) && isPredictionReady(status) {
 		var customMetricsForPrediction []autoscalingv2.MetricSpec
 
 		for _, metric := range metrics {
@@ -223,12 +223,17 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 						return nil, fmt.Errorf("no pods returns from scale object. ")
 					}
 
-					requests, err := utils.CalculatePodRequests(pods, metric.Resource.Name)
+					availablePods := utils.GetAvailablePods(pods)
+					if len(availablePods) == 0 {
+						return nil, fmt.Errorf("failed to get available pods. ")
+					}
+
+					requests, err := utils.CalculatePodRequests(availablePods, metric.Resource.Name)
 					if err != nil {
 						return nil, err
 					}
 
-					averageValue := int64((float64(requests) * float64(*metric.Resource.Target.AverageUtilization) / 100) / float64(len(pods)))
+					averageValue := int64((float64(requests) * float64(*metric.Resource.Target.AverageUtilization) / 100) / float64(len(availablePods)))
 					customMetric.Target.AverageValue = resource.NewMilliQuantity(averageValue, resource.DecimalSI)
 				} else {
 					customMetric.Target.AverageValue = metric.Resource.Target.AverageValue

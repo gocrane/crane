@@ -2,6 +2,7 @@ package known
 
 const (
 	HPARecommendationValueAnnotation      = "analysis.crane.io/hpa-recommendation"
+	ReplicasRecommendationValueAnnotation = "analysis.crane.io/replicas-recommendation"
 	ResourceRecommendationValueAnnotation = "analysis.crane.io/resource-recommendation"
 )
 
