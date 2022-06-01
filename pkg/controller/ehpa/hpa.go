@@ -186,7 +186,7 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 		for _, metric := range metrics {
 			// generate a custom metric for resource metric
 			if metric.Type == autoscalingv2.ResourceMetricSourceType {
-				name := GetPredictionMetricName(metric.Resource.Name)
+				name := utils.GetPredictionMetricName(metric.Resource.Name)
 				if len(name) == 0 {
 					continue
 				}
@@ -277,16 +277,6 @@ func GetCronMetricSpecsForHPA(ehpa *autoscalingapi.EffectiveHorizontalPodAutosca
 		},
 	})
 	return metricSpecs
-}
-
-// GetPredictionMetricName return metric name used by prediction
-func GetPredictionMetricName(Name v1.ResourceName) string {
-	switch Name {
-	case v1.ResourceCPU:
-		return known.MetricNamePodCpuUsage
-	default:
-		return ""
-	}
 }
 
 func setHPACondition(status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus, conditions []autoscalingv2.HorizontalPodAutoscalerCondition) {

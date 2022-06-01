@@ -78,7 +78,7 @@ func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	// reconcile prediction if enabled
-	if utils.IsEHPAPredictionEnabled(ehpa) {
+	if utils.IsEHPAPredictionEnabled(ehpa) && utils.IsEHPAHasPredictionMetric(ehpa) {
 		prediction, err := c.ReconcilePredication(ctx, ehpa)
 		if err != nil {
 			setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedReconcilePrediction", err.Error())
