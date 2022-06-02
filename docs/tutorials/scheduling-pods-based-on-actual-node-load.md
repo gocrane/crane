@@ -7,11 +7,13 @@ Crane-scheduler is a collection of scheduler plugins based on [scheduler framewo
 
 ## Get Started
 
-### 1. Install Prometheus
+### Install Prometheus
 Make sure your kubernetes cluster has Prometheus installed. If not, please refer to [Install Prometheus](https://github.com/gocrane/fadvisor/blob/main/README.md#prerequests).
 
-### 2. Configure Prometheus Rules
-1) Configure the rules of Prometheus to get expected aggregated data:
+### Configure Prometheus Rules
+
+1. Configure the rules of Prometheus to get expected aggregated data:
+
 ```yaml
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
@@ -51,9 +53,13 @@ spec:
         - record: mem_usage_avg_5m
         expr: avg_over_time(mem_usage_active[5m])
 ```
->**⚠️Troubleshooting:** The sampling interval of Prometheus must be less than 30 seconds, otherwise the above rules(such as cpu_usage_active) may not take effect.
-2) Update the configuration of Prometheus service discovery to ensure that node_exporters/telegraf are using node name as instance name:
-```yaml
+!!! warning "️Troubleshooting"
+
+        The sampling interval of Prometheus must be less than 30 seconds, otherwise the above rules(such as cpu_usage_active) may not take effect.
+
+2\. Update the configuration of Prometheus service discovery to ensure that `node_exporters/telegraf` are using node name as instance name:
+
+```yaml hl_lines="9-11"
     - job_name: kubernetes-node-exporter
       tls_config:
         ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
@@ -67,108 +73,124 @@ spec:
         target_label: instance
       ...
 ```
->**Note:** This step can be skipped if the node name itself is the host IP.
 
-### 3. Install Crane-scheduler
+!!! note "Note"
+      This step can be skipped if the node name itself is the host IP.
+
+### Install Crane-scheduler
 There are two options:
-1) Install Crane-scheduler as a second scheduler:
-   ```bash
-   helm repo add crane https://gocrane.github.io/helm-charts
-   helm install scheduler -n crane-system --create-namespace --set global.prometheusAddr="REPLACE_ME_WITH_PROMETHEUS_ADDR" crane/scheduler
-   ```
-2) Replace native Kube-scheduler with Crane-scheduler:
-   1) Backup `/etc/kubernetes/manifests/kube-scheduler.yaml`
-   ```bash
-   cp /etc/kubernetes/manifests/kube-scheduler.yaml /etc/kubernetes/
-   ```
-   2) Modify configfile of kube-scheduler(`scheduler-config.yaml`) to enable Dynamic scheduler plugin and configure plugin args:
-   ```yaml
-   apiVersion: kubescheduler.config.k8s.io/v1beta2
-   kind: KubeSchedulerConfiguration
-   ...
-   profiles:
-   - schedulerName: default-scheduler
-     plugins:
-       filter:
-         enabled:
-         - name: Dynamic
-       score:
-         enabled:
-         - name: Dynamic
-           weight: 3
-     pluginConfig:
+
+- Install Crane-scheduler as a second scheduler
+- Replace native Kube-scheduler with Crane-scheduler
+
+#### Install Crane-scheduler as a second scheduler
+=== "Main"
+
+       ```bash
+       helm repo add crane https://gocrane.github.io/helm-charts
+       helm install scheduler -n crane-system --create-namespace --set global.prometheusAddr="REPLACE_ME_WITH_PROMETHEUS_ADDR" crane/scheduler
+       ```
+
+=== "Mirror"
+
+       ```bash
+       helm repo add crane https://finops-helm.pkg.coding.net/gocrane/gocrane
+       helm install scheduler -n crane-system --create-namespace --set global.prometheusAddr="REPLACE_ME_WITH_PROMETHEUS_ADDR" crane/scheduler
+       ```
+#### Replace native Kube-scheduler with Crane-scheduler
+
+1. Backup `/etc/kubernetes/manifests/kube-scheduler.yaml`
+```bash
+cp /etc/kubernetes/manifests/kube-scheduler.yaml /etc/kubernetes/
+```
+2. Modify configfile of kube-scheduler(`scheduler-config.yaml`) to enable Dynamic scheduler plugin and configure plugin args:
+```yaml title="scheduler-config.yaml"
+apiVersion: kubescheduler.config.k8s.io/v1beta2
+kind: KubeSchedulerConfiguration
+...
+profiles:
+- schedulerName: default-scheduler
+ plugins:
+   filter:
+     enabled:
      - name: Dynamic
-        args:
-         policyConfigPath: /etc/kubernetes/policy.yaml
-   ...
-   ```
-   3) Create `/etc/kubernetes/policy.yaml`, using as scheduler policy of Dynamic plugin:
-   ```yaml
-    apiVersion: scheduler.policy.crane.io/v1alpha1
-    kind: DynamicSchedulerPolicy
-    spec:
-      syncPolicy:
-        ##cpu usage
-        - name: cpu_usage_avg_5m
-          period: 3m
-        - name: cpu_usage_max_avg_1h
-          period: 15m
-        - name: cpu_usage_max_avg_1d
-          period: 3h
-        ##memory usage
-        - name: mem_usage_avg_5m
-          period: 3m
-        - name: mem_usage_max_avg_1h
-          period: 15m
-        - name: mem_usage_max_avg_1d
-          period: 3h
+   score:
+     enabled:
+     - name: Dynamic
+       weight: 3
+ pluginConfig:
+ - name: Dynamic
+    args:
+     policyConfigPath: /etc/kubernetes/policy.yaml
+...
+```
+3. Create `/etc/kubernetes/policy.yaml`, using as scheduler policy of Dynamic plugin:
+ ```yaml title="/etc/kubernetes/policy.yaml"
+  apiVersion: scheduler.policy.crane.io/v1alpha1
+  kind: DynamicSchedulerPolicy
+  spec:
+    syncPolicy:
+      ##cpu usage
+      - name: cpu_usage_avg_5m
+        period: 3m
+      - name: cpu_usage_max_avg_1h
+        period: 15m
+      - name: cpu_usage_max_avg_1d
+        period: 3h
+      ##memory usage
+      - name: mem_usage_avg_5m
+        period: 3m
+      - name: mem_usage_max_avg_1h
+        period: 15m
+      - name: mem_usage_max_avg_1d
+        period: 3h
 
-      predicate:
-        ##cpu usage
-        - name: cpu_usage_avg_5m
-          maxLimitPecent: 0.65
-        - name: cpu_usage_max_avg_1h
-          maxLimitPecent: 0.75
-        ##memory usage
-        - name: mem_usage_avg_5m
-          maxLimitPecent: 0.65
-        - name: mem_usage_max_avg_1h
-          maxLimitPecent: 0.75
+    predicate:
+      ##cpu usage
+      - name: cpu_usage_avg_5m
+        maxLimitPecent: 0.65
+      - name: cpu_usage_max_avg_1h
+        maxLimitPecent: 0.75
+      ##memory usage
+      - name: mem_usage_avg_5m
+        maxLimitPecent: 0.65
+      - name: mem_usage_max_avg_1h
+        maxLimitPecent: 0.75
 
-      priority:
-        ##cpu usage
-        - name: cpu_usage_avg_5m
-          weight: 0.2
-        - name: cpu_usage_max_avg_1h
-          weight: 0.3
-        - name: cpu_usage_max_avg_1d
-          weight: 0.5
-        ##memory usage
-        - name: mem_usage_avg_5m
-          weight: 0.2
-        - name: mem_usage_max_avg_1h
-          weight: 0.3
-        - name: mem_usage_max_avg_1d
-          weight: 0.5
+    priority:
+      ##cpu usage
+      - name: cpu_usage_avg_5m
+        weight: 0.2
+      - name: cpu_usage_max_avg_1h
+        weight: 0.3
+      - name: cpu_usage_max_avg_1d
+        weight: 0.5
+      ##memory usage
+      - name: mem_usage_avg_5m
+        weight: 0.2
+      - name: mem_usage_max_avg_1h
+        weight: 0.3
+      - name: mem_usage_max_avg_1d
+        weight: 0.5
 
-      hotValue:
-        - timeRange: 5m
-          count: 5
-        - timeRange: 1m
-          count: 2
-   ```
-   4) Modify `kube-scheduler.yaml` and replace kube-scheduler image with Crane-scheduler：
-   ```yaml
-   ...
-    image: docker.io/gocrane/crane-scheduler:0.0.23
-   ...
-   ```
-   1) Install [crane-scheduler-controller](deploy/controller/deployment.yaml):
-    ```bash
-    kubectl apply ./deploy/controller/rbac.yaml && kubectl apply -f ./deploy/controller/deployment.yaml
-    ```
+    hotValue:
+      - timeRange: 5m
+        count: 5
+      - timeRange: 1m
+        count: 2
+ ```
+ 4. Modify `kube-scheduler.yaml` and replace kube-scheduler image with Crane-scheduler：
+ ```yaml title="kube-scheduler.yaml"
+ ...
+  image: docker.io/gocrane/crane-scheduler:0.0.23
+ ...
+ ```
+ 5. Install [crane-scheduler-controller](deploy/controller/deployment.yaml):
+  ```bash
+  kubectl apply ./deploy/controller/rbac.yaml && kubectl apply -f ./deploy/controller/deployment.yaml
+  ```
 
-### 4. Schedule Pods With Crane-scheduler
+### Schedule Pods With Crane-scheduler
 Test Crane-scheduler with following example:
 ```yaml
 apiVersion: apps/v1
@@ -203,7 +225,8 @@ spec:
             memory: "1Gi"
             cpu: "1"
 ```
->**Note:** Change `crane-scheduler` to `default-scheduler` if `crane-scheduler` is used as default.
+!!! Note
+     Change `crane-scheduler` to `default-scheduler` if `crane-scheduler` is used as default.
 
 There will be the following event if the test pod is successfully scheduled:
 ```bash
