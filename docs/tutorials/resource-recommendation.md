@@ -22,7 +22,6 @@ Create an **Resource** `Analytics` to give recommendation for deployment: `nginx
       kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/nginx-deployment.yaml
       kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/analytics-resource.yaml
       kubectl get analytics
-      ```
 
 === "Mirror"
 
@@ -32,6 +31,7 @@ Create an **Resource** `Analytics` to give recommendation for deployment: `nginx
       kubectl get analytics
       ```
 
+The created `Analytics` yaml is following:
 
 ```yaml title="analytics-resource.yaml"  hl_lines="7 24 11-14 28-31"
 apiVersion: analysis.crane.io/v1alpha1
@@ -39,7 +39,7 @@ kind: Analytics
 metadata:
   name: nginx-resource
 spec:
-  type: Resource                        # This can only be "Resource" or "HPA".
+  type: Resource                        # This can only be "Resource" or "Replicas".
   completionStrategy:
     completionStrategyType: Periodical  # This can only be "Once" or "Periodical".
     periodSeconds: 86400                # analytics selected resources every 1 day
@@ -161,7 +161,7 @@ metadata:
   selfLink: ""
 ```
 
-The `status.resourceRequest` is recommended by crane's recommendation engine.
+The `status.recommendedValue.ResourceRequest` is recommended by crane's recommendation engine.
 
 ## Resource Recommendation Algorithm model
 
