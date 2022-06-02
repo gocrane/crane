@@ -112,6 +112,12 @@ func (a *ReplicasAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 		return fmt.Errorf("ReplicasAdvisor parse replicas.cpu-percentile failed: %v", err)
 	}
 
+	// use percentile to deburring data
+	percentileCpu, err := stats.Percentile(cpuUsages, cpuPercentile)
+	if err != nil {
+		return fmt.Errorf("ReplicasAdvisor get percentileCpu failed: %v", err)
+	}
+
 	err = a.checkMinCpuUsageThreshold(cpuMax)
 	if err != nil {
 		return fmt.Errorf("ReplicasAdvisor checkMinCpuUsageThreshold failed: %v", err)
@@ -132,12 +138,12 @@ func (a *ReplicasAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 		return fmt.Errorf("ReplicasAdvisor proposeTargetUtilization failed: %v", err)
 	}
 
-	minReplicas, err := a.proposeMinReplicas(medianMin, requestTotal)
+	minReplicas, err := a.proposeMinReplicas(percentileCpu, requestTotal)
 	if err != nil {
 		return fmt.Errorf("ReplicasAdvisor proposeMinReplicas failed: %v", err)
 	}
 
-	maxReplicas, err := a.proposeMaxReplicas(cpuUsages, cpuPercentile, targetUtilization, minReplicas)
+	maxReplicas, err := a.proposeMaxReplicas(percentileCpu, targetUtilization, minReplicas)
 	if err != nil {
 		return fmt.Errorf("ReplicasAdvisor proposeMaxReplicas failed: %v", err)
 	}
@@ -360,25 +366,21 @@ func (a *ReplicasAdvisor) proposeMinReplicas(workloadCpu float64, requestTotal i
 }
 
 // proposeMaxReplicas use max cpu usage to compare with target pod cpu usage to get the max replicas.
-func (a *ReplicasAdvisor) proposeMaxReplicas(cpuUsages []float64, cpuPercentile float64, targetUtilization int32, minReplicas int32) (int32, error) {
+func (a *ReplicasAdvisor) proposeMaxReplicas(percentileCpu float64, targetUtilization int32, minReplicas int32) (int32, error) {
 	maxReplicasFactor, err := strconv.ParseFloat(a.Context.ConfigProperties["replicas.max-replicas-factor"], 64)
 	if err != nil {
 		return 0, err
 	}
-	// use percentile to deburring data
-	p95thCpu, err := stats.Percentile(cpuUsages, cpuPercentile)
-	if err != nil {
-		return 0, err
-	}
+
 	requestsPod, err := utils.CalculatePodTemplateRequests(a.PodTemplate, corev1.ResourceCPU)
 	if err != nil {
 		return 0, err
 	}
 
-	klog.V(4).Infof("ReplicasAdvisor proposeMaxReplicas, p95thCpu %f requestsPod %d targetUtilization %d", p95thCpu, requestsPod, targetUtilization)
+	klog.V(4).Infof("ReplicasAdvisor proposeMaxReplicas, percentileCpu %f requestsPod %d targetUtilization %d", percentileCpu, requestsPod, targetUtilization)
 
 	// request * targetUtilization is the target average cpu usage, use total p95thCpu to divide, we can get the expect max replicas.
-	calcMaxReplicas := (p95thCpu * 100 * 1000 * maxReplicasFactor) / float64(int32(requestsPod)*targetUtilization)
+	calcMaxReplicas := (percentileCpu * 100 * 1000 * maxReplicasFactor) / float64(int32(requestsPod)*targetUtilization)
 	maxReplicas := int32(math.Ceil(calcMaxReplicas))
 
 	// maxReplicas should be always larger than minReplicas
@@ -393,7 +395,7 @@ func getPredictionCpuConfig() *config.Config {
 	return &config.Config{
 		DSP: &predictionapi.DSP{
 			SampleInterval: "1m",
-			HistoryLength:  "5d",
+			HistoryLength:  "7d",
 			Estimators:     predictionapi.Estimators{},
 		},
 	}

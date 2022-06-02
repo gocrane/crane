@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/montanaflynn/stats"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -101,6 +102,8 @@ func TestProposeMaxReplicas(t *testing.T) {
 		cpuUsages = append(cpuUsages, value)
 	}
 
+	percentileCpu, _ := stats.Percentile(cpuUsages, 95)
+
 	tests := []struct {
 		description           string
 		targetUtilization     int32
@@ -128,7 +131,7 @@ func TestProposeMaxReplicas(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		maxReplicas, err := a.proposeMaxReplicas(cpuUsages, 95, test.targetUtilization, test.minReplicas)
+		maxReplicas, err := a.proposeMaxReplicas(percentileCpu, test.targetUtilization, test.minReplicas)
 		if err != nil {
 			t.Errorf("Failed to checkFluctuation: %v", err)
 		}
