@@ -763,7 +763,7 @@
 
 
 <h1 id="hpa-recommendation">HPA Recommendation<a class="headerlink" href="#hpa-recommendation" title="Permanent link">&para;</a></h1>
-<p>Using hpa recommendations, you can find resources in the cluster that are suitable for autoscaling, and use Crane's recommended result to create an autoscaling object: <a href="../using-time-series-prediction/">Effective HorizontalPodAutoscaler</a>.</p>
+<p>Using hpa recommendations, you can find resources in the cluster that are suitable for autoscaling, and use Crane's recommended result to create an autoscaling object: <a href="../using-effective-hpa-to-scaling-with-effectiveness/">Effective HorizontalPodAutoscaler</a>.</p>
 <h2 id="create-hpa-analytics">Create HPA Analytics<a class="headerlink" href="#create-hpa-analytics" title="Permanent link">&para;</a></h2>
 <p>Create an <strong>Resource</strong> <code>Analytics</code> to give recommendation for deployment: <code>nginx-deployment</code> as a sample.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Main</label><label for="__tabbed_1_2">Mirror</label></div>
@@ -915,24 +915,42 @@
 <p><strong>Recommend TargetUtilization</strong></p>
 <p>Principle: Use Pod P99 resource utilization to recommend hpa. Because if the application can accept this utilization over P99 time, it can be inferred as a target for elasticity.</p>
 <ol>
-<li>Get the Pod P99 usage of the past seven days by Percentile algorithm: pod_cpu_usage_p99</li>
-<li>Corresponding utilization: target_pod_CPU_utilization = pod_cpu_usage_p99 / pod_cpu_request</li>
-<li>To prevent over-utilization or under-utilization, target_pod_cpu_utilization needs to be less than ehpa.min-cpu-target-utilization and greater than ehpa. max-cpu-target-utilization</li>
+<li>Get the Pod P99 usage of the past seven days by Percentile algorithm: <span class="arithmatex">\(pod\_cpu\_usage\_p99\)</span></li>
+<li>
+<p>Corresponding utilization:</p>
+<p><span class="arithmatex">\(target\_pod\_CPU\_utilization = \frac{pod\_cpu\_usage\_p99}{pod\_cpu\_request}\)</span></p>
+</li>
+<li>
+<p>To prevent over-utilization or under-utilization, target_pod_cpu_utilization needs to be less than ehpa.min-cpu-target-utilization and greater than ehpa. max-cpu-target-utilization</p>
+</li>
 </ol>
+<p><span class="arithmatex">\(ehpa.max\mbox{-}cpu\mbox{-}target\mbox{-}utilization  &lt; target\_pod\_cpu\_utilization &lt; ehpa.min\mbox{-}cpu\mbox{-}target\mbox{-}utilization\)</span></p>
 <p><strong>Recommend minReplicas</strong></p>
 <p>Principle: MinReplicas are recommended for the lowest hourly workload utilization for the past seven days.</p>
 <ol>
-<li>Calculate the lowest median workload cpu usage of the past seven days: workload_cpu_usage_medium_min</li>
-<li>Corresponding replicas: minReplicas = workload_cpu_usage_medium_min / pod_cpu_request / ehpa.max-cpu-target-utilization</li>
-<li>To prevent the minReplicas being too small, the minReplicas must be greater than or equal to ehpa.default-min-replicas</li>
+<li>Calculate the lowest median workload cpu usage of the past seven days: <span class="arithmatex">\(workload\_cpu\_usage\_medium\_min\)</span></li>
+<li>
+<p>Corresponding replicas: </p>
+<p><span class="arithmatex">\(minReplicas = \frac{\mathrm{workload\_cpu\_usage\_medium\_min} }{pod\_cpu\_request \times ehpa.max-cpu-target-utilization}\)</span></p>
+</li>
+<li>
+<p>To prevent the minReplicas being too small, the minReplicas must be greater than or equal to ehpa.default-min-replicas</p>
+<p><span class="arithmatex">\(minReplicas \geq ehpa.default\mbox{-}min\mbox{-}replicas\)</span></p>
+</li>
 </ol>
 <p><strong>Recommend maxReplicas</strong></p>
 <p>Principle: Use workload's past and future seven days load to recommend maximum replicas.</p>
 <ol>
-<li>Calculate P95 workload CPU usage for the past seven days and the next seven days: workload_cpu_usage_p95</li>
-<li>Corresponding replicas: max_replicas_origin = workload_cpu_usage_p95 / pod_cpu_request / target_cpu_utilization</li>
-<li>To handle with the peak traffic, Magnify by a certain factor: max_replicas = max_replicas_origin * ehpa.max-replicas-factor</li>
+<li>Calculate P95 workload CPU usage for the past seven days and the next seven days: <span class="arithmatex">\(workload\_cpu\_usage\_p95\)</span></li>
+<li>
+<p>Corresponding replicas:</p>
+<p><span class="arithmatex">\(max\_replicas\_origin = \frac{\mathrm{workload\_cpu\_usage\_p95} }{pod\_cpu\_request \times target\_cpu\_utilization}\)</span></p>
+</li>
+<li>
+<p>To handle with the peak traffic, Magnify by a certain factor: </p>
+</li>
 </ol>
+<p><span class="arithmatex">\(max\_replicas = max\_replicas\_origin \times  ehpa.max\mbox{-}replicas\mbox{-}factor\)</span></p>
 <p><strong>Recommend MetricSpec(except CpuUtilization)</strong></p>
 <ol>
 <li>If HPA is configured for workload, MetricSpecs other than CpuUtilization are inherited</li>
@@ -948,20 +966,77 @@
 <li>If the workload is not predictable, do not add the prediction configuration.</li>
 </ol>
 <h2 id="configurations-for-hpa-recommendation">Configurations for HPA Recommendation<a class="headerlink" href="#configurations-for-hpa-recommendation" title="Permanent link">&para;</a></h2>
-<ul>
-<li>ehpa.deployment-min-replicas: the default value is 1，hpa recommendations are not made for workloads smaller than this value</li>
-<li>ehpa.statefulset-min-replicas: the default value is 1，hpa recommendations are not made for workloads smaller than this value</li>
-<li>ehpa.workload-min-replicas: the default value is 1，Workload replicas smaller than this value are not recommended for hpa.</li>
-<li>ehpa.pod-min-ready-seconds: the default value is 30，specifies the number of seconds in decide whether a POD is ready.</li>
-<li>ehpa.pod-available-ratio: the default value is 0.5，Workloads whose Ready pod ratio is smaller than this value are not recommended for hpa.</li>
-<li>ehpa.default-min-replicas: the default value is 2，the default minimum minReplicas.</li>
-<li>ehpa.max-replicas-factor: the default value is 3，the factor for calculate maxReplicas.</li>
-<li>ehpa.min-cpu-usage-threshold: the default value is 10, hpa recommendations are not made for workloads smaller than this value.</li>
-<li>ehpa.fluctuation-threshold: the default value is 1.5, hpa recommendations are not made for workloads smaller than this value.</li>
-<li>ehpa.min-cpu-target-utilization: the default value is 30</li>
-<li>ehpa.max-cpu-target-utilization: the default value is 75</li>
-<li>ehpa.reference-hpa: the default value is true, which means inherits the existing HPA configuration</li>
-</ul>
+<table>
+<thead>
+<tr>
+<th>Configuration</th>
+<th>Default Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ehpa.deployment-min-replicas</td>
+<td>1</td>
+<td>hpa recommendations are not made for workloads smaller than this value.</td>
+</tr>
+<tr>
+<td>ehpa.statefulset-min-replicas</td>
+<td>1</td>
+<td>hpa recommendations are not made for workloads smaller than this value.</td>
+</tr>
+<tr>
+<td>ehpa.workload-min-replicas</td>
+<td>1</td>
+<td>Workload replicas smaller than this value are not recommended for hpa.</td>
+</tr>
+<tr>
+<td>ehpa.pod-min-ready-seconds</td>
+<td>30</td>
+<td>specifies the number of seconds in decide whether a POD is ready.</td>
+</tr>
+<tr>
+<td>ehpa.pod-available-ratio</td>
+<td>0.5</td>
+<td>Workloads whose Ready pod ratio is smaller than this value are not recommended for hpa.</td>
+</tr>
+<tr>
+<td>ehpa.default-min-replicas</td>
+<td>2</td>
+<td>the default minimum minReplicas.</td>
+</tr>
+<tr>
+<td>ehpa.max-replicas-factor</td>
+<td>3</td>
+<td>the factor for calculate maxReplicas.</td>
+</tr>
+<tr>
+<td>ehpa.min-cpu-usage-threshold</td>
+<td>10</td>
+<td>hpa recommendations are not made for workloads smaller than this value.</td>
+</tr>
+<tr>
+<td>ehpa.fluctuation-threshold</td>
+<td>1.5</td>
+<td>hpa recommendations are not made for workloads smaller than this value.</td>
+</tr>
+<tr>
+<td>ehpa.min-cpu-target-utilization</td>
+<td>30</td>
+<td></td>
+</tr>
+<tr>
+<td>ehpa.max-cpu-target-utilization</td>
+<td>75</td>
+<td></td>
+</tr>
+<tr>
+<td>ehpa.reference-hpa</td>
+<td>true</td>
+<td>inherits the existing HPA configuration</td>
+</tr>
+</tbody>
+</table>
 
               
             </article>
@@ -1038,6 +1113,12 @@
       <script src="../../assets/javascripts/bundle.3a4b43e5.min.js"></script>
       
         <script src="../../assets/util.js"></script>
+      
+        <script src="../../assets/mathjax.js"></script>
+      
+        <script src="../../assets/polyfill.min.js"></script>
+      
+        <script src="../../assets/tex-mml-chtml.js"></script>
       
     
   </body>
