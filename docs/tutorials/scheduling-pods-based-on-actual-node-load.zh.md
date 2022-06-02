@@ -1,18 +1,18 @@
 # Crane-scheduler
 
-## Overview
-Crane-scheduler is a collection of scheduler plugins based on [scheduler framework](https://kubernetes.io/docs/concepts/scheduling-eviction/scheduling-framework/), including:
+## 概述
+Crane-scheduler 是一组基于[scheduler framework](https://kubernetes.io/docs/concepts/scheduling-eviction/scheduling-framework/)的调度插件， 包含：
 
-- [Dynamic scheduler: a load-aware scheduler plugin](./dynamic-scheduler-plugin.md)
+- [Dynamic scheduler：负载感知调度器插件](./dynamic-scheduler-plugin.md)
 
-## Get Started
+## 开始
 
-### Install Prometheus
-Make sure your kubernetes cluster has Prometheus installed. If not, please refer to [Install Prometheus](https://github.com/gocrane/fadvisor/blob/main/README.md#prerequests).
+### 安装 Prometheus
+确保你的 Kubernetes 集群已安装 Prometheus。如果没有，请参考[Install Prometheus](https://github.com/gocrane/fadvisor/blob/main/README.md#prerequests).
 
-### Configure Prometheus Rules
+### 配置 Prometheus 规则
 
-1. Configure the rules of Prometheus to get expected aggregated data:
+1. 配置 Prometheus 的规则以获取预期的聚合数据：
 
 ```yaml
 apiVersion: monitoring.coreos.com/v1
@@ -55,9 +55,9 @@ spec:
 ```
 !!! warning "️Troubleshooting"
 
-        The sampling interval of Prometheus must be less than 30 seconds, otherwise the above rules(such as cpu_usage_active) may not take effect.
+        Prometheus 的采样间隔必须小于30秒，不然可能会导致规则无法正常生效。如：`cpu_usage_active`。
 
-2\. Update the configuration of Prometheus service discovery to ensure that `node_exporters/telegraf` are using node name as instance name:
+2\. 更新 Prometheus 服务发现的配置，确保`node_exporters/telegraf`正在使用节点名称作为实例名称：
 
 ```yaml hl_lines="9-11"
     - job_name: kubernetes-node-exporter
@@ -75,15 +75,16 @@ spec:
 ```
 
 !!! note "Note"
-      This step can be skipped if the node name itself is the host IP.
 
-### Install Crane-scheduler
-There are two options:
+      如果节点名称是本机IP，则可以跳过此步骤。
 
-- Install Crane-scheduler as a second scheduler
-- Replace native Kube-scheduler with Crane-scheduler
+### 安装 Crane-scheduler
+有两种选择：
 
-#### Install Crane-scheduler as a second scheduler
+- 安装 Crane-scheduler 作为第二个调度器
+- 用 Crane-scheduler 替换原生 Kube-scheduler
+
+#### 安装 Crane-scheduler 作为第二个调度器
 === "Main"
 
        ```bash
@@ -97,13 +98,13 @@ There are two options:
        helm repo add crane https://finops-helm.pkg.coding.net/gocrane/gocrane
        helm install scheduler -n crane-system --create-namespace --set global.prometheusAddr="REPLACE_ME_WITH_PROMETHEUS_ADDR" crane/scheduler
        ```
-#### Replace native Kube-scheduler with Crane-scheduler
+#### 用 Crane-scheduler 替换原生 Kube-scheduler
 
-1. Backup `/etc/kubernetes/manifests/kube-scheduler.yaml`
+1. 备份`/etc/kubernetes/manifests/kube-scheduler.yaml`
 ```bash
 cp /etc/kubernetes/manifests/kube-scheduler.yaml /etc/kubernetes/
 ```
-2. Modify configfile of kube-scheduler(`scheduler-config.yaml`) to enable Dynamic scheduler plugin and configure plugin args:
+2. 通过修改 kube-scheduler 的配置文件（`scheduler-config.yaml` ) 启用动态调度插件并配置插件参数：
 ```yaml title="scheduler-config.yaml"
 apiVersion: kubescheduler.config.k8s.io/v1beta2
 kind: KubeSchedulerConfiguration
@@ -124,7 +125,7 @@ profiles:
      policyConfigPath: /etc/kubernetes/policy.yaml
 ...
 ```
-3. Create `/etc/kubernetes/policy.yaml`, using as scheduler policy of Dynamic plugin:
+3. 新建`/etc/kubernetes/policy.yaml`，用作动态插件的调度策略：
  ```yaml title="/etc/kubernetes/policy.yaml"
   apiVersion: scheduler.policy.crane.io/v1alpha1
   kind: DynamicSchedulerPolicy
@@ -179,31 +180,30 @@ profiles:
       - timeRange: 1m
         count: 2
  ```
- 4. Modify `kube-scheduler.yaml` and replace kube-scheduler image with Crane-scheduler：
+ 4. 修改`kube-scheduler.yaml`并用 Crane-scheduler的镜像替换 kube-scheduler 镜像：
  ```yaml title="kube-scheduler.yaml"
  ...
   image: docker.io/gocrane/crane-scheduler:0.0.23
  ...
  ```
- 5. Install [crane-scheduler-controller](https://github.com/gocrane/crane-scheduler/tree/main/deploy/controller):
-
+ 5. 安装[crane-scheduler-controller](https://github.com/gocrane/crane-scheduler/tree/main/deploy/controller)：
 === "Main"
 
       ```bash
-      kubectl apply -f https://raw.githubusercontent.com/gocrane/crane-scheduler/main/deploy/controller/rbac.yaml
-      kubectl apply -f https://raw.githubusercontent.com/gocrane/crane-scheduler/main/deploy/controller/deployment.yaml
+        kubectl apply -f https://raw.githubusercontent.com/gocrane/crane-scheduler/main/deploy/controller/rbac.yaml
+        kubectl apply -f https://raw.githubusercontent.com/gocrane/crane-scheduler/main/deploy/controller/deployment.yaml
       ```
 
 === "Mirror"
-
 
       ```bash
       kubectl apply -f https://finops.coding.net/p/gocrane/d/crane-scheduler/git/raw/main/deploy/controller/rbac.yaml?download=false
       kubectl apply -f https://finops.coding.net/p/gocrane/d/crane-scheduler/git/raw/main/deploy/controller/deployment.yaml?download=false
       ```
 
-### Schedule Pods With Crane-scheduler
-Test Crane-scheduler with following example:
+### 使用 Crane-scheduler 调度 Pod
+使用以下示例测试 Crane-scheduler ：
+
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -238,9 +238,10 @@ spec:
             cpu: "1"
 ```
 !!! Note
-     Change `crane-scheduler` to `default-scheduler` if `crane-scheduler` is used as default.
 
-There will be the following event if the test pod is successfully scheduled:
+    如果想将`crane-scheduler`用作默认调度器，请将`crane-scheduler`更改为`default-scheduler`。
+
+如果测试 pod 调度成功，将会有以下事件：
 ```bash
 Type    Reason     Age   From             Message
 ----    ------     ----  ----             -------
