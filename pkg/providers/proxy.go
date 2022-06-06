@@ -17,7 +17,7 @@ type RealTimeDataProxy struct {
 	realtimeProviders map[DataSourceType]RealTime
 }
 
-// NewRealTimeDataProxy return a proxy for all realtime providers, now it has no selecting policy configurable.
+// NewRealTimeDataProxy returns a proxy for all realtime providers, now it has no selecting policy configurable.
 // Default policy is traversing all providers one by one until no error return.
 func NewRealTimeDataProxy(realtimeProviders map[DataSourceType]RealTime) *RealTimeDataProxy {
 	return &RealTimeDataProxy{

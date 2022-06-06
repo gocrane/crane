@@ -304,7 +304,8 @@ func (a *ReplicasAdvisor) proposeTargetUtilization() (int32, int64, error) {
 	// use percentile algo to get the 99 percentile cpu usage for this target
 	for _, container := range a.PodTemplate.Spec.Containers {
 		caller := fmt.Sprintf(callerFormat, klog.KObj(a.Recommendation), a.Recommendation.UID)
-		metricNamer := ResourceToContainerMetricNamer(a.Recommendation.Spec.TargetRef.Namespace, a.Recommendation.Spec.TargetRef.Name, container.Name, corev1.ResourceCPU, caller)
+		metricNamer := ResourceToContainerMetricNamer(a.Recommendation.Spec.TargetRef.Namespace, a.Recommendation.Spec.TargetRef.APIVersion,
+			a.Recommendation.Spec.TargetRef.Kind, a.Recommendation.Spec.TargetRef.Name, container.Name, corev1.ResourceCPU, caller)
 		cpuConfig := makeCpuConfig(a.ConfigProperties)
 		tsList, err := utils.QueryPredictedValuesOnce(a.Recommendation,
 			percentilePredictor,

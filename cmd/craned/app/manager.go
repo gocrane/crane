@@ -37,9 +37,11 @@ import (
 	"github.com/gocrane/crane/pkg/oom"
 	"github.com/gocrane/crane/pkg/predictor"
 	"github.com/gocrane/crane/pkg/providers"
+	"github.com/gocrane/crane/pkg/providers/grpc"
 	"github.com/gocrane/crane/pkg/providers/metricserver"
 	"github.com/gocrane/crane/pkg/providers/mock"
 	"github.com/gocrane/crane/pkg/providers/prom"
+	_ "github.com/gocrane/crane/pkg/querybuilder-providers/grpc"
 	_ "github.com/gocrane/crane/pkg/querybuilder-providers/metricserver"
 	_ "github.com/gocrane/crane/pkg/querybuilder-providers/prometheus"
 	"github.com/gocrane/crane/pkg/recommend"
@@ -171,6 +173,9 @@ func initDataSources(mgr ctrl.Manager, opts *options.Options) (map[providers.Dat
 				klog.Exitf("unable to create datasource provider %v, err: %v", datasource, err)
 			}
 			realtimeDataSources[providers.MetricServerDataSource] = provider
+		case "grpc":
+			provider := grpc.NewProvider(&opts.DataSourceGrpcConfig)
+			historyDataSources[providers.GrpcDataSource] = provider
 		case "mock":
 			provider, err := mock.NewProvider(&opts.DataSourceMockConfig)
 			if err != nil {

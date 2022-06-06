@@ -13,6 +13,7 @@ type MetricSource string
 const (
 	PrometheusMetricSource   MetricSource = "prom"
 	MetricServerMetricSource MetricSource = "metricserver"
+	GrpcMetricSource         MetricSource = "grpc"
 )
 
 type MetricType string
@@ -59,11 +60,11 @@ type WorkloadNamerInfo struct {
 }
 
 type ContainerNamerInfo struct {
-	Namespace     string
-	WorkloadName  string
-	Kind          string
-	APIVersion    string
-	ContainerName string
+	Namespace    string
+	WorkloadName string
+	WorkloadKind string
+	APIVersion   string
+	Name         string
 	// used to fetch workload pods and containers, when use metric server, it is required
 	Selector labels.Selector
 }
@@ -167,7 +168,7 @@ func (m *Metric) keyByContainer() string {
 		strings.ToLower(m.MetricName),
 		m.Container.Namespace,
 		m.Container.WorkloadName,
-		m.Container.ContainerName,
+		m.Container.Name,
 		selectorStr}, "_")
 }
 
@@ -211,12 +212,11 @@ func (m *Metric) keyByPromQL() string {
 // Query is used to do query for different data source. you can extends it with your data source query
 type Query struct {
 	Type         MetricSource
-	MetricServer *MetricServerQuery
+	GenericQuery *GenericQuery
 	Prometheus   *PrometheusQuery
 }
 
-// MetricServerQuery is used to do query for metric server
-type MetricServerQuery struct {
+type GenericQuery struct {
 	Metric *Metric
 }
 
