@@ -44,7 +44,6 @@ import (
 	_ "github.com/gocrane/crane/pkg/querybuilder-providers/grpc"
 	_ "github.com/gocrane/crane/pkg/querybuilder-providers/metricserver"
 	_ "github.com/gocrane/crane/pkg/querybuilder-providers/prometheus"
-	"github.com/gocrane/crane/pkg/recommend"
 	"github.com/gocrane/crane/pkg/server"
 	serverconfig "github.com/gocrane/crane/pkg/server/config"
 	"github.com/gocrane/crane/pkg/utils/target"
@@ -288,21 +287,15 @@ func initControllers(ctx context.Context, mgr ctrl.Manager, opts *options.Option
 	}
 
 	if utilfeature.DefaultMutableFeatureGate.Enabled(features.CraneAnalysis) {
-		configSet, err := recommend.LoadConfigSetFromFile(opts.RecommendationConfigFile)
-		if err != nil {
-			klog.Errorf("Failed to load recommendation config file: %v", err)
-			os.Exit(1)
-		}
-
 		if err := (&analytics.Controller{
-			Client:       mgr.GetClient(),
-			Scheme:       mgr.GetScheme(),
-			RestMapper:   mgr.GetRESTMapper(),
-			Recorder:     mgr.GetEventRecorderFor("analytics-controller"),
-			ConfigSet:    configSet,
-			ScaleClient:  scaleClient,
-			PredictorMgr: predictorMgr,
-			Provider:     historyDataSource,
+			Client:        mgr.GetClient(),
+			Scheme:        mgr.GetScheme(),
+			RestMapper:    mgr.GetRESTMapper(),
+			Recorder:      mgr.GetEventRecorderFor("analytics-controller"),
+			ConfigSetFile: opts.RecommendationConfigFile,
+			ScaleClient:   scaleClient,
+			PredictorMgr:  predictorMgr,
+			Provider:      historyDataSource,
 		}).SetupWithManager(mgr); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "AnalyticsController")
 		}

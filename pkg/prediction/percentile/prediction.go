@@ -141,26 +141,28 @@ func (p *percentilePrediction) QueryRealtimePredictedValues(ctx context.Context,
 func (p *percentilePrediction) QueryRealtimePredictedValuesOnce(_ context.Context, namer metricnaming.MetricNamer, config config.Config) ([]*common.TimeSeries, error) {
 	queryExpr := namer.BuildUniqueKey()
 
-	signals, status := p.a.GetSignals(queryExpr)
-	if signals != nil && status == prediction.StatusReady {
-		return p.getPredictedValuesFromSignals(queryExpr, signals, nil), nil
-	} else {
-		// namer metric query is firstly registered by this caller
-		// we first fetch history data to construct the histogram model, then get estimation.
-		// it is just a stateless function, a data analyzing process, data in, then data out, no states.
-		return p.process(namer, config)
-	}
-}
-
-// process is a stateless function to get estimation of a metric series by constructing a histogram then get estimation data.
-func (p *percentilePrediction) process(namer metricnaming.MetricNamer, config config.Config) ([]*common.TimeSeries, error) {
-	var historyTimeSeriesList []*common.TimeSeries
-	var err error
-	queryExpr := namer.BuildUniqueKey()
 	cfg, err := makeInternalConfig(config.Percentile, config.InitMode)
 	if err != nil {
 		return nil, err
 	}
+
+	signals, status := p.a.GetSignals(queryExpr)
+	if signals != nil && status == prediction.StatusReady {
+		return p.getPredictedValuesFromSignals(queryExpr, signals, cfg), nil
+	} else {
+		// namer metric query is firstly registered by this caller
+		// we first fetch history data to construct the histogram model, then get estimation.
+		// it is just a stateless function, a data analyzing process, data in, then data out, no states.
+		return p.process(namer, cfg)
+	}
+}
+
+// process is a stateless function to get estimation of a metric series by constructing a histogram then get estimation data.
+func (p *percentilePrediction) process(namer metricnaming.MetricNamer, cfg *internalConfig) ([]*common.TimeSeries, error) {
+	var historyTimeSeriesList []*common.TimeSeries
+	var err error
+	queryExpr := namer.BuildUniqueKey()
+
 	klog.V(4).Infof("process analyzing metric namer: %v, config: %+v", namer.BuildUniqueKey(), *cfg)
 
 	historyTimeSeriesList, err = p.queryHistoryTimeSeries(namer, cfg)
