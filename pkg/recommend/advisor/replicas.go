@@ -20,6 +20,7 @@ import (
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/metricnaming"
 	"github.com/gocrane/crane/pkg/metricquery"
+	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/recommend/types"
 	"github.com/gocrane/crane/pkg/utils"
@@ -196,6 +197,8 @@ func (a *ReplicasAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 	replicasRecommendation := &types.ReplicasRecommendation{
 		Replicas: &minReplicas,
 	}
+
+	a.recordReplicasRecommendation(minReplicas)
 
 	proposed.EffectiveHPA = proposedEHPA
 	proposed.ReplicasRecommendation = replicasRecommendation
@@ -389,6 +392,16 @@ func (a *ReplicasAdvisor) proposeMaxReplicas(percentileCpu float64, targetUtiliz
 	}
 
 	return maxReplicas, nil
+}
+
+func (a *ReplicasAdvisor) recordReplicasRecommendation(replicas int32) {
+	labels := map[string]string{
+		"apiversion": a.Recommendation.Spec.TargetRef.APIVersion,
+		"owner_kind": a.Recommendation.Spec.TargetRef.Kind,
+		"namespace":  a.Recommendation.Spec.TargetRef.Namespace,
+		"owner_name": a.Recommendation.Spec.TargetRef.Name,
+	}
+	metrics.ReplicasRecommendation.With(labels).Set(float64(replicas))
 }
 
 func getPredictionCpuConfig() *config.Config {
