@@ -428,6 +428,7 @@ func (c *Controller) ExecuteMission(ctx context.Context, wg *sync.WaitGroup, ana
 		value = string(valueBytes)
 
 		recommendation.Status.RecommendedValue = value
+		recommendation.Status.LastUpdateTime = &timeNow
 		if existingRecommendation != nil {
 			klog.Infof("Update recommendation %s", klog.KObj(recommendation))
 			if err := c.Update(ctx, recommendation); err != nil {
