@@ -58,10 +58,12 @@ func generateSamplesFromWindow(value float64, start time.Time, end time.Time, st
 	return result
 }
 
-func (p *percentilePrediction) getPredictedValuesFromSignals(queryExpr string, signals map[string]*aggregateSignal) []*common.TimeSeries {
+func (p *percentilePrediction) getPredictedValuesFromSignals(queryExpr string, signals map[string]*aggregateSignal, cfg *internalConfig) []*common.TimeSeries {
 	var predictedTimeSeriesList []*common.TimeSeries
 
-	cfg := p.a.GetConfig(queryExpr)
+	if cfg == nil {
+		cfg = p.a.GetConfig(queryExpr)
+	}
 	estimator := NewPercentileEstimator(cfg.percentile)
 	estimator = WithMargin(cfg.marginFraction, estimator)
 	estimator = WithTargetUtilization(cfg.targetUtilization, estimator)
@@ -112,7 +114,7 @@ func (p *percentilePrediction) getPredictedValues(ctx context.Context, namer met
 			return predictedTimeSeriesList
 		}
 		if signals != nil && status == prediction.StatusReady {
-			return p.getPredictedValuesFromSignals(queryExpr, signals)
+			return p.getPredictedValuesFromSignals(queryExpr, signals, nil)
 		}
 		select {
 		case <-ctx.Done():
@@ -141,7 +143,7 @@ func (p *percentilePrediction) QueryRealtimePredictedValuesOnce(_ context.Contex
 
 	signals, status := p.a.GetSignals(queryExpr)
 	if signals != nil && status == prediction.StatusReady {
-		return p.getPredictedValuesFromSignals(queryExpr, signals), nil
+		return p.getPredictedValuesFromSignals(queryExpr, signals, nil), nil
 	} else {
 		// namer metric query is firstly registered by this caller
 		// we first fetch history data to construct the histogram model, then get estimation.
@@ -193,7 +195,7 @@ func (p *percentilePrediction) process(namer metricnaming.MetricNamer, config co
 		}
 	}
 
-	return p.getPredictedValuesFromSignals(queryExpr, signals), nil
+	return p.getPredictedValuesFromSignals(queryExpr, signals, cfg), nil
 }
 
 func NewPrediction(realtimeProvider providers.RealTime, historyProvider providers.History) prediction.Interface {

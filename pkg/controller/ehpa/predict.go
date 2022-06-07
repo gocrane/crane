@@ -17,6 +17,7 @@ import (
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/known"
+	"github.com/gocrane/crane/pkg/utils"
 )
 
 func (c *EffectiveHPAController) ReconcilePredication(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) (*predictionapi.TimeSeriesPrediction, error) {
@@ -127,7 +128,7 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 	for _, metric := range ehpa.Spec.Metrics {
 		// Convert resource metric into prediction metric
 		if metric.Type == autoscalingv2.ResourceMetricSourceType {
-			metricName := GetPredictionMetricName(metric.Resource.Name)
+			metricName := utils.GetPredictionMetricName(metric.Resource.Name)
 			if len(metricName) == 0 {
 				continue
 			}

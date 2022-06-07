@@ -15,8 +15,18 @@ var (
 		},
 		[]string{"apiversion", "owner_kind", "namespace", "owner_name", "container", "resource"},
 	)
+
+	ReplicasRecommendation = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "crane",
+			Subsystem: "analysis",
+			Name:      "replicas_recommendation",
+			Help:      "The workload's replicas recommended value",
+		},
+		[]string{"apiversion", "owner_kind", "namespace", "owner_name"},
+	)
 )
 
 func init() {
-	metrics.Registry.MustRegister(ResourceRecommendation)
+	metrics.Registry.MustRegister(ResourceRecommendation, ReplicasRecommendation)
 }

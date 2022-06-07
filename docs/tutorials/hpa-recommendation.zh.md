@@ -1,6 +1,6 @@
 # 弹性推荐
 
-通过弹性推荐，你可以发现集群中适合弹性的资源，并使用 Crane 推荐的弹性配置创建自动弹性器: EffectiveHPA
+通过弹性推荐，你可以发现集群中适合弹性的资源，并使用 Crane 推荐的弹性配置创建自动弹性器: [Effective HorizontalPodAutoscaler](using-effective-hpa-to-scaling-with-effectiveness.md)
 
 ## 创建弹性分析
 
@@ -178,25 +178,40 @@ status:
 
 原理: 使用 Pod P99 资源利用率推荐弹性的目标。因为如果应用可以在 P99 时间内接受这个利用率，可以推断出可作为弹性的目标。
 
- 1. 通过 Percentile 算法得到 Pod 过去七天 的 P99 使用量: pod_cpu_usage_p99
- 2. 对应的利用率：target_pod_cpu_utilization = pod_cpu_usage_p99 / pod_cpu_request
+ 1. 通过 Percentile 算法得到 Pod 过去七天 的 P99 使用量: $pod\_cpu\_usage\_p99$
+ 2. 对应的利用率:
+ 
+      $target\_pod\_CPU\_utilization = \frac{pod\_cpu\_usage\_p99}{pod\_cpu\_request}$
+
  3. 为了防止利用率过大或过小，target_pod_cpu_utilization 需要小于 ehpa.min-cpu-target-utilization 和大于 ehpa.max-cpu-target-utilization
+
+    $ehpa.max\mbox{-}cpu\mbox{-}target\mbox{-}utilization  < target\_pod\_cpu\_utilization < ehpa.min\mbox{-}cpu\mbox{-}target\mbox{-}utilization$
 
 **推荐 minReplicas**
 
 原理: 使用 workload 过去七天内每小时负载最低的利用率推荐 minReplicas。
 
-1. 计算过去7天 workload 每小时使用量中位数的最低值: workload_cpu_usage_medium_min
-2. 对应的最低利用率对应的副本数: minReplicas = workload_cpu_usage_medium_min / pod_cpu_request / ehpa.max-cpu-target-utilization
+1. 计算过去7天 workload 每小时使用量中位数的最低值: $workload\_cpu\_usage\_medium\_min$
+2. 对应的最低利用率对应的副本数: 
+
+     $minReplicas = \frac{\mathrm{workload\_cpu\_usage\_medium\_min} }{pod\_cpu\_request \times ehpa.max-cpu-target-utilization}$
+
 3. 为了防止 minReplicas 过小，minReplicas 需要大于等于 ehpa.default-min-replicas
+
+     $minReplicas \geq ehpa.default\mbox{-}min\mbox{-}replicas$
 
 **推荐 maxReplicas**
 
 原理: 使用 workload 过去和未来七天的负载推荐最大副本数。
 
-1. 计算过去七天和未来七天 workload cpu 使用量的 P95: workload_cpu_usage_p95
-2. 对应的副本数: max_replicas_origin = workload_cpu_usage_p95 / pod_cpu_request / target_cpu_utilization
-3. 为了应对流量洪峰，放大一定倍数: max_replicas = max_replicas_origin * ehpa.max-replicas-factor
+1. 计算过去七天和未来七天 workload cpu 使用量的 P95: $workload\_cpu\_usage\_p95$
+2. 对应的副本数:
+
+     $max\_replicas\_origin = \frac{\mathrm{workload\_cpu\_usage\_p95} }{pod\_cpu\_request \times target\_cpu\_utilization}$
+
+3. 为了应对流量洪峰，放大一定倍数:
+
+     $max\_replicas = max\_replicas\_origin \times  ehpa.max\mbox{-}replicas\mbox{-}factor$
 
 **推荐CPU以外 MetricSpec**
 
@@ -214,15 +229,17 @@ status:
 
 ## 弹性分析计算配置
 
-- ehpa.deployment-min-replicas: 默认值 1，小于该值的工作负载不做弹性推荐
-- ehpa.statefulset-min-replicas: 默认值 1，小于该值的工作负载不做弹性推荐
-- ehpa.workload-min-replicas: 默认值 1，小于该值的工作负载不做弹性推荐
-- ehpa.pod-min-ready-seconds: 默认值 30，定义了 Pod 是否 Ready 的秒数
-- ehpa.pod-available-ratio: 默认值 0.5，Ready Pod 比例小于该值的工作负载不做弹性推荐
-- ehpa.default-min-replicas: 默认值 2，最小 minReplicas
-- ehpa.max-replicas-factor: 默认值 3，计算 maxReplicas 的倍数
-- ehpa.min-cpu-usage-threshold: 默认值 10, 小于该值的工作负载不做弹性推荐
-- ehpa.fluctuation-threshold: 默认值 1.5, 小于该值的工作负载不做弹性推荐
-- ehpa.min-cpu-target-utilization: 默认值 30
-- ehpa.max-cpu-target-utilization: 默认值 75
-- ehpa.reference-hpa: 默认值 true，继承现有的 HPA 配置
+| 配置项 | 默认值 | 描述|
+| ------------- | ------------- | ----------- |
+| ehpa.deployment-min-replicas | 1 | 小于该值的工作负载不做弹性推荐 |
+| ehpa.statefulset-min-replicas| 1 | 小于该值的工作负载不做弹性推荐 |
+| ehpa.workload-min-replicas| 1 | 小于该值的工作负载不做弹性推荐 |
+| ehpa.pod-min-ready-seconds| 30 | 定义了 Pod 是否 Ready 的秒数 |
+| ehpa.pod-available-ratio| 0.5 | Ready Pod 比例小于该值的工作负载不做弹性推荐 |
+| ehpa.default-min-replicas| 2 | 最小 minReplicas |
+| ehpa.max-replicas-factor| 3 | 计算 maxReplicas 的倍数 |
+| ehpa.min-cpu-usage-threshold| 10| 小于该值的工作负载不做弹性推荐 |
+| ehpa.fluctuation-threshold| 1.5 | 小于该值的工作负载不做弹性推荐 |
+| ehpa.min-cpu-target-utilization| 30 | |
+| ehpa.max-cpu-target-utilization| 75 | |
+| ehpa.reference-hpa| true | 继承现有的 HPA 配置 |

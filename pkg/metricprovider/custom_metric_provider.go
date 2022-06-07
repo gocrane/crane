@@ -122,6 +122,7 @@ func (p *CustomMetricProvider) GetMetricBySelector(ctx context.Context, namespac
 	timestampStart := time.Now()
 	timestampEnd := timestampStart.Add(time.Duration(prediction.Spec.PredictionWindowSeconds) * time.Second)
 	largestMetricValue := &metricValue{}
+	hasValidSample := false
 	for _, v := range timeSeries.Samples {
 		// exclude values that not in time range
 		if v.Timestamp < timestampStart.Unix() || v.Timestamp > timestampEnd.Unix() {
@@ -133,9 +134,14 @@ func (p *CustomMetricProvider) GetMetricBySelector(ctx context.Context, namespac
 			return nil, fmt.Errorf("failed to parse value to float: %v ", err)
 		}
 		if valueFloat > largestMetricValue.value {
+			hasValidSample = true
 			largestMetricValue.value = valueFloat
 			largestMetricValue.timestamp = v.Timestamp
 		}
+	}
+
+	if !hasValidSample {
+		return nil, fmt.Errorf("TimeSeries is outdated, metric name %s", info.Metric)
 	}
 
 	averageValue := int64(math.Round(largestMetricValue.value * 1000 / float64(len(availablePods))))

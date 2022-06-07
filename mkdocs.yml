@@ -15,6 +15,9 @@ theme:
     text: Work Sans
 extra_javascript:
   - assets/util.js
+  - assets/mathjax.js
+  - assets/polyfill.min.js
+  - assets/tex-mml-chtml.js
 extra_css:
   - assets/util.css
 extra:
@@ -55,9 +58,15 @@ markdown_extensions:
       linenums_style: pymdownx-inline
   - pymdownx.inlinehilite
   - pymdownx.snippets
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
+  - pymdownx.arithmatex:
+      generic: true
 repo_url: https://github.com/gocrane/crane
 repo_name: gocrane/crane
 nav:
