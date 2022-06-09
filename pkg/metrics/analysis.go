@@ -13,7 +13,7 @@ var (
 			Name:      "resource_recommendation",
 			Help:      "The containers' CPU/Memory recommended value",
 		},
-		[]string{"apiversion", "owner_kind", "namespace", "owner_name", "container", "resource"},
+		[]string{"apiversion", "owner_kind", "namespace", "owner_name", "container", "resource", "owner_replicas"},
 	)
 
 	ReplicasRecommendation = prometheus.NewGaugeVec(
