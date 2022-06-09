@@ -176,6 +176,14 @@ func (a *ResourceRequestAdvisor) recordResourceRecommendation(containerName stri
 		"container":  containerName,
 		"resource":   resName.String(),
 	}
+
+	// record owner replicas
+	if a.Scale != nil {
+		labels["owner_replicas"] = fmt.Sprintf("%d", a.Scale.Spec.Replicas)
+	} else if a.DaemonSet != nil {
+		labels["owner_replicas"] = fmt.Sprintf("%d", a.DaemonSet.Status.NumberAvailable)
+	}
+
 	switch resName {
 	case corev1.ResourceCPU:
 		metrics.ResourceRecommendation.With(labels).Set(float64(quantity.MilliValue()) / 1000.)
