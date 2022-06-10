@@ -98,7 +98,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 	}
 
-	finished := c.DoAnalytics(ctx, analytics)
+	finished := c.analyze(ctx, analytics)
 
 	if finished && analytics.Spec.CompletionStrategy.CompletionStrategyType == analysisv1alph1.CompletionStrategyPeriodical {
 		if analytics.Spec.CompletionStrategy.PeriodSeconds != nil {
@@ -115,7 +115,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{RequeueAfter: time.Second * 1}, nil
 }
 
-func (c *Controller) DoAnalytics(ctx context.Context, analytics *analysisv1alph1.Analytics) bool {
+func (c *Controller) analyze(ctx context.Context, analytics *analysisv1alph1.Analytics) bool {
 	newStatus := analytics.Status.DeepCopy()
 
 	identities, err := c.getIdentities(ctx, analytics)
@@ -151,11 +151,6 @@ func (c *Controller) DoAnalytics(ctx context.Context, analytics *analysisv1alph1
 				TargetRef: corev1.ObjectReference{Kind: id.Kind, APIVersion: id.APIVersion, Namespace: id.Namespace, Name: id.Name},
 			})
 		}
-	}
-
-	if currMissions == nil {
-		klog.Infof("No missions, return.")
-		return true
 	}
 
 	var currRecommendations []*analysisv1alph1.Recommendation
@@ -210,7 +205,7 @@ func (c *Controller) DoAnalytics(ctx context.Context, analytics *analysisv1alph1
 	wg.Wait()
 
 	finished := false
-	if executionIndex+concurrency == len(currMissions) {
+	if executionIndex+concurrency == len(currMissions) || len(currMissions) == 0 {
 		finished = true
 	}
 
