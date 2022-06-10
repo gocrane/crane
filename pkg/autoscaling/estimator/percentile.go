@@ -46,10 +46,10 @@ func (e *PercentileResourceEstimator) GetResourceEstimation(evpa *autoscalingapi
 			Type:       metricquery.ContainerMetricType,
 			MetricName: corev1.ResourceCPU.String(),
 			Container: &metricquery.ContainerNamerInfo{
-				Namespace:     evpa.Namespace,
-				WorkloadName:  evpa.Spec.TargetRef.Name,
-				ContainerName: containerName,
-				Selector:      selector,
+				Namespace:    evpa.Namespace,
+				WorkloadName: evpa.Spec.TargetRef.Name,
+				Name:         containerName,
+				Selector:     selector,
 			},
 		},
 	}
@@ -62,10 +62,10 @@ func (e *PercentileResourceEstimator) GetResourceEstimation(evpa *autoscalingapi
 			Type:       metricquery.ContainerMetricType,
 			MetricName: corev1.ResourceMemory.String(),
 			Container: &metricquery.ContainerNamerInfo{
-				Namespace:     evpa.Namespace,
-				WorkloadName:  evpa.Spec.TargetRef.Name,
-				ContainerName: containerName,
-				Selector:      selector,
+				Namespace:    evpa.Namespace,
+				WorkloadName: evpa.Spec.TargetRef.Name,
+				Name:         containerName,
+				Selector:     selector,
 			},
 		},
 	}
@@ -138,10 +138,10 @@ func (e *PercentileResourceEstimator) DeleteEstimation(evpa *autoscalingapi.Effe
 				Type:       metricquery.ContainerMetricType,
 				MetricName: corev1.ResourceCPU.String(),
 				Container: &metricquery.ContainerNamerInfo{
-					Namespace:     evpa.Namespace,
-					WorkloadName:  evpa.Spec.TargetRef.Name,
-					ContainerName: containerPolicy.ContainerName,
-					Selector:      selector,
+					Namespace:    evpa.Namespace,
+					WorkloadName: evpa.Spec.TargetRef.Name,
+					Name:         containerPolicy.ContainerName,
+					Selector:     selector,
 				},
 			},
 		}
@@ -155,10 +155,10 @@ func (e *PercentileResourceEstimator) DeleteEstimation(evpa *autoscalingapi.Effe
 				Type:       metricquery.ContainerMetricType,
 				MetricName: corev1.ResourceMemory.String(),
 				Container: &metricquery.ContainerNamerInfo{
-					Namespace:     evpa.Namespace,
-					WorkloadName:  evpa.Spec.TargetRef.Name,
-					ContainerName: containerPolicy.ContainerName,
-					Selector:      selector,
+					Namespace:    evpa.Namespace,
+					WorkloadName: evpa.Spec.TargetRef.Name,
+					Name:         containerPolicy.ContainerName,
+					Selector:     selector,
 				},
 			},
 		}

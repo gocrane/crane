@@ -22,15 +22,15 @@ type AlgorithmDataProviders struct {
 	HistoryProviders []providers.DataSourceType
 }
 
-type PredictorConfig struct {
+type Config struct {
 	DataProviders AlgorithmDataProviders
 	ModelConfig   predconf.AlgorithmModelConfig
 }
 
 // DefaultPredictorsConfig will use all datasources you for real time and history provider. data proxy will select the first available.
 // Now, for RealTimeProvider if you specified metricserver in command args, it is [metricserver,prom] in order, if not, it is [prom]. for HistoryProvider is [prom]
-func DefaultPredictorsConfig(modelConfig predconf.AlgorithmModelConfig) map[predictionapi.AlgorithmType]PredictorConfig {
-	configs := map[predictionapi.AlgorithmType]PredictorConfig{
+func DefaultPredictorsConfig(modelConfig predconf.AlgorithmModelConfig) map[predictionapi.AlgorithmType]Config {
+	configs := map[predictionapi.AlgorithmType]Config{
 		predictionapi.AlgorithmTypeDSP: {
 			ModelConfig: modelConfig,
 		},
@@ -67,7 +67,7 @@ type manager struct {
 }
 
 func NewManager(realtimeProviders map[providers.DataSourceType]providers.RealTime,
-	historyProviders map[providers.DataSourceType]providers.History, predictorsConfig map[predictionapi.AlgorithmType]PredictorConfig) Manager {
+	historyProviders map[providers.DataSourceType]providers.History, predictorsConfig map[predictionapi.AlgorithmType]Config) Manager {
 
 	m := &manager{
 		predictors:         make(map[predictionapi.AlgorithmType]prediction.Interface),
@@ -151,7 +151,7 @@ func (m *manager) GetPredictor(predictor predictionapi.AlgorithmType) prediction
 	return m.predictors[predictor]
 }
 
-// Dynamically add a real time data provider for a predictor
+// AddPredictorRealTimeProvider adds a real time data provider for a predictor
 func (m *manager) AddPredictorRealTimeProvider(predictorName predictionapi.AlgorithmType, dataProviderName providers.DataSourceType, dataProvider providers.RealTime) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
@@ -160,7 +160,7 @@ func (m *manager) AddPredictorRealTimeProvider(predictorName predictionapi.Algor
 	}
 }
 
-// Dynamically delete a real time data provider for a predictor
+// DeletePredictorRealTimeProvider deletes a real time data provider
 func (m *manager) DeletePredictorRealTimeProvider(predictorName predictionapi.AlgorithmType, dataProviderName providers.DataSourceType) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
@@ -169,7 +169,7 @@ func (m *manager) DeletePredictorRealTimeProvider(predictorName predictionapi.Al
 	}
 }
 
-// Dynamically add a history data provider for a predictor
+// AddPredictorHistoryProvider adds a history data provider for a predictor
 func (m *manager) AddPredictorHistoryProvider(predictorName predictionapi.AlgorithmType, dataProviderName providers.DataSourceType, dataProvider providers.History) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
@@ -178,7 +178,7 @@ func (m *manager) AddPredictorHistoryProvider(predictorName predictionapi.Algori
 	}
 }
 
-// Dynamically delete a history data provider for a predictor
+// DeletePredictorHistoryProvider deletes the history data provider
 func (m *manager) DeletePredictorHistoryProvider(predictorName predictionapi.AlgorithmType, dataProviderName providers.DataSourceType) {
 	m.lock.Lock()
 	defer m.lock.Unlock()

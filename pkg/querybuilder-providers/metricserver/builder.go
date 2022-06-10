@@ -18,13 +18,13 @@ func NewMetricServerQueryBuilder(metric *metricquery.Metric) querybuilder.Builde
 }
 
 func (b builder) BuildQuery() (*metricquery.Query, error) {
-	return metricServerQuery(&metricquery.MetricServerQuery{Metric: b.metric}), nil
+	return metricServerQuery(&metricquery.GenericQuery{Metric: b.metric}), nil
 }
 
-func metricServerQuery(query *metricquery.MetricServerQuery) *metricquery.Query {
+func metricServerQuery(query *metricquery.GenericQuery) *metricquery.Query {
 	return &metricquery.Query{
 		Type:         metricquery.MetricServerMetricSource,
-		MetricServer: query,
+		GenericQuery: query,
 	}
 }
 

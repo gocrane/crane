@@ -415,7 +415,7 @@ func (c *Controller) ExecuteMission(ctx context.Context, wg *sync.WaitGroup, ana
 
 		proposed, err := recommender.Offer()
 		if err != nil {
-			mission.Message = fmt.Sprintf("Failed to offer recommend, Recommendation %s: %v", klog.KObj(recommendation), err)
+			mission.Message = fmt.Sprintf("Failed to offer recommendation: %s", err.Error())
 			return
 		}
 
