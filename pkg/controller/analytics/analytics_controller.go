@@ -118,7 +118,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 func (c *Controller) DoAnalytics(ctx context.Context, analytics *analysisv1alph1.Analytics) bool {
 	newStatus := analytics.Status.DeepCopy()
 
-	identities, err := c.GetIdentities(ctx, analytics)
+	identities, err := c.getIdentities(ctx, analytics)
 	if err != nil {
 		c.Recorder.Event(analytics, corev1.EventTypeNormal, "FailedSelectResource", err.Error())
 		msg := fmt.Sprintf("Failed to get idenitities, Analytics %s error %v", klog.KObj(analytics), err)
@@ -204,7 +204,7 @@ func (c *Controller) DoAnalytics(ctx context.Context, analytics *analysisv1alph1
 			}
 		}
 
-		go c.ExecuteMission(ctx, &wg, analytics, identities, &currMissions[index], existingRecommendation, timeNow)
+		go c.executeMission(ctx, &wg, analytics, identities, &currMissions[index], existingRecommendation, timeNow)
 	}
 
 	wg.Wait()
@@ -301,7 +301,7 @@ func (c *Controller) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(c)
 }
 
-func (c *Controller) GetIdentities(ctx context.Context, analytics *analysisv1alph1.Analytics) (map[string]ObjectIdentity, error) {
+func (c *Controller) getIdentities(ctx context.Context, analytics *analysisv1alph1.Analytics) (map[string]ObjectIdentity, error) {
 	identities := map[string]ObjectIdentity{}
 
 	for _, rs := range analytics.Spec.ResourceSelectors {
@@ -382,14 +382,10 @@ func (c *Controller) GetIdentities(ctx context.Context, analytics *analysisv1alp
 		}
 	}
 
-	if len(identities) == 0 {
-		return nil, fmt.Errorf("no resource matched resource selector")
-	}
-
 	return identities, nil
 }
 
-func (c *Controller) ExecuteMission(ctx context.Context, wg *sync.WaitGroup, analytics *analysisv1alph1.Analytics, identities map[string]ObjectIdentity, mission *analysisv1alph1.RecommendationMission, existingRecommendation *analysisv1alph1.Recommendation, timeNow metav1.Time) {
+func (c *Controller) executeMission(ctx context.Context, wg *sync.WaitGroup, analytics *analysisv1alph1.Analytics, identities map[string]ObjectIdentity, mission *analysisv1alph1.RecommendationMission, existingRecommendation *analysisv1alph1.Recommendation, timeNow metav1.Time) {
 	defer func() {
 		mission.LastStartTime = &timeNow
 		klog.Infof("Mission message: %s", mission.Message)
