@@ -43,7 +43,7 @@ func makeInternalConfig(d *v1alpha1.DSP) (*internalConfig, error) {
 		return nil, err
 	}
 	if historyResolution > time.Hour {
-		return nil, fmt.Errorf("historyResolution is too low")
+		return nil, fmt.Errorf("historyResolution is too long")
 	}
 
 	historyDuration, err := utils.ParseDuration(d.HistoryLength)
