@@ -3,7 +3,7 @@ kind: Analytics
 metadata:
   name: nginx-hpa
 spec:
-  type: HPA                        # This can only be "Resource" or "HPA".
+  type: Replicas                        # This can only be "Resource" or "Replicas".
   completionStrategy:
     completionStrategyType: Periodical  # This can only be "Once" or "Periodical".
     periodSeconds: 600                  # analytics selected resources every 10 minutes
