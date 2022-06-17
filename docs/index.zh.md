@@ -35,7 +35,7 @@ Analytics model analyzes the workload and provide recommendations about resource
 Two Recommendations are currently supported:
 
 - [**ResourceRecommend**](tutorials/resource-recommendation.md): Recommend container requests & limit resources based on historic metrics.
-- [**Effective HPARecommend**](tutorials/hpa-recommendation.md): Recommend which workloads are suitable for autoscaling and provide optimized configurations such as minReplicas, maxReplicas.
+- [**Effective HPARecommend**](tutorials/replicas-recommendation.md): Recommend which workloads are suitable for autoscaling and provide optimized configurations such as minReplicas, maxReplicas.
 
 Please see [this document](tutorials/analytics-and-recommendation.md) to learn more.
 

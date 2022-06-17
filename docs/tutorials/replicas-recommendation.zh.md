@@ -13,7 +13,7 @@
       kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/analytics-hpa.yaml
       kubectl get analytics
       ```
-
+ 
 === "Mirror"
 
       ```bash

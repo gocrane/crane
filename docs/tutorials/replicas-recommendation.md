@@ -1,4 +1,4 @@
-# HPA Recommendation
+# Replicas Recommendation
 
 Using hpa recommendations, you can find resources in the cluster that are suitable for autoscaling, and use Crane's recommended result to create an autoscaling object: [Effective HorizontalPodAutoscaler](using-effective-hpa-to-scaling-with-effectiveness.md).
 
@@ -10,26 +10,25 @@ Create an **Resource** `Analytics` to give recommendation for deployment: `nginx
 
       ```bash
       kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/nginx-deployment.yaml
-      kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/analytics-hpa.yaml
-      kubectl get analytics
+      kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/analytics-replicas.yaml
       ```
 
 === "Mirror"
 
       ```bash
       kubectl apply -f https://finops.coding.net/p/gocrane/d/crane/git/raw/main/examples/analytics/nginx-deployment.yaml?download=false
-      kubectl apply -f https://finops.coding.net/p/gocrane/d/crane/git/raw/main/examples/analytics/analytics-hpa.yaml?download=false
-      kubectl get analytics
+      kubectl apply -f https://finops.coding.net/p/gocrane/d/crane/git/raw/main/examples/analytics/analytics-replicas.yaml?download=false
       ```
 
+The created `Analytics` yaml is following:
 
-```yaml title="analytics-hpa.yaml"
+```yaml title="analytics-replicas.yaml"
 apiVersion: analysis.crane.io/v1alpha1
 kind: Analytics
 metadata:
   name: nginx-hpa
 spec:
-  type: HPA                        # This can only be "Resource" or "HPA".
+  type: Replicas                        # This can only be "Resource" or "Replicas".
   completionStrategy:
     completionStrategyType: Periodical  # This can only be "Once" or "Periodical".
     periodSeconds: 600                  # analytics selected resources every 10 minutes
@@ -43,17 +42,10 @@ spec:
     ehpa.min-cpu-usage-threshold: "0"
 ```
 
-The output is:
-
-```bash
-NAME        AGE
-nginx-hpa   16m
-```
-
 You can get created recommendations from analytics status:
 
 ```bash
-kubectl get analytics nginx-hpa -o yaml
+kubectl get analytics nginx-replicas -o yaml
 ```
 
 The output is similar to:
@@ -62,103 +54,114 @@ The output is similar to:
 apiVersion: analysis.crane.io/v1alpha1
 kind: Analytics
 metadata:
-  creationTimestamp: "2022-05-15T13:34:19Z"
-  name: nginx-hpa
+  name: nginx-replicas
   namespace: default
 spec:
   completionStrategy:
     completionStrategyType: Periodical
     periodSeconds: 600
   config:
-    ehpa.deployment-min-replicas: "1"
-    ehpa.fluctuation-threshold: "0"
-    ehpa.min-cpu-usage-threshold: "0"
+    replicas.fluctuation-threshold: "0"
+    replicas.min-cpu-usage-threshold: "0"
+    replicas.workload-min-replicas: "1"
   resourceSelectors:
   - apiVersion: apps/v1
     kind: Deployment
     labelSelector: {}
     name: nginx-deployment
-  type: HPA
+  type: Replicas
 status:
   conditions:
-  - lastTransitionTime: "2022-05-15T13:34:19Z"
+  - lastTransitionTime: "2022-06-02T09:44:54Z"
     message: Analytics is ready
     reason: AnalyticsReady
     status: "True"
     type: Ready
-  lastUpdateTime: "2022-05-15T13:34:19Z"
+  lastUpdateTime: "2022-06-02T09:44:54Z"
   recommendations:
-  - lastStartTime: "2022-05-15T13:34:19Z"
+  - lastStartTime: "2022-06-02T09:44:54Z"
     message: Success
-    name: nginx-hpa-hpa-cd86s
+    name: nginx-replicas-replicas-7qspm
     namespace: default
     targetRef:
       apiVersion: apps/v1
       kind: Deployment
       name: nginx-deployment
       namespace: default
-    uid: b3cea8cb-259d-4cb2-bbbe-cd0e6544daaf
+    uid: c853043c-5ff6-4ee0-a941-e04c8ec3093b
 ```
 
 ## Recommendation: Analytics result
 
-The recommendation name presents on `status.recommendations[0].name`. Then you can get recommendation detail by running:
+Use label selector to get related recommendations owns by `Analytics`.
 
 ```bash
-kubectl get recommend nginx-hpa-hpa-cd86s -o yaml
+kubectl get recommend -l analysis.crane.io/analytics-name=nginx-replicas -o yaml
 ```
 
 The output is similar to:
 
 ```yaml
-apiVersion: analysis.crane.io/v1alpha1
-kind: Recommendation
+apiVersion: v1
+items:
+   - apiVersion: analysis.crane.io/v1alpha1
+     kind: Recommendation
+     metadata:
+        creationTimestamp: "2022-06-02T09:44:54Z"
+        generateName: nginx-replicas-replicas-
+        generation: 2
+        labels:
+           analysis.crane.io/analytics-name: nginx-replicas
+           analysis.crane.io/analytics-type: Replicas
+           analysis.crane.io/analytics-uid: e9168c6e-329f-40e9-8d0f-a1ddc35b0d47
+           app: nginx
+        name: nginx-replicas-replicas-7qspm
+        namespace: default
+        ownerReferences:
+           - apiVersion: analysis.crane.io/v1alpha1
+             blockOwnerDeletion: false
+             controller: false
+             kind: Analytics
+             name: nginx-replicas
+             uid: e9168c6e-329f-40e9-8d0f-a1ddc35b0d47
+        resourceVersion: "818959913"
+        selfLink: /apis/analysis.crane.io/v1alpha1/namespaces/default/recommendations/nginx-replicas-replicas-7qspm
+        uid: c853043c-5ff6-4ee0-a941-e04c8ec3093b
+     spec:
+        adoptionType: StatusAndAnnotation
+        completionStrategy:
+           completionStrategyType: Once
+        targetRef:
+           apiVersion: apps/v1
+           kind: Deployment
+           name: nginx-deployment
+           namespace: default
+        type: Replicas
+     status:
+        conditions:
+           - lastTransitionTime: "2022-06-02T09:44:54Z"
+             message: Recommendation is ready
+             reason: RecommendationReady
+             status: "True"
+             type: Ready
+        lastUpdateTime: "2022-06-02T09:44:54Z"
+        recommendedValue: |
+           effectiveHPA:
+             maxReplicas: 3
+             metrics:
+             - resource:
+                 name: cpu
+                 target:
+                   averageUtilization: 75
+                   type: Utilization
+               type: Resource
+             minReplicas: 3
+           replicasRecommendation:
+             replicas: 3
+kind: List
 metadata:
-  creationTimestamp: "2022-05-15T13:34:19Z"
-  generateName: nginx-hpa-hpa-
-  generation: 2
-  labels:
-    analysis.crane.io/analytics-name: nginx-hpa
-    analysis.crane.io/analytics-type: HPA
-    analysis.crane.io/analytics-uid: 5564edd0-d7cd-4da6-865b-27fa4fddf7c4
-    app: nginx
-  name: nginx-hpa-hpa-cd86s
-  namespace: default
-  ownerReferences:
-  - apiVersion: analysis.crane.io/v1alpha1
-    blockOwnerDeletion: false
-    controller: false
-    kind: Analytics
-    name: nginx-hpa
-    uid: 5564edd0-d7cd-4da6-865b-27fa4fddf7c4
-spec:
-  adoptionType: StatusAndAnnotation
-  completionStrategy:
-    completionStrategyType: Once
-  targetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: nginx-deployment
-    namespace: default
-  type: HPA
-status:
-  conditions:
-  - lastTransitionTime: "2022-05-15T13:34:19Z"
-    message: Recommendation is ready
-    reason: RecommendationReady
-    status: "True"
-    type: Ready
-  lastUpdateTime: "2022-05-15T13:34:19Z"
-  recommendedValue: |
-    maxReplicas: 2
-    metrics:
-    - resource:
-        name: cpu
-        target:
-          averageUtilization: 75
-          type: Utilization
-      type: Resource
-    minReplicas: 2
+   resourceVersion: ""
+   selfLink: ""
 ```
 
 ## HPA Recommendation Algorithm model
