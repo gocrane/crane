@@ -6,10 +6,9 @@ Resource recommendation allows you to obtain recommended values for resources in
 
 Resource recommendations are a lightweight implementation of VPA and are more flexible.
 
-1. Easy to install：as long as you install the Crane, it can be used
-2. Algorithm: The algorithm model adopts the Moving Window algorithm of VPA, and supports to customization algo args , providing higher flexibility
-3. Support batch analysis: With the ResourceSelector, users can batch analyze multiple workloads without creating VPA objects one by one
-4. More portable: It is difficult to use VPA's Auto mode in production because it will cause container reconstruction when updating container resource configuration. Resource recommendation provides suggestions to users and leaves the decision of change to users
+1. Algorithm: The algorithm model adopts the Moving Window algorithm of VPA, and supports to customization algo args , providing higher flexibility
+2. Support batch analysis: With the ResourceSelector, users can batch analyze multiple workloads without creating VPA objects one by one
+3. More portable: It is difficult to use VPA's Auto mode in production because it will cause container reconstruction when updating container resource configuration. Resource recommendation provides suggestions to users and leaves the decision of change to users
 
 ## Create Resource Analytics
 
@@ -64,7 +63,7 @@ kubectl get analytics nginx-resource -o yaml
 
 The output is similar to:
 
-```yaml hl_lines="27"
+```yaml
 apiVersion: analysis.crane.io/v1alpha1
 kind: Analytics
 metadata:
@@ -111,7 +110,7 @@ kubectl get recommend -l analysis.crane.io/analytics-name=nginx-resource -o yaml
 
 The output is similar to:
 
-```yaml  hl_lines="32-37"
+```yaml 
 apiVersion: v1
 items:
 - apiVersion: analysis.crane.io/v1alpha1
@@ -162,6 +161,33 @@ metadata:
 ```
 
 The `status.recommendedValue.ResourceRequest` is recommended by crane's recommendation engine.
+
+## Batch recommendation
+
+Use a sample to show how to recommend all Deployments and StatefulSets by one `Analytics`:
+
+```yaml
+apiVersion: analysis.crane.io/v1alpha1
+kind: Analytics
+metadata:
+  name: workload-resource
+  namespace: crane-system               # The Analytics in Crane-system will select all resource across all namespaces.
+spec:
+  type: Resource                        # This can only be "Resource" or "Replicas".
+  completionStrategy:
+    completionStrategyType: Periodical  # This can only be "Once" or "Periodical".
+    periodSeconds: 86400                # analytics selected resources every 1 day
+  resourceSelectors:                    # defines all the resources to be select with
+    - kind: Deployment
+      apiVersion: apps/v1
+    - kind: StatefulSet
+      apiVersion: apps/v1
+```
+
+1. when using `crane-system` as your namespace，`Analytics` selected all namespaces，when namespace not equal `crane-system`，`Analytics` selected the resource that in `Analytics` namespace 
+2. resourceSelectors defines the resource to analysis，kind and apiVersion is mandatory，name is optional
+3. resourceSelectors supoort any resource that are [Scale Subresource](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#scale-subresource)
+
 
 ## Resource Recommendation Algorithm model
 

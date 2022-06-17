@@ -1,6 +1,12 @@
-# 弹性推荐
+# 副本数推荐
 
-通过弹性推荐，你可以发现集群中适合弹性的资源，并使用 Crane 推荐的弹性配置创建自动弹性器: [Effective HorizontalPodAutoscaler](using-effective-hpa-to-scaling-with-effectiveness.md)
+Kubernetes 用户在创建应用资源时常常是基于经验值来设置副本数或者 EHPA 配置。通过副本数推荐的算法分析应用的真实用量推荐更合适的副本配置，您可以参考并采纳它提升集群的资源利用率。
+
+## 产品功能
+
+1. 算法：计算副本数的算法参考了 HPA 的计算公式，并且支持自定义算法的关键配置
+2. HPA 推荐：副本数推荐会扫描出适合配置水平弹性（EHPA）的应用，并给出 EHPA 的配置, [EHPA](using-effective-hpa-to-scaling-with-effectiveness.md) 是 Crane 提供了智能水平弹性产品
+3. 支持批量分析：通过 `Analytics` 的 ResourceSelector，用户可以批量分析多个工作负载
 
 ## 创建弹性分析
 
@@ -27,9 +33,9 @@
 apiVersion: analysis.crane.io/v1alpha1
 kind: Analytics
 metadata:
-  name: nginx-hpa
+  name: nginx-replicas
 spec:
-  type: HPA                        # This can only be "Resource" or "HPA".
+  type: Replicas                        # This can only be "Resource" or "Replicas".
   completionStrategy:
     completionStrategyType: Periodical  # This can only be "Once" or "Periodical".
     periodSeconds: 600                  # analytics selected resources every 10 minutes
@@ -38,66 +44,65 @@ spec:
       apiVersion: apps/v1
       name: nginx-deployment
   config:                               # defines all the configuration for this analytics
-    ehpa.deployment-min-replicas: "1"
-    ehpa.fluctuation-threshold: "0"
-    ehpa.min-cpu-usage-threshold: "0"
+    replicas.workload-min-replicas: "1"
+    replicas.fluctuation-threshold: "0"
+    replicas.min-cpu-usage-threshold: "0"
 ```
 
 结果如下:
 
 ```bash
-NAME        AGE
-nginx-hpa   16m
+NAME             AGE
+nginx-replicas   16m
 ```
 
-查看 Analytics 的 Status，通过 status.recommendations[0].name 得到 Recommendation 的 name:
+查看 Analytics 详情:
 
 ```bash
-kubectl get analytics nginx-hpa -o yaml
+kubectl get analytics nginx-replicas -o yaml
 ```
 
 结果如下:
 
-```yaml hl_lines="32"
+```yaml
 apiVersion: analysis.crane.io/v1alpha1
 kind: Analytics
 metadata:
-  creationTimestamp: "2022-05-15T13:34:19Z"
-  name: nginx-hpa
+  name: nginx-replicas
   namespace: default
 spec:
   completionStrategy:
     completionStrategyType: Periodical
     periodSeconds: 600
   config:
-    ehpa.deployment-min-replicas: "1"
-    ehpa.fluctuation-threshold: "0"
-    ehpa.min-cpu-usage-threshold: "0"
+    replicas.fluctuation-threshold: "0"
+    replicas.min-cpu-usage-threshold: "0"
+    replicas.workload-min-replicas: "1"
   resourceSelectors:
   - apiVersion: apps/v1
     kind: Deployment
     labelSelector: {}
     name: nginx-deployment
-  type: HPA
+  type: Replicas
 status:
   conditions:
-  - lastTransitionTime: "2022-05-15T13:34:19Z"
+  - lastTransitionTime: "2022-06-17T06:56:07Z"
     message: Analytics is ready
     reason: AnalyticsReady
     status: "True"
     type: Ready
-  lastUpdateTime: "2022-05-15T13:34:19Z"
+  lastUpdateTime: "2022-06-17T06:56:06Z"
   recommendations:
-  - lastStartTime: "2022-05-15T13:34:19Z"
+  - lastStartTime: "2022-06-17T06:56:06Z"
     message: Success
-    name: nginx-hpa-hpa-cd86s
+    name: nginx-replicas-replicas-wq6wm
     namespace: default
     targetRef:
       apiVersion: apps/v1
       kind: Deployment
       name: nginx-deployment
       namespace: default
-    uid: b3cea8cb-259d-4cb2-bbbe-cd0e6544daaf
+    uid: 59f3eb3c-f786-4b15-b37e-774e5784c2db
 ```
 
 ## 查看分析结果
@@ -105,61 +110,99 @@ status:
 查看 **Recommendation** 结果：
 
 ```bash
-kubectl get recommend nginx-hpa-hpa-cd86s -o yaml
+kubectl get recommend -l analysis.crane.io/analytics-name=nginx-replicas -o yaml
 ```
 
 分析结果如下：
 
 ```yaml
-apiVersion: analysis.crane.io/v1alpha1
-kind: Recommendation
-metadata:
-  creationTimestamp: "2022-05-15T13:34:19Z"
-  generateName: nginx-hpa-hpa-
-  generation: 2
-  labels:
-    analysis.crane.io/analytics-name: nginx-hpa
-    analysis.crane.io/analytics-type: HPA
-    analysis.crane.io/analytics-uid: 5564edd0-d7cd-4da6-865b-27fa4fddf7c4
-    app: nginx
-  name: nginx-hpa-hpa-cd86s
-  namespace: default
-  ownerReferences:
+apiVersion: v1
+items:
   - apiVersion: analysis.crane.io/v1alpha1
-    blockOwnerDeletion: false
-    controller: false
-    kind: Analytics
-    name: nginx-hpa
-    uid: 5564edd0-d7cd-4da6-865b-27fa4fddf7c4
-spec:
-  adoptionType: StatusAndAnnotation
-  completionStrategy:
-    completionStrategyType: Once
-  targetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: nginx-deployment
-    namespace: default
-  type: HPA
-status:
-  conditions:
-  - lastTransitionTime: "2022-05-15T13:34:19Z"
-    message: Recommendation is ready
-    reason: RecommendationReady
-    status: "True"
-    type: Ready
-  lastUpdateTime: "2022-05-15T13:34:19Z"
-  recommendedValue: |
-    maxReplicas: 2
-    metrics:
-    - resource:
-        name: cpu
-        target:
-          averageUtilization: 75
-          type: Utilization
-      type: Resource
-    minReplicas: 2
+    kind: Recommendation
+    metadata:
+      creationTimestamp: "2022-06-17T06:56:06Z"
+      generateName: nginx-replicas-replicas-
+      generation: 2
+      labels:
+        analysis.crane.io/analytics-name: nginx-replicas
+        analysis.crane.io/analytics-type: Replicas
+        analysis.crane.io/analytics-uid: 795f245b-1e1f-4f7b-a02b-885d7a495e5b
+        app: nginx
+      name: nginx-replicas-replicas-wq6wm
+      namespace: default
+      ownerReferences:
+        - apiVersion: analysis.crane.io/v1alpha1
+          blockOwnerDeletion: false
+          controller: false
+          kind: Analytics
+          name: nginx-replicas
+          uid: 795f245b-1e1f-4f7b-a02b-885d7a495e5b
+      resourceVersion: "2182455668"
+      selfLink: /apis/analysis.crane.io/v1alpha1/namespaces/default/recommendations/nginx-replicas-replicas-wq6wm
+      uid: 59f3eb3c-f786-4b15-b37e-774e5784c2db
+    spec:
+      adoptionType: StatusAndAnnotation
+      completionStrategy:
+        completionStrategyType: Once
+      targetRef:
+        apiVersion: apps/v1
+        kind: Deployment
+        name: nginx-deployment
+        namespace: default
+      type: Replicas
+    status:
+      conditions:
+        - lastTransitionTime: "2022-06-17T06:56:07Z"
+          message: Recommendation is ready
+          reason: RecommendationReady
+          status: "True"
+          type: Ready
+      lastUpdateTime: "2022-06-17T06:56:07Z"
+      recommendedValue: |
+        effectiveHPA:
+          maxReplicas: 3
+          metrics:
+          - resource:
+              name: cpu
+              target:
+                averageUtilization: 75
+                type: Utilization
+            type: Resource
+          minReplicas: 3
+        replicasRecommendation:
+          replicas: 3
+kind: List
+metadata:
+  resourceVersion: ""
+  selfLink: ""
 ```
+
+## 批量推荐
+
+我们通过一个例子来演示如何使用 `Analytics` 推荐集群中所有的 Deployment 和 StatefulSet：
+
+```yaml
+apiVersion: analysis.crane.io/v1alpha1
+kind: Analytics
+metadata:
+  name: workload-replicas
+  namespace: crane-system               # The Analytics in Crane-system will select all resource across all namespaces.
+spec:
+  type: Replicas                        # This can only be "Resource" or "Replicas".
+  completionStrategy:
+    completionStrategyType: Periodical  # This can only be "Once" or "Periodical".
+    periodSeconds: 86400                # analytics selected resources every 1 day
+  resourceSelectors:                    # defines all the resources to be select with
+    - kind: Deployment
+      apiVersion: apps/v1
+    - kind: StatefulSet
+      apiVersion: apps/v1
+```
+
+1. 当 namespace 等于 `crane-system` 时，`Analytics` 选择的资源是集群中所有的 namespace，当 namespace 不等于 `crane-system` 时，`Analytics` 选择 `Analytics` namespace 下的资源
+2. resourceSelectors 通过数组配置需要分析的资源，kind 和 apiVersion 是必填字段，name 选填
+3. resourceSelectors 支持配置任意支持 [Scale Subresource](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#scale-subresource) 的资源
 
 ## 弹性推荐计算模型
 
@@ -243,3 +286,5 @@ status:
 | ehpa.min-cpu-target-utilization| 30 | |
 | ehpa.max-cpu-target-utilization| 75 | |
 | ehpa.reference-hpa| true | 继承现有的 HPA 配置 |
+
+

@@ -30,12 +30,10 @@ Please see [this document](tutorials/using-effective-hpa-to-scaling-with-effecti
 
 ### Analytics
 
-Analytics model analyzes the workload and provide recommendations about resource optimize.
+智能推荐能够帮助用户自动分析集群并给出优化建议。就像手机助手一样，智能推荐会定期的扫描、分析你的集群并给出推荐建议。目前，我们提供了两种优化能力：
 
-Two Recommendations are currently supported:
-
-- [**ResourceRecommend**](tutorials/resource-recommendation.md): Recommend container requests & limit resources based on historic metrics.
-- [**Effective HPARecommend**](tutorials/replicas-recommendation.md): Recommend which workloads are suitable for autoscaling and provide optimized configurations such as minReplicas, maxReplicas.
+- [**资源推荐**](tutorials/resource-recommendation.zh.md): 通过资源推荐的算法分析应用的真实用量推荐更合适的资源配置，您可以参考并采纳它提升集群的资源利用率。
+- [**副本数推荐**](tutorials/replicas-recommendation.zh.md): 通过副本数推荐的算法分析应用的真实用量推荐更合适的副本和 EHPA 配置，您可以参考并采纳它提升集群的资源利用率。
 
 Please see [this document](tutorials/analytics-and-recommendation.md) to learn more.
 
