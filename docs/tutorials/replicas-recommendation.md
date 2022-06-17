@@ -1,6 +1,12 @@
 # Replicas Recommendation
 
-Using hpa recommendations, you can find resources in the cluster that are suitable for autoscaling, and use Crane's recommended result to create an autoscaling object: [Effective HorizontalPodAutoscaler](using-effective-hpa-to-scaling-with-effectiveness.md).
+Kubernetes' users often set the replicas of workload or HPA configurations based on empirical values. Replicas recommendation analyze the actual application usage and give advice for replicas and HPA configurations. You can refer to and adopt it for your workloads to improve cluster resource utilization.
+
+## Features
+
+1. Algorithm: The algorithm for calculating the replicas refers to HPA, and supports to customization algo args
+2. HPA recommendations: Scan for applications that suitable for configuring horizontal elasticity (EHPA), And give advice for configuration of EHPA, [EHPA](using-effective-hpa-to-scaling-with-effectiveness.md) is a smart horizontal elastic product provided by Crane
+3. Support batch analysis: With the ResourceSelector, users can batch analyze multiple workloads
 
 ## Create HPA Analytics
 
@@ -50,7 +56,7 @@ kubectl get analytics nginx-replicas -o yaml
 
 The output is similar to:
 
-```yaml hl_lines="32"
+```yaml
 apiVersion: analysis.crane.io/v1alpha1
 kind: Analytics
 metadata:
@@ -163,6 +169,32 @@ metadata:
    resourceVersion: ""
    selfLink: ""
 ```
+
+## Batch recommendation
+
+Use a sample to show how to recommend all Deployments and StatefulSets by one `Analytics`:
+
+```yaml
+apiVersion: analysis.crane.io/v1alpha1
+kind: Analytics
+metadata:
+   name: workload-replicas
+   namespace: crane-system               # The Analytics in Crane-system will select all resource across all namespaces.
+spec:
+   type: Replicas                        # This can only be "Resource" or "Replicas".
+   completionStrategy:
+      completionStrategyType: Periodical  # This can only be "Once" or "Periodical".
+      periodSeconds: 86400                # analytics selected resources every 1 day
+   resourceSelectors:                    # defines all the resources to be select with
+      - kind: Deployment
+        apiVersion: apps/v1
+      - kind: StatefulSet
+        apiVersion: apps/v1
+```
+
+1. when using `crane-system` as your namespace，`Analytics` selected all namespaces，when namespace not equal `crane-system`，`Analytics` selected the resource that in `Analytics` namespace
+2. resourceSelectors defines the resource to analysis，kind and apiVersion is mandatory，name is optional
+3. resourceSelectors supoort any resource that are [Scale Subresource](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#scale-subresource)
 
 ## HPA Recommendation Algorithm model
 
