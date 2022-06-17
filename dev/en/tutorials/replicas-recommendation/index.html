@@ -372,7 +372,7 @@
   
     <li class="md-nav__item">
       <a href="../analytics-and-recommendation/" class="md-nav__link">
-        Analytics
+        Analytics Overview
       </a>
     </li>
   
@@ -433,6 +433,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#features" class="md-nav__link">
+    Features
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#create-hpa-analytics" class="md-nav__link">
     Create HPA Analytics
   </a>
@@ -442,6 +449,13 @@
         <li class="md-nav__item">
   <a href="#recommendation-analytics-result" class="md-nav__link">
     Recommendation: Analytics result
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#batch-recommendation" class="md-nav__link">
+    Batch recommendation
   </a>
   
 </li>
@@ -712,6 +726,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#features" class="md-nav__link">
+    Features
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#create-hpa-analytics" class="md-nav__link">
     Create HPA Analytics
   </a>
@@ -721,6 +742,13 @@
         <li class="md-nav__item">
   <a href="#recommendation-analytics-result" class="md-nav__link">
     Recommendation: Analytics result
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#batch-recommendation" class="md-nav__link">
+    Batch recommendation
   </a>
   
 </li>
@@ -778,7 +806,13 @@
 
 
 <h1 id="replicas-recommendation">Replicas Recommendation<a class="headerlink" href="#replicas-recommendation" title="Permanent link">&para;</a></h1>
-<p>Using hpa recommendations, you can find resources in the cluster that are suitable for autoscaling, and use Crane's recommended result to create an autoscaling object: <a href="../using-effective-hpa-to-scaling-with-effectiveness/">Effective HorizontalPodAutoscaler</a>.</p>
+<p>Kubernetes' users often set the replicas of workload or HPA configurations based on empirical values. Replicas recommendation analyze the actual application usage and give advice for replicas and HPA configurations. You can refer to and adopt it for your workloads to improve cluster resource utilization.</p>
+<h2 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Algorithm: The algorithm for calculating the replicas refers to HPA, and supports to customization algo args</li>
+<li>HPA recommendations: Scan for applications that suitable for configuring horizontal elasticity (EHPA), And give advice for configuration of EHPA, <a href="../using-effective-hpa-to-scaling-with-effectiveness/">EHPA</a> is a smart horizontal elastic product provided by Crane</li>
+<li>Support batch analysis: With the ResourceSelector, users can batch analyze multiple workloads</li>
+</ol>
 <h2 id="create-hpa-analytics">Create HPA Analytics<a class="headerlink" href="#create-hpa-analytics" title="Permanent link">&para;</a></h2>
 <p>Create an <strong>Resource</strong> <code>Analytics</code> to give recommendation for deployment: <code>nginx-deployment</code> as a sample.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Main</label><label for="__tabbed_1_2">Mirror</label></div>
@@ -849,8 +883,8 @@
 <a id="__codelineno-4-29" name="__codelineno-4-29"></a><a href="#__codelineno-4-29"><span class="linenos" data-linenos="29 "></span></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">lastStartTime</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2022-06-02T09:44:54Z&quot;</span><span class="w"></span>
 <a id="__codelineno-4-30" name="__codelineno-4-30"></a><a href="#__codelineno-4-30"><span class="linenos" data-linenos="30 "></span></a><span class="w">    </span><span class="nt">message</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Success</span><span class="w"></span>
 <a id="__codelineno-4-31" name="__codelineno-4-31"></a><a href="#__codelineno-4-31"><span class="linenos" data-linenos="31 "></span></a><span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">nginx-replicas-replicas-7qspm</span><span class="w"></span>
-<a id="__codelineno-4-32" name="__codelineno-4-32"></a><span class="hll"><a href="#__codelineno-4-32"><span class="linenos" data-linenos="32 "></span></a><span class="w">    </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span><span class="w"></span>
-</span><a id="__codelineno-4-33" name="__codelineno-4-33"></a><a href="#__codelineno-4-33"><span class="linenos" data-linenos="33 "></span></a><span class="w">    </span><span class="nt">targetRef</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-4-32" name="__codelineno-4-32"></a><a href="#__codelineno-4-32"><span class="linenos" data-linenos="32 "></span></a><span class="w">    </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span><span class="w"></span>
+<a id="__codelineno-4-33" name="__codelineno-4-33"></a><a href="#__codelineno-4-33"><span class="linenos" data-linenos="33 "></span></a><span class="w">    </span><span class="nt">targetRef</span><span class="p">:</span><span class="w"></span>
 <a id="__codelineno-4-34" name="__codelineno-4-34"></a><a href="#__codelineno-4-34"><span class="linenos" data-linenos="34 "></span></a><span class="w">      </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">apps/v1</span><span class="w"></span>
 <a id="__codelineno-4-35" name="__codelineno-4-35"></a><a href="#__codelineno-4-35"><span class="linenos" data-linenos="35 "></span></a><span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Deployment</span><span class="w"></span>
 <a id="__codelineno-4-36" name="__codelineno-4-36"></a><a href="#__codelineno-4-36"><span class="linenos" data-linenos="36 "></span></a><span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">nginx-deployment</span><span class="w"></span>
@@ -923,6 +957,29 @@
 <a id="__codelineno-6-59" name="__codelineno-6-59"></a><a href="#__codelineno-6-59"><span class="linenos" data-linenos="59 "></span></a><span class="w">   </span><span class="nt">resourceVersion</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w"></span>
 <a id="__codelineno-6-60" name="__codelineno-6-60"></a><a href="#__codelineno-6-60"><span class="linenos" data-linenos="60 "></span></a><span class="w">   </span><span class="nt">selfLink</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w"></span>
 </code></pre></div>
+<h2 id="batch-recommendation">Batch recommendation<a class="headerlink" href="#batch-recommendation" title="Permanent link">&para;</a></h2>
+<p>Use a sample to show how to recommend all Deployments and StatefulSets by one <code>Analytics</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1"></a><a href="#__codelineno-7-1"><span class="linenos" data-linenos=" 1 "></span></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">analysis.crane.io/v1alpha1</span><span class="w"></span>
+<a id="__codelineno-7-2" name="__codelineno-7-2"></a><a href="#__codelineno-7-2"><span class="linenos" data-linenos=" 2 "></span></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Analytics</span><span class="w"></span>
+<a id="__codelineno-7-3" name="__codelineno-7-3"></a><a href="#__codelineno-7-3"><span class="linenos" data-linenos=" 3 "></span></a><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-7-4" name="__codelineno-7-4"></a><a href="#__codelineno-7-4"><span class="linenos" data-linenos=" 4 "></span></a><span class="w">   </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">workload-replicas</span><span class="w"></span>
+<a id="__codelineno-7-5" name="__codelineno-7-5"></a><a href="#__codelineno-7-5"><span class="linenos" data-linenos=" 5 "></span></a><span class="w">   </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">crane-system</span><span class="w">               </span><span class="c1"># The Analytics in Crane-system will select all resource across all namespaces.</span><span class="w"></span>
+<a id="__codelineno-7-6" name="__codelineno-7-6"></a><a href="#__codelineno-7-6"><span class="linenos" data-linenos=" 6 "></span></a><span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-7-7" name="__codelineno-7-7"></a><a href="#__codelineno-7-7"><span class="linenos" data-linenos=" 7 "></span></a><span class="w">   </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Replicas</span><span class="w">                        </span><span class="c1"># This can only be &quot;Resource&quot; or &quot;Replicas&quot;.</span><span class="w"></span>
+<a id="__codelineno-7-8" name="__codelineno-7-8"></a><a href="#__codelineno-7-8"><span class="linenos" data-linenos=" 8 "></span></a><span class="w">   </span><span class="nt">completionStrategy</span><span class="p">:</span><span class="w"></span>
+<a id="__codelineno-7-9" name="__codelineno-7-9"></a><a href="#__codelineno-7-9"><span class="linenos" data-linenos=" 9 "></span></a><span class="w">      </span><span class="nt">completionStrategyType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Periodical</span><span class="w">  </span><span class="c1"># This can only be &quot;Once&quot; or &quot;Periodical&quot;.</span><span class="w"></span>
+<a id="__codelineno-7-10" name="__codelineno-7-10"></a><a href="#__codelineno-7-10"><span class="linenos" data-linenos="10 "></span></a><span class="w">      </span><span class="nt">periodSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">86400</span><span class="w">                </span><span class="c1"># analytics selected resources every 1 day</span><span class="w"></span>
+<a id="__codelineno-7-11" name="__codelineno-7-11"></a><a href="#__codelineno-7-11"><span class="linenos" data-linenos="11 "></span></a><span class="w">   </span><span class="nt">resourceSelectors</span><span class="p">:</span><span class="w">                    </span><span class="c1"># defines all the resources to be select with</span><span class="w"></span>
+<a id="__codelineno-7-12" name="__codelineno-7-12"></a><a href="#__codelineno-7-12"><span class="linenos" data-linenos="12 "></span></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Deployment</span><span class="w"></span>
+<a id="__codelineno-7-13" name="__codelineno-7-13"></a><a href="#__codelineno-7-13"><span class="linenos" data-linenos="13 "></span></a><span class="w">        </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">apps/v1</span><span class="w"></span>
+<a id="__codelineno-7-14" name="__codelineno-7-14"></a><a href="#__codelineno-7-14"><span class="linenos" data-linenos="14 "></span></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">StatefulSet</span><span class="w"></span>
+<a id="__codelineno-7-15" name="__codelineno-7-15"></a><a href="#__codelineno-7-15"><span class="linenos" data-linenos="15 "></span></a><span class="w">        </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">apps/v1</span><span class="w"></span>
+</code></pre></div>
+<ol>
+<li>when using <code>crane-system</code> as your namespace，<code>Analytics</code> selected all namespaces，when namespace not equal <code>crane-system</code>，<code>Analytics</code> selected the resource that in <code>Analytics</code> namespace</li>
+<li>resourceSelectors defines the resource to analysis，kind and apiVersion is mandatory，name is optional</li>
+<li>resourceSelectors supoort any resource that are <a href="https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#scale-subresource">Scale Subresource</a></li>
+</ol>
 <h2 id="hpa-recommendation-algorithm-model">HPA Recommendation Algorithm model<a class="headerlink" href="#hpa-recommendation-algorithm-model" title="Permanent link">&para;</a></h2>
 <h3 id="inspecting">Inspecting<a class="headerlink" href="#inspecting" title="Permanent link">&para;</a></h3>
 <ol>
