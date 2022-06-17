@@ -9,23 +9,24 @@
       
       
       <link rel="icon" href="../../../images/crane.svg">
-      <meta name="generator" content="mkdocs-1.3.0, mkdocs-material-8.2.16">
+      <meta name="generator" content="mkdocs-1.3.0, mkdocs-material-8.3.6">
     
     
       
-        <title>分析和推荐 - Crane - Cloud Resource Analytics and Economics</title>
+        <title>Analytics - Crane - Cloud Resource Analytics and Economics</title>
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.1c3799f8.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.4a0965b7.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.cc9b2e1e.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.cbb835fc.min.css">
         
           
           
           <meta name="theme-color" content="#2094f3">
         
+      
       
     
     
@@ -103,7 +104,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              分析和推荐
+              Analytics
             
           </span>
         </div>
@@ -298,12 +299,14 @@
 
   
   
+    
+  
   
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2" type="checkbox" id="__nav_2" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2" type="checkbox" id="__nav_2" checked>
       
       
       
@@ -338,12 +341,14 @@
               
   
   
+    
+  
   
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_2" type="checkbox" id="__nav_2_2" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_2" type="checkbox" id="__nav_2_2" checked>
       
       
       
@@ -359,6 +364,102 @@
           Analytics and Recommendation
         </label>
         <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Analytics
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        Analytics
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    架构
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    一次分析的过程
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    名词解释
+  </a>
+  
+    <nav class="md-nav" aria-label="名词解释">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    分析
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    推荐
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    参数配置
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+            
           
             
               
@@ -380,8 +481,8 @@
   
   
     <li class="md-nav__item">
-      <a href="../hpa-recommendation/" class="md-nav__link">
-        HPA Recommendation
+      <a href="../replicas-recommendation/" class="md-nav__link">
+        Replicas Recommendation
       </a>
     </li>
   
@@ -679,8 +780,8 @@
 <h1 id="_1">分析和推荐<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
 <p>分析和推荐提供了一套自动化的成本优化能力，它帮助用户自动的发现问题并提供优化的方案。就像电脑/手机助手一样，它会定期的扫描、分析你的集群并给出推荐建议。目前，我们提供了两种优化能力：</p>
 <ul>
-<li><a href="../resource-recommendation/"><strong>资源推荐</strong></a>: 基于应用的历史资源使用推荐 Container 合适的 requests 和 limits</li>
-<li><a href="../hpa-recommendation/"><strong>弹性推荐</strong></a>: 筛选所有的工作负载，推荐出适合做弹性的工作负载并给出弹性建议</li>
+<li><a href="../resource-recommendation/"><strong>资源推荐</strong></a>: Kubernetes 的用户在创建应用资源时常常是基于经验值来设置 request 和 limit。通过资源推荐的算法分析应用的真实用量推荐更合适的资源配置，您可以参考并采纳它提升集群的资源利用率。</li>
+<li><a href="../replicas-recommendation/"><strong>弹性推荐</strong></a>: 筛选工作负载，推荐出适合做弹性的工作负载并给出弹性建议</li>
 </ul>
 <h2 id="_2">架构<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <p><img alt="analytics-arch" src="../../images/analytics-arch.png" /></p>
@@ -688,7 +789,7 @@
 <ol>
 <li>用户创建 Analytics 对象，通过 ResourceSelector 选择需要分析的资源，支持选择多类型（基于Group,Kind,Version）的批量选择</li>
 <li>并行分析每个选择的资源，尝试进行分析推荐，每次分析过程分成筛选和推荐两个阶段：</li>
-<li>筛选：排除不满足推荐条件的资源。比如对于弹性推荐，排除没有 running pod 的workload</li>
+<li>筛选：排除不满足推荐条件的资源。比如对于弹性推荐，排除没有 running pod 的 workload</li>
 <li>推荐：通过算法计算分析，给出推荐结果</li>
 <li>如果通过筛选，创建 Recommendation 对象，将推荐结果展示在 Recommendation.Status</li>
 <li>未通过筛选的原因和状态展示在 Analytics.Status</li>
@@ -704,10 +805,11 @@
 
               
             </article>
+            
           </div>
         </div>
         
-          <a href="#" class="md-top md-icon" data-md-component="top" data-md-state="hidden">
+          <a href="#" class="md-top md-icon" data-md-component="top" hidden>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
             回到页面顶部
           </a>
@@ -715,6 +817,42 @@
       </main>
       
         <footer class="md-footer">
+  
+    
+    <nav class="md-footer__inner md-grid" aria-label="页脚" >
+      
+        
+        <a href="../using-effective-hpa-to-scaling-with-effectiveness/" class="md-footer__link md-footer__link--prev" aria-label="上一页: Effective HPA" rel="prev">
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+          </div>
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                上一页
+              </span>
+              Effective HPA
+            </div>
+          </div>
+        </a>
+      
+      
+        
+        <a href="../resource-recommendation/" class="md-footer__link md-footer__link--next" aria-label="下一页: Resource Recommendation" rel="next">
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                下一页
+              </span>
+              Resource Recommendation
+            </div>
+          </div>
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4Z"/></svg>
+          </div>
+        </a>
+      
+    </nav>
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
@@ -736,10 +874,10 @@
     <div class="md-dialog" data-md-component="dialog">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
-    <script id="__config" type="application/json">{"base": "../../..", "features": ["content.code.annotate", "navigation.top"], "search": "../../../assets/javascripts/workers/search.2a1c317c.min.js", "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.config.lang": "ja", "search.config.pipeline": "trimmer, stemmer", "search.config.separator": "[\\s\\-\uff0c\u3002]+", "search.placeholder": "\u641c\u7d22", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version.title": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": {"default": "latest", "provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["content.code.annotate", "navigation.top"], "search": "../../../assets/javascripts/workers/search.85cb4492.min.js", "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.config.lang": "ja", "search.config.pipeline": "trimmer, stemmer", "search.config.separator": "[\\s\\-\uff0c\u3002]+", "search.placeholder": "\u641c\u7d22", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version.title": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.3a4b43e5.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.a877e258.min.js"></script>
       
         <script src="../../../assets/util.js"></script>
       
