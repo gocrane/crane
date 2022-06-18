@@ -51,6 +51,7 @@ plugins:
           Mirror Repo: 镜像仓库
           Code Standard: 代码标准
           Roadmap: 路线图
+          Load-aware Scheduling: 负载感知调度
 markdown_extensions:
   - codehilite
   - admonition
@@ -86,7 +87,8 @@ nav:
         - Replicas Recommendation: tutorials/replicas-recommendation.md
       - Qos Ensurance: tutorials/using-qos-ensurance.md
       - Time Series Prediction: tutorials/using-time-series-prediction.md
-      - Load-aware Scheduling: tutorials/scheduling-pods-based-on-actual-node-load.md
+      - Crane-scheduler:
+        - Load-aware Scheduling: tutorials/scheduling-pods-based-on-actual-node-load.md
   - Proposals:
       - Advanced CpuSet Manager: proposals/20220228-advanced-cpuset-manger.md
   - Contributing: CONTRIBUTING.md
