@@ -42,10 +42,6 @@ import (
 	"github.com/gocrane/crane/pkg/recommend"
 )
 
-const (
-	RecommendationMissionMessageSuccess = "Success"
-)
-
 type Controller struct {
 	client.Client
 	Scheme          *runtime.Scheme
@@ -59,7 +55,8 @@ type Controller struct {
 	ScaleClient     scale.ScalesGetter
 	PredictorMgr    predictormgr.Manager
 	Provider        providers.History
-	ConfigSet       *analysisv1alph1.ConfigSet
+	ConfigSetFile   string
+	configSet       *analysisv1alph1.ConfigSet
 }
 
 func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -291,6 +288,12 @@ func (c *Controller) SetupWithManager(mgr ctrl.Manager) error {
 	}
 	c.K8SVersion = version.MustParseGeneric(serverVersion.GitVersion)
 
+	if err = c.loadConfigSetFile(); err != nil {
+		return err
+	}
+
+	go c.watchConfigSetFile()
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&analysisv1alph1.Analytics{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(c)
@@ -398,7 +401,7 @@ func (c *Controller) executeMission(ctx context.Context, wg *sync.WaitGroup, ana
 			recommendation = c.CreateRecommendationObject(ctx, analytics, mission.TargetRef, id)
 		}
 		// do recommendation
-		recommender, err := recommend.NewRecommender(c.Client, c.RestMapper, c.ScaleClient, recommendation, c.PredictorMgr, c.Provider, c.ConfigSet, analytics.Spec.Config)
+		recommender, err := recommend.NewRecommender(c.Client, c.RestMapper, c.ScaleClient, recommendation, c.PredictorMgr, c.Provider, c.configSet, analytics.Spec.Config)
 		if err != nil {
 			mission.Message = fmt.Sprintf("Failed to create recommender, Recommendation %s error %v", klog.KObj(recommendation), err)
 			return
