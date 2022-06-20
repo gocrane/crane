@@ -12,7 +12,7 @@ Crane-scheduler 是一组基于[scheduler framework](https://kubernetes.io/docs/
 
 ### 配置 Prometheus 规则
 
-1. 配置 Prometheus 的规则以获取预期的聚合数据：
+配置 Prometheus 的规则以获取预期的聚合数据：
 
 ```yaml
 apiVersion: monitoring.coreos.com/v1
@@ -56,27 +56,6 @@ spec:
 !!! warning "️Troubleshooting"
 
         Prometheus 的采样间隔必须小于30秒，不然可能会导致规则无法正常生效。如：`cpu_usage_active`。
-
-2\. 更新 Prometheus 服务发现的配置，确保`node_exporters/telegraf`正在使用节点名称作为实例名称：
-
-```yaml hl_lines="9-11"
-    - job_name: kubernetes-node-exporter
-      tls_config:
-        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-        insecure_skip_verify: true
-      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-      scheme: https
-      kubernetes_sd_configs:
-      ...
-      # Host name
-      - source_labels: [__meta_kubernetes_node_name]
-        target_label: instance
-      ...
-```
-
-!!! note "Note"
-
-      如果节点名称是本机IP，则可以跳过此步骤。
 
 ### 安装 Crane-scheduler
 有两种选择：
