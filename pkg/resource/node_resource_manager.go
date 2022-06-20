@@ -73,13 +73,13 @@ type NodeResourceManager struct {
 	tspName string
 }
 
-func NewNodeResourceManager(client clientset.Interface, nodeName string, op map[string]string, tspName string, nodeInformer coreinformers.NodeInformer,
+func NewNodeResourceManager(client clientset.Interface, nodeName string, nodeResourceReserved map[string]string, tspName string, nodeInformer coreinformers.NodeInformer,
 	tspInformer predictionv1.TimeSeriesPredictionInformer, stateChann chan map[string][]common.TimeSeries) (*NodeResourceManager, error) {
-	reserveCpuPercent, err := utils.ParsePercentage(op[v1.ResourceCPU.String()])
+	reserveCpuPercent, err := utils.ParsePercentage(nodeResourceReserved[v1.ResourceCPU.String()])
 	if err != nil {
 		return nil, err
 	}
-	reserveMemoryPercent, err := utils.ParsePercentage(op[v1.ResourceMemory.String()])
+	reserveMemoryPercent, err := utils.ParsePercentage(nodeResourceReserved[v1.ResourceMemory.String()])
 	if err != nil {
 		return nil, err
 	}

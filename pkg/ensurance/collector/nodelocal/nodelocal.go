@@ -81,7 +81,7 @@ func (n *NodeLocal) Collect() (map[string][]common.TimeSeries, error) {
 		}
 	}
 
-	klog.V(10).Info("Node local collecting, status: %v", status)
+	klog.V(6).Info("Node local collecting, status: %#v", status)
 
 	return status, nil
 }
