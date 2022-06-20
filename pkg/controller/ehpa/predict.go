@@ -3,6 +3,8 @@ package ehpa
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strings"
 
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	v1 "k8s.io/api/core/v1"
@@ -144,6 +146,31 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 				},
 			})
 		}
+		if metric.Type == autoscalingv2.ExternalMetricSourceType {
+			metricName := utils.GetExternalPredictionMetricName(metric.External.Metric.Name)
+
+			if len(metricName) == 0 {
+				continue
+			}
+
+			expressionQuery := getExpressionQuery(metricName, ehpa.Annotations)
+			if len(expressionQuery) == 0 {
+				continue
+			}
+
+			predictionMetrics = append(predictionMetrics, predictionapi.PredictionMetric{
+				ResourceIdentifier: metricName,
+				Type:               predictionapi.ExpressionQueryMetricType,
+				ExpressionQuery: &predictionapi.ExpressionQuery{
+					Expression: expressionQuery,
+				},
+				Algorithm: predictionapi.Algorithm{
+					AlgorithmType: ehpa.Spec.Prediction.PredictionAlgorithm.AlgorithmType,
+					DSP:           ehpa.Spec.Prediction.PredictionAlgorithm.DSP,
+					Percentile:    ehpa.Spec.Prediction.PredictionAlgorithm.Percentile,
+				},
+			})
+		}
 	}
 	prediction.Spec.PredictionMetrics = predictionMetrics
 
@@ -153,6 +180,20 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 	}
 
 	return prediction, nil
+}
+
+func getExpressionQuery(metricName string, annotations map[string]string) string {
+	for k, v := range annotations {
+		if strings.HasPrefix(k, known.EffectiveHorizontalPodAutoscalerExternalMetricsAnnotationPrefix) {
+			compileRegex := regexp.MustCompile(fmt.Sprintf("%s(.*?)", known.EffectiveHorizontalPodAutoscalerExternalMetricsAnnotationPrefix))
+			matchArr := compileRegex.FindStringSubmatch(k)
+			if len(matchArr) == 2 && matchArr[1][1:] == metricName {
+				return v
+			}
+		}
+	}
+
+	return ""
 }
 
 func setPredictionCondition(status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus, conditions []metav1.Condition) {

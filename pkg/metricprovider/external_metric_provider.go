@@ -3,6 +3,9 @@ package metricprovider
 import (
 	"context"
 	"fmt"
+	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -52,6 +55,75 @@ const (
 
 // GetExternalMetric each ehpa mapping to only one external cron metric. metric name is ehpa name
 func (p *ExternalMetricProvider) GetExternalMetric(ctx context.Context, namespace string, metricSelector labels.Selector, info provider.ExternalMetricInfo) (*external_metrics.ExternalMetricValueList, error) {
+	if strings.HasPrefix(info.Metric, "ehpa-external") {
+		prediction, err := GetPrediction(ctx, p.client, namespace, metricSelector)
+		if err != nil {
+			return nil, err
+		}
+
+		isPredicting := false
+		// check prediction is ongoing
+		if prediction.Status.Conditions != nil {
+			for _, condition := range prediction.Status.Conditions {
+				if condition.Type == string(predictionapi.TimeSeriesPredictionConditionReady) && condition.Status == metav1.ConditionTrue {
+					isPredicting = true
+				}
+			}
+		}
+
+		if !isPredicting {
+			return nil, fmt.Errorf("TimeSeriesPrediction is not ready. ")
+		}
+
+		var timeSeries *predictionapi.MetricTimeSeries
+		for _, metricStatus := range prediction.Status.PredictionMetrics {
+			if metricStatus.ResourceIdentifier == info.Metric && len(metricStatus.Prediction) == 1 {
+				timeSeries = metricStatus.Prediction[0]
+			}
+		}
+		// check time series for current metric is empty
+		if timeSeries == nil {
+			return nil, fmt.Errorf("TimeSeries is empty, metric name %s", info.Metric)
+		}
+
+		// get the largest value from timeSeries
+		// use the largest value will bring up the scaling up and defer the scaling down
+		timestampStart := time.Now()
+		timestampEnd := timestampStart.Add(time.Duration(prediction.Spec.PredictionWindowSeconds) * time.Second)
+		largestMetricValue := &metricValue{}
+		hasValidSample := false
+		for _, v := range timeSeries.Samples {
+			// exclude values that not in time range
+			if v.Timestamp < timestampStart.Unix() || v.Timestamp > timestampEnd.Unix() {
+				continue
+			}
+
+			valueFloat, err := strconv.ParseFloat(v.Value, 32)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse value to float: %v ", err)
+			}
+			if valueFloat > largestMetricValue.value {
+				hasValidSample = true
+				largestMetricValue.value = valueFloat
+				largestMetricValue.timestamp = v.Timestamp
+			}
+		}
+
+		if !hasValidSample {
+			return nil, fmt.Errorf("TimeSeries is outdated, metric name %s", info.Metric)
+		}
+
+		klog.Infof("Provide external metric %s average value %f.", info.Metric, largestMetricValue.value)
+
+		return &external_metrics.ExternalMetricValueList{Items: []external_metrics.ExternalMetricValue{
+			{
+				MetricName: info.Metric,
+				Timestamp:  metav1.Now(),
+				Value:      *resource.NewQuantity(int64(largestMetricValue.value), resource.DecimalSI),
+			},
+		}}, nil
+	}
+
 	var ehpa autoscalingapi.EffectiveHorizontalPodAutoscaler
 
 	err := p.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: info.Metric}, &ehpa)
@@ -141,6 +213,15 @@ func (p *ExternalMetricProvider) ListAllExternalMetrics() []provider.ExternalMet
 	for _, ehpa := range ehpaList.Items {
 		if CronEnabled(&ehpa) {
 			metricInfos = append(metricInfos, provider.ExternalMetricInfo{Metric: ehpa.Name})
+		}
+		for k, _ := range ehpa.Annotations {
+			if strings.HasPrefix(k, known.EffectiveHorizontalPodAutoscalerExternalMetricsAnnotationPrefix) {
+				compileRegex := regexp.MustCompile(fmt.Sprintf("%s(.*?)", known.EffectiveHorizontalPodAutoscalerExternalMetricsAnnotationPrefix))
+				matchArr := compileRegex.FindStringSubmatch(k)
+				if len(matchArr) == 2 {
+					metricInfos = append(metricInfos, provider.ExternalMetricInfo{Metric: matchArr[1][1:]})
+				}
+			}
 		}
 	}
 	return metricInfos

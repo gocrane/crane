@@ -77,7 +77,7 @@ func (p *CustomMetricProvider) GetMetricBySelector(ctx context.Context, namespac
 	}
 
 	var matchingMetrics []custom_metrics.MetricValue
-	prediction, err := p.GetPrediction(ctx, namespace, metricSelector)
+	prediction, err := GetPrediction(ctx, p.client, namespace, metricSelector)
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +209,7 @@ func IsLocalMetric(metricInfo provider.CustomMetricInfo) bool {
 	return false
 }
 
-func (p *CustomMetricProvider) GetPrediction(ctx context.Context, namespace string, metricSelector labels.Selector) (*predictionapi.TimeSeriesPrediction, error) {
+func GetPrediction(ctx context.Context, kubeclient client.Client, namespace string, metricSelector labels.Selector) (*predictionapi.TimeSeriesPrediction, error) {
 	labelSelector, err := labels.ConvertSelectorToLabelsMap(metricSelector.String())
 	if err != nil {
 		klog.Error(err, "Failed to convert metric selectors to labels")
@@ -227,7 +227,7 @@ func (p *CustomMetricProvider) GetPrediction(ctx context.Context, namespace stri
 		matchingLabels,
 		client.InNamespace(namespace),
 	}
-	err = p.client.List(ctx, predictionList, opts...)
+	err = kubeclient.List(ctx, predictionList, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get TimeSeriesPrediction when get custom metric ")
 	} else if len(predictionList.Items) != 1 {
