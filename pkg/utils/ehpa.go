@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	v1 "k8s.io/api/core/v1"
 
@@ -43,5 +44,5 @@ func GetPredictionMetricName(name v1.ResourceName) string {
 
 // GetExternalPredictionMetricName return metric name used by prediction
 func GetExternalPredictionMetricName(name string) string {
-	return fmt.Sprintf("ehpa-external-%s", name)
+	return fmt.Sprintf("crane-%s", name)
 }

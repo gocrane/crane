@@ -153,7 +153,7 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 				continue
 			}
 
-			expressionQuery := getExpressionQuery(metricName, ehpa.Annotations)
+			expressionQuery := getExpressionQuery(metric.External.Metric.Name, ehpa.Annotations)
 			if len(expressionQuery) == 0 {
 				continue
 			}
@@ -185,7 +185,7 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 func getExpressionQuery(metricName string, annotations map[string]string) string {
 	for k, v := range annotations {
 		if strings.HasPrefix(k, known.EffectiveHorizontalPodAutoscalerExternalMetricsAnnotationPrefix) {
-			compileRegex := regexp.MustCompile(fmt.Sprintf("%s(.*?)", known.EffectiveHorizontalPodAutoscalerExternalMetricsAnnotationPrefix))
+			compileRegex := regexp.MustCompile(fmt.Sprintf("%s(.*)", known.EffectiveHorizontalPodAutoscalerExternalMetricsAnnotationPrefix))
 			matchArr := compileRegex.FindStringSubmatch(k)
 			if len(matchArr) == 2 && matchArr[1][1:] == metricName {
 				return v

@@ -7,6 +7,6 @@ const (
 )
 
 const (
-	EffectiveHorizontalPodAutoscalerCurrentMetricsAnnotation = "autoscaling.crane.io/effective-hpa-current-metrics"
+	EffectiveHorizontalPodAutoscalerCurrentMetricsAnnotation        = "autoscaling.crane.io/effective-hpa-current-metrics"
 	EffectiveHorizontalPodAutoscalerExternalMetricsAnnotationPrefix = "metric-name.autoscaling.crane.io"
 )

@@ -53,7 +53,7 @@ func NewCustomMetricProvider(client client.Client, remoteAdapter *RemoteAdapter,
 func (p *CustomMetricProvider) GetMetricByName(ctx context.Context, name types.NamespacedName, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValue, error) {
 	klog.Info(fmt.Sprintf("Get metric by name for custom metric, GroupResource %s namespacedName %s metric %s metricSelector %s", info.GroupResource.String(), name.String(), info.Metric, metricSelector.String()))
 
-	if !IsLocalMetric(info) {
+	if !IsLocalCustomMetric(info) {
 		if p.remoteAdapter != nil {
 			return p.remoteAdapter.GetMetricByName(ctx, name, info, metricSelector)
 		} else {
@@ -68,7 +68,7 @@ func (p *CustomMetricProvider) GetMetricByName(ctx context.Context, name types.N
 func (p *CustomMetricProvider) GetMetricBySelector(ctx context.Context, namespace string, selector labels.Selector, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValueList, error) {
 	klog.Info(fmt.Sprintf("Get metric by selector for custom metric, Info %v namespace %s selector %s metricSelector %s", info, namespace, selector.String(), metricSelector.String()))
 
-	if !IsLocalMetric(info) {
+	if !IsLocalCustomMetric(info) {
 		if p.remoteAdapter != nil {
 			return p.remoteAdapter.GetMetricBySelector(ctx, namespace, selector, info, metricSelector)
 		} else {
@@ -197,7 +197,7 @@ func ListAllLocalMetrics() []provider.CustomMetricInfo {
 	}
 }
 
-func IsLocalMetric(metricInfo provider.CustomMetricInfo) bool {
+func IsLocalCustomMetric(metricInfo provider.CustomMetricInfo) bool {
 	for _, info := range ListAllLocalMetrics() {
 		if info.Namespaced == metricInfo.Namespaced &&
 			info.Metric == metricInfo.Metric &&

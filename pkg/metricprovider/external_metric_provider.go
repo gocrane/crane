@@ -3,12 +3,11 @@ package metricprovider
 import (
 	"context"
 	"fmt"
-	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,6 +20,7 @@ import (
 	"sigs.k8s.io/custom-metrics-apiserver/pkg/provider"
 
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
+	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/utils"
@@ -31,19 +31,21 @@ var _ provider.ExternalMetricsProvider = &ExternalMetricProvider{}
 
 // ExternalMetricProvider implements ehpa external metric as external metric provider which now support cron metric
 type ExternalMetricProvider struct {
-	client     client.Client
-	recorder   record.EventRecorder
-	scaler     scale.ScalesGetter
-	restMapper meta.RESTMapper
+	client        client.Client
+	remoteAdapter *RemoteAdapter
+	recorder      record.EventRecorder
+	scaler        scale.ScalesGetter
+	restMapper    meta.RESTMapper
 }
 
 // NewExternalMetricProvider returns an instance of ExternalMetricProvider
-func NewExternalMetricProvider(client client.Client, recorder record.EventRecorder, scaleClient scale.ScalesGetter, restMapper meta.RESTMapper) *ExternalMetricProvider {
+func NewExternalMetricProvider(client client.Client, remoteAdapter *RemoteAdapter, recorder record.EventRecorder, scaleClient scale.ScalesGetter, restMapper meta.RESTMapper) *ExternalMetricProvider {
 	return &ExternalMetricProvider{
-		client:     client,
-		recorder:   recorder,
-		scaler:     scaleClient,
-		restMapper: restMapper,
+		client:        client,
+		remoteAdapter: remoteAdapter,
+		recorder:      recorder,
+		scaler:        scaleClient,
+		restMapper:    restMapper,
 	}
 }
 
@@ -55,7 +57,16 @@ const (
 
 // GetExternalMetric each ehpa mapping to only one external cron metric. metric name is ehpa name
 func (p *ExternalMetricProvider) GetExternalMetric(ctx context.Context, namespace string, metricSelector labels.Selector, info provider.ExternalMetricInfo) (*external_metrics.ExternalMetricValueList, error) {
-	if strings.HasPrefix(info.Metric, "ehpa-external") {
+	klog.Info(fmt.Sprintf("Get metric by selector for external metric, Info %v namespace %s metricSelector %s", info, namespace, metricSelector.String()))
+
+	if !IsLocalExternalMetric(info, p.client) {
+		if p.remoteAdapter != nil {
+			return p.remoteAdapter.GetExternalMetric(ctx, namespace, metricSelector, info)
+		} else {
+			return nil, apiErrors.NewServiceUnavailable("not supported")
+		}
+	}
+	if strings.HasPrefix(info.Metric, "crane") {
 		prediction, err := GetPrediction(ctx, p.client, namespace, metricSelector)
 		if err != nil {
 			return nil, err
@@ -203,9 +214,20 @@ func (p *ExternalMetricProvider) GetExternalMetric(ctx context.Context, namespac
 // ListAllExternalMetrics return external cron metrics
 // Fetch metrics from cache directly to avoid the performance issue for apiserver when the metrics is large, because this api is called frequently.
 func (p *ExternalMetricProvider) ListAllExternalMetrics() []provider.ExternalMetricInfo {
+	klog.Info("List all external metrics")
+
+	metricInfos := ListAllLocalExternalMetrics(p.client)
+
+	if p.remoteAdapter != nil {
+		metricInfos = append(metricInfos, p.remoteAdapter.ListAllExternalMetrics()...)
+	}
+	return metricInfos
+}
+
+func ListAllLocalExternalMetrics(client client.Client) []provider.ExternalMetricInfo {
 	var metricInfos []provider.ExternalMetricInfo
 	var ehpaList autoscalingapi.EffectiveHorizontalPodAutoscalerList
-	err := p.client.List(context.TODO(), &ehpaList)
+	err := client.List(context.TODO(), &ehpaList)
 	if err != nil {
 		klog.Errorf("Failed to list ehpa: %v", err)
 		return metricInfos
@@ -214,17 +236,19 @@ func (p *ExternalMetricProvider) ListAllExternalMetrics() []provider.ExternalMet
 		if CronEnabled(&ehpa) {
 			metricInfos = append(metricInfos, provider.ExternalMetricInfo{Metric: ehpa.Name})
 		}
-		for k, _ := range ehpa.Annotations {
-			if strings.HasPrefix(k, known.EffectiveHorizontalPodAutoscalerExternalMetricsAnnotationPrefix) {
-				compileRegex := regexp.MustCompile(fmt.Sprintf("%s(.*?)", known.EffectiveHorizontalPodAutoscalerExternalMetricsAnnotationPrefix))
-				matchArr := compileRegex.FindStringSubmatch(k)
-				if len(matchArr) == 2 {
-					metricInfos = append(metricInfos, provider.ExternalMetricInfo{Metric: matchArr[1][1:]})
-				}
-			}
+	}
+
+	return metricInfos
+}
+
+func IsLocalExternalMetric(metricInfo provider.ExternalMetricInfo, client client.Client) bool {
+	for _, info := range ListAllLocalExternalMetrics(client) {
+		if info.Metric == metricInfo.Metric {
+			return true
 		}
 	}
-	return metricInfos
+
+	return false
 }
 
 func CronEnabled(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) bool {

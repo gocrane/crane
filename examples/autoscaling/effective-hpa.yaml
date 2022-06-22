@@ -27,4 +27,4 @@ spec:
       algorithmType: dsp
       dsp:
         sampleInterval: "60s"
-        historyLength: "3d"
+        historyLength: "7d"

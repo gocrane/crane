@@ -262,7 +262,7 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 						},
 					},
 					Target: autoscalingv2.MetricTarget{
-						Type: autoscalingv2.AverageValueMetricType,
+						Type:         autoscalingv2.AverageValueMetricType,
 						AverageValue: metric.External.Target.AverageValue,
 					},
 				}
