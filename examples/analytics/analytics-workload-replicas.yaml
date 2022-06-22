@@ -13,3 +13,6 @@ spec:
       apiVersion: apps/v1
     - kind: StatefulSet
       apiVersion: apps/v1
+  config: # defines all the configuration for this analytics
+    replicas.fluctuation-threshold: "0"
+    replicas.min-cpu-usage-threshold: "0"

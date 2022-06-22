@@ -16,7 +16,7 @@ Kubernetes 用户在创建应用资源时常常是基于经验值来设置副本
 
       ```bash
       kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/nginx-deployment.yaml
-      kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/analytics-hpa.yaml
+      kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/analytics-replicas.yaml
       kubectl get analytics
       ```
  
@@ -24,12 +24,12 @@ Kubernetes 用户在创建应用资源时常常是基于经验值来设置副本
 
       ```bash
       kubectl apply -f https://finops.coding.net/p/gocrane/d/crane/git/raw/main/examples/analytics/nginx-deployment.yaml?download=false
-      kubectl apply -f https://finops.coding.net/p/gocrane/d/crane/git/raw/main/examples/analytics/analytics-hpa.yaml?download=false
+      kubectl apply -f https://finops.coding.net/p/gocrane/d/crane/git/raw/main/examples/analytics/analytics-replicas.yaml?download=false
       kubectl get analytics
       ```
 
 
-```yaml title="analytics-hpa.yaml"
+```yaml title="analytics-replicas.yaml"
 apiVersion: analysis.crane.io/v1alpha1
 kind: Analytics
 metadata:
