@@ -51,7 +51,7 @@ func NewRemoteAdapter(namespace string, name string, port int, config *rest.Conf
 
 	// use actual rest mapper here
 	metricClient := cmClient.NewForConfig(metricConfig, client.RESTMapper(), apiVersionsGetter)
-	externalMetricsClient, err := emClient.NewForConfig(config)
+	externalMetricsClient, err := emClient.NewForConfig(metricConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create external metrics client: %v", err)
 	}
