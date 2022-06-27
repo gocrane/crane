@@ -35,6 +35,9 @@ plugins:
         zh:
           name: 简体中文
           build: true
+        zh_TW:
+          name: 繁體中文
+          build: true
       nav_translations:
         zh:
           Getting Started: 从这里开始
@@ -53,6 +56,23 @@ plugins:
           Roadmap: 路线图
           Overview: 概述
           Load-aware Scheduling: 负载感知调度
+        zh_TW:
+          Getting Started: 入門
+          Introduction: 介紹
+          Installation: 安裝
+          Tutorials: 教程
+          Effective HPA: 高效水平彈性
+          Analytics and Recommendation: 智慧推薦
+          Analytics Overview: 推薦
+          Resource Recommendation: 資源推薦
+          Replicas Recommendation: 副本數推薦
+          Proposals: 提案
+          Contributing: 貢獻
+          Mirror Repo: 鏡像倉庫
+          Code Standard: 代碼標準
+          Roadmap: 技術路線
+          Overview: 概述
+          Load-aware Scheduling: 負載感知調度
 markdown_extensions:
   - codehilite
   - admonition
