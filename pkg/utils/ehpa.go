@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"strings"
 
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	v1 "k8s.io/api/core/v1"
@@ -22,6 +23,12 @@ func IsEHPAHasPredictionMetric(ehpa *autoscalingapi.EffectiveHorizontalPodAutosc
 			if len(metricName) == 0 {
 				continue
 			}
+			return true
+		}
+	}
+
+	for key := range ehpa.Annotations {
+		if strings.HasPrefix(key, known.EffectiveHorizontalPodAutoscalerExternalMetricsAnnotationPrefix) {
 			return true
 		}
 	}
