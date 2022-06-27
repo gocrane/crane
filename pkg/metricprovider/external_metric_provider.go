@@ -59,13 +59,6 @@ const (
 func (p *ExternalMetricProvider) GetExternalMetric(ctx context.Context, namespace string, metricSelector labels.Selector, info provider.ExternalMetricInfo) (*external_metrics.ExternalMetricValueList, error) {
 	klog.Info(fmt.Sprintf("Get metric by selector for external metric, Info %v namespace %s metricSelector %s", info, namespace, metricSelector.String()))
 
-	if !IsLocalExternalMetric(info, p.client) {
-		if p.remoteAdapter != nil {
-			return p.remoteAdapter.GetExternalMetric(ctx, namespace, metricSelector, info)
-		} else {
-			return nil, apiErrors.NewServiceUnavailable("not supported")
-		}
-	}
 	if strings.HasPrefix(info.Metric, "crane") {
 		prediction, err := GetPrediction(ctx, p.client, namespace, metricSelector)
 		if err != nil {
@@ -133,6 +126,14 @@ func (p *ExternalMetricProvider) GetExternalMetric(ctx context.Context, namespac
 				Value:      *resource.NewQuantity(int64(largestMetricValue.value), resource.DecimalSI),
 			},
 		}}, nil
+	}
+
+	if !IsLocalExternalMetric(info, p.client) {
+		if p.remoteAdapter != nil {
+			return p.remoteAdapter.GetExternalMetric(ctx, namespace, metricSelector, info)
+		} else {
+			return nil, apiErrors.NewServiceUnavailable("not supported")
+		}
 	}
 
 	var ehpa autoscalingapi.EffectiveHorizontalPodAutoscaler
