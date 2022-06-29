@@ -181,7 +181,7 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 	}
 
 	if utils.IsEHPAPredictionEnabled(ehpa) && isPredictionReady(status) {
-		var customMetricsForPrediction []autoscalingv2.MetricSpec
+		var metricsForPrediction []autoscalingv2.MetricSpec
 
 		for _, metric := range metrics {
 			// generate a custom metric for resource metric
@@ -240,11 +240,39 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 				}
 
 				metricSpec := autoscalingv2.MetricSpec{Pods: customMetric, Type: autoscalingv2.PodsMetricSourceType}
-				customMetricsForPrediction = append(customMetricsForPrediction, metricSpec)
+				metricsForPrediction = append(metricsForPrediction, metricSpec)
+			}
+
+			// generate a external metric for external metric
+			if metric.Type == autoscalingv2.ExternalMetricSourceType {
+				name := utils.GetExternalPredictionMetricName(metric.External.Metric.Name)
+				if len(name) == 0 {
+					continue
+				}
+
+				external := &autoscalingv2.ExternalMetricSource{
+					Metric: autoscalingv2.MetricIdentifier{
+						Name: name,
+						// add known.EffectiveHorizontalPodAutoscalerUidLabel=uid in metric.selector
+						// MetricAdapter use label selector to match the matching TimeSeriesPrediction to return metrics
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								known.EffectiveHorizontalPodAutoscalerUidLabel: string(ehpa.UID),
+							},
+						},
+					},
+					Target: autoscalingv2.MetricTarget{
+						Type:         autoscalingv2.AverageValueMetricType,
+						AverageValue: metric.External.Target.AverageValue,
+					},
+				}
+
+				metricSpec := autoscalingv2.MetricSpec{External: external, Type: autoscalingv2.ExternalMetricSourceType}
+				metricsForPrediction = append(metricsForPrediction, metricSpec)
 			}
 		}
 
-		metrics = append(metrics, customMetricsForPrediction...)
+		metrics = append(metrics, metricsForPrediction...)
 	}
 
 	// Construct cron external metrics for cron scale

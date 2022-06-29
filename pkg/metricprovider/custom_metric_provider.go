@@ -53,7 +53,7 @@ func NewCustomMetricProvider(client client.Client, remoteAdapter *RemoteAdapter,
 func (p *CustomMetricProvider) GetMetricByName(ctx context.Context, name types.NamespacedName, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValue, error) {
 	klog.Info(fmt.Sprintf("Get metric by name for custom metric, GroupResource %s namespacedName %s metric %s metricSelector %s", info.GroupResource.String(), name.String(), info.Metric, metricSelector.String()))
 
-	if !IsLocalMetric(info) {
+	if !IsLocalCustomMetric(info) {
 		if p.remoteAdapter != nil {
 			return p.remoteAdapter.GetMetricByName(ctx, name, info, metricSelector)
 		} else {
@@ -68,7 +68,7 @@ func (p *CustomMetricProvider) GetMetricByName(ctx context.Context, name types.N
 func (p *CustomMetricProvider) GetMetricBySelector(ctx context.Context, namespace string, selector labels.Selector, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValueList, error) {
 	klog.Info(fmt.Sprintf("Get metric by selector for custom metric, Info %v namespace %s selector %s metricSelector %s", info, namespace, selector.String(), metricSelector.String()))
 
-	if !IsLocalMetric(info) {
+	if !IsLocalCustomMetric(info) {
 		if p.remoteAdapter != nil {
 			return p.remoteAdapter.GetMetricBySelector(ctx, namespace, selector, info, metricSelector)
 		} else {
@@ -77,7 +77,7 @@ func (p *CustomMetricProvider) GetMetricBySelector(ctx context.Context, namespac
 	}
 
 	var matchingMetrics []custom_metrics.MetricValue
-	prediction, err := p.GetPrediction(ctx, namespace, metricSelector)
+	prediction, err := GetPrediction(ctx, p.client, namespace, metricSelector)
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +197,7 @@ func ListAllLocalMetrics() []provider.CustomMetricInfo {
 	}
 }
 
-func IsLocalMetric(metricInfo provider.CustomMetricInfo) bool {
+func IsLocalCustomMetric(metricInfo provider.CustomMetricInfo) bool {
 	for _, info := range ListAllLocalMetrics() {
 		if info.Namespaced == metricInfo.Namespaced &&
 			info.Metric == metricInfo.Metric &&
@@ -209,7 +209,7 @@ func IsLocalMetric(metricInfo provider.CustomMetricInfo) bool {
 	return false
 }
 
-func (p *CustomMetricProvider) GetPrediction(ctx context.Context, namespace string, metricSelector labels.Selector) (*predictionapi.TimeSeriesPrediction, error) {
+func GetPrediction(ctx context.Context, kubeclient client.Client, namespace string, metricSelector labels.Selector) (*predictionapi.TimeSeriesPrediction, error) {
 	labelSelector, err := labels.ConvertSelectorToLabelsMap(metricSelector.String())
 	if err != nil {
 		klog.Error(err, "Failed to convert metric selectors to labels")
@@ -227,7 +227,7 @@ func (p *CustomMetricProvider) GetPrediction(ctx context.Context, namespace stri
 		matchingLabels,
 		client.InNamespace(namespace),
 	}
-	err = p.client.List(ctx, predictionList, opts...)
+	err = kubeclient.List(ctx, predictionList, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get TimeSeriesPrediction when get custom metric ")
 	} else if len(predictionList.Items) != 1 {

@@ -3,9 +3,11 @@ package metricprovider
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
+	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,6 +20,7 @@ import (
 	"sigs.k8s.io/custom-metrics-apiserver/pkg/provider"
 
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
+	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/utils"
@@ -28,19 +31,21 @@ var _ provider.ExternalMetricsProvider = &ExternalMetricProvider{}
 
 // ExternalMetricProvider implements ehpa external metric as external metric provider which now support cron metric
 type ExternalMetricProvider struct {
-	client     client.Client
-	recorder   record.EventRecorder
-	scaler     scale.ScalesGetter
-	restMapper meta.RESTMapper
+	client        client.Client
+	remoteAdapter *RemoteAdapter
+	recorder      record.EventRecorder
+	scaler        scale.ScalesGetter
+	restMapper    meta.RESTMapper
 }
 
 // NewExternalMetricProvider returns an instance of ExternalMetricProvider
-func NewExternalMetricProvider(client client.Client, recorder record.EventRecorder, scaleClient scale.ScalesGetter, restMapper meta.RESTMapper) *ExternalMetricProvider {
+func NewExternalMetricProvider(client client.Client, remoteAdapter *RemoteAdapter, recorder record.EventRecorder, scaleClient scale.ScalesGetter, restMapper meta.RESTMapper) *ExternalMetricProvider {
 	return &ExternalMetricProvider{
-		client:     client,
-		recorder:   recorder,
-		scaler:     scaleClient,
-		restMapper: restMapper,
+		client:        client,
+		remoteAdapter: remoteAdapter,
+		recorder:      recorder,
+		scaler:        scaleClient,
+		restMapper:    restMapper,
 	}
 }
 
@@ -52,6 +57,85 @@ const (
 
 // GetExternalMetric each ehpa mapping to only one external cron metric. metric name is ehpa name
 func (p *ExternalMetricProvider) GetExternalMetric(ctx context.Context, namespace string, metricSelector labels.Selector, info provider.ExternalMetricInfo) (*external_metrics.ExternalMetricValueList, error) {
+	klog.Info(fmt.Sprintf("Get metric by selector for external metric, Info %v namespace %s metricSelector %s", info, namespace, metricSelector.String()))
+
+	if strings.HasPrefix(info.Metric, "crane") {
+		prediction, err := GetPrediction(ctx, p.client, namespace, metricSelector)
+		if err != nil {
+			return nil, err
+		}
+
+		isPredicting := false
+		// check prediction is ongoing
+		if prediction.Status.Conditions != nil {
+			for _, condition := range prediction.Status.Conditions {
+				if condition.Type == string(predictionapi.TimeSeriesPredictionConditionReady) && condition.Status == metav1.ConditionTrue {
+					isPredicting = true
+				}
+			}
+		}
+
+		if !isPredicting {
+			return nil, fmt.Errorf("TimeSeriesPrediction is not ready. ")
+		}
+
+		var timeSeries *predictionapi.MetricTimeSeries
+		for _, metricStatus := range prediction.Status.PredictionMetrics {
+			if metricStatus.ResourceIdentifier == info.Metric && len(metricStatus.Prediction) == 1 {
+				timeSeries = metricStatus.Prediction[0]
+			}
+		}
+		// check time series for current metric is empty
+		if timeSeries == nil {
+			return nil, fmt.Errorf("TimeSeries is empty, metric name %s", info.Metric)
+		}
+
+		// get the largest value from timeSeries
+		// use the largest value will bring up the scaling up and defer the scaling down
+		timestampStart := time.Now()
+		timestampEnd := timestampStart.Add(time.Duration(prediction.Spec.PredictionWindowSeconds) * time.Second)
+		largestMetricValue := &metricValue{}
+		hasValidSample := false
+		for _, v := range timeSeries.Samples {
+			// exclude values that not in time range
+			if v.Timestamp < timestampStart.Unix() || v.Timestamp > timestampEnd.Unix() {
+				continue
+			}
+
+			valueFloat, err := strconv.ParseFloat(v.Value, 32)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse value to float: %v ", err)
+			}
+			if valueFloat > largestMetricValue.value {
+				hasValidSample = true
+				largestMetricValue.value = valueFloat
+				largestMetricValue.timestamp = v.Timestamp
+			}
+		}
+
+		if !hasValidSample {
+			return nil, fmt.Errorf("TimeSeries is outdated, metric name %s", info.Metric)
+		}
+
+		klog.Infof("Provide external metric %s average value %f.", info.Metric, largestMetricValue.value)
+
+		return &external_metrics.ExternalMetricValueList{Items: []external_metrics.ExternalMetricValue{
+			{
+				MetricName: info.Metric,
+				Timestamp:  metav1.Now(),
+				Value:      *resource.NewQuantity(int64(largestMetricValue.value), resource.DecimalSI),
+			},
+		}}, nil
+	}
+
+	if !IsLocalExternalMetric(info, p.client) {
+		if p.remoteAdapter != nil {
+			return p.remoteAdapter.GetExternalMetric(ctx, namespace, metricSelector, info)
+		} else {
+			return nil, apiErrors.NewServiceUnavailable("not supported")
+		}
+	}
+
 	var ehpa autoscalingapi.EffectiveHorizontalPodAutoscaler
 
 	err := p.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: info.Metric}, &ehpa)
@@ -131,9 +215,20 @@ func (p *ExternalMetricProvider) GetExternalMetric(ctx context.Context, namespac
 // ListAllExternalMetrics return external cron metrics
 // Fetch metrics from cache directly to avoid the performance issue for apiserver when the metrics is large, because this api is called frequently.
 func (p *ExternalMetricProvider) ListAllExternalMetrics() []provider.ExternalMetricInfo {
+	klog.Info("List all external metrics")
+
+	metricInfos := ListAllLocalExternalMetrics(p.client)
+
+	if p.remoteAdapter != nil {
+		metricInfos = append(metricInfos, p.remoteAdapter.ListAllExternalMetrics()...)
+	}
+	return metricInfos
+}
+
+func ListAllLocalExternalMetrics(client client.Client) []provider.ExternalMetricInfo {
 	var metricInfos []provider.ExternalMetricInfo
 	var ehpaList autoscalingapi.EffectiveHorizontalPodAutoscalerList
-	err := p.client.List(context.TODO(), &ehpaList)
+	err := client.List(context.TODO(), &ehpaList)
 	if err != nil {
 		klog.Errorf("Failed to list ehpa: %v", err)
 		return metricInfos
@@ -143,7 +238,18 @@ func (p *ExternalMetricProvider) ListAllExternalMetrics() []provider.ExternalMet
 			metricInfos = append(metricInfos, provider.ExternalMetricInfo{Metric: ehpa.Name})
 		}
 	}
+
 	return metricInfos
+}
+
+func IsLocalExternalMetric(metricInfo provider.ExternalMetricInfo, client client.Client) bool {
+	for _, info := range ListAllLocalExternalMetrics(client) {
+		if info.Metric == metricInfo.Metric {
+			return true
+		}
+	}
+
+	return false
 }
 
 func CronEnabled(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) bool {
