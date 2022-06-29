@@ -13,7 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	unstructuredv1 "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -329,7 +329,7 @@ func (c *Controller) getIdentities(ctx context.Context, analytics *analysisv1alp
 		}
 		gvr := gv.WithResource(resName)
 
-		var unstructureds []unstructured.Unstructured
+		var unstructureds []unstructuredv1.Unstructured
 
 		if rs.Name != "" {
 			unstructured, err := c.dynamicClient.Resource(gvr).Namespace(analytics.Namespace).Get(ctx, rs.Name, metav1.GetOptions{})
@@ -338,7 +338,7 @@ func (c *Controller) getIdentities(ctx context.Context, analytics *analysisv1alp
 			}
 			unstructureds = append(unstructureds, *unstructured)
 		} else {
-			var unstructuredList *unstructured.UnstructuredList
+			var unstructuredList *unstructuredv1.UnstructuredList
 			var err error
 
 			if analytics.Namespace == known.CraneSystemNamespace {
@@ -352,7 +352,7 @@ func (c *Controller) getIdentities(ctx context.Context, analytics *analysisv1alp
 
 			for _, item := range unstructuredList.Items {
 				// todo: rename rs.LabelSelector to rs.matchLabelSelector ?
-				m, ok, err := unstructured.NestedStringMap(item.Object, "spec", "selector", "matchLabels")
+				m, ok, err := unstructuredv1.NestedStringMap(item.Object, "spec", "selector", "matchLabels")
 				if !ok || err != nil {
 					return nil, fmt.Errorf("%s not supported", gvr.String())
 				}
