@@ -40,6 +40,10 @@ spec:
           env:
             - name: TZ
               value: Asia/Shanghai
+            - name: CRANE_SYSTEM_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
           command:
             - /craned
             - --prometheus-address=PROMETHEUS_ADDRESS
