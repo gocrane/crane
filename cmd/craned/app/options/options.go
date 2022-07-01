@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/pflag"
 	componentbaseconfig "k8s.io/component-base/config"
 
+	"github.com/gocrane/crane/pkg/checkpoint"
 	"github.com/gocrane/crane/pkg/controller/ehpa"
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/providers"
@@ -37,7 +38,10 @@ type Options struct {
 	DataSourceGrpcConfig providers.GrpcConfig
 
 	// AlgorithmModelConfig
-	AlgorithmModelConfig config.AlgorithmModelConfig
+	AlgorithmModelConfig    config.AlgorithmModelConfig
+	EnableCheckpointer      bool
+	CheckpointerStore       string
+	CheckpointerLocalConfig checkpoint.LocalStoreConfig
 
 	// WebhookConfig
 	WebhookConfig webhooks.WebhookConfig
@@ -107,6 +111,12 @@ func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&o.DataSourceGrpcConfig.Address, "grpc-ds-address", "localhost:50051", "grpc data source server address")
 	flags.DurationVar(&o.DataSourceGrpcConfig.Timeout, "grpc-ds-timeout", time.Minute, "grpc timeout")
 	flags.DurationVar(&o.AlgorithmModelConfig.UpdateInterval, "model-update-interval", 12*time.Hour, "algorithm model update interval, now used for dsp model update interval")
+
+	flags.BoolVar(&o.EnableCheckpointer, "enable-checkpointer", false, "algorithm model checkpointer, if you want to do checkpoint, you can enable it")
+	flags.StringVar(&o.CheckpointerStore, "checkpointer-store", "local", "type of the checkpointer, different checkpointer has different storage type. default is local")
+	flags.StringVar(&o.CheckpointerLocalConfig.Root, "checkpointer-local-root", ".", "local checkpointer root path which checkpoint data stored in, make sure your app has permission to read/write")
+	flags.IntVar(&o.CheckpointerLocalConfig.MaxWorkers, "checkpointer-local-max-workers", 4, "local checkpointer max workers to do read/write")
+
 	flags.BoolVar(&o.WebhookConfig.Enabled, "webhook-enabled", true, "whether enable webhook or not, default to true")
 	flags.StringVar(&o.RecommendationConfigFile, "recommendation-config-file", "", "recommendation configuration file")
 	flags.StringSliceVar(&o.EhpaControllerConfig.PropagationConfig.LabelPrefixes, "ehpa-propagation-label-prefixes", []string{}, "propagate labels whose key has the prefix to hpa")

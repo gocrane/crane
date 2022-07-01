@@ -16,6 +16,9 @@ type MetricNamer interface {
 
 	// Means the caller of this MetricNamer, different caller maybe use the same metric
 	Caller() string
+
+	// GetMetric return the metric of the namer
+	GetMetric() *metricquery.Metric
 }
 
 var _ MetricNamer = &GeneralMetricNamer{}
@@ -23,6 +26,10 @@ var _ MetricNamer = &GeneralMetricNamer{}
 type GeneralMetricNamer struct {
 	Metric     *metricquery.Metric
 	CallerName string
+}
+
+func (gmn *GeneralMetricNamer) GetMetric() *metricquery.Metric {
+	return gmn.Metric
 }
 
 func (gmn *GeneralMetricNamer) Caller() string {
