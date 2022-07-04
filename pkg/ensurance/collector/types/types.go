@@ -46,6 +46,7 @@ const (
 	MetricNetworkDropIn       MetricName = "network_drop_in"
 	MetricNetworkDropOut      MetricName = "network_drop_out"
 
+	// Attention: this value is cpuUsageIncrease/timeIncrease, not cpuUsage
 	MetricNameContainerCpuTotalUsage     MetricName = "container_cpu_total_usage"
 	MetricNameContainerCpuLimit          MetricName = "container_cpu_limit"
 	MetricNameContainerCpuQuota          MetricName = "container_cpu_quota"

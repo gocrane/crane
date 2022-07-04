@@ -13,7 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	unstructuredv1 "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -42,10 +42,6 @@ import (
 	"github.com/gocrane/crane/pkg/recommend"
 )
 
-const (
-	RecommendationMissionMessageSuccess = "Success"
-)
-
 type Controller struct {
 	client.Client
 	Scheme          *runtime.Scheme
@@ -59,7 +55,8 @@ type Controller struct {
 	ScaleClient     scale.ScalesGetter
 	PredictorMgr    predictormgr.Manager
 	Provider        providers.History
-	ConfigSet       *analysisv1alph1.ConfigSet
+	ConfigSetFile   string
+	configSet       *analysisv1alph1.ConfigSet
 }
 
 func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -291,6 +288,12 @@ func (c *Controller) SetupWithManager(mgr ctrl.Manager) error {
 	}
 	c.K8SVersion = version.MustParseGeneric(serverVersion.GitVersion)
 
+	if err = c.loadConfigSetFile(); err != nil {
+		return err
+	}
+
+	go c.watchConfigSetFile()
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&analysisv1alph1.Analytics{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(c)
@@ -326,7 +329,7 @@ func (c *Controller) getIdentities(ctx context.Context, analytics *analysisv1alp
 		}
 		gvr := gv.WithResource(resName)
 
-		var unstructureds []unstructured.Unstructured
+		var unstructureds []unstructuredv1.Unstructured
 
 		if rs.Name != "" {
 			unstructured, err := c.dynamicClient.Resource(gvr).Namespace(analytics.Namespace).Get(ctx, rs.Name, metav1.GetOptions{})
@@ -335,7 +338,7 @@ func (c *Controller) getIdentities(ctx context.Context, analytics *analysisv1alp
 			}
 			unstructureds = append(unstructureds, *unstructured)
 		} else {
-			var unstructuredList *unstructured.UnstructuredList
+			var unstructuredList *unstructuredv1.UnstructuredList
 			var err error
 
 			if analytics.Namespace == known.CraneSystemNamespace {
@@ -349,7 +352,7 @@ func (c *Controller) getIdentities(ctx context.Context, analytics *analysisv1alp
 
 			for _, item := range unstructuredList.Items {
 				// todo: rename rs.LabelSelector to rs.matchLabelSelector ?
-				m, ok, err := unstructured.NestedStringMap(item.Object, "spec", "selector", "matchLabels")
+				m, ok, err := unstructuredv1.NestedStringMap(item.Object, "spec", "selector", "matchLabels")
 				if !ok || err != nil {
 					return nil, fmt.Errorf("%s not supported", gvr.String())
 				}
@@ -398,7 +401,7 @@ func (c *Controller) executeMission(ctx context.Context, wg *sync.WaitGroup, ana
 			recommendation = c.CreateRecommendationObject(ctx, analytics, mission.TargetRef, id)
 		}
 		// do recommendation
-		recommender, err := recommend.NewRecommender(c.Client, c.RestMapper, c.ScaleClient, recommendation, c.PredictorMgr, c.Provider, c.ConfigSet, analytics.Spec.Config)
+		recommender, err := recommend.NewRecommender(c.Client, c.RestMapper, c.ScaleClient, recommendation, c.PredictorMgr, c.Provider, c.configSet, analytics.Spec.Config)
 		if err != nil {
 			mission.Message = fmt.Sprintf("Failed to create recommender, Recommendation %s error %v", klog.KObj(recommendation), err)
 			return

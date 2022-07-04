@@ -89,7 +89,9 @@ func TestSignal_IsPeriodic(t *testing.T) {
 		signals[i] = s
 	}
 
-	cycleDurations := []time.Duration{
+	signals[15].SampleRate = 1. / 15.
+
+	periods := []time.Duration{
 		Day,
 		Day,
 		Day,
@@ -105,11 +107,11 @@ func TestSignal_IsPeriodic(t *testing.T) {
 		Day,
 		Day,
 		Day,
-		Day,
+		Week,
 	}
 
 	for i := 0; i < nInputs; i++ {
-		assert.Equal(t, periodic[i], signals[i].IsPeriodic(cycleDurations[i]))
+		assert.Equal(t, periodic[i], signals[i].IsPeriodic(periods[i]), "i", i)
 	}
 }
 
@@ -132,19 +134,19 @@ func TestSignal_IsPeriodic(t *testing.T) {
 //			} else {
 //				o = charts.WithInitializationOpts(opts.Initialization{Width: "2000px", Theme: types.ThemeRoma})
 //			}
-//			p = p.AddCharts(signals[i].Plot(o))
+//			p = p.AddCharts(signals[i].Plot("", o))
 //		}
-//		p.Render(w)
+//		_ = p.Render(w)
 //	})
 //	fmt.Println("Open your browser and access 'http://localhost:7001'")
-//	http.ListenAndServe(":7001", nil)
+//	_ = http.ListenAndServe(":7001", nil)
 //}
 
 var periodic = []bool{
 	true,
 	true,
 	true,
-	true,
+	false, //true,
 	false,
 	false,
 	false,

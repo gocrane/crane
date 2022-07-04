@@ -35,17 +35,44 @@ plugins:
         zh:
           name: 简体中文
           build: true
+        zh_TW:
+          name: 繁體中文
+          build: true
       nav_translations:
         zh:
           Getting Started: 从这里开始
           Introduction: 介绍
           Installation: 安装
           Tutorials: 教程
+          Effective HPA: 智能水平弹性
+          Analytics and Recommendation: 智能推荐
+          Analytics Overview: 推荐总体介绍
+          Resource Recommendation: 资源推荐
+          Replicas Recommendation: 副本数推荐
           Proposals: 提案
           Contributing: 贡献
           Mirror Repo: 镜像仓库
           Code Standard: 代码标准
           Roadmap: 路线图
+          Overview: 概述
+          Load-aware Scheduling: 负载感知调度
+        zh_TW:
+          Getting Started: 入門
+          Introduction: 介紹
+          Installation: 安裝
+          Tutorials: 教程
+          Effective HPA: 高效水平彈性
+          Analytics and Recommendation: 智慧推薦
+          Analytics Overview: 推薦
+          Resource Recommendation: 資源推薦
+          Replicas Recommendation: 副本數推薦
+          Proposals: 提案
+          Contributing: 貢獻
+          Mirror Repo: 鏡像倉庫
+          Code Standard: 代碼標準
+          Roadmap: 技術路線
+          Overview: 概述
+          Load-aware Scheduling: 負載感知調度
 markdown_extensions:
   - codehilite
   - admonition
@@ -76,11 +103,14 @@ nav:
   - Tutorials:
       - Effective HPA: tutorials/using-effective-hpa-to-scaling-with-effectiveness.md
       - Analytics and Recommendation:
+        - Analytics Overview: tutorials/analytics-and-recommendation.md
         - Resource Recommendation: tutorials/resource-recommendation.md
-        - HPA Recommendation: tutorials/hpa-recommendation.md
+        - Replicas Recommendation: tutorials/replicas-recommendation.md
       - Qos Ensurance: tutorials/using-qos-ensurance.md
       - Time Series Prediction: tutorials/using-time-series-prediction.md
-      - Load-aware Scheduling: tutorials/scheduling-pods-based-on-actual-node-load.md
+      - Crane-scheduler:
+        - Overview: tutorials/scheduling-pods-based-on-actual-node-load.md
+        - Load-aware Scheduling: tutorials/dynamic-scheduler-plugin.md
   - Proposals:
       - Advanced CpuSet Manager: proposals/20220228-advanced-cpuset-manger.md
   - Contributing: CONTRIBUTING.md

@@ -150,7 +150,7 @@ func CalculatePodTemplateRequests(podTemplate *v1.PodTemplateSpec, resource v1.R
 // GetExtCpuRes get container's gocrane.io/cpu usage
 func GetExtCpuRes(container v1.Container) (resource.Quantity, bool) {
 	for res, val := range container.Resources.Limits {
-		if strings.HasPrefix(res.String(), fmt.Sprintf(ExtResourcePrefixFormat, v1.ResourceCPU)) {
+		if strings.HasPrefix(res.String(), fmt.Sprintf(ExtResourcePrefixFormat, v1.ResourceCPU)) && val.Value() != 0 {
 			return val, true
 		}
 	}
@@ -211,4 +211,25 @@ func GetContainerIdFromPod(pod *v1.Pod, containerName string) string {
 		}
 	}
 	return ""
+}
+
+// Whether pod uses ext resource ext-resource.node.gocrane.io, and value it uses
+func ExtResourceAllocated(pod *v1.Pod, resName v1.ResourceName) (hasExtResource bool, extCpuLimit, extCpuRequest int64) {
+	resPrefix := fmt.Sprintf(ExtResourcePrefixFormat, resName)
+	for i := range pod.Spec.Containers {
+		container := pod.Spec.Containers[i]
+		for res, val := range container.Resources.Limits {
+			if strings.HasPrefix(res.String(), resPrefix) {
+				hasExtResource = true
+				extCpuLimit += val.MilliValue()
+			}
+		}
+		for res, val := range container.Resources.Requests {
+			if strings.HasPrefix(res.String(), resPrefix) {
+				hasExtResource = true
+				extCpuRequest += val.MilliValue()
+			}
+		}
+	}
+	return
 }

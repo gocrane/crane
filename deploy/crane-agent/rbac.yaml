@@ -36,6 +36,7 @@ rules:
     resources:
       - nodes
       - nodes/status
+      - nodes/finalizers
     verbs:
       - get
       - list
@@ -76,6 +77,7 @@ rules:
       - "prediction.crane.io"
     resources:
       - timeseriespredictions
+      - timeseriespredictions/finalizers
     verbs:
       - get
       - list

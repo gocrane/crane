@@ -157,6 +157,9 @@ func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) 
 			return fmt.Errorf("no value retured for queryExpr: %s", metricNamer.BuildUniqueKey())
 		}
 		v = int64(tsList[0].Samples[0].Value)
+		if v <= 0 {
+			return fmt.Errorf("no enough metrics")
+		}
 		q = resource.NewQuantity(v, resource.BinarySI)
 		cr.Target[corev1.ResourceMemory] = q.String()
 		// export recommended values as prom metrics

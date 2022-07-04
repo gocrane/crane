@@ -25,7 +25,7 @@ func GetContainerIdFromKey(key string) string {
 	subPaths := strings.Split(key, "/")
 
 	if len(subPaths) > 0 {
-		// if the latest sub path is pod-xxx-xxx, we regard as it od path
+		// if the latest sub path is pod-xxx-xxx, we regard as it pod path
 		// if not we used the latest sub path as the containerId
 		if strings.HasPrefix(subPaths[len(subPaths)-1], CgroupPodPrefix) {
 			return ""
