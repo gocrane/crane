@@ -81,35 +81,40 @@ func TestSignal_Denormalize(t *testing.T) {
 	assert.InEpsilonSlice(t, signal.Samples, denormalized.Samples, amplitude*0.01)
 }
 
-func TestSignal_IsPeriodic(t *testing.T) {
+func TestSignal_FindPeriod(t *testing.T) {
 	signals := make([]*Signal, nInputs)
 	for i := 0; i < nInputs; i++ {
 		s, err := readCsvFile(fmt.Sprintf("test_data/input%d.csv", i))
 		assert.NoError(t, err)
+		s, _ = s.Truncate(Week)
 		signals[i] = s
 	}
 
-	cycleDurations := []time.Duration{
-		Day,
-		Day,
-		Day,
-		Day,
-		Day,
-		Day,
+	signals[15].SampleRate = 1. / 15.
+
+	periods := []time.Duration{
 		Day,
 		Day,
 		Week,
+		-1,
+		-1,
+		-1,
+		-1,
+		-1,
+		Week,
 		Day,
-		Day,
-		Day,
-		Day,
-		Day,
-		Day,
-		Day,
+		Week,
+		Day, // i: 11
+		Week,
+		Week,
+		Week,
+		Week,
 	}
 
 	for i := 0; i < nInputs; i++ {
-		assert.Equal(t, periodic[i], signals[i].IsPeriodic(cycleDurations[i]))
+		if periodic[i] {
+			assert.Equal(t, periods[i], signals[i].FindPeriod(), "i: %d", i)
+		}
 	}
 }
 
@@ -132,19 +137,19 @@ func TestSignal_IsPeriodic(t *testing.T) {
 //			} else {
 //				o = charts.WithInitializationOpts(opts.Initialization{Width: "2000px", Theme: types.ThemeRoma})
 //			}
-//			p = p.AddCharts(signals[i].Plot(o))
+//			p = p.AddCharts(signals[i].Plot("", o))
 //		}
-//		p.Render(w)
+//		_ = p.Render(w)
 //	})
 //	fmt.Println("Open your browser and access 'http://localhost:7001'")
-//	http.ListenAndServe(":7001", nil)
+//	_ = http.ListenAndServe(":7001", nil)
 //}
 
 var periodic = []bool{
 	true,
 	true,
 	true,
-	true,
+	false, //true,
 	false,
 	false,
 	false,
