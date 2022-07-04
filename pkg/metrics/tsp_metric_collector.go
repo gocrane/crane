@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -18,23 +17,23 @@ import (
 
 type TspMetricCollector struct {
 	client.Client
-	resourceCpuMetric *prometheus.Desc
-	resourceMemMetric *prometheus.Desc
+	resourceMetric *prometheus.Desc
+	externalMetric    *prometheus.Desc
 }
 
 func NewTspMetricCollector(client client.Client) *TspMetricCollector {
 	return &TspMetricCollector{
 		Client: client,
-		resourceCpuMetric: prometheus.NewDesc(
-			prometheus.BuildFQName("crane", "prediction", "time_series_prediction_resource_cpu"),
-			"prediction resource cpu value for TimeSeriesPrediction",
-			[]string{"targetKind", "targetName", "targetNamespace", "resourceIdentifier", "type", "resourceQuery", "metricQuery", "expressionQuery", "algorithm", "aggregateKey"},
+		resourceMetric: prometheus.NewDesc(
+			prometheus.BuildFQName("crane", "prediction", "time_series_prediction_resource"),
+			"prediction resource value for TimeSeriesPrediction",
+			[]string{"targetKind", "targetName", "targetNamespace", "resourceIdentifier", "type", "algorithm"},
 			nil,
 		),
-		resourceMemMetric: prometheus.NewDesc(
-			prometheus.BuildFQName("crane", "prediction", "time_series_prediction_resource_memory"),
-			"prediction resource memory value for TimeSeriesPrediction",
-			[]string{"targetKind", "targetName", "targetNamespace", "resourceIdentifier", "type", "resourceQuery", "metricQuery", "expressionQuery", "algorithm", "aggregateKey"},
+		externalMetric: prometheus.NewDesc(
+			prometheus.BuildFQName("crane", "prediction", "time_series_prediction_external"),
+			"prediction external value for TimeSeriesPrediction",
+			[]string{"targetKind", "targetName", "targetNamespace", "resourceIdentifier", "type", "algorithm"},
 			nil,
 		),
 	}
@@ -44,8 +43,8 @@ func NewTspMetricCollector(client client.Client) *TspMetricCollector {
 // Because the time series prediction timestamp is future timestamp, this way can push timestamp to prometheus
 // if use prometheus metric instrument by default, prometheus scrape will use its own scrape timestamp, so that the prediction time series maybe has wrong timestamps in prom.
 func (c *TspMetricCollector) Describe(ch chan<- *prometheus.Desc) {
-	ch <- c.resourceCpuMetric
-	ch <- c.resourceMemMetric
+	ch <- c.resourceMetric
+	ch <- c.externalMetric
 }
 
 func (c *TspMetricCollector) Collect(ch chan<- prometheus.Metric) {
@@ -83,19 +82,6 @@ func (c *TspMetricCollector) computePredictionMetric(tsp *predictionapi.TimeSeri
 	var ms []prometheus.Metric
 	now := time.Now().Unix()
 	metricConf := pmMap[status.ResourceIdentifier]
-	resourceQuery := ""
-	metricQuery := ""
-	expressionQuery := ""
-	if metricConf.ResourceQuery != nil {
-		resourceQuery = metricConf.ResourceQuery.String()
-	}
-	if metricConf.MetricQuery != nil {
-		metricQuery = metricSelectorToQueryExpr(metricConf.MetricQuery)
-	}
-
-	if metricConf.ExpressionQuery != nil {
-		expressionQuery = metricConf.ExpressionQuery.Expression
-	}
 
 	for _, data := range status.Prediction {
 		key := AggregateSignalKey(status.ResourceIdentifier, data.Labels)
@@ -105,11 +91,7 @@ func (c *TspMetricCollector) computePredictionMetric(tsp *predictionapi.TimeSeri
 			tsp.Spec.TargetRef.Namespace,
 			status.ResourceIdentifier,
 			string(metricConf.Type),
-			resourceQuery,
-			metricQuery,
-			expressionQuery,
 			string(metricConf.Algorithm.AlgorithmType),
-			key,
 		}
 		samples := data.Samples
 		sort.Slice(samples, func(i, j int) bool {
@@ -126,11 +108,12 @@ func (c *TspMetricCollector) computePredictionMetric(tsp *predictionapi.TimeSeri
 					continue
 				}
 				// only collect resource query cpu or memory now.
-				if resourceQuery == v1.ResourceCPU.String() {
-					s := prometheus.NewMetricWithTimestamp(ts, prometheus.MustNewConstMetric(c.resourceCpuMetric, prometheus.GaugeValue, value, labelValues...))
+				if metricConf.ResourceQuery != nil {
+					s := prometheus.NewMetricWithTimestamp(ts, prometheus.MustNewConstMetric(c.resourceMetric, prometheus.GaugeValue, value, labelValues...))
 					ms = append(ms, s)
-				} else if resourceQuery == v1.ResourceMemory.String() {
-					s := prometheus.NewMetricWithTimestamp(ts, prometheus.MustNewConstMetric(c.resourceMemMetric, prometheus.GaugeValue, value, labelValues...))
+				}
+				if metricConf.ExpressionQuery != nil {
+					s := prometheus.NewMetricWithTimestamp(ts, prometheus.MustNewConstMetric(c.externalMetric, prometheus.GaugeValue, value, labelValues...))
 					ms = append(ms, s)
 				}
 				break
