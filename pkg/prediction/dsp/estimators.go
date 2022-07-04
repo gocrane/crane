@@ -14,13 +14,13 @@ const (
 	defaultLowAmplitudeThreshold  = 1.0
 	defaultMinNumOfSpectrumItems  = 3
 	defaultMaxNumOfSpectrumItems  = 100
-	defaultFFTMarginFraction      = 0.1
+	defaultFFTMarginFraction      = 0.0
 	defaultMaxValueMarginFraction = 0.0
 	defaultFFTMinValue            = 0.01
 )
 
 type Estimator interface {
-	GetEstimation(signal *Signal, cycleDuration time.Duration) *Signal
+	GetEstimation(signal *Signal, periodLength time.Duration) *Signal
 	String() string
 }
 
@@ -50,18 +50,18 @@ type fftEstimator struct {
 	marginFraction         float64
 }
 
-func (m *maxValueEstimator) GetEstimation(signal *Signal, cycleDuration time.Duration) *Signal {
-	nSamplesPerCycle := int(cycleDuration.Seconds() * signal.SampleRate)
-	estimation := make([]float64, 0, nSamplesPerCycle)
+func (m *maxValueEstimator) GetEstimation(signal *Signal, periodLength time.Duration) *Signal {
+	nSamplesPerPeriod := int(periodLength.Seconds() * signal.SampleRate)
+	estimation := make([]float64, 0, nSamplesPerPeriod)
 
 	nSamples := len(signal.Samples)
-	nCycles := nSamples / nSamplesPerCycle
+	nPeriods := nSamples / nSamplesPerPeriod
 
-	for i := nSamples - nSamplesPerCycle; i < nSamples; i++ {
+	for i := nSamples - nSamplesPerPeriod; i < nSamples; i++ {
 		maxValue := signal.Samples[i]
-		for j := 1; j < nCycles; j++ {
-			if maxValue < signal.Samples[i-nSamplesPerCycle*j] {
-				maxValue = signal.Samples[i-nSamplesPerCycle*j]
+		for j := 1; j < nPeriods; j++ {
+			if maxValue < signal.Samples[i-nSamplesPerPeriod*j] {
+				maxValue = signal.Samples[i-nSamplesPerPeriod*j]
 			}
 		}
 		estimation = append(estimation, maxValue*(1.0+m.marginFraction))
@@ -81,7 +81,7 @@ func (m *maxValueEstimator) String() string {
 	return fmt.Sprintf("Max Value Estimator {marginFraction: %f}", marginFraction)
 }
 
-func (f *fftEstimator) GetEstimation(signal *Signal, cycleDuration time.Duration) *Signal {
+func (f *fftEstimator) GetEstimation(signal *Signal, periodLength time.Duration) *Signal {
 	minNumOfSpectrumItems, maxNumOfSpectrumItems := f.minNumOfSpectrumItems, f.maxNumOfSpectrumItems
 	if minNumOfSpectrumItems == 0 {
 		minNumOfSpectrumItems = defaultMinNumOfSpectrumItems
@@ -146,15 +146,15 @@ func (f *fftEstimator) GetEstimation(signal *Signal, cycleDuration time.Duration
 
 	x := fft.IFFT(X)
 	nSamples := len(x)
-	nSamplesPerCycle := int(cycleDuration.Seconds() * signal.SampleRate)
+	nSamplesPerPeriod := int(periodLength.Seconds() * signal.SampleRate)
 
-	samples := make([]float64, nSamplesPerCycle)
-	for i := nSamples - nSamplesPerCycle; i < nSamples; i++ {
+	samples := make([]float64, nSamplesPerPeriod)
+	for i := nSamples - nSamplesPerPeriod; i < nSamples; i++ {
 		a := real(x[i])
 		if a <= 0.0 {
 			a = defaultFFTMinValue
 		}
-		samples[i+nSamplesPerCycle-nSamples] = a * (1.0 + marginFraction)
+		samples[i+nSamplesPerPeriod-nSamples] = a * (1.0 + marginFraction)
 	}
 
 	return &Signal{

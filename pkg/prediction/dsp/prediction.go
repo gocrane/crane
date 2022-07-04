@@ -56,89 +56,10 @@ func (p *periodicSignalPrediction) QueryRealtimePredictedValuesOnce(ctx context.
 	panic("implement me")
 }
 
-func preProcessTimeSeriesList(tsList []*common.TimeSeries, config *internalConfig) ([]*common.TimeSeries, error) {
-	var wg sync.WaitGroup
-
-	n := len(tsList)
-	wg.Add(n)
-	tsCh := make(chan *common.TimeSeries, n)
-	for _, ts := range tsList {
-		go func(ts *common.TimeSeries) {
-			defer wg.Done()
-			if err := preProcessTimeSeries(ts, config, Hour); err != nil {
-				klog.ErrorS(err, "Dsp failed to pre process time series.")
-			} else {
-				tsCh <- ts
-			}
-		}(ts)
-	}
-	wg.Wait()
-	close(tsCh)
-
-	tsList = make([]*common.TimeSeries, 0, n)
-	for ts := range tsCh {
-		tsList = append(tsList, ts)
-	}
-
-	return tsList, nil
-}
-
-func preProcessTimeSeries(ts *common.TimeSeries, config *internalConfig, unit time.Duration) error {
-	if ts == nil || len(ts.Samples) == 0 {
-		return fmt.Errorf("empty time series")
-	}
-
-	intervalSeconds := int64(config.historyResolution.Seconds())
-
-	for i := 1; i < len(ts.Samples); i++ {
-		diff := ts.Samples[i].Timestamp - ts.Samples[i-1].Timestamp
-		// If a gap in time series is larger than one hour,
-		// drop all samples before [i].
-		if diff > 3600 {
-			ts.Samples = ts.Samples[i:]
-			return preProcessTimeSeries(ts, config, unit)
-		}
-
-		// The samples should be in chronological order.
-		// If the difference between two consecutive sample timestamps is not integral multiple of interval,
-		// the time series is not valid.
-		if diff%intervalSeconds != 0 || diff <= 0 {
-			return fmt.Errorf("invalid time series")
-		}
-	}
-
-	newSamples := []common.Sample{ts.Samples[0]}
-	for i := 1; i < len(ts.Samples); i++ {
-		times := (ts.Samples[i].Timestamp - ts.Samples[i-1].Timestamp) / intervalSeconds
-		unitDiff := (ts.Samples[i].Value - ts.Samples[i-1].Value) / float64(times)
-		// Fill the missing samples if any
-		for j := int64(1); j < times; j++ {
-			s := common.Sample{
-				Value:     ts.Samples[i-1].Value + unitDiff*float64(j),
-				Timestamp: ts.Samples[i-1].Timestamp + intervalSeconds*j,
-			}
-			newSamples = append(newSamples, s)
-		}
-		newSamples = append(newSamples, ts.Samples[i])
-	}
-
-	// Truncate samples of integral multiple of unit
-	secondsPerUnit := int64(unit.Seconds())
-	samplesPerUnit := int(secondsPerUnit / intervalSeconds)
-	beginIndex := len(newSamples)
-	for beginIndex-samplesPerUnit >= 0 {
-		beginIndex -= samplesPerUnit
-	}
-
-	ts.Samples = newSamples[beginIndex:]
-
-	return nil
-}
-
-// isPeriodicTimeSeries returns  time series with specified periodicity
-func isPeriodicTimeSeries(ts *common.TimeSeries, sampleInterval time.Duration, cycleDuration time.Duration) bool {
+// isPeriodicTimeSeries returns if time series has the specified periodicity
+func isPeriodicTimeSeries(ts *common.TimeSeries, sampleInterval time.Duration, periodLength time.Duration) bool {
 	signal := SamplesToSignal(ts.Samples, sampleInterval)
-	return signal.IsPeriodic(cycleDuration)
+	return signal.IsPeriodic(periodLength)
 }
 
 func SamplesToSignal(samples []common.Sample, sampleInterval time.Duration) *Signal {
@@ -290,49 +211,36 @@ func (p *periodicSignalPrediction) updateAggregateSignals(queryExpr string, hist
 		}
 		var chosenEstimator Estimator
 		var signal *Signal
-		var nCycles int
-		var cycleDuration time.Duration = 0
-		if isPeriodicTimeSeries(ts, config.historyResolution, Hour) {
-			cycleDuration = Hour
-			klog.V(4).InfoS("This is a periodic time series.", "queryExpr", queryExpr, "labels", ts.Labels, "cycleDuration", cycleDuration)
-		} else if isPeriodicTimeSeries(ts, config.historyResolution, Day) {
-			cycleDuration = Day
-			klog.V(4).InfoS("This is a periodic time series.", "queryExpr", queryExpr, "labels", ts.Labels, "cycleDuration", cycleDuration)
+		var nPeriods int
+		var periodLength time.Duration = 0
+		if isPeriodicTimeSeries(ts, config.historyResolution, Day) {
+			periodLength = Day
+			klog.V(4).InfoS("This is a periodic time series.", "queryExpr", queryExpr, "labels", ts.Labels, "periodLength", periodLength)
 		} else if isPeriodicTimeSeries(ts, config.historyResolution, Week) {
-			cycleDuration = Week
-			klog.V(4).InfoS("This is a periodic time series.", "queryExpr", queryExpr, "labels", ts.Labels, "cycleDuration", cycleDuration)
+			periodLength = Week
+			klog.V(4).InfoS("This is a periodic time series.", "queryExpr", queryExpr, "labels", ts.Labels, "periodLength", periodLength)
 		} else {
 			klog.V(4).InfoS("This is not a periodic time series.", "queryExpr", queryExpr, "labels", ts.Labels)
 		}
 
-		if cycleDuration > 0 {
+		if periodLength > 0 {
 			signal = SamplesToSignal(ts.Samples, config.historyResolution)
-			signal, nCycles = signal.Truncate(cycleDuration)
-			if nCycles >= 2 {
-				chosenEstimator = bestEstimator(queryExpr, config.estimators, signal, nCycles, cycleDuration)
+			signal, nPeriods = signal.Truncate(periodLength)
+			if nPeriods >= 2 {
+				chosenEstimator = bestEstimator(queryExpr, config.estimators, signal, nPeriods, periodLength)
 			}
 		}
 
 		if chosenEstimator != nil {
-			estimatedSignal := chosenEstimator.GetEstimation(signal, cycleDuration)
+			estimatedSignal := chosenEstimator.GetEstimation(signal, periodLength)
 			intervalSeconds := int64(config.historyResolution.Seconds())
 			nextTimestamp := ts.Samples[len(ts.Samples)-1].Timestamp + intervalSeconds
 
-			// Hack(temporary):
-			// Because the dsp predict only append one cycle points, when the cycle is hour, then estimate signal samples only contains at most one hour points
-			// This leads to tsp predictWindowSeconds more than 3600 will be always out of date. because the predicted data end point timestamp is always ts.Samples[len(ts.Samples)-1].Timestamp+ Hour in one model update interval loop
-			// If its cycle is hour, then we append 24 hour points to avoid the out of dated predicted data
-			// Alternative option 1: Reduce predictWindowSeconds in tsp less than one hour and model update interval to one hour too.
-			// Alternative option 2. Do not support hour cycle any more, because it is too short in production env. now the dsp can not handle hour cycle well.
-			cycles := 1
-			if cycleDuration == Hour {
-				cycles = 24
-			}
 			n := len(estimatedSignal.Samples)
-			samples := make([]common.Sample, n*cycles)
-			for c := 0; c < cycles; c++ {
+			samples := make([]common.Sample, n*nPeriods)
+			for k := 0; k < nPeriods; k++ {
 				for i := range estimatedSignal.Samples {
-					samples[i+c*n] = common.Sample{
+					samples[i+k*n] = common.Sample{
 						Value:     estimatedSignal.Samples[i],
 						Timestamp: nextTimestamp,
 					}
@@ -357,23 +265,23 @@ func (p *periodicSignalPrediction) updateAggregateSignals(queryExpr string, hist
 	p.a.SetSignals(queryExpr, signals)
 }
 
-func bestEstimator(id string, estimators []Estimator, signal *Signal, totalCycles int, cycleDuration time.Duration) Estimator {
-	samplesPerCycle := len(signal.Samples) / totalCycles
+func bestEstimator(id string, estimators []Estimator, signal *Signal, nPeriods int, periodLength time.Duration) Estimator {
+	samplesPerPeriod := len(signal.Samples) / nPeriods
 
 	history := &Signal{
 		SampleRate: signal.SampleRate,
-		Samples:    signal.Samples[:(totalCycles-1)*samplesPerCycle],
+		Samples:    signal.Samples[:(nPeriods-1)*samplesPerPeriod],
 	}
 
 	actual := &Signal{
 		SampleRate: signal.SampleRate,
-		Samples:    signal.Samples[(totalCycles-1)*samplesPerCycle:],
+		Samples:    signal.Samples[(nPeriods-1)*samplesPerPeriod:],
 	}
 
 	minPE := math.MaxFloat64
 	var bestEstimator Estimator
 	for i := range estimators {
-		estimated := estimators[i].GetEstimation(history, cycleDuration)
+		estimated := estimators[i].GetEstimation(history, periodLength)
 		if estimated != nil {
 			pe, err := accuracy.PredictionError(actual.Samples, estimated.Samples)
 			klog.V(6).InfoS("Testing estimators ...", "key", id, "estimator", estimators[i].String(), "pe", pe, "error", err)
@@ -384,7 +292,7 @@ func bestEstimator(id string, estimators []Estimator, signal *Signal, totalCycle
 		}
 	}
 
-	klog.V(4).InfoS("Got the best estimator.", "key", id, "estimator", bestEstimator.String(), "minPE", minPE, "totalCycles", totalCycles)
+	klog.V(4).InfoS("Got the best estimator.", "key", id, "estimator", bestEstimator.String(), "minPE", minPE, "periods", nPeriods)
 	return bestEstimator
 }
 
