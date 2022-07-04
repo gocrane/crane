@@ -524,3 +524,136 @@ func EqualTimeSeries(tsList1, tsList2 []*common.TimeSeries) bool {
 	}
 	return true
 }
+
+func TestComputeWindowShards(t *testing.T) {
+	type args struct {
+		window                      *promapiv1.Range
+		maxPointsLimitPerTimeSeries int
+	}
+	now := time.Now().Truncate(time.Second)
+	tests := []struct {
+		name string
+		args args
+		want []*promapiv1.Range
+	}{
+		{
+			"len(timeWidow) == 1 < maxPointsLimitPerTimeSeries; input: [0,0], output: [0,0]",
+			args{
+				window: &promapiv1.Range{
+					Start: now,
+					End:   now,
+					Step:  time.Second,
+				},
+				maxPointsLimitPerTimeSeries: 10,
+			},
+			[]*promapiv1.Range{
+				{
+					Start: now,
+					End:   now,
+					Step:  time.Second,
+				},
+			},
+		},
+		{
+			"len(timeWidow) > maxPointsLimitPerTimeSeries; input: [0,10], output: [0,9] [10,10]",
+			args{
+				window: &promapiv1.Range{
+					Start: now,
+					End:   now.Add(10 * time.Second),
+					Step:  time.Second,
+				},
+				maxPointsLimitPerTimeSeries: 10,
+			},
+			[]*promapiv1.Range{
+				{
+					Start: now,
+					End:   now.Add(9 * time.Second),
+					Step:  time.Second,
+				},
+				{
+					Start: now.Add(10 * time.Second),
+					End:   now.Add(10 * time.Second),
+					Step:  time.Second,
+				},
+			},
+		},
+		{
+			"len(timeWidow) == maxPointsLimitPerTimeSeries; input: [0,9]; output: [0,9]",
+			args{
+				window: &promapiv1.Range{
+					Start: now,
+					End:   now.Add(9 * time.Second),
+					Step:  time.Second,
+				},
+				maxPointsLimitPerTimeSeries: 10,
+			},
+			[]*promapiv1.Range{
+				{
+					Start: now,
+					End:   now.Add(9 * time.Second),
+					Step:  time.Second,
+				},
+			},
+		},
+		{
+			"len(timeWidow) < maxPointsLimitPerTimeSeries; input: [0,5]; output: [0,5]",
+			args{
+				window: &promapiv1.Range{
+					Start: now,
+					End:   now.Add(5 * time.Second),
+					Step:  time.Second,
+				},
+				maxPointsLimitPerTimeSeries: 10,
+			},
+			[]*promapiv1.Range{
+				{
+					Start: now,
+					End:   now.Add(5 * time.Second),
+					Step:  time.Second,
+				},
+			},
+		},
+		{
+			"len(timeWidow) == 2*maxPointsLimitPerTimeSeries; input: [0,19], output: [0,9] [10,19]",
+			args{
+				window: &promapiv1.Range{
+					Start: now,
+					End:   now.Add(19 * time.Second),
+					Step:  time.Second,
+				},
+				maxPointsLimitPerTimeSeries: 10,
+			},
+			[]*promapiv1.Range{
+				{
+					Start: now,
+					End:   now.Add(9 * time.Second),
+					Step:  time.Second,
+				},
+				{
+					Start: now.Add(10 * time.Second),
+					End:   now.Add(19 * time.Second),
+					Step:  time.Second,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ComputeWindowShards(tt.args.window, tt.args.maxPointsLimitPerTimeSeries)
+			if len(got) != len(tt.want) {
+				t.Errorf("window length = %v, want %v", len(got), len(tt.want))
+			}
+			for i, w := range tt.want {
+				if got[i].Start != w.Start {
+					t.Errorf("w.Start = %v, want %v", got[i].Start, w.Start)
+				}
+				if got[i].End != w.End {
+					t.Errorf("w.End = %v, want %v", got[i].End, w.End)
+				}
+				if got[i].Step != w.Step {
+					t.Errorf("w.Step = %v, want %v", got[i].Step, w.Step)
+				}
+			}
+		})
+	}
+}
