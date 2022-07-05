@@ -167,17 +167,10 @@ func (s *Signal) Filter(threshold float64) *Signal {
 	}
 }
 
-// IsPeriodic checks whether the 'periodLength' is the dominant period of the signal
-func (s *Signal) IsPeriodic(periodLength time.Duration) bool {
-	// The signal length must be at least double of the period length
-	si, m := s.Truncate(periodLength)
-	if m < 2 {
-		return false
-	}
-
-	x := make([]float64, len(si.Samples))
-	copy(x, si.Samples)
-	N := len(si.Samples)
+func (s *Signal) FindPeriod() time.Duration {
+	x := make([]float64, len(s.Samples))
+	copy(x, s.Samples)
+	N := len(s.Samples)
 
 	// Use FFT to generate the periodogram of a random permutation of the samples, record
 	// its maximum power argmax|X(f)|. Repeat above operation 100 times, and use the 99th
@@ -202,7 +195,7 @@ func (s *Signal) IsPeriodic(periodLength time.Duration) bool {
 	sort.Float64s(maxPowers)
 	pThreshold := maxPowers[98]
 
-	X := fft.FFTReal(si.Samples)
+	X := fft.FFTReal(s.Samples)
 	var hints []int
 	for k := 2; k < len(X)/2; k++ {
 		p := cmplx.Abs(X[k])
@@ -215,12 +208,9 @@ func (s *Signal) IsPeriodic(periodLength time.Duration) bool {
 		}
 	}
 
-	periodSeconds := periodLength.Seconds()
-	periodSamples := int(periodSeconds * si.SampleRate)
-
 	// Use auto correlation function (ACF) to verify the candidate periods.
 	// The value of the fundamental period should be the 'highest peak' in the graph of ACF.
-	cor := AutoCorrelation(si.Samples)
+	cor := AutoCorrelation(s.Samples)
 	maxCorVal := 0.
 	j := -1
 	maxR := int(MaxAutoCorrelationPeakSearchIntervalSeconds * s.SampleRate)
@@ -232,10 +222,11 @@ func (s *Signal) IsPeriodic(periodLength time.Duration) bool {
 		}
 	}
 
-	if j >= 0 && hints[j] == periodSamples {
-		return true
+	if j >= 0 {
+		return time.Duration(float64(hints[j])/s.SampleRate) * time.Second
+	} else {
+		return -1
 	}
-	return false
 }
 
 func (s *Signal) String() string {
