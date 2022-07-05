@@ -220,6 +220,7 @@ func (p *periodicSignalPrediction) updateAggregateSignals(queryExpr string, hist
 		var signal *Signal
 		var nPeriods int
 		var periodLength time.Duration = 0
+
 		p := findPeriod(ts, config.historyResolution)
 		if p == Day || p == Week {
 			periodLength = p
