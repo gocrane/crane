@@ -56,10 +56,17 @@ func (p *periodicSignalPrediction) QueryRealtimePredictedValuesOnce(ctx context.
 	panic("implement me")
 }
 
-// isPeriodicTimeSeries returns if time series has the specified periodicity
-func isPeriodicTimeSeries(ts *common.TimeSeries, sampleInterval time.Duration, periodLength time.Duration) bool {
+func findPeriod(ts *common.TimeSeries, sampleInterval time.Duration) time.Duration {
 	signal := SamplesToSignal(ts.Samples, sampleInterval)
-	return signal.IsPeriodic(periodLength)
+	si, m := signal.Truncate(Week)
+	if m > 1 {
+		return si.FindPeriod()
+	}
+	si, m = signal.Truncate(Day)
+	if m > 1 {
+		return si.FindPeriod()
+	}
+	return -1
 }
 
 func SamplesToSignal(samples []common.Sample, sampleInterval time.Duration) *Signal {
@@ -213,11 +220,10 @@ func (p *periodicSignalPrediction) updateAggregateSignals(queryExpr string, hist
 		var signal *Signal
 		var nPeriods int
 		var periodLength time.Duration = 0
-		if isPeriodicTimeSeries(ts, config.historyResolution, Day) {
-			periodLength = Day
-			klog.V(4).InfoS("This is a periodic time series.", "queryExpr", queryExpr, "labels", ts.Labels, "periodLength", periodLength)
-		} else if isPeriodicTimeSeries(ts, config.historyResolution, Week) {
-			periodLength = Week
+
+		p := findPeriod(ts, config.historyResolution)
+		if p == Day || p == Week {
+			periodLength = p
 			klog.V(4).InfoS("This is a periodic time series.", "queryExpr", queryExpr, "labels", ts.Labels, "periodLength", periodLength)
 		} else {
 			klog.V(4).InfoS("This is not a periodic time series.", "queryExpr", queryExpr, "labels", ts.Labels)

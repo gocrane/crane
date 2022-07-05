@@ -81,11 +81,12 @@ func TestSignal_Denormalize(t *testing.T) {
 	assert.InEpsilonSlice(t, signal.Samples, denormalized.Samples, amplitude*0.01)
 }
 
-func TestSignal_IsPeriodic(t *testing.T) {
+func TestSignal_FindPeriod(t *testing.T) {
 	signals := make([]*Signal, nInputs)
 	for i := 0; i < nInputs; i++ {
 		s, err := readCsvFile(fmt.Sprintf("test_data/input%d.csv", i))
 		assert.NoError(t, err)
+		s, _ = s.Truncate(Week)
 		signals[i] = s
 	}
 
@@ -94,24 +95,26 @@ func TestSignal_IsPeriodic(t *testing.T) {
 	periods := []time.Duration{
 		Day,
 		Day,
-		Day,
-		Day,
-		Day,
-		Day,
-		Day,
-		Day,
+		Week,
+		-1,
+		-1,
+		-1,
+		-1,
+		-1,
 		Week,
 		Day,
-		Day,
-		Day,
-		Day,
-		Day,
-		Day,
+		Week,
+		Day, // i: 11
+		Week,
+		Week,
+		Week,
 		Week,
 	}
 
 	for i := 0; i < nInputs; i++ {
-		assert.Equal(t, periodic[i], signals[i].IsPeriodic(periods[i]), "i", i)
+		if periodic[i] {
+			assert.Equal(t, periods[i], signals[i].FindPeriod(), "i: %d", i)
+		}
 	}
 }
 
