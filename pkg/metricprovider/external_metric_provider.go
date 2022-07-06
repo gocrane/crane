@@ -20,8 +20,6 @@ import (
 	"sigs.k8s.io/custom-metrics-apiserver/pkg/provider"
 
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
-	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
-
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/utils"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
@@ -55,9 +53,21 @@ const (
 	DefaultCronTargetMetricValue int32 = 1
 )
 
-// GetExternalMetric each ehpa mapping to only one external cron metric. metric name is ehpa name
+// GetExternalMetric get external metric according to metric type
 func (p *ExternalMetricProvider) GetExternalMetric(ctx context.Context, namespace string, metricSelector labels.Selector, info provider.ExternalMetricInfo) (*external_metrics.ExternalMetricValueList, error) {
 	klog.Info(fmt.Sprintf("Get metric by selector for external metric, Info %v namespace %s metricSelector %s", info, namespace, metricSelector.String()))
+
+	if !IsLocalExternalMetric(info, p.client) {
+		if p.remoteAdapter != nil {
+			return p.remoteAdapter.GetExternalMetric(ctx, namespace, metricSelector, info)
+		} else {
+			return nil, apiErrors.NewServiceUnavailable("not supported")
+		}
+	}
+
+	if strings.HasPrefix(info.Metric, "crane_cron") {
+		return p.GetCronExternalMetrics(ctx, namespace, metricSelector, info)
+	}
 
 	if strings.HasPrefix(info.Metric, "crane") {
 		prediction, err := GetPrediction(ctx, p.client, namespace, metricSelector)
@@ -65,29 +75,9 @@ func (p *ExternalMetricProvider) GetExternalMetric(ctx context.Context, namespac
 			return nil, err
 		}
 
-		isPredicting := false
-		// check prediction is ongoing
-		if prediction.Status.Conditions != nil {
-			for _, condition := range prediction.Status.Conditions {
-				if condition.Type == string(predictionapi.TimeSeriesPredictionConditionReady) && condition.Status == metav1.ConditionTrue {
-					isPredicting = true
-				}
-			}
-		}
-
-		if !isPredicting {
-			return nil, fmt.Errorf("TimeSeriesPrediction is not ready. ")
-		}
-
-		var timeSeries *predictionapi.MetricTimeSeries
-		for _, metricStatus := range prediction.Status.PredictionMetrics {
-			if metricStatus.ResourceIdentifier == info.Metric && len(metricStatus.Prediction) == 1 {
-				timeSeries = metricStatus.Prediction[0]
-			}
-		}
-		// check time series for current metric is empty
-		if timeSeries == nil {
-			return nil, fmt.Errorf("TimeSeries is empty, metric name %s", info.Metric)
+		timeSeries, err := utils.GetReadyPredictionMetric(info.Metric, prediction)
+		if err != nil {
+			return nil, err
 		}
 
 		// get the largest value from timeSeries
@@ -128,17 +118,18 @@ func (p *ExternalMetricProvider) GetExternalMetric(ctx context.Context, namespac
 		}}, nil
 	}
 
-	if !IsLocalExternalMetric(info, p.client) {
-		if p.remoteAdapter != nil {
-			return p.remoteAdapter.GetExternalMetric(ctx, namespace, metricSelector, info)
-		} else {
-			return nil, apiErrors.NewServiceUnavailable("not supported")
-		}
-	}
+	return nil, apiErrors.NewServiceUnavailable("metric not found")
+}
+
+// GetCronExternalMetrics get desired metric value from cron spec
+func (p *ExternalMetricProvider) GetCronExternalMetrics(ctx context.Context, namespace string, metricSelector labels.Selector, info provider.ExternalMetricInfo) (*external_metrics.ExternalMetricValueList, error) {
+	klog.Infof("Get cron metric %s by selector", info.Metric)
 
 	var ehpa autoscalingapi.EffectiveHorizontalPodAutoscaler
 
-	err := p.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: info.Metric}, &ehpa)
+	ehpaName := strings.TrimPrefix(info.Metric, "crane_cron_")
+
+	err := p.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: ehpaName}, &ehpa)
 	if err != nil {
 		return &external_metrics.ExternalMetricValueList{}, err
 	}
@@ -235,7 +226,19 @@ func ListAllLocalExternalMetrics(client client.Client) []provider.ExternalMetric
 	}
 	for _, ehpa := range ehpaList.Items {
 		if CronEnabled(&ehpa) {
-			metricInfos = append(metricInfos, provider.ExternalMetricInfo{Metric: ehpa.Name})
+			metricName := utils.GetGeneralPredictionMetricName(autoscalingv2.PodsMetricSourceType, true, ehpa.Name)
+			metricInfos = append(metricInfos, provider.ExternalMetricInfo{Metric: metricName})
+		}
+		for _, metric := range ehpa.Spec.Metrics {
+			if metric.Type == autoscalingv2.ExternalMetricSourceType &&
+				metric.External != nil &&
+				metric.External.Metric.Selector != nil &&
+				metric.External.Metric.Selector.MatchLabels != nil {
+				if _, exist := metric.External.Metric.Selector.MatchLabels[known.EffectiveHorizontalPodAutoscalerUidLabel]; exist {
+					metricName := utils.GetGeneralPredictionMetricName(autoscalingv2.ExternalMetricSourceType, false, ehpa.Name)
+					metricInfos = append(metricInfos, provider.ExternalMetricInfo{Metric: metricName})
+				}
+			}
 		}
 	}
 

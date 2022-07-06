@@ -16,13 +16,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
+	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/metricprovider"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
-func (c *EffectiveHPAController) ReconcileHPA(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, substitute *autoscalingapi.Substitute, status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus) (*autoscalingv2.HorizontalPodAutoscaler, error) {
+func (c *EffectiveHPAController) ReconcileHPA(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, substitute *autoscalingapi.Substitute, tsp *predictionapi.TimeSeriesPrediction) (*autoscalingv2.HorizontalPodAutoscaler, error) {
 	hpaList := &autoscalingv2.HorizontalPodAutoscalerList{}
 	opts := []client.ListOption{
 		client.MatchingLabels(map[string]string{known.EffectiveHorizontalPodAutoscalerUidLabel: string(ehpa.UID)}),
@@ -30,17 +31,17 @@ func (c *EffectiveHPAController) ReconcileHPA(ctx context.Context, ehpa *autosca
 	err := c.Client.List(ctx, hpaList, opts...)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return c.CreateHPA(ctx, ehpa, substitute, status)
+			return c.CreateHPA(ctx, ehpa, substitute, tsp)
 		} else {
 			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedGetHPA", err.Error())
 			klog.Error("Failed to get HPA, ehpa %s error %v", klog.KObj(ehpa), err)
 			return nil, err
 		}
 	} else if len(hpaList.Items) == 0 {
-		return c.CreateHPA(ctx, ehpa, substitute, status)
+		return c.CreateHPA(ctx, ehpa, substitute, tsp)
 	}
 
-	return c.UpdateHPAIfNeed(ctx, ehpa, &hpaList.Items[0], substitute, status)
+	return c.UpdateHPAIfNeed(ctx, ehpa, &hpaList.Items[0], substitute, tsp)
 }
 
 func (c *EffectiveHPAController) GetHPA(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) (*autoscalingv2.HorizontalPodAutoscaler, error) {
@@ -58,8 +59,8 @@ func (c *EffectiveHPAController) GetHPA(ctx context.Context, ehpa *autoscalingap
 	return &hpaList.Items[0], nil
 }
 
-func (c *EffectiveHPAController) CreateHPA(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, substitute *autoscalingapi.Substitute, status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus) (*autoscalingv2.HorizontalPodAutoscaler, error) {
-	hpa, err := c.NewHPAObject(ctx, ehpa, substitute, status)
+func (c *EffectiveHPAController) CreateHPA(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, substitute *autoscalingapi.Substitute, tsp *predictionapi.TimeSeriesPrediction) (*autoscalingv2.HorizontalPodAutoscaler, error) {
+	hpa, err := c.NewHPAObject(ctx, ehpa, substitute, tsp)
 	if err != nil {
 		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreateHPAObject", err.Error())
 		klog.Errorf("Failed to create object, HorizontalPodAutoscaler %s error %v", klog.KObj(hpa), err)
@@ -79,8 +80,8 @@ func (c *EffectiveHPAController) CreateHPA(ctx context.Context, ehpa *autoscalin
 	return hpa, nil
 }
 
-func (c *EffectiveHPAController) NewHPAObject(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, substitute *autoscalingapi.Substitute, status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus) (*autoscalingv2.HorizontalPodAutoscaler, error) {
-	metrics, err := c.GetHPAMetrics(ctx, ehpa, status)
+func (c *EffectiveHPAController) NewHPAObject(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, substitute *autoscalingapi.Substitute, tsp *predictionapi.TimeSeriesPrediction) (*autoscalingv2.HorizontalPodAutoscaler, error) {
+	metrics, err := c.GetHPAMetrics(ctx, ehpa, tsp)
 	if err != nil {
 		return nil, err
 	}
@@ -135,9 +136,9 @@ func (c *EffectiveHPAController) NewHPAObject(ctx context.Context, ehpa *autosca
 	return hpa, nil
 }
 
-func (c *EffectiveHPAController) UpdateHPAIfNeed(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, hpaExist *autoscalingv2.HorizontalPodAutoscaler, substitute *autoscalingapi.Substitute, status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus) (*autoscalingv2.HorizontalPodAutoscaler, error) {
+func (c *EffectiveHPAController) UpdateHPAIfNeed(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, hpaExist *autoscalingv2.HorizontalPodAutoscaler, substitute *autoscalingapi.Substitute, tsp *predictionapi.TimeSeriesPrediction) (*autoscalingv2.HorizontalPodAutoscaler, error) {
 	var needUpdate bool
-	hpa, err := c.NewHPAObject(ctx, ehpa, substitute, status)
+	hpa, err := c.NewHPAObject(ctx, ehpa, substitute, tsp)
 	if err != nil {
 		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreateHPAObject", err.Error())
 		klog.Errorf("Failed to create object, HorizontalPodAutoscaler %s error %v", klog.KObj(hpa), err)
@@ -173,14 +174,14 @@ func (c *EffectiveHPAController) UpdateHPAIfNeed(ctx context.Context, ehpa *auto
 }
 
 // GetHPAMetrics loop metricSpec in EffectiveHorizontalPodAutoscaler and generate metricSpec for HPA
-func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus) ([]autoscalingv2.MetricSpec, error) {
+func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, tsp *predictionapi.TimeSeriesPrediction) ([]autoscalingv2.MetricSpec, error) {
 	var metrics []autoscalingv2.MetricSpec
 	for _, metric := range ehpa.Spec.Metrics {
 		copyMetric := metric.DeepCopy()
 		metrics = append(metrics, *copyMetric)
 	}
 
-	if utils.IsEHPAPredictionEnabled(ehpa) && isPredictionReady(status) {
+	if utils.IsEHPAPredictionEnabled(ehpa) {
 		var metricsForPrediction []autoscalingv2.MetricSpec
 
 		for _, metric := range metrics {
@@ -188,6 +189,11 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 			if metric.Type == autoscalingv2.ResourceMetricSourceType {
 				name := utils.GetPredictionMetricName(metric.Resource.Name)
 				if len(name) == 0 {
+					continue
+				}
+
+				if _, err := utils.GetReadyPredictionMetric(name, tsp); err != nil {
+					// metric is not predictable
 					continue
 				}
 
@@ -245,8 +251,14 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 
 			// generate a external metric for external metric
 			if metric.Type == autoscalingv2.ExternalMetricSourceType {
-				name := utils.GetExternalPredictionMetricName(metric.External.Metric.Name)
-				if len(name) == 0 {
+				name := utils.GetGeneralPredictionMetricName(metric.Type, false, metric.External.Metric.Name)
+				expressionQuery := utils.GetExpressionQuery(metric.External.Metric.Name, ehpa.Annotations)
+				if len(expressionQuery) == 0 {
+					continue
+				}
+
+				if _, err := utils.GetReadyPredictionMetric(name, tsp); err != nil {
+					// metric is not predictable
 					continue
 				}
 
@@ -270,6 +282,40 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 				metricSpec := autoscalingv2.MetricSpec{External: external, Type: autoscalingv2.ExternalMetricSourceType}
 				metricsForPrediction = append(metricsForPrediction, metricSpec)
 			}
+
+			// generate a custom metric for pods metric
+			if metric.Type == autoscalingv2.PodsMetricSourceType {
+				name := utils.GetGeneralPredictionMetricName(metric.Type, false, metric.Pods.Metric.Name)
+				expressionQuery := utils.GetExpressionQuery(metric.Pods.Metric.Name, ehpa.Annotations)
+				if len(expressionQuery) == 0 {
+					continue
+				}
+
+				if _, err := utils.GetReadyPredictionMetric(name, tsp); err != nil {
+					// metric is not predictable
+					continue
+				}
+
+				podsMetric := &autoscalingv2.PodsMetricSource{
+					Metric: autoscalingv2.MetricIdentifier{
+						Name: name,
+						// add known.EffectiveHorizontalPodAutoscalerUidLabel=uid in metric.selector
+						// MetricAdapter use label selector to match the matching TimeSeriesPrediction to return metrics
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								known.EffectiveHorizontalPodAutoscalerUidLabel: string(ehpa.UID),
+							},
+						},
+					},
+					Target: autoscalingv2.MetricTarget{
+						Type:         autoscalingv2.AverageValueMetricType,
+						AverageValue: metric.Pods.Target.AverageValue,
+					},
+				}
+
+				metricSpec := autoscalingv2.MetricSpec{Pods: podsMetric, Type: autoscalingv2.PodsMetricSourceType}
+				metricsForPrediction = append(metricsForPrediction, metricSpec)
+			}
 		}
 
 		metrics = append(metrics, metricsForPrediction...)
@@ -291,7 +337,7 @@ func GetCronMetricSpecsForHPA(ehpa *autoscalingapi.EffectiveHorizontalPodAutosca
 		Type: autoscalingv2.ExternalMetricSourceType,
 		External: &autoscalingv2.ExternalMetricSource{
 			Metric: autoscalingv2.MetricIdentifier{
-				Name: ehpa.Name,
+				Name: utils.GetGeneralPredictionMetricName(autoscalingv2.PodsMetricSourceType, true, ehpa.Name),
 				Selector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{
 						known.EffectiveHorizontalPodAutoscalerUidLabel: string(ehpa.UID),

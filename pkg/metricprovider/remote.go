@@ -67,7 +67,7 @@ func NewRemoteAdapter(namespace string, name string, port int, config *rest.Conf
 
 // ListAllMetrics returns all available custom metrics.
 func (r *RemoteAdapter) ListAllMetrics() []provider.CustomMetricInfo {
-	klog.Info("List all remote custom metrics")
+	klog.Info("List all remote custom metrics in remote adapter")
 
 	version, err := r.apiVersionsGetter.PreferredVersion()
 	if err != nil {
@@ -100,7 +100,7 @@ func (r *RemoteAdapter) ListAllMetrics() []provider.CustomMetricInfo {
 
 // GetMetricByName get custom metric from remote adapter
 func (r *RemoteAdapter) GetMetricByName(ctx context.Context, name types.NamespacedName, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValue, error) {
-	klog.Info("Get remote metric by name")
+	klog.Infof("Get custom metric %s by name in remote adapter", info.Metric)
 
 	kind, err := utils.KindForResource(info.GroupResource.Resource, r.restMapper)
 	if err != nil {
@@ -148,7 +148,7 @@ func (r *RemoteAdapter) GetMetricByName(ctx context.Context, name types.Namespac
 
 // GetMetricBySelector get custom metric from remote
 func (r *RemoteAdapter) GetMetricBySelector(ctx context.Context, namespace string, selector labels.Selector, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValueList, error) {
-	klog.Info("Get remote metric by selector")
+	klog.Infof("Get custom metric %s by selector in remote adapter", info.Metric)
 
 	kind, err := utils.KindForResource(info.GroupResource.Resource, r.restMapper)
 	if err != nil {
@@ -206,7 +206,7 @@ func (r *RemoteAdapter) GetMetricBySelector(ctx context.Context, namespace strin
 
 // GetExternalMetric get external metric from remote
 func (r *RemoteAdapter) GetExternalMetric(ctx context.Context, namespace string, metricSelector labels.Selector, info provider.ExternalMetricInfo) (*external_metrics.ExternalMetricValueList, error) {
-	klog.Info("Get external metric by selector")
+	klog.Infof("Get external metric %s by selector in remote adapter", info.Metric)
 
 	metricList, err := r.externalMetricClient.NamespacedMetrics(namespace).List(info.Metric, metricSelector)
 	if err != nil {
@@ -230,7 +230,7 @@ func (r *RemoteAdapter) GetExternalMetric(ctx context.Context, namespace string,
 
 // ListAllExternalMetrics list all external metric from remote
 func (r *RemoteAdapter) ListAllExternalMetrics() []provider.ExternalMetricInfo {
-	klog.Info("Get external metric by selector")
+	klog.Info("Get external metric by selector in remote adapter")
 
 	var externalMetricInfos []provider.ExternalMetricInfo
 	resources, err := r.discoveryClient.ServerResourcesForGroupVersion(externalMetricsAPI.SchemeGroupVersion.String())
