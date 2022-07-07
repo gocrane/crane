@@ -113,6 +113,7 @@ nav:
         - Load-aware Scheduling: tutorials/dynamic-scheduler-plugin.md
   - Proposals:
       - Advanced CpuSet Manager: proposals/20220228-advanced-cpuset-manger.md
+      - Pod Sorting And Precise Execution For Crane Agent: proposals/Pod-Sorting-And-Precise-Execution-For-Crane-Agent.md
   - Contributing: CONTRIBUTING.md
   - Code Standard: code-standards.md
   - Roadmap:
