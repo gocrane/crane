@@ -170,7 +170,7 @@ spec:
 apiVersion: autoscaling.crane.io/v1alpha1
 kind: EffectiveHorizontalPodAutoscaler
 metadata:
-  name: ehpa-simulate
+  name: metric-source-service
   annotations:
     metric-name.autoscaling.crane.io/mock_traffic: |
 #添加注解，当前版本需要配置查询语句
@@ -198,7 +198,7 @@ spec:
 #指定需要实现扩缩容的deployment
     apiVersion: apps/v1
     kind: Deployment
-    name: ehpa-simulate
+    name: metric-source-service
   minReplicas: 2
   maxReplicas: 20
 #Auto为应用，Previoew为DryRun模式
@@ -228,8 +228,8 @@ spec:
 # kubectl apply -f ehpa.yaml
 #查询ehpa状态
 # kubectl get ehpa
-NAME            STRATEGY   MINPODS   MAXPODS   SPECIFICPODS   REPLICAS   AGE
-ehpa-simulate   Auto       2         20                       10         1m
+NAME                   STRATEGY   MINPODS   MAXPODS   SPECIFICPODS   REPLICAS   AGE
+metric-source-service  Auto       2         20                       10         1m
 ```
 
 #### 时序预测模型
@@ -238,13 +238,13 @@ ehpa-simulate   Auto       2         20                       10         1m
 
 ```bash
 # kubectl get tsp
-NAME                       TARGETREFNAME   TARGETREFKIND   PREDICTIONWINDOWSECONDS   AGE
-ehpa-ehpa-simulate         ehpa-simulate   Deployment      3600                      1m
-# kubectl get tsp ehpa-ehpa-simulate -o yaml
+NAME                               TARGETREFNAME   TARGETREFKIND   PREDICTIONWINDOWSECONDS   AGE
+ehpa-metric-source-service         metric-source-service   Deployment      3600                      1m
+# kubectl get tsp ehpa-metric-source-service -o yaml
 apiVersion: prediction.crane.io/v1alpha1
 kind: TimeSeriesPrediction
 metadata:
-  name: ehpa-ehpa-simulate
+  name: ehpa-metric-source-service
   namespace: default
 spec:
   predictionMetrics:
@@ -262,7 +262,7 @@ spec:
   targetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: ehpa-simulate
+    name: metric-source-service
     namespace: default
 status:
   predictionMetrics:
