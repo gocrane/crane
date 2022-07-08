@@ -316,9 +316,10 @@ Behavior:
 Deployment pods:       10 current / 10 desired
 ```
 
-### 副本监控
+### craned指标采集
 
-#### craned指标采集
+#### 副本指标
+
 ```bash
 # kubectl -n crane-system get deployment craned -o yaml
 apiVersion: apps/v1
@@ -343,6 +344,14 @@ craned-854bcdb88b-d5fgx   2/2     Running   0          96m   10.244.0.177   d2-n
 crane_autoscaling_effective_hpa_replicas{name="metric-source-service",namespace="default"} 10
 crane_autoscaling_hpa_replicas{name="ehpa-metric-source-service",namespace="default"} 10
 crane_autoscaling_hpa_scale_count{name="ehpa-metric-source-service",namespace="default",type="hpa"} 3
+```
+
+#### TSP指标
+
+```bash
+# curl -sL 10.244.0.177:8080/metrics | grep ^crane_prediction_time_series_prediction
+crane_prediction_time_series_prediction_external_by_window{algorithm="dsp",resourceIdentifier="crane-mock_traffic",targetKind="Deployment",targetName="metric-source-service",targetNamespace="default",type="ExpressionQuery"} 23011 1657270905000
+crane_prediction_time_series_prediction_resource{algorithm="dsp",resourceIdentifier="crane_pod_cpu_usage",targetKind="Deployment",targetName="metric-source-service",namespace="default"} 10
 ```
 
 ## 总结：
