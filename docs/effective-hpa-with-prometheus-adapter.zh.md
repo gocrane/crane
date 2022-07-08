@@ -36,11 +36,11 @@ Server Version: version.Info{Major:"1", Minor:"22", GitVersion:"v1.22.9", GitCom
 服务设置
 
 ```bash
-# kubectl get deployment metric-source-service -o yaml
+# kubectl get deployment metric-external-service -o yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: metric-source-service
+  name: metric-external-service
   namespace: default
 spec:
   template:
@@ -57,7 +57,7 @@ spec:
 ```bash
 # kubectl get pods -owide
 NAME READY STATUS RESTARTS AGE
-metric-source-service-6c6b4b4648-n7bmc 1/1 Running 0 14d
+metric-external-service-6c6b4b4648-n7bmc 1/1 Running 0 14d
 # curl 10.244.0.59:28002/metrics
 mock_traffic{} 13820
 ```
@@ -175,7 +175,7 @@ metadata:
     metric-name.autoscaling.crane.io/mock_traffic: |
 #添加注解，当前版本需要配置查询语句
 #metric-name.autoscaling.crane.io/${需要获取时序模型的指标名}:
-      mock_traffic{job="metrics-service1-lyg-test", pod_project="metric-source-service"}
+      mock_traffic{job="metrics-service1-lyg-test", pod_namespace="cloud", pod_project="metric-external-service"}
 spec:
   behavior:
     scaleDown:
@@ -256,7 +256,7 @@ spec:
         sampleInterval: 60s
     expressionQuery:
       expression: |
-        mock_traffic{job="metrics-service1-lyg-test", pod_namespace="cloud", pod_project="me-dingding-service"}
+        mock_traffic{job="metrics-service1-lyg-test", pod_namespace="cloud", pod_project="metric-external-service"}
     resourceIdentifier: crane-mock_traffic
     type: ExpressionQuery
   targetRef:
