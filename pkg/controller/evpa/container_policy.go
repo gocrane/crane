@@ -29,6 +29,7 @@ func (c *EffectiveVPAController) ReconcileContainerPolicies(evpa *autoscalingapi
 
 	rankedEstimators := RankEstimators(resourceEstimators)
 	needReconciledContainers := make(map[string]autoscalingapi.ContainerResourcePolicy)
+	containerResourceRequirement := make(map[string]*corev1.ResourceRequirements)
 	for _, container := range podTemplate.Spec.Containers {
 		for _, containerPolicy := range evpa.Spec.ResourcePolicy.ContainerPolicies {
 			if containerPolicy.ContainerName == "*" || containerPolicy.ContainerName == container.Name {
@@ -37,10 +38,11 @@ func (c *EffectiveVPAController) ReconcileContainerPolicies(evpa *autoscalingapi
 				needReconciledContainers[container.Name] = *out
 			}
 		}
+		containerResourceRequirement[container.Name] = &container.Resources
 	}
 	for container, containerPolicy := range needReconciledContainers {
 		// get current resource by pod template
-		resourceRequirement, found := utils.GetResourceByPodTemplate(podTemplate, container)
+		resourceRequirement, found := containerResourceRequirement[container]
 		if !found {
 			klog.Warningf("ContainerName %s not found", containerPolicy.ContainerName)
 			continue
