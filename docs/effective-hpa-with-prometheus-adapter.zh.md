@@ -340,7 +340,7 @@ spec:
 NAME                      READY   STATUS    RESTARTS   AGE   IP             NODE          NOMINATED NODE   READINESS GATES
 craned-854bcdb88b-d5fgx   2/2     Running   0          96m   10.244.0.177   d2-node-012   <none>           <none>
 #指标查询
-# curl -sL 10.244.0.177:8080/metrics | grep ehpa | grep simu
+# curl -sL 10.244.0.177:8080/metrics | grep ehpa
 crane_autoscaling_effective_hpa_replicas{name="metric-source-service",namespace="default"} 10
 crane_autoscaling_hpa_replicas{name="ehpa-metric-source-service",namespace="default"} 10
 crane_autoscaling_hpa_scale_count{name="ehpa-metric-source-service",namespace="default",type="hpa"} 3
