@@ -78,17 +78,18 @@ func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	// reconcile prediction if enabled
+	var tsp *predictionapi.TimeSeriesPrediction
 	if utils.IsEHPAPredictionEnabled(ehpa) && utils.IsEHPAHasPredictionMetric(ehpa) {
-		prediction, err := c.ReconcilePredication(ctx, ehpa)
+		tsp, err = c.ReconcilePredication(ctx, ehpa)
 		if err != nil {
 			setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedReconcilePrediction", err.Error())
 			c.UpdateStatus(ctx, ehpa, newStatus)
 			return ctrl.Result{}, err
 		}
-		setPredictionCondition(newStatus, prediction.Status.Conditions)
+		setPredictionCondition(newStatus, tsp.Status.Conditions)
 	}
 
-	hpa, err := c.ReconcileHPA(ctx, ehpa, substitute, newStatus)
+	hpa, err := c.ReconcileHPA(ctx, ehpa, substitute, tsp)
 	if err != nil {
 		setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedReconcileHPA", err.Error())
 		c.UpdateStatus(ctx, ehpa, newStatus)

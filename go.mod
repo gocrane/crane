@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/go-echarts/go-echarts/v2 v2.2.4
-	github.com/gocrane/api v0.4.1-0.20220520134105-09d430d903ac
+	github.com/gocrane/api v0.5.1-0.20220706040335-eaadbb4b99ed
 	github.com/google/cadvisor v0.39.2
 	github.com/mjibson/go-dsp v0.0.0-20180508042940-11479a337f12
 	github.com/prometheus/client_golang v1.11.0
@@ -181,6 +181,7 @@ require (
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/tools v0.1.8 // indirect
 	google.golang.org/genproto v0.0.0-20211208223120-3a66f561d7aa // indirect
+	google.golang.org/protobuf v1.27.1
 )
 
 replace (

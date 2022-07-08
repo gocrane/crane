@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -15,7 +16,10 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/metrics/pkg/apis/custom_metrics"
 	"k8s.io/metrics/pkg/apis/custom_metrics/v1beta2"
+	"k8s.io/metrics/pkg/apis/external_metrics"
+	externalMetricsAPI "k8s.io/metrics/pkg/apis/external_metrics/v1beta1"
 	cmClient "k8s.io/metrics/pkg/client/custom_metrics"
+	emClient "k8s.io/metrics/pkg/client/external_metrics"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/custom-metrics-apiserver/pkg/provider"
 
@@ -23,10 +27,11 @@ import (
 )
 
 type RemoteAdapter struct {
-	metricClient      cmClient.CustomMetricsClient
-	apiVersionsGetter cmClient.AvailableAPIsGetter
-	discoveryClient   discovery.CachedDiscoveryInterface
-	restMapper        meta.RESTMapper
+	metricClient         cmClient.CustomMetricsClient
+	externalMetricClient emClient.ExternalMetricsClient
+	apiVersionsGetter    cmClient.AvailableAPIsGetter
+	discoveryClient      discovery.CachedDiscoveryInterface
+	restMapper           meta.RESTMapper
 }
 
 func NewRemoteAdapter(namespace string, name string, port int, config *rest.Config, client client.Client) (*RemoteAdapter, error) {
@@ -46,25 +51,30 @@ func NewRemoteAdapter(namespace string, name string, port int, config *rest.Conf
 
 	// use actual rest mapper here
 	metricClient := cmClient.NewForConfig(metricConfig, client.RESTMapper(), apiVersionsGetter)
+	externalMetricsClient, err := emClient.NewForConfig(metricConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create external metrics client: %v", err)
+	}
 
 	return &RemoteAdapter{
-		metricClient:      metricClient,
-		apiVersionsGetter: apiVersionsGetter,
-		discoveryClient:   cachedClient,
-		restMapper:        client.RESTMapper(),
+		metricClient:         metricClient,
+		externalMetricClient: externalMetricsClient,
+		apiVersionsGetter:    apiVersionsGetter,
+		discoveryClient:      cachedClient,
+		restMapper:           client.RESTMapper(),
 	}, err
 }
 
 // ListAllMetrics returns all available custom metrics.
-func (p *RemoteAdapter) ListAllMetrics() []provider.CustomMetricInfo {
-	klog.Info("List all remote custom metrics")
+func (r *RemoteAdapter) ListAllMetrics() []provider.CustomMetricInfo {
+	klog.Info("List all remote custom metrics in remote adapter")
 
-	version, err := p.apiVersionsGetter.PreferredVersion()
+	version, err := r.apiVersionsGetter.PreferredVersion()
 	if err != nil {
 		klog.Errorf("Failed to get preferred version: %v ", err)
 		return nil
 	}
-	resources, err := p.discoveryClient.ServerResourcesForGroupVersion(version.String())
+	resources, err := r.discoveryClient.ServerResourcesForGroupVersion(version.String())
 	if err != nil {
 		klog.Errorf("Failed to get resources for %s: %v", version.String(), err)
 		return nil
@@ -88,25 +98,25 @@ func (p *RemoteAdapter) ListAllMetrics() []provider.CustomMetricInfo {
 	return metricInfos
 }
 
-// GetMetricByName get metric from remote adapter
-func (p *RemoteAdapter) GetMetricByName(ctx context.Context, name types.NamespacedName, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValue, error) {
-	klog.Info("Get remote metric by name")
+// GetMetricByName get custom metric from remote adapter
+func (r *RemoteAdapter) GetMetricByName(ctx context.Context, name types.NamespacedName, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValue, error) {
+	klog.Infof("Get custom metric %s by name in remote adapter", info.Metric)
 
-	kind, err := utils.KindForResource(info.GroupResource.Resource, p.restMapper)
+	kind, err := utils.KindForResource(info.GroupResource.Resource, r.restMapper)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get kind for resource %s: %v ", info.GroupResource.Resource, err)
 	}
 
 	var object *v1beta2.MetricValue
 	if info.Namespaced {
-		object, err = p.metricClient.NamespacedMetrics(name.Namespace).GetForObject(
+		object, err = r.metricClient.NamespacedMetrics(name.Namespace).GetForObject(
 			schema.GroupKind{Group: info.GroupResource.Group, Kind: kind},
 			name.Name,
 			info.Metric,
 			metricSelector,
 		)
 	} else {
-		object, err = p.metricClient.RootScopedMetrics().GetForObject(
+		object, err = r.metricClient.RootScopedMetrics().GetForObject(
 			schema.GroupKind{Group: info.GroupResource.Group, Kind: kind},
 			name.Name,
 			info.Metric,
@@ -136,18 +146,18 @@ func (p *RemoteAdapter) GetMetricByName(ctx context.Context, name types.Namespac
 	}, nil
 }
 
-// GetMetricBySelector get metric from remote
-func (p *RemoteAdapter) GetMetricBySelector(ctx context.Context, namespace string, selector labels.Selector, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValueList, error) {
-	klog.Info("Get remote metric by selector")
+// GetMetricBySelector get custom metric from remote
+func (r *RemoteAdapter) GetMetricBySelector(ctx context.Context, namespace string, selector labels.Selector, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValueList, error) {
+	klog.Infof("Get custom metric %s by selector in remote adapter", info.Metric)
 
-	kind, err := utils.KindForResource(info.GroupResource.Resource, p.restMapper)
+	kind, err := utils.KindForResource(info.GroupResource.Resource, r.restMapper)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get kind for resource %s: %v ", info.GroupResource.Resource, err)
 	}
 
 	var objects *v1beta2.MetricValueList
 	if info.Namespaced {
-		objects, err = p.metricClient.NamespacedMetrics(namespace).GetForObjects(
+		objects, err = r.metricClient.NamespacedMetrics(namespace).GetForObjects(
 			schema.GroupKind{
 				Group: info.GroupResource.Group,
 				Kind:  kind,
@@ -157,7 +167,7 @@ func (p *RemoteAdapter) GetMetricBySelector(ctx context.Context, namespace strin
 			metricSelector,
 		)
 	} else {
-		objects, err = p.metricClient.RootScopedMetrics().GetForObjects(
+		objects, err = r.metricClient.RootScopedMetrics().GetForObjects(
 			schema.GroupKind{
 				Group: info.GroupResource.Group,
 				Kind:  info.GroupResource.Resource,
@@ -192,4 +202,47 @@ func (p *RemoteAdapter) GetMetricBySelector(ctx context.Context, namespace strin
 	return &custom_metrics.MetricValueList{
 		Items: values,
 	}, nil
+}
+
+// GetExternalMetric get external metric from remote
+func (r *RemoteAdapter) GetExternalMetric(ctx context.Context, namespace string, metricSelector labels.Selector, info provider.ExternalMetricInfo) (*external_metrics.ExternalMetricValueList, error) {
+	klog.Infof("Get external metric %s by selector in remote adapter", info.Metric)
+
+	metricList, err := r.externalMetricClient.NamespacedMetrics(namespace).List(info.Metric, metricSelector)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get metrics for external metric %s/%s: %v", namespace, info.Metric, err)
+	}
+	returnList := &external_metrics.ExternalMetricValueList{
+		Items: make([]external_metrics.ExternalMetricValue, len(metricList.Items)),
+	}
+	for i, m := range metricList.Items {
+		returnList.Items[i] = external_metrics.ExternalMetricValue{
+			TypeMeta:      metav1.TypeMeta{Kind: m.Kind, APIVersion: m.APIVersion},
+			MetricName:    m.MetricName,
+			MetricLabels:  m.MetricLabels,
+			Timestamp:     m.Timestamp,
+			WindowSeconds: m.WindowSeconds,
+			Value:         m.Value,
+		}
+	}
+	return returnList, nil
+}
+
+// ListAllExternalMetrics list all external metric from remote
+func (r *RemoteAdapter) ListAllExternalMetrics() []provider.ExternalMetricInfo {
+	klog.Info("Get external metric by selector in remote adapter")
+
+	var externalMetricInfos []provider.ExternalMetricInfo
+	resources, err := r.discoveryClient.ServerResourcesForGroupVersion(externalMetricsAPI.SchemeGroupVersion.String())
+	if err != nil {
+		klog.Errorf("Failed to get external metric resources for %r: %v", externalMetricsAPI.SchemeGroupVersion, err)
+		return nil
+	}
+	for _, r := range resources.APIResources {
+		info := provider.ExternalMetricInfo{
+			Metric: r.Name,
+		}
+		externalMetricInfos = append(externalMetricInfos, info)
+	}
+	return externalMetricInfos
 }
