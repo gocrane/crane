@@ -36,12 +36,12 @@ Server Version: version.Info{Major:"1", Minor:"22", GitVersion:"v1.22.9", GitCom
 服务设置
 
 ```bash
-# kubectl -n cloud get deployment metric-source-service -o yaml
+# kubectl get deployment metric-source-service -o yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: metric-source-service
-  namespace: cloud
+  namespace: default
 spec:
   template:
     metadata:
@@ -55,7 +55,7 @@ spec:
 接口验证
 
 ```bash
-# kubectl -n cloud get pods -owide
+# kubectl get pods -owide
 NAME READY STATUS RESTARTS AGE
 metric-source-service-6c6b4b4648-n7bmc 1/1 Running 0 14d
 # curl 10.244.0.59:28002/metrics
@@ -162,7 +162,188 @@ spec:
 
 ## 配置弹性
 
+### EHPA
 
+#### 设置EHPA
+
+```yaml
+apiVersion: autoscaling.crane.io/v1alpha1
+kind: EffectiveHorizontalPodAutoscaler
+metadata:
+  name: ehpa-simulate
+  annotations:
+    metric-name.autoscaling.crane.io/mock_traffic: |
+#添加注解，当前版本需要配置查询语句
+#metric-name.autoscaling.crane.io/${需要获取时序模型的指标名}:
+      mock_traffic{job="metrics-service1-lyg-test", pod_project="metric-source-service"}
+spec:
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 6
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+      - type: Pods
+        value: 2
+        periodSeconds: 15
+      selectPolicy: Max
+  scaleTargetRef:
+#指定需要实现扩缩容的deployment
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ehpa-simulate
+  minReplicas: 2
+  maxReplicas: 20
+#Auto为应用，Previoew为DryRun模式
+  scaleStrategy: Auto
+  metrics:
+#控制扩缩容的外部指标
+  - type: External
+    external:
+      metric:
+        name: mock_traffic
+      target:
+        averageValue: 2000
+        type: AverageValue
+#设置时序预测模型
+  prediction:
+    predictionWindowSeconds: 3600
+    predictionAlgorithm:
+      algorithmType: dsp
+      dsp:
+        sampleInterval: "60s"
+        historyLength: "7d"
+```
+
+应用并查看EHPA状态
+
+```bash
+# kubectl apply -f ehpa.yaml
+#查询ehpa状态
+# kubectl get ehpa
+NAME            STRATEGY   MINPODS   MAXPODS   SPECIFICPODS   REPLICAS   AGE
+ehpa-simulate   Auto       2         20                       10         1m
+```
+
+#### 时序预测模型
+注：craned定义TimeSeriesPrediction资源作为时序预测模型，命名定义ehpa-${ehpa-name}
+增加时序预测指标，命名定义crane-${extrenal-metric-name}
+
+```bash
+# kubectl get tsp
+NAME                       TARGETREFNAME   TARGETREFKIND   PREDICTIONWINDOWSECONDS   AGE
+ehpa-ehpa-simulate         ehpa-simulate   Deployment      3600                      1m
+# kubectl get tsp ehpa-ehpa-simulate -o yaml
+apiVersion: prediction.crane.io/v1alpha1
+kind: TimeSeriesPrediction
+metadata:
+  name: ehpa-ehpa-simulate
+  namespace: default
+spec:
+  predictionMetrics:
+  - algorithm:
+      algorithmType: dsp
+      dsp:
+        estimators: {}
+        historyLength: 7d
+        sampleInterval: 60s
+    expressionQuery:
+      expression: |
+        mock_traffic{job="metrics-service1-lyg-test", pod_namespace="cloud", pod_project="me-dingding-service"}
+    resourceIdentifier: crane-mock_traffic
+    type: ExpressionQuery
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ehpa-simulate
+    namespace: default
+status:
+  predictionMetrics:
+  - prediction:
+    - labels:
+      samples:
+      - timestamp: 1656402060
+        value: "15767.77871"
+        ...
+        ...
+      - timestamp: 1656409200
+        value: "22202.37755"
+    resourceIdentifier: crane-mock_traffic
+```
+
+#### HPA
+
+HPA通过相关指标实现扩缩
+
+```bash
+# kubectl get hpa
+NAME                  REFERENCE                  TARGETS                                MINPODS   MAXPODS   REPLICAS   AGE
+metric-source-service Deployment/metric-source-service   1480200m/2k (avg), 2020300m/2k (avg)   2         20        10         1m
+# kubectl describe hpa ehpa-metric-source-service
+Name:                                           ehpa-metric-source-service
+Namespace:                                      default
+Labels:                                         app.kubernetes.io/managed-by=effective-hpa-controller
+                                                app.kubernetes.io/name=ehpa-metric-source-service
+                                                app.kubernetes.io/part-of=metric-source-service
+                                                autoscaling.crane.io/effective-hpa-uid=b2cb76db-61c9-4d00-b333-af67d36bbd65
+Annotations:                                    <none>
+CreationTimestamp:                              Tue, 28 Jun 2022 13:38:06 +0800
+Reference:                                      Deployment/metric-source-service
+Metrics:                                        ( current / target )
+  "mock_traffic" (target average value):        1470600m / 2k
+  "crane-mock_traffic" (target average value):  2032500m / 2k
+Min replicas:                                   2
+Max replicas:                                   20
+Behavior:
+  Scale Up:
+    Stabilization Window: 0 seconds
+    Select Policy: Max
+    Policies:
+      - Type: Percent  Value: 100  Period: 15 seconds
+      - Type: Pods     Value: 2    Period: 15 seconds
+  Scale Down:
+    Stabilization Window: 6 seconds
+    Select Policy: Max
+    Policies:
+      - Type: Percent  Value: 100  Period: 15 seconds
+Deployment pods:       10 current / 10 desired
+```
+
+### 副本监控
+
+#### craned指标采集
+```bash
+# kubectl -n crane-system get deployment craned -o yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: craned
+  namespace: crane-system
+spec:
+  template:
+    metadata:
+      annotations:
+        prometheus.aispeech.com/metric_path: /metrics
+        prometheus.aispeech.com/scrape_port: "8080"
+        prometheus.aispeech.com/scrape_scheme: http
+        prometheus.aispeech.com/should_be_scraped: "true"
+ 
+# kubectl -n crane-system get pods craned-854bcdb88b-d5fgx -o wide
+NAME                      READY   STATUS    RESTARTS   AGE   IP             NODE          NOMINATED NODE   READINESS GATES
+craned-854bcdb88b-d5fgx   2/2     Running   0          96m   10.244.0.177   d2-node-012   <none>           <none>
+#指标查询
+# curl -sL 10.244.0.177:8080/metrics | grep ehpa | grep simu
+crane_autoscaling_effective_hpa_replicas{name="metric-source-service",namespace="default"} 10
+crane_autoscaling_hpa_replicas{name="ehpa-metric-source-service",namespace="default"} 10
+crane_autoscaling_hpa_scale_count{name="ehpa-metric-source-service",namespace="default",type="hpa"} 3
+```
 
 ## 总结：
 
