@@ -94,6 +94,7 @@ The existing problems are:
 In order to better sort and precisely control metrics configured based on NodeQosEnsurancePolicy, the concept of attributes is introduced into metrics.
 
 The attributes of metrics include the following:
+
 1. Name indicates the name of the metric, which should be consistent with the indicator name collected in the collector module
 2. ActionPriority indicates the priority of the indicator. 0 is the lowest and 10 is the highest
 3. SortAble indicates whether the indicator can be sorted

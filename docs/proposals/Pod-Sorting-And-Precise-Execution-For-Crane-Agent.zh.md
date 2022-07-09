@@ -2,6 +2,7 @@
 该proposal丰富了crane-agent的排序策略，完善了通用排序。并且实现了一套精准操作(压制/驱逐)的框架，在执行压制/驱逐等操作时，操作到用户指定的水位线即停止的精确操作逻辑，避免了对于低优pod的过度操作；
 
 具体来说：
+
 - 丰富了crane-agent的排序策略，完善了通用排序和cpu usage为主要参考的cpu维度排序；
 
 - 针对cpu usage，实现了执行压制/驱逐等操作时，操作到用户指定的水位线即停止的精确操作逻辑，避免了对于低优pod的过度操作；
@@ -91,6 +92,7 @@
 为了更好的基于NodeQOSEnsurancePolicy配置的metric进行排序和精准控制，对metric引入属性的概念。
 
 metric的属性包含如下几个：
+
 1. Name 表明了metric的名称，需要同collector模块中收集到的指标名称一致
 2. ActionPriority 表示指标的优先级，0为最低，10为最高
 3. SortAble 表明该指标是否可以排序
