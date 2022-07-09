@@ -24,13 +24,21 @@ But the recommendations have some limitations now:
 
 ### Non-Goals
 
-- Cloud Resources that not included in kubernetes
+- Cloud Resources that are not managed by kubernetes
 
 ## Proposal
 
-Recommendation Definition
+### Recommendation Definition
 
-Recommendation Framework
+Recommendation Definition discuss data model about the recommendation process.  It answers following questions:
+
+- How to define what resources need to be recommended
+- How to know the suggested advice for my resource
+- How to config the recommender which have different function for different resources
+
+### Recommendation Framework
+
+Recommendation Framework provide a pluggable mechanism that let user extend the default recommender.
 
 ### User Stories
 
