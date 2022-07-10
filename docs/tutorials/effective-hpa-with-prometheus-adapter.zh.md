@@ -1,7 +1,7 @@
 # 基于 Effective HPA 实现自定义指标的智能弹性实践
 
 Kubernetes HPA 支持了丰富的弹性扩展能力，Kubernetes 平台开发者部署服务实现自定义 Metric 的服务，Kubernetes 用户配置多项内置的资源指标或者自定义 Metric 指标实现自定义水平弹性。
-Crane Effective HPA 兼容社区的 Kubernetes HPA 的能力，提供了更智能的弹性策略，比如基于预测的弹性和基于 Cron 周期的弹性等。
+Effective HPA 兼容社区的 Kubernetes HPA 的能力，提供了更智能的弹性策略，比如基于预测的弹性和基于 Cron 周期的弹性等。
 Prometheus 是当下流行的开源监控系统，通过 Prometheus 可以获取到用户的自定义指标配置。
 
 本文将通过一个例子介绍了如何基于 Effective HPA 实现自定义指标的智能弹性。
@@ -11,25 +11,22 @@ Prometheus 是当下流行的开源监控系统，通过 Prometheus 可以获取
 - Kubernetes 1.18+
 - Helm 3.1.0
 - Crane v0.6.0+
+- Prometheus
 
 ## 环境搭建
 
-### 集群版本
-
-版本：v1.22.9
-注：为了接入阿里云ECI以降低成本，需要指定节点进行副本扩缩，故采用该版本作为基础环境
-
-```bash
-# kubectl version
-
-Client Version: version.Info{Major:"1", Minor:"22", GitVersion:"v1.22.9", GitCommit:"6df4433e288edc9c40c2e344eb336f63fad45cd2", GitTreeState:"clean", BuildDate:"2022-04-13T19:57:43Z", GoVersion:"go1.16.15", Compiler:"gc", Platform:"linux/amd64"}
-Server Version: version.Info{Major:"1", Minor:"22", GitVersion:"v1.22.9", GitCommit:"6df4433e288edc9c40c2e344eb336f63fad45cd2", GitTreeState:"clean", BuildDate:"2022-04-13T19:52:02Z", GoVersion:"go1.16.15", Compiler:"gc", Platform:"linux/amd64"}
-```
-
-### Prometheus
+### 安装 PrometheusAdapter
 
 镜像及版本：registry.cn-hangzhou.aliyuncs.com/istios/prometheus-adapter-amd64:v0.9.0
 注：EHPA需要兼容目前已有的外部指标，该部分通过prometheus-adapter实现
+
+通过 Helm 安装 PrometheusAdapter
+
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+helm install my-release prometheus-community/prometheus-adapter
+```
 
 #### 指标采集
 
