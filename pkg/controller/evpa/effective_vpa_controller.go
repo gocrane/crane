@@ -7,6 +7,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	vpatypes "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
@@ -43,8 +44,13 @@ func (c *EffectiveVPAController) Reconcile(ctx context.Context, req ctrl.Request
 	klog.V(4).Infof("Got evpa %s", req.NamespacedName)
 
 	evpa := &autoscalingapi.EffectiveVerticalPodAutoscaler{}
-	err := c.Client.Get(ctx, req.NamespacedName, evpa)
+	err := c.Get(ctx, req.NamespacedName, evpa)
 	if err != nil {
+		if errors.IsNotFound(err) {
+			// Object not found, return
+			klog.V(3).Infof("EffectiveVPA %s has been deleted.", req)
+			return ctrl.Result{}, nil
+		}
 		return ctrl.Result{}, err
 	}
 
