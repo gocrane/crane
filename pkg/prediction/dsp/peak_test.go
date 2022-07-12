@@ -71,7 +71,7 @@ func TestLinerRegression(t *testing.T) {
 	*/
 	//http.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 	//	page := components.NewPage()
-	//	page.AddCharts(s.Plot(), acfLine, line)
+	//	page.AddCharts(s.Plot("green"), acfLine, line)
 	//	page.Render(w)
 	//})
 	//fmt.Println("Open your browser and access 'http://localhost:7001'")
@@ -140,7 +140,7 @@ func TestLinerRegression2(t *testing.T) {
 	*/
 	//http.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 	//	page := components.NewPage()
-	//	page.AddCharts(s.Plot(), acfLine, line)
+	//	page.AddCharts(s.Plot("green"), acfLine, line)
 	//	page.Render(w)
 	//})
 	//fmt.Println("Open your browser and access 'http://localhost:7001'")

@@ -18,7 +18,29 @@ spec:
     singular: recommendation
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.type
+      name: Type
+      type: string
+    - jsonPath: .spec.targetRef.kind
+      name: TargetKind
+      type: string
+    - jsonPath: .spec.targetRef.namespace
+      name: TargetNamespace
+      type: string
+    - jsonPath: .spec.targetRef.name
+      name: TargetName
+      type: string
+    - jsonPath: .spec.completionStrategy.completionStrategyType
+      name: Strategy
+      type: string
+    - jsonPath: .spec.completionStrategy.periodSeconds
+      name: PeriodSeconds
+      type: string
+    - jsonPath: .spec.adoptionType
+      name: AdoptionType
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Recommendation represents the configuration of a single recommendation.
@@ -216,6 +238,7 @@ spec:
         type: object
     served: true
     storage: true
+    subresources: {}
 status:
   acceptedNames:
     kind: ""
