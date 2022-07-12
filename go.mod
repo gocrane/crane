@@ -6,6 +6,7 @@ require (
 	github.com/go-echarts/go-echarts/v2 v2.2.4
 	github.com/gocrane/api v0.4.1-0.20220520134105-09d430d903ac
 	github.com/google/cadvisor v0.39.2
+	github.com/kolide/kit v0.0.0-20210803163830-e689ca24537d
 	github.com/mjibson/go-dsp v0.0.0-20180508042940-11479a337f12
 	github.com/prometheus/client_golang v1.11.0
 	github.com/prometheus/common v0.26.0
