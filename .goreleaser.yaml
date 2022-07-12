@@ -1,0 +1,97 @@
+# This is an example .goreleaser.yml file with some sensible defaults.
+# Make sure to check the documentation at https://goreleaser.com
+project_name: crane
+before:
+  hooks:
+    - go mod tidy
+    - make generate
+builds:
+  - id: craned
+    binary: craned
+    dir: ./cmd/craned/
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+      - mips64
+    flags:
+      - -trimpath
+    ldflags:
+      - -extldflags "-static"
+      - -X github.com/kolide/kit/version.appName={{ .ArtifactName }}
+      - -X github.com/kolide/kit/version.version={{ .Version }}
+      - -X github.com/kolide/kit/version.branch={{ .Branch }}
+      - -X github.com/kolide/kit/version.revision={{ .FullCommit }}
+      - -X github.com/kolide/kit/version.buildDate={{ time "2006-01-02" }}
+      - -X github.com/kolide/kit/version.buildUser={{ .Env.USER }}
+  - id: crane-agent
+    binary: crane-agent
+    dir: ./cmd/crane-agent/
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+      - mips64
+    flags:
+      - -trimpath
+    ldflags:
+      - -extldflags "-static"
+      - -X github.com/kolide/kit/version.appName={{ .ArtifactName }}
+      - -X github.com/kolide/kit/version.version={{ .Version }}
+      - -X github.com/kolide/kit/version.branch={{ .Branch }}
+      - -X github.com/kolide/kit/version.revision={{ .FullCommit }}
+      - -X github.com/kolide/kit/version.buildDate={{ time "2006-01-02" }}
+      - -X github.com/kolide/kit/version.buildUser={{ .Env.USER }}
+  - id: metric-adapter
+    binary: metric-adapter
+    dir: ./cmd/metric-adapter/
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+      - mips64
+    flags:
+      - -trimpath
+    ldflags:
+      - -extldflags "-static"
+      - -X github.com/kolide/kit/version.appName={{ .ArtifactName }}
+      - -X github.com/kolide/kit/version.version={{ .Version }}
+      - -X github.com/kolide/kit/version.branch={{ .Branch }}
+      - -X github.com/kolide/kit/version.revision={{ .FullCommit }}
+      - -X github.com/kolide/kit/version.buildDate={{ time "2006-01-02" }}
+      - -X github.com/kolide/kit/version.buildUser={{ .Env.USER }}
+archives:
+  - replacements:
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      386: i386
+      amd64: x86_64
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+release:
+  github:
+    owner: gocrane
+    name: crane
+  draft: true
+  prerelease: auto
