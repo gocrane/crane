@@ -66,7 +66,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#dynamic-scheduler-a-load-aware-scheduler-plugin" class="md-skip">
+        <a href="#dynamic-scheduler" class="md-skip">
           Skip to content
         </a>
       
@@ -528,30 +528,30 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#introduction" class="md-nav__link">
-    Introduction
+  <a href="#_1" class="md-nav__link">
+    介紹
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#design-details" class="md-nav__link">
-    Design Details
+  <a href="#_2" class="md-nav__link">
+    設計細節
   </a>
   
-    <nav class="md-nav" aria-label="Design Details">
+    <nav class="md-nav" aria-label="設計細節">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#architecture" class="md-nav__link">
-    Architecture
+  <a href="#_3" class="md-nav__link">
+    架構
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#scheduler-policy" class="md-nav__link">
-    Scheduler Policy
+  <a href="#_4" class="md-nav__link">
+    調度策略
   </a>
   
 </li>
@@ -820,30 +820,30 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#introduction" class="md-nav__link">
-    Introduction
+  <a href="#_1" class="md-nav__link">
+    介紹
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#design-details" class="md-nav__link">
-    Design Details
+  <a href="#_2" class="md-nav__link">
+    設計細節
   </a>
   
-    <nav class="md-nav" aria-label="Design Details">
+    <nav class="md-nav" aria-label="設計細節">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#architecture" class="md-nav__link">
-    Architecture
+  <a href="#_3" class="md-nav__link">
+    架構
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#scheduler-policy" class="md-nav__link">
-    Scheduler Policy
+  <a href="#_4" class="md-nav__link">
+    調度策略
   </a>
   
 </li>
@@ -872,45 +872,45 @@
             <article class="md-content__inner md-typeset">
               
                 
-  <a href="https://github.com/gocrane/crane/edit/master/docs/tutorials/dynamic-scheduler-plugin.md" title="Edit this page" class="md-content__button md-icon">
+  <a href="https://github.com/gocrane/crane/edit/master/docs/tutorials/dynamic-scheduler-plugin.zh_TW.md" title="Edit this page" class="md-content__button md-icon">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25Z"/></svg>
   </a>
 
 
 
-<h1 id="dynamic-scheduler-a-load-aware-scheduler-plugin">Dynamic-scheduler: a load-aware scheduler plugin<a class="headerlink" href="#dynamic-scheduler-a-load-aware-scheduler-plugin" title="Permanent link">&para;</a></h1>
-<h2 id="introduction">Introduction<a class="headerlink" href="#introduction" title="Permanent link">&para;</a></h2>
-<p>Native scheduler of kubernetes can only schedule pods by resource request, which can easily cause a series of load uneven problems:</p>
+<h1 id="dynamic-scheduler">Dynamic Scheduler：負載感知調度器插件<a class="headerlink" href="#dynamic-scheduler" title="Permanent link">&para;</a></h1>
+<h2 id="_1">介紹<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>kubernetes 的原生調度器只能通過資源請求來調度 pod，這很容易造成一系列負載不均的問題：</p>
 <ul>
-<li>for some nodes, the actual load is not much different from the resource request, which will lead to a very high probability of stability problems.</li>
-<li>for others, the actual load is much smaller than the resource request, which will lead to a huge waste of resources.</li>
+<li>對於某些節點，實際負載與資源請求相差不大，這會導致很大概率出現穩定性問題。</li>
+<li>對於其他節點來說，實際負載遠小於資源請求，這將導致資源的巨大浪費。</li>
 </ul>
-<p>To solve these problems, Dynamic scheduler builds a simple but efficient model based on actual node utilization data，and filters out those nodes with high load to balance the cluster.</p>
-<h2 id="design-details">Design Details<a class="headerlink" href="#design-details" title="Permanent link">&para;</a></h2>
-<h3 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h3>
+<p>為了解決這些問題，動態調度器根據實際的節點利用率構建了一個簡單但高效的模型，並過濾掉那些負載高的節點來平衡集群。</p>
+<h2 id="_2">設計細節<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<h3 id="_3">架構<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
 <p><img alt="" src="../../images/dynamic-scheduler-plugin.png" /></p>
-<p>As shown above, Dynamic scheduler relies on <code>Prometheus</code> and <code>Node-exporter</code> to collect and aggregate metrics data, and it consists of two components:</p>
+<p>如上圖，動態調度器依賴於<code>Prometheus</code>和<code>Node-exporter</code>收集和匯總指標數據，它由兩個組件組成：</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><code>Node-annotator</code> is currently a module of <code>Crane-scheduler-controller</code>.</p>
+<p><code>Node-annotator</code> 目前是 <code>Crane-scheduler-controller</code>的一個模塊.</p>
 </div>
 <ul>
-<li><code>Node-annotator</code> periodically pulls data from Prometheus and marks them with timestamp on the node in the form of annotations.</li>
-<li><code>Dynamic plugin</code> reads the load data directly from the node's annotation, filters and scores candidates based on a simple algorithm.</li>
+<li><code>Node-annotator</code>定期從 Prometheus 拉取數據，並以註釋的形式在節點上用時間戳標記它們。</li>
+<li><code>Dynamic plugin</code>直接從節點的註釋中讀取負載數據，過濾並基於簡單的算法對候選節點進行評分。</li>
 </ul>
-<h3 id="scheduler-policy">Scheduler Policy<a class="headerlink" href="#scheduler-policy" title="Permanent link">&para;</a></h3>
-<p>Dynamic provides a default <a href="../deploy/manifests/policy.yaml">scheduler policy</a> and supports user-defined policies. The default policy reies on following metrics:</p>
+<h3 id="_4">調度策略<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h3>
+<p>動態調度器提供了一個默認值<a href="../deploy/manifests/policy.yaml">調度策略</a>並支持用戶自定義策略。默認策略依賴於以下指標：</p>
 <ul>
-<li><code>cpu_usage_avg_5m</code> </li>
+<li><code>cpu_usage_avg_5m</code></li>
 <li><code>cpu_usage_max_avg_1h</code></li>
 <li><code>cpu_usage_max_avg_1d</code></li>
 <li><code>mem_usage_avg_5m</code></li>
 <li><code>mem_usage_max_avg_1h</code></li>
 <li><code>mem_usage_max_avg_1d</code></li>
 </ul>
-<p>At the scheduling <code>Filter</code> stage, the node will be filtered if the actual usage rate of this node is greater than the threshold of any of the above metrics. And at the <code>Score</code> stage, the final score is the weighted sum of these metrics' values.</p>
+<p>在調度的<code>Filter</code>階段，如果該節點的實際使用率大於上述任一指標的閾值，則該節點將被過濾。而在<code>Score</code>階段，最終得分是這些指標值的加權和。</p>
 <h3 id="hot-value">Hot Value<a class="headerlink" href="#hot-value" title="Permanent link">&para;</a></h3>
-<p>In the production cluster, scheduling hotspots may occur frequently because the load of the nodes can not increase immediately after the pod is created. Therefore, we define an extra metrics named <code>Hot Value</code>, which represents the scheduling frequency of the node in recent times. And the final priority of the node is the final score minus the <code>Hot Value</code>.</p>
+<p>在生產集群中，可能會頻繁出現調度熱點，因為創建 Pod 後節點的負載不能立即增加。因此，我們定義了一個額外的指標，名為<code>Hot Value</code>，表示節點最近幾次的調度頻率。並且節點的最終優先級是最終得分減去<code>Hot Value</code>。</p>
 
               
             </article>

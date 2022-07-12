@@ -66,7 +66,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#analytics-and-recommendation" class="md-skip">
+        <a href="#_1" class="md-skip">
           Skip to content
         </a>
       
@@ -411,44 +411,44 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#architecture" class="md-nav__link">
-    Architecture
+  <a href="#_2" class="md-nav__link">
+    架構
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#an-analytical-process" class="md-nav__link">
-    An analytical process
+  <a href="#_3" class="md-nav__link">
+    一次分析的過程
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#core-concept" class="md-nav__link">
-    Core concept
+  <a href="#_4" class="md-nav__link">
+    名詞解釋
   </a>
   
-    <nav class="md-nav" aria-label="Core concept">
+    <nav class="md-nav" aria-label="名詞解釋">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#analytics" class="md-nav__link">
-    Analytics
+  <a href="#_5" class="md-nav__link">
+    分析
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#recommendation" class="md-nav__link">
-    Recommendation
+  <a href="#_6" class="md-nav__link">
+    推薦
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
-    Configuration
+  <a href="#_7" class="md-nav__link">
+    參數配置
   </a>
   
 </li>
@@ -827,44 +827,44 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#architecture" class="md-nav__link">
-    Architecture
+  <a href="#_2" class="md-nav__link">
+    架構
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#an-analytical-process" class="md-nav__link">
-    An analytical process
+  <a href="#_3" class="md-nav__link">
+    一次分析的過程
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#core-concept" class="md-nav__link">
-    Core concept
+  <a href="#_4" class="md-nav__link">
+    名詞解釋
   </a>
   
-    <nav class="md-nav" aria-label="Core concept">
+    <nav class="md-nav" aria-label="名詞解釋">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#analytics" class="md-nav__link">
-    Analytics
+  <a href="#_5" class="md-nav__link">
+    分析
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#recommendation" class="md-nav__link">
-    Recommendation
+  <a href="#_6" class="md-nav__link">
+    推薦
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
-    Configuration
+  <a href="#_7" class="md-nav__link">
+    參數配置
   </a>
   
 </li>
@@ -886,40 +886,38 @@
             <article class="md-content__inner md-typeset">
               
                 
-  <a href="https://github.com/gocrane/crane/edit/master/docs/tutorials/analytics-and-recommendation.md" title="Edit this page" class="md-content__button md-icon">
+  <a href="https://github.com/gocrane/crane/edit/master/docs/tutorials/analytics-and-recommendation.zh_TW.md" title="Edit this page" class="md-content__button md-icon">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25Z"/></svg>
   </a>
 
 
 
-<h1 id="analytics-and-recommendation">Analytics and Recommendation<a class="headerlink" href="#analytics-and-recommendation" title="Permanent link">&para;</a></h1>
-<p>Analytics and Recommendation provide capacity that analyzes the workload in k8s cluster and provide recommendations about resource optimize.</p>
-<p>Two Recommendations are currently supported:</p>
+<h1 id="_1">智能推薦<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
+<p>智能推薦能夠幫助用戶自動分析集群並給出優化建議。就像手機助手一樣，智能推薦會定期的掃描、分析你的集群並給出推薦建議。目前，我們提供了兩種優化能力：</p>
 <ul>
-<li><a href="../resource-recommendation/"><strong>ResourceRecommend</strong></a>: Replicas recommendation analyze the actual application usage and give advice for replicas and HPA configurations.</li>
-<li><a href="../replicas-recommendation/"><strong>HPARecommend</strong></a>: Resource recommendation allows you to obtain recommended values for resources in a cluster and use them to improve the resource utilization of the cluster.</li>
+<li><a href="resource-recommendation.zh.md"><strong>資源推薦</strong></a>: 通過資源推薦的算法分析應用的真實用量推薦更合適的資源配置，您可以參考並採納它提升集群的資源利用率。</li>
+<li><a href="replicas-recommendation.zh.md"><strong>副本數推薦</strong></a>: 通過副本數推薦的算法分析應用的真實用量推薦更合適的副本和 EHPA 配置，您可以參考並採納它提升集群的資源利用率。</li>
 </ul>
-<h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h2>
+<p>應用可以根據資源推薦調整 request 也可以根據副本數推薦調整副本數，這兩種優化都能幫助您降低成本，您可以根據您的需求選擇採用相應的優化建議。</p>
+<h2 id="_2">架構<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <p><img alt="analytics-arch" src="../../images/analytics-arch.png" /></p>
-<h2 id="an-analytical-process">An analytical process<a class="headerlink" href="#an-analytical-process" title="Permanent link">&para;</a></h2>
+<h2 id="_3">一次分析的過程<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <ol>
-<li>Users create <code>Analytics</code> object and config ResourceSelector to select resources to be analyzed. Multiple types of resource selection (based on Group,Kind, and Version) are supported. </li>
-<li>Analyze each selected resource in parallel and try to execute analysis and give recommendation. Each analysis process is divided into two stages: inspecting and advising:<ol>
-<li>Inspecting: Filter resources that don't match the recommended conditions. For example, for hpa recommendation, the workload that has many not running pod is excluded</li>
-<li>Advising: Analysis and calculation based on algorithm model then provide the recommendation result.</li>
+<li>用戶創建 Analytics 對象，通過 ResourceSelector 選擇需要分析的資源，支持選擇多類型（基於Group,Kind,Version）的批量選擇</li>
+<li>並行分析每個選擇的資源，嘗試進行分析推薦，每次分析過程分成篩选和推薦兩個階段：</li>
+<li>篩選：排除不滿足推薦條件的資源。比如對於彈性推薦，排除沒有 running pod 的 workload</li>
+<li>推薦：通過算法計算分析，給出推薦結果</li>
+<li>如果通過篩選，創建 Recommendation 對象，將推薦結果展示在 Recommendation.Status</li>
+<li>未通過篩選的原因和狀態展示在 Analytics.Status</li>
+<li>根據運行間隔等待下次分析</li>
 </ol>
-</li>
-<li>If you paas the above two stages, it will create <code>Recommendation</code> object and display the result in <code>recommendation.Status</code></li>
-<li>You can find the failure reasons from <code>analytics.status.recommendations</code></li>
-<li>Wait for the next analytics based on the interval</li>
-</ol>
-<h2 id="core-concept">Core concept<a class="headerlink" href="#core-concept" title="Permanent link">&para;</a></h2>
-<h3 id="analytics">Analytics<a class="headerlink" href="#analytics" title="Permanent link">&para;</a></h3>
-<p>Analysis defines a scanning analysis task. Two task types are supported: resource recommendation and hpa recommendation. Crane regularly runs analysis tasks and produces recommended results.</p>
-<h3 id="recommendation">Recommendation<a class="headerlink" href="#recommendation" title="Permanent link">&para;</a></h3>
-<p>The recommendation shows the results of an <code>Analytics</code>. The recommended result is a YAML configuration that allows users to take appropriate optimization actions, such as adjusting the resource configuration of the application.</p>
-<h3 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h3>
-<p>Different analytics uses different computing models. Crane provides a default computing model and a corresponding configuration that users can modify to customize the recommended effect. You can modify the default configuration globally or modify the configuration of a single analytics task.</p>
+<h2 id="_4">名詞解釋<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<h3 id="_5">分析<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h3>
+<p>分析定義了一個掃描分析任務。支持兩種任務類型：資源推薦和彈性推薦。 Crane 定期運行分析任務，並產生推薦結果。</p>
+<h3 id="_6">推薦<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h3>
+<p>推薦展示了一個優化推薦的結果。推薦的結果是一段 YAML 配置，根據結果用戶可以進行相應的優化動作，比如調整應用的資源配置。</p>
+<h3 id="_7">參數配置<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h3>
+<p>不同的分析採用不同的計算模型，Crane 提供了一套默認的計算模型以及一套配套的配置，用戶可以通過修改配置來定制推薦的效果。支持修改全局的默認配置和修改單個分析任務的配置。</p>
 
               
             </article>
