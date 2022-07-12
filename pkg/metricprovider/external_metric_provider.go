@@ -229,14 +229,26 @@ func ListAllLocalExternalMetrics(client client.Client) []provider.ExternalMetric
 			metricName := utils.GetGeneralPredictionMetricName(autoscalingv2.PodsMetricSourceType, true, ehpa.Name)
 			metricInfos = append(metricInfos, provider.ExternalMetricInfo{Metric: metricName})
 		}
-		for _, metric := range ehpa.Spec.Metrics {
+	}
+
+	var hpaList autoscalingv2.HorizontalPodAutoscalerList
+	err = client.List(context.TODO(), &hpaList)
+	if err != nil {
+		klog.Errorf("Failed to list hpa: %v", err)
+		return metricInfos
+	}
+	for _, hpa := range hpaList.Items {
+		if !strings.HasPrefix(hpa.Name, "ehpa-") {
+			// filter hpa that not created by ehpa
+			continue
+		}
+		for _, metric := range hpa.Spec.Metrics {
 			if metric.Type == autoscalingv2.ExternalMetricSourceType &&
 				metric.External != nil &&
 				metric.External.Metric.Selector != nil &&
 				metric.External.Metric.Selector.MatchLabels != nil {
 				if _, exist := metric.External.Metric.Selector.MatchLabels[known.EffectiveHorizontalPodAutoscalerUidLabel]; exist {
-					metricName := utils.GetGeneralPredictionMetricName(autoscalingv2.ExternalMetricSourceType, false, ehpa.Name)
-					metricInfos = append(metricInfos, provider.ExternalMetricInfo{Metric: metricName})
+					metricInfos = append(metricInfos, provider.ExternalMetricInfo{Metric: metric.External.Metric.Name})
 				}
 			}
 		}

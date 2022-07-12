@@ -56,6 +56,7 @@ plugins:
           Roadmap: 路线图
           Overview: 概述
           Load-aware Scheduling: 负载感知调度
+          Custom Metric Prediction With Prometheus: 基于自定义指标的弹性预测
         zh_TW:
           Getting Started: 入門
           Introduction: 介紹
@@ -111,6 +112,8 @@ nav:
       - Crane-scheduler:
         - Overview: tutorials/scheduling-pods-based-on-actual-node-load.md
         - Load-aware Scheduling: tutorials/dynamic-scheduler-plugin.md
+  - Best Practices:
+      - Custom Metric Prediction With Prometheus: tutorials/effective-hpa-with-prometheus-adapter.zh.md
   - Proposals:
       - Advanced CpuSet Manager: proposals/20220228-advanced-cpuset-manger.md
       - Pod Sorting And Precise Execution For Crane Agent: proposals/Pod-Sorting-And-Precise-Execution-For-Crane-Agent.md
