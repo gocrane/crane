@@ -5,6 +5,7 @@ metadata:
   namespace: default
 spec:
   targetRef:
+    apiVersion: apps/v1
     kind: Deployment
     name: dep-1-100m-500mib
     namespace: default
