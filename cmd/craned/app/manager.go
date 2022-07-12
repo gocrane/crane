@@ -37,12 +37,13 @@ import (
 	"github.com/gocrane/crane/pkg/oom"
 	"github.com/gocrane/crane/pkg/predictor"
 	"github.com/gocrane/crane/pkg/providers"
+	"github.com/gocrane/crane/pkg/providers/grpc"
 	"github.com/gocrane/crane/pkg/providers/metricserver"
 	"github.com/gocrane/crane/pkg/providers/mock"
 	"github.com/gocrane/crane/pkg/providers/prom"
+	_ "github.com/gocrane/crane/pkg/querybuilder-providers/grpc"
 	_ "github.com/gocrane/crane/pkg/querybuilder-providers/metricserver"
 	_ "github.com/gocrane/crane/pkg/querybuilder-providers/prometheus"
-	"github.com/gocrane/crane/pkg/recommend"
 	"github.com/gocrane/crane/pkg/server"
 	serverconfig "github.com/gocrane/crane/pkg/server/config"
 	"github.com/gocrane/crane/pkg/utils/target"
@@ -171,6 +172,9 @@ func initDataSources(mgr ctrl.Manager, opts *options.Options) (map[providers.Dat
 				klog.Exitf("unable to create datasource provider %v, err: %v", datasource, err)
 			}
 			realtimeDataSources[providers.MetricServerDataSource] = provider
+		case "grpc":
+			provider := grpc.NewProvider(&opts.DataSourceGrpcConfig)
+			historyDataSources[providers.GrpcDataSource] = provider
 		case "mock":
 			provider, err := mock.NewProvider(&opts.DataSourceMockConfig)
 			if err != nil {
@@ -283,21 +287,15 @@ func initControllers(ctx context.Context, mgr ctrl.Manager, opts *options.Option
 	}
 
 	if utilfeature.DefaultMutableFeatureGate.Enabled(features.CraneAnalysis) {
-		configSet, err := recommend.LoadConfigSetFromFile(opts.RecommendationConfigFile)
-		if err != nil {
-			klog.Errorf("Failed to load recommendation config file: %v", err)
-			os.Exit(1)
-		}
-
 		if err := (&analytics.Controller{
-			Client:       mgr.GetClient(),
-			Scheme:       mgr.GetScheme(),
-			RestMapper:   mgr.GetRESTMapper(),
-			Recorder:     mgr.GetEventRecorderFor("analytics-controller"),
-			ConfigSet:    configSet,
-			ScaleClient:  scaleClient,
-			PredictorMgr: predictorMgr,
-			Provider:     historyDataSource,
+			Client:        mgr.GetClient(),
+			Scheme:        mgr.GetScheme(),
+			RestMapper:    mgr.GetRESTMapper(),
+			Recorder:      mgr.GetEventRecorderFor("analytics-controller"),
+			ConfigSetFile: opts.RecommendationConfigFile,
+			ScaleClient:   scaleClient,
+			PredictorMgr:  predictorMgr,
+			Provider:      historyDataSource,
 		}).SetupWithManager(mgr); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "AnalyticsController")
 		}

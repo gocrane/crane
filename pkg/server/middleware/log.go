@@ -12,6 +12,6 @@ func Logger() gin.HandlerFunc {
 		start := time.Now()
 		c.Next()
 		end := time.Now()
-		klog.Infof("| %3d | %13v | %15s | %s  %s |", c.Writer.Status(), end.Sub(start), c.ClientIP(), c.Request.Method, c.Request.URL.Path)
+		klog.V(6).Infof("| %3d | %13v | %15s | %s  %s |", c.Writer.Status(), end.Sub(start), c.ClientIP(), c.Request.Method, c.Request.URL.Path)
 	}
 }

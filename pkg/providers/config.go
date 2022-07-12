@@ -46,10 +46,16 @@ type MockConfig struct {
 	SeedFile string
 }
 
+type GrpcConfig struct {
+	Address string
+	Timeout time.Duration
+}
+
 type DataSourceType string
 
 const (
 	MockDataSource         DataSourceType = "mock"
 	PrometheusDataSource   DataSourceType = "prom"
 	MetricServerDataSource DataSourceType = "metricserver"
+	GrpcDataSource         DataSourceType = "grpc"
 )

@@ -29,12 +29,12 @@ func TestFftEstimator_GetEstimation(t *testing.T) {
 		SampleRate: origSignal.SampleRate,
 		Samples:    origSignal.Samples[:1440*7],
 	}
-	assert.True(t, origSignal.IsPeriodic(Day))
+	assert.Equal(t, Day, origSignal.FindPeriod())
 
-	e1 := &fftEstimator{}
+	e1 := &fftEstimator{marginFraction: 0.1}
 	s[1] = e1.GetEstimation(origSignal, Day)
 
-	e2 := &maxValueEstimator{}
+	e2 := &maxValueEstimator{marginFraction: 0.1}
 	s[2] = e2.GetEstimation(origSignal, Day)
 
 	x := make([]string, 0)

@@ -20,6 +20,7 @@ import (
 	"github.com/gocrane/crane/pkg/ensurance/collector/cadvisor"
 	stypes "github.com/gocrane/crane/pkg/ensurance/collector/types"
 	"github.com/gocrane/crane/pkg/ensurance/executor"
+	podinfo "github.com/gocrane/crane/pkg/ensurance/executor/pod-info"
 	cgrpc "github.com/gocrane/crane/pkg/ensurance/grpc"
 	cruntime "github.com/gocrane/crane/pkg/ensurance/runtime"
 	"github.com/gocrane/crane/pkg/known"
@@ -147,7 +148,7 @@ func (o *PodResourceManager) updatePodExtResToCgroup(pod *v1.Pod) {
 	start := time.Now()
 	metrics.UpdateLastTime(string(known.ModulePodResourceManager), metrics.StepUpdatePodResource, start)
 
-	_, containerCPUQuotas := executor.GetPodUsage(string(stypes.MetricNameContainerCpuQuota), o.state, pod)
+	_, containerCPUQuotas := podinfo.GetPodUsage(string(stypes.MetricNameContainerCpuQuota), o.state, pod)
 
 	for _, c := range pod.Spec.Containers {
 		if state := utils.GetContainerStatus(pod, c); state.Running == nil {
@@ -163,7 +164,7 @@ func (o *PodResourceManager) updatePodExtResToCgroup(pod *v1.Pod) {
 				}
 
 				// If container's quota is -1, pod resource manager will convert limit to quota
-				containerCPUQuota, err := executor.GetUsageById(containerCPUQuotas, containerId)
+				containerCPUQuota, err := podinfo.GetUsageById(containerCPUQuotas, containerId)
 				if err != nil {
 					klog.Error(err)
 				}
@@ -195,7 +196,7 @@ func (o *PodResourceManager) getCPUPeriod(pod *v1.Pod, containerId string) float
 	now := time.Now()
 
 	if o.state != nil && !now.After(o.lastStateTime.Add(StateExpiration)) {
-		_, containerCPUPeriods := executor.GetPodUsage(string(stypes.MetricNameContainerCpuPeriod), o.state, pod)
+		_, containerCPUPeriods := podinfo.GetPodUsage(string(stypes.MetricNameContainerCpuPeriod), o.state, pod)
 		for _, period := range containerCPUPeriods {
 			if period.ContainerId == containerId {
 				return period.Value

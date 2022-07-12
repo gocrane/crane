@@ -3,12 +3,20 @@ package dsp
 import (
 	"fmt"
 	"math/cmplx"
+	"math/rand"
+	"sort"
 	"time"
 
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/go-echarts/go-echarts/v2/types"
 	"github.com/mjibson/go-dsp/fft"
+)
+
+var (
+	// MaxAutoCorrelationPeakSearchIntervalSeconds is the maximum search interval for validating if
+	// a periodicity hint is a peak of the ACF.
+	MaxAutoCorrelationPeakSearchIntervalSeconds = (time.Hour * 4).Seconds()
 )
 
 // Signal represents a discrete signal.
@@ -159,11 +167,73 @@ func (s *Signal) Filter(threshold float64) *Signal {
 	}
 }
 
+func (s *Signal) FindPeriod() time.Duration {
+	x := make([]float64, len(s.Samples))
+	copy(x, s.Samples)
+	N := len(s.Samples)
+
+	// Use FFT to generate the periodogram of a random permutation of the samples, record
+	// its maximum power argmax|X(f)|. Repeat above operation 100 times, and use the 99th
+	// largest power as the threshold.
+	var maxPowers []float64
+	rand.Seed(time.Now().UnixNano())
+	for i := 0; i < 100; i++ {
+		rand.Shuffle(len(x), func(i, j int) {
+			x[i], x[j] = x[j], x[i]
+		})
+		X := fft.FFTReal(x)
+		pmax := 0.
+		for k := 1; k < len(X)/2; k++ {
+			p := cmplx.Abs(X[k])
+			if p > pmax {
+				pmax = p
+			}
+		}
+		maxPowers = append(maxPowers, pmax)
+	}
+
+	sort.Float64s(maxPowers)
+	pThreshold := maxPowers[98]
+
+	X := fft.FFTReal(s.Samples)
+	var hints []int
+	for k := 2; k < len(X)/2; k++ {
+		p := cmplx.Abs(X[k])
+		// If a frequency has more power than the threshold, regard its period as
+		// a candidate fundamental period for the further verification.
+		if p > pThreshold {
+			if len(hints) == 0 || hints[len(hints)-1] > N/k {
+				hints = append(hints, N/k)
+			}
+		}
+	}
+
+	// Use auto correlation function (ACF) to verify the candidate periods.
+	// The value of the fundamental period should be the 'highest peak' in the graph of ACF.
+	cor := AutoCorrelation(s.Samples)
+	maxCorVal := 0.
+	j := -1
+	maxR := int(MaxAutoCorrelationPeakSearchIntervalSeconds * s.SampleRate)
+	for i := range hints {
+		r := min(maxR, hints[i]/2)
+		if isPeak(cor, hints[i], r) && maxCorVal < cor[hints[i]] {
+			j = i
+			maxCorVal = cor[hints[j]]
+		}
+	}
+
+	if j >= 0 {
+		return time.Duration(float64(hints[j])/s.SampleRate) * time.Second
+	} else {
+		return -1
+	}
+}
+
 func (s *Signal) String() string {
 	return fmt.Sprintf("SampleRate: %.5fHz, Samples: %v, Duration: %.1fs", s.SampleRate, len(s.Samples), s.Duration())
 }
 
-func (s *Signal) Plot(o ...charts.GlobalOpts) *charts.Line {
+func (s *Signal) Plot(color string, o ...charts.GlobalOpts) *charts.Line {
 	x := make([]string, 0)
 	y := make([]opts.LineData, 0)
 	for i := 0; i < s.Num(); i++ {
@@ -178,7 +248,16 @@ func (s *Signal) Plot(o ...charts.GlobalOpts) *charts.Line {
 	if o != nil {
 		line.SetGlobalOptions(o...)
 	}
-	line.SetXAxis(x).AddSeries("sample value", y)
+	if color != "" {
+		line.SetXAxis(x).AddSeries("sample value", y, charts.WithAreaStyleOpts(
+			opts.AreaStyle{
+				Color:   color,
+				Opacity: 0.1,
+			}),
+			charts.WithLineStyleOpts(opts.LineStyle{Color: color}))
+	} else {
+		line.SetXAxis(x).AddSeries("sample value", y)
+	}
 
 	return line
 }

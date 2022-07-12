@@ -169,7 +169,7 @@ func (c *resourceMetricsClient) containerMetric(metric *metricquery.Metric) (Res
 		return nil, time.Time{}, fmt.Errorf("no metrics returned from resource metrics API")
 	}
 
-	res, timestamp := getContainerMetrics(v1.ResourceName(metric.MetricName), podMetrics.Items, container.ContainerName)
+	res, timestamp := getContainerMetrics(v1.ResourceName(metric.MetricName), podMetrics.Items, container.Name)
 	return res, timestamp, nil
 }
 

@@ -4,8 +4,8 @@ Analytics and Recommendation provide capacity that analyzes the workload in k8s 
 
 Two Recommendations are currently supported:
 
-- [**ResourceRecommend**](resource-recommendation.md): Recommend container requests & limit resources based on historic metrics.
-- [**HPARecommend**](hpa-recommendation.md): Recommend which workloads are suitable for autoscaling and provide optimized configurations such as minReplicas, maxReplicas.
+- [**ResourceRecommend**](resource-recommendation.md): Replicas recommendation analyze the actual application usage and give advice for replicas and HPA configurations.
+- [**HPARecommend**](replicas-recommendation.md): Resource recommendation allows you to obtain recommended values for resources in a cluster and use them to improve the resource utilization of the cluster.
 
 ## Architecture
 

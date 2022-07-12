@@ -13,7 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	unstructuredv1 "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -42,10 +42,6 @@ import (
 	"github.com/gocrane/crane/pkg/recommend"
 )
 
-const (
-	RecommendationMissionMessageSuccess = "Success"
-)
-
 type Controller struct {
 	client.Client
 	Scheme          *runtime.Scheme
@@ -59,7 +55,8 @@ type Controller struct {
 	ScaleClient     scale.ScalesGetter
 	PredictorMgr    predictormgr.Manager
 	Provider        providers.History
-	ConfigSet       *analysisv1alph1.ConfigSet
+	ConfigSetFile   string
+	configSet       *analysisv1alph1.ConfigSet
 }
 
 func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -98,7 +95,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 	}
 
-	finished := c.DoAnalytics(ctx, analytics)
+	finished := c.analyze(ctx, analytics)
 
 	if finished && analytics.Spec.CompletionStrategy.CompletionStrategyType == analysisv1alph1.CompletionStrategyPeriodical {
 		if analytics.Spec.CompletionStrategy.PeriodSeconds != nil {
@@ -115,10 +112,10 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{RequeueAfter: time.Second * 1}, nil
 }
 
-func (c *Controller) DoAnalytics(ctx context.Context, analytics *analysisv1alph1.Analytics) bool {
+func (c *Controller) analyze(ctx context.Context, analytics *analysisv1alph1.Analytics) bool {
 	newStatus := analytics.Status.DeepCopy()
 
-	identities, err := c.GetIdentities(ctx, analytics)
+	identities, err := c.getIdentities(ctx, analytics)
 	if err != nil {
 		c.Recorder.Event(analytics, corev1.EventTypeNormal, "FailedSelectResource", err.Error())
 		msg := fmt.Sprintf("Failed to get idenitities, Analytics %s error %v", klog.KObj(analytics), err)
@@ -151,11 +148,6 @@ func (c *Controller) DoAnalytics(ctx context.Context, analytics *analysisv1alph1
 				TargetRef: corev1.ObjectReference{Kind: id.Kind, APIVersion: id.APIVersion, Namespace: id.Namespace, Name: id.Name},
 			})
 		}
-	}
-
-	if currMissions == nil {
-		klog.Infof("No missions, return.")
-		return true
 	}
 
 	var currRecommendations []*analysisv1alph1.Recommendation
@@ -204,13 +196,13 @@ func (c *Controller) DoAnalytics(ctx context.Context, analytics *analysisv1alph1
 			}
 		}
 
-		go c.ExecuteMission(ctx, &wg, analytics, identities, &currMissions[index], existingRecommendation, timeNow)
+		go c.executeMission(ctx, &wg, analytics, identities, &currMissions[index], existingRecommendation, timeNow)
 	}
 
 	wg.Wait()
 
 	finished := false
-	if executionIndex+concurrency == len(currMissions) {
+	if executionIndex+concurrency == len(currMissions) || len(currMissions) == 0 {
 		finished = true
 	}
 
@@ -296,12 +288,18 @@ func (c *Controller) SetupWithManager(mgr ctrl.Manager) error {
 	}
 	c.K8SVersion = version.MustParseGeneric(serverVersion.GitVersion)
 
+	if err = c.loadConfigSetFile(); err != nil {
+		return err
+	}
+
+	go c.watchConfigSetFile()
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&analysisv1alph1.Analytics{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(c)
 }
 
-func (c *Controller) GetIdentities(ctx context.Context, analytics *analysisv1alph1.Analytics) (map[string]ObjectIdentity, error) {
+func (c *Controller) getIdentities(ctx context.Context, analytics *analysisv1alph1.Analytics) (map[string]ObjectIdentity, error) {
 	identities := map[string]ObjectIdentity{}
 
 	for _, rs := range analytics.Spec.ResourceSelectors {
@@ -331,7 +329,7 @@ func (c *Controller) GetIdentities(ctx context.Context, analytics *analysisv1alp
 		}
 		gvr := gv.WithResource(resName)
 
-		var unstructureds []unstructured.Unstructured
+		var unstructureds []unstructuredv1.Unstructured
 
 		if rs.Name != "" {
 			unstructured, err := c.dynamicClient.Resource(gvr).Namespace(analytics.Namespace).Get(ctx, rs.Name, metav1.GetOptions{})
@@ -340,7 +338,7 @@ func (c *Controller) GetIdentities(ctx context.Context, analytics *analysisv1alp
 			}
 			unstructureds = append(unstructureds, *unstructured)
 		} else {
-			var unstructuredList *unstructured.UnstructuredList
+			var unstructuredList *unstructuredv1.UnstructuredList
 			var err error
 
 			if analytics.Namespace == known.CraneSystemNamespace {
@@ -354,7 +352,7 @@ func (c *Controller) GetIdentities(ctx context.Context, analytics *analysisv1alp
 
 			for _, item := range unstructuredList.Items {
 				// todo: rename rs.LabelSelector to rs.matchLabelSelector ?
-				m, ok, err := unstructured.NestedStringMap(item.Object, "spec", "selector", "matchLabels")
+				m, ok, err := unstructuredv1.NestedStringMap(item.Object, "spec", "selector", "matchLabels")
 				if !ok || err != nil {
 					return nil, fmt.Errorf("%s not supported", gvr.String())
 				}
@@ -382,14 +380,10 @@ func (c *Controller) GetIdentities(ctx context.Context, analytics *analysisv1alp
 		}
 	}
 
-	if len(identities) == 0 {
-		return nil, fmt.Errorf("no resource matched resource selector")
-	}
-
 	return identities, nil
 }
 
-func (c *Controller) ExecuteMission(ctx context.Context, wg *sync.WaitGroup, analytics *analysisv1alph1.Analytics, identities map[string]ObjectIdentity, mission *analysisv1alph1.RecommendationMission, existingRecommendation *analysisv1alph1.Recommendation, timeNow metav1.Time) {
+func (c *Controller) executeMission(ctx context.Context, wg *sync.WaitGroup, analytics *analysisv1alph1.Analytics, identities map[string]ObjectIdentity, mission *analysisv1alph1.RecommendationMission, existingRecommendation *analysisv1alph1.Recommendation, timeNow metav1.Time) {
 	defer func() {
 		mission.LastStartTime = &timeNow
 		klog.Infof("Mission message: %s", mission.Message)
@@ -407,7 +401,7 @@ func (c *Controller) ExecuteMission(ctx context.Context, wg *sync.WaitGroup, ana
 			recommendation = c.CreateRecommendationObject(ctx, analytics, mission.TargetRef, id)
 		}
 		// do recommendation
-		recommender, err := recommend.NewRecommender(c.Client, c.RestMapper, c.ScaleClient, recommendation, c.PredictorMgr, c.Provider, c.ConfigSet, analytics.Spec.Config)
+		recommender, err := recommend.NewRecommender(c.Client, c.RestMapper, c.ScaleClient, recommendation, c.PredictorMgr, c.Provider, c.configSet, analytics.Spec.Config)
 		if err != nil {
 			mission.Message = fmt.Sprintf("Failed to create recommender, Recommendation %s error %v", klog.KObj(recommendation), err)
 			return
@@ -415,7 +409,7 @@ func (c *Controller) ExecuteMission(ctx context.Context, wg *sync.WaitGroup, ana
 
 		proposed, err := recommender.Offer()
 		if err != nil {
-			mission.Message = fmt.Sprintf("Failed to offer recommend, Recommendation %s: %v", klog.KObj(recommendation), err)
+			mission.Message = fmt.Sprintf("Failed to offer recommendation: %s", err.Error())
 			return
 		}
 
@@ -428,6 +422,7 @@ func (c *Controller) ExecuteMission(ctx context.Context, wg *sync.WaitGroup, ana
 		value = string(valueBytes)
 
 		recommendation.Status.RecommendedValue = value
+		recommendation.Status.LastUpdateTime = &timeNow
 		if existingRecommendation != nil {
 			klog.Infof("Update recommendation %s", klog.KObj(recommendation))
 			if err := c.Update(ctx, recommendation); err != nil {

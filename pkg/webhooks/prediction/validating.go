@@ -25,8 +25,8 @@ func (p *ValidationAdmission) ValidateCreate(ctx context.Context, req runtime.Ob
 		if tsp.Spec.TargetRef.Name == "" {
 			return fmt.Errorf("need TargetRef.Name")
 		}
-		if tsp.Spec.PredictionWindowSeconds < 3600 {
-			return fmt.Errorf("PredictionWindowSeconds at least 3600")
+		if tsp.Spec.PredictionWindowSeconds < 600 {
+			return fmt.Errorf("PredictionWindowSeconds at least 600")
 		}
 
 		if len(tsp.Spec.PredictionMetrics) == 0 {

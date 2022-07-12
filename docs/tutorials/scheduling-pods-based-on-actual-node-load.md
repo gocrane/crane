@@ -3,7 +3,7 @@
 ## Overview
 Crane-scheduler is a collection of scheduler plugins based on [scheduler framework](https://kubernetes.io/docs/concepts/scheduling-eviction/scheduling-framework/), including:
 
-- [Dynamic scheuler: a load-aware scheduler plugin](./dynamic-scheduler-plugin.md)
+- [Dynamic scheduler: a load-aware scheduler plugin](./dynamic-scheduler-plugin.md)
 
 ## Get Started
 
@@ -12,7 +12,7 @@ Make sure your kubernetes cluster has Prometheus installed. If not, please refer
 
 ### Configure Prometheus Rules
 
-1. Configure the rules of Prometheus to get expected aggregated data:
+Configure the rules of Prometheus to get expected aggregated data:
 
 ```yaml
 apiVersion: monitoring.coreos.com/v1
@@ -56,26 +56,6 @@ spec:
 !!! warning "️Troubleshooting"
 
         The sampling interval of Prometheus must be less than 30 seconds, otherwise the above rules(such as cpu_usage_active) may not take effect.
-
-2\. Update the configuration of Prometheus service discovery to ensure that `node_exporters/telegraf` are using node name as instance name:
-
-```yaml hl_lines="9-11"
-    - job_name: kubernetes-node-exporter
-      tls_config:
-        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-        insecure_skip_verify: true
-      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-      scheme: https
-      kubernetes_sd_configs:
-      ...
-      # Host name
-      - source_labels: [__meta_kubernetes_node_name]
-        target_label: instance
-      ...
-```
-
-!!! note "Note"
-      This step can be skipped if the node name itself is the host IP.
 
 ### Install Crane-scheduler
 There are two options:
@@ -185,10 +165,22 @@ profiles:
   image: docker.io/gocrane/crane-scheduler:0.0.23
  ...
  ```
- 5. Install [crane-scheduler-controller](deploy/controller/deployment.yaml):
-  ```bash
-  kubectl apply ./deploy/controller/rbac.yaml && kubectl apply -f ./deploy/controller/deployment.yaml
-  ```
+ 5. Install [crane-scheduler-controller](https://github.com/gocrane/crane-scheduler/tree/main/deploy/controller):
+
+=== "Main"
+
+      ```bash
+      kubectl apply -f https://raw.githubusercontent.com/gocrane/crane-scheduler/main/deploy/controller/rbac.yaml
+      kubectl apply -f https://raw.githubusercontent.com/gocrane/crane-scheduler/main/deploy/controller/deployment.yaml
+      ```
+
+=== "Mirror"
+
+
+      ```bash
+      kubectl apply -f https://finops.coding.net/p/gocrane/d/crane-scheduler/git/raw/main/deploy/controller/rbac.yaml?download=false
+      kubectl apply -f https://finops.coding.net/p/gocrane/d/crane-scheduler/git/raw/main/deploy/controller/deployment.yaml?download=false
+      ```
 
 ### Schedule Pods With Crane-scheduler
 Test Crane-scheduler with following example:

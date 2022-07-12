@@ -36,6 +36,8 @@ type StateCollector struct {
 	AnalyzerChann     chan map[string][]common.TimeSeries
 	NodeResourceChann chan map[string][]common.TimeSeries
 	PodResourceChann  chan map[string][]common.TimeSeries
+	State             map[string][]common.TimeSeries
+	rw                sync.RWMutex
 }
 
 func NewStateCollector(nodeName string, nepLister ensuranceListers.NodeQOSEnsurancePolicyLister, podLister corelisters.PodLister,
@@ -43,6 +45,7 @@ func NewStateCollector(nodeName string, nepLister ensuranceListers.NodeQOSEnsura
 	analyzerChann := make(chan map[string][]common.TimeSeries)
 	nodeResourceChann := make(chan map[string][]common.TimeSeries)
 	podResourceChann := make(chan map[string][]common.TimeSeries)
+	State := make(map[string][]common.TimeSeries)
 	return &StateCollector{
 		nodeName:          nodeName,
 		nepLister:         nepLister,
@@ -57,6 +60,7 @@ func NewStateCollector(nodeName string, nepLister ensuranceListers.NodeQOSEnsura
 		collectors:        &sync.Map{},
 		cadvisorManager:   manager,
 		exclusiveCPUSet:   exclusiveCPUSet,
+		State:             State,
 	}
 }
 
@@ -95,7 +99,7 @@ func (s *StateCollector) Run(stop <-chan struct{}) {
 				start := time.Now()
 				metrics.UpdateLastTime(string(known.ModuleStateCollector), metrics.StepMain, start)
 				s.healthCheck.UpdateLastActivity(start)
-				s.Collect()
+				s.Collect(false)
 				metrics.UpdateDurationFromStart(string(known.ModuleStateCollector), metrics.StepMain, start)
 			case <-stop:
 				klog.Infof("StateCollector exit")
@@ -107,12 +111,9 @@ func (s *StateCollector) Run(stop <-chan struct{}) {
 	return
 }
 
-func (s *StateCollector) Collect() {
+func (s *StateCollector) Collect(waterLine bool) {
 	wg := sync.WaitGroup{}
 	start := time.Now()
-
-	var data = make(map[string][]common.TimeSeries)
-	var mux sync.Mutex
 
 	s.collectors.Range(func(key, value interface{}) bool {
 		c := value.(Collector)
@@ -125,27 +126,27 @@ func (s *StateCollector) Collect() {
 			defer metrics.UpdateDurationFromStartWithSubComponent(string(known.ModuleStateCollector), string(c.GetType()), metrics.StepCollect, start)
 
 			if cdata, err := c.Collect(); err == nil {
-				mux.Lock()
+				s.rw.Lock()
 				for key, series := range cdata {
 					data[key] = series
 				}
-				mux.Unlock()
+				s.rw.Unlock()
 			}
-		}(c, data)
+		}(c, s.State)
 
 		return true
 	})
 
 	wg.Wait()
 
-	s.AnalyzerChann <- data
+	s.AnalyzerChann <- s.State
 
 	if nodeResource := utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResource); nodeResource {
-		s.NodeResourceChann <- data
+		s.NodeResourceChann <- s.State
 	}
 
 	if podResource := utilfeature.DefaultFeatureGate.Enabled(features.CranePodResource); podResource {
-		s.PodResourceChann <- data
+		s.PodResourceChann <- s.State
 	}
 }
 
@@ -244,4 +245,11 @@ func CheckMetricNameExist(name string) bool {
 	}
 
 	return false
+}
+
+func (s *StateCollector) GetStateFunc() func() map[string][]common.TimeSeries {
+	return func() map[string][]common.TimeSeries {
+		s.Collect(true)
+		return s.State
+	}
 }

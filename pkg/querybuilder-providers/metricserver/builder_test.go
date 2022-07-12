@@ -30,7 +30,7 @@ func TestBuildQuery(t *testing.T) {
 	testCases := []struct {
 		desc   string
 		metric *metricquery.Metric
-		want   *metricquery.MetricServerQuery
+		want   *metricquery.GenericQuery
 		err    error
 	}{
 		{
@@ -45,7 +45,7 @@ func TestBuildQuery(t *testing.T) {
 					APIVersion: "v1",
 				},
 			},
-			want: &metricquery.MetricServerQuery{
+			want: &metricquery.GenericQuery{
 				Metric: &metricquery.Metric{
 					MetricName: v1.ResourceCPU.String(),
 					Type:       metricquery.WorkloadMetricType,
@@ -70,7 +70,7 @@ func TestBuildQuery(t *testing.T) {
 					APIVersion: "v1",
 				},
 			},
-			want: &metricquery.MetricServerQuery{
+			want: &metricquery.GenericQuery{
 				Metric: &metricquery.Metric{
 					MetricName: v1.ResourceMemory.String(),
 					Type:       metricquery.WorkloadMetricType,
@@ -89,19 +89,19 @@ func TestBuildQuery(t *testing.T) {
 				MetricName: v1.ResourceCPU.String(),
 				Type:       metricquery.ContainerMetricType,
 				Container: &metricquery.ContainerNamerInfo{
-					Namespace:     "default",
-					WorkloadName:  "workload-xxx",
-					ContainerName: "container",
+					Namespace:    "default",
+					WorkloadName: "workload-xxx",
+					Name:         "container",
 				},
 			},
-			want: &metricquery.MetricServerQuery{
+			want: &metricquery.GenericQuery{
 				Metric: &metricquery.Metric{
 					MetricName: v1.ResourceCPU.String(),
 					Type:       metricquery.ContainerMetricType,
 					Container: &metricquery.ContainerNamerInfo{
-						Namespace:     "default",
-						WorkloadName:  "workload-xxx",
-						ContainerName: "container",
+						Namespace:    "default",
+						WorkloadName: "workload-xxx",
+						Name:         "container",
 					},
 				},
 			},
@@ -112,19 +112,19 @@ func TestBuildQuery(t *testing.T) {
 				MetricName: v1.ResourceMemory.String(),
 				Type:       metricquery.ContainerMetricType,
 				Container: &metricquery.ContainerNamerInfo{
-					Namespace:     "default",
-					WorkloadName:  "workload-xxx",
-					ContainerName: "container",
+					Namespace:    "default",
+					WorkloadName: "workload-xxx",
+					Name:         "container",
 				},
 			},
-			want: &metricquery.MetricServerQuery{
+			want: &metricquery.GenericQuery{
 				Metric: &metricquery.Metric{
 					MetricName: v1.ResourceMemory.String(),
 					Type:       metricquery.ContainerMetricType,
 					Container: &metricquery.ContainerNamerInfo{
-						Namespace:     "default",
-						WorkloadName:  "workload-xxx",
-						ContainerName: "container",
+						Namespace:    "default",
+						WorkloadName: "workload-xxx",
+						Name:         "container",
 					},
 				},
 			},
@@ -138,7 +138,7 @@ func TestBuildQuery(t *testing.T) {
 					Name: "test",
 				},
 			},
-			want: &metricquery.MetricServerQuery{
+			want: &metricquery.GenericQuery{
 				Metric: &metricquery.Metric{
 					MetricName: v1.ResourceCPU.String(),
 					Type:       metricquery.NodeMetricType,
@@ -157,7 +157,7 @@ func TestBuildQuery(t *testing.T) {
 					Name: "test",
 				},
 			},
-			want: &metricquery.MetricServerQuery{
+			want: &metricquery.GenericQuery{
 				Metric: &metricquery.Metric{
 					MetricName: v1.ResourceMemory.String(),
 					Type:       metricquery.NodeMetricType,
@@ -177,7 +177,7 @@ func TestBuildQuery(t *testing.T) {
 					Name:      "test",
 				},
 			},
-			want: &metricquery.MetricServerQuery{
+			want: &metricquery.GenericQuery{
 				Metric: &metricquery.Metric{
 					MetricName: v1.ResourceCPU.String(),
 					Type:       metricquery.PodMetricType,
@@ -198,7 +198,7 @@ func TestBuildQuery(t *testing.T) {
 					Name:      "test",
 				},
 			},
-			want: &metricquery.MetricServerQuery{
+			want: &metricquery.GenericQuery{
 				Metric: &metricquery.Metric{
 					MetricName: v1.ResourceMemory.String(),
 					Type:       metricquery.PodMetricType,
@@ -218,7 +218,7 @@ func TestBuildQuery(t *testing.T) {
 					QueryExpr: `irate(http_requests{}[3m])`,
 				},
 			},
-			want: &metricquery.MetricServerQuery{
+			want: &metricquery.GenericQuery{
 				Metric: &metricquery.Metric{
 					MetricName: "http_requests",
 					Type:       metricquery.PromQLMetricType,
@@ -236,8 +236,8 @@ func TestBuildQuery(t *testing.T) {
 		if !reflect.DeepEqual(err, tc.err) {
 			t.Fatalf("tc %v failed, got error: %v, want error: %v", tc.desc, err, tc.err)
 		}
-		if !reflect.DeepEqual(query.MetricServer, tc.want) {
-			t.Fatalf("tc %v failed, got: %v, want: %v", tc.desc, query.MetricServer, tc.want)
+		if !reflect.DeepEqual(query.GenericQuery, tc.want) {
+			t.Fatalf("tc %v failed, got: %v, want: %v", tc.desc, query.GenericQuery, tc.want)
 		}
 	}
 }

@@ -22,7 +22,10 @@ func main() {
 
 	ctx := signals.SetupSignalHandler()
 
-	if err := app.NewAgentCommand(ctx).Execute(); err != nil {
+	root := app.NewAgentCommand(ctx)
+	root.AddCommand(app.NewCmdVersion())
+
+	if err := root.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}

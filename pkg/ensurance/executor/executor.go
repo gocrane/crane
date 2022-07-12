@@ -3,10 +3,7 @@ package executor
 import (
 	"time"
 
-	"github.com/gocrane/crane/pkg/known"
-	"github.com/gocrane/crane/pkg/metrics"
 	"google.golang.org/grpc"
-
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	corelisters "k8s.io/client-go/listers/core/v1"
@@ -14,8 +11,12 @@ import (
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	"k8s.io/klog/v2"
 
+	"github.com/gocrane/crane/pkg/common"
 	cgrpc "github.com/gocrane/crane/pkg/ensurance/grpc"
 	cruntime "github.com/gocrane/crane/pkg/ensurance/runtime"
+	"github.com/gocrane/crane/pkg/known"
+	"github.com/gocrane/crane/pkg/metrics"
+	"github.com/gocrane/crane/pkg/utils"
 )
 
 type ActionExecutor struct {
@@ -30,11 +31,15 @@ type ActionExecutor struct {
 
 	runtimeClient pb.RuntimeServiceClient
 	runtimeConn   *grpc.ClientConn
+
+	stateMap map[string][]common.TimeSeries
+
+	executeExcessPercent float64
 }
 
 // NewActionExecutor create enforcer manager
 func NewActionExecutor(client clientset.Interface, nodeName string, podInformer coreinformers.PodInformer, nodeInformer coreinformers.NodeInformer,
-	noticeCh <-chan AvoidanceExecutor, runtimeEndpoint string) *ActionExecutor {
+	noticeCh <-chan AvoidanceExecutor, runtimeEndpoint string, stateMap map[string][]common.TimeSeries, executeExcess string) *ActionExecutor {
 
 	runtimeClient, runtimeConn, err := cruntime.GetRuntimeClient(runtimeEndpoint)
 	if err != nil {
@@ -42,16 +47,24 @@ func NewActionExecutor(client clientset.Interface, nodeName string, podInformer 
 		return nil
 	}
 
+	executeExcessPercent, err := utils.ParsePercentage(executeExcess)
+	if err != nil || executeExcessPercent > 100 {
+		klog.Errorf("Parse executeExcess failed %s", err.Error())
+		return nil
+	}
+
 	return &ActionExecutor{
-		nodeName:      nodeName,
-		client:        client,
-		noticeCh:      noticeCh,
-		podLister:     podInformer.Lister(),
-		podSynced:     podInformer.Informer().HasSynced,
-		nodeLister:    nodeInformer.Lister(),
-		nodeSynced:    nodeInformer.Informer().HasSynced,
-		runtimeClient: runtimeClient,
-		runtimeConn:   runtimeConn,
+		nodeName:             nodeName,
+		client:               client,
+		noticeCh:             noticeCh,
+		podLister:            podInformer.Lister(),
+		podSynced:            podInformer.Informer().HasSynced,
+		nodeLister:           nodeInformer.Lister(),
+		nodeSynced:           nodeInformer.Informer().HasSynced,
+		runtimeClient:        runtimeClient,
+		runtimeConn:          runtimeConn,
+		stateMap:             stateMap,
+		executeExcessPercent: executeExcessPercent,
 	}
 }
 
@@ -98,12 +111,14 @@ func (a *ActionExecutor) Run(stop <-chan struct{}) {
 
 func (a *ActionExecutor) execute(ae AvoidanceExecutor, _ <-chan struct{}) error {
 	var ctx = &ExecuteContext{
-		NodeName:      a.nodeName,
-		Client:        a.client,
-		PodLister:     a.podLister,
-		NodeLister:    a.nodeLister,
-		RuntimeClient: a.runtimeClient,
-		RuntimeConn:   a.runtimeConn,
+		NodeName:             a.nodeName,
+		Client:               a.client,
+		PodLister:            a.podLister,
+		NodeLister:           a.nodeLister,
+		RuntimeClient:        a.runtimeClient,
+		RuntimeConn:          a.runtimeConn,
+		stateMap:             ae.StateMap,
+		executeExcessPercent: a.executeExcessPercent,
 	}
 
 	//step1 do enforcer actions

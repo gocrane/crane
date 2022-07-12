@@ -78,7 +78,7 @@ func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	// reconcile prediction if enabled
-	if utils.IsEHPAPredictionEnabled(ehpa) {
+	if utils.IsEHPAPredictionEnabled(ehpa) && utils.IsEHPAHasPredictionMetric(ehpa) {
 		prediction, err := c.ReconcilePredication(ctx, ehpa)
 		if err != nil {
 			setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedReconcilePrediction", err.Error())
@@ -130,14 +130,14 @@ func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 		updatedScale, err := c.ScaleClient.Scales(scale.Namespace).Update(ctx, mapping.Resource.GroupResource(), scale, metav1.UpdateOptions{})
 		if err != nil {
 			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedManualScale", err.Error())
-			msg := fmt.Sprintf("Failed to manual scale target to specific replicas, ehpa %s replicas %d", klog.KObj(ehpa), ehpa.Spec.SpecificReplicas)
+			msg := fmt.Sprintf("Failed to manual scale target to specific replicas, ehpa %s replicas %d", klog.KObj(ehpa), *ehpa.Spec.SpecificReplicas)
 			klog.Error(err, msg)
 			setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedScale", msg)
 			c.UpdateStatus(ctx, ehpa, newStatus)
 			return ctrl.Result{}, err
 		}
 
-		klog.Infof("Manual scale target to specific replicas, ehpa %s replicas %d", klog.KObj(ehpa), ehpa.Spec.SpecificReplicas)
+		klog.Infof("Manual scale target to specific replicas, ehpa %s replicas %d", klog.KObj(ehpa), *ehpa.Spec.SpecificReplicas)
 		now := metav1.Now()
 		newStatus.LastScaleTime = &now
 		newStatus.CurrentReplicas = &updatedScale.Status.Replicas

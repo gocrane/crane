@@ -1,9 +1,9 @@
 apiVersion: analysis.crane.io/v1alpha1
 kind: Analytics
 metadata:
-  name: nginx-hpa
+  name: nginx-replicas
 spec:
-  type: HPA                        # This can only be "Resource" or "HPA".
+  type: Replicas                        # This can only be "Resource" or "Replicas".
   completionStrategy:
     completionStrategyType: Periodical  # This can only be "Once" or "Periodical".
     periodSeconds: 600                  # analytics selected resources every 10 minutes
@@ -12,6 +12,6 @@ spec:
       apiVersion: apps/v1
       name: nginx-deployment
   config:                               # defines all the configuration for this analytics
-    ehpa.deployment-min-replicas: "1"
-    ehpa.fluctuation-threshold: "0"
-    ehpa.min-cpu-usage-threshold: "0"
+    replicas.workload-min-replicas: "1"
+    replicas.fluctuation-threshold: "0"
+    replicas.min-cpu-usage-threshold: "0"

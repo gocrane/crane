@@ -58,10 +58,12 @@ func generateSamplesFromWindow(value float64, start time.Time, end time.Time, st
 	return result
 }
 
-func (p *percentilePrediction) getPredictedValuesFromSignals(queryExpr string, signals map[string]*aggregateSignal) []*common.TimeSeries {
+func (p *percentilePrediction) getPredictedValuesFromSignals(queryExpr string, signals map[string]*aggregateSignal, cfg *internalConfig) []*common.TimeSeries {
 	var predictedTimeSeriesList []*common.TimeSeries
 
-	cfg := p.a.GetConfig(queryExpr)
+	if cfg == nil {
+		cfg = p.a.GetConfig(queryExpr)
+	}
 	estimator := NewPercentileEstimator(cfg.percentile)
 	estimator = WithMargin(cfg.marginFraction, estimator)
 	estimator = WithTargetUtilization(cfg.targetUtilization, estimator)
@@ -112,7 +114,7 @@ func (p *percentilePrediction) getPredictedValues(ctx context.Context, namer met
 			return predictedTimeSeriesList
 		}
 		if signals != nil && status == prediction.StatusReady {
-			return p.getPredictedValuesFromSignals(queryExpr, signals)
+			return p.getPredictedValuesFromSignals(queryExpr, signals, nil)
 		}
 		select {
 		case <-ctx.Done():
@@ -139,26 +141,28 @@ func (p *percentilePrediction) QueryRealtimePredictedValues(ctx context.Context,
 func (p *percentilePrediction) QueryRealtimePredictedValuesOnce(_ context.Context, namer metricnaming.MetricNamer, config config.Config) ([]*common.TimeSeries, error) {
 	queryExpr := namer.BuildUniqueKey()
 
-	signals, status := p.a.GetSignals(queryExpr)
-	if signals != nil && status == prediction.StatusReady {
-		return p.getPredictedValuesFromSignals(queryExpr, signals), nil
-	} else {
-		// namer metric query is firstly registered by this caller
-		// we first fetch history data to construct the histogram model, then get estimation.
-		// it is just a stateless function, a data analyzing process, data in, then data out, no states.
-		return p.process(namer, config)
-	}
-}
-
-// process is a stateless function to get estimation of a metric series by constructing a histogram then get estimation data.
-func (p *percentilePrediction) process(namer metricnaming.MetricNamer, config config.Config) ([]*common.TimeSeries, error) {
-	var historyTimeSeriesList []*common.TimeSeries
-	var err error
-	queryExpr := namer.BuildUniqueKey()
 	cfg, err := makeInternalConfig(config.Percentile, config.InitMode)
 	if err != nil {
 		return nil, err
 	}
+
+	signals, status := p.a.GetSignals(queryExpr)
+	if signals != nil && status == prediction.StatusReady {
+		return p.getPredictedValuesFromSignals(queryExpr, signals, cfg), nil
+	} else {
+		// namer metric query is firstly registered by this caller
+		// we first fetch history data to construct the histogram model, then get estimation.
+		// it is just a stateless function, a data analyzing process, data in, then data out, no states.
+		return p.process(namer, cfg)
+	}
+}
+
+// process is a stateless function to get estimation of a metric series by constructing a histogram then get estimation data.
+func (p *percentilePrediction) process(namer metricnaming.MetricNamer, cfg *internalConfig) ([]*common.TimeSeries, error) {
+	var historyTimeSeriesList []*common.TimeSeries
+	var err error
+	queryExpr := namer.BuildUniqueKey()
+
 	klog.V(4).Infof("process analyzing metric namer: %v, config: %+v", namer.BuildUniqueKey(), *cfg)
 
 	historyTimeSeriesList, err = p.queryHistoryTimeSeries(namer, cfg)
@@ -193,7 +197,7 @@ func (p *percentilePrediction) process(namer metricnaming.MetricNamer, config co
 		}
 	}
 
-	return p.getPredictedValuesFromSignals(queryExpr, signals), nil
+	return p.getPredictedValuesFromSignals(queryExpr, signals, cfg), nil
 }
 
 func NewPrediction(realtimeProvider providers.RealTime, historyProvider providers.History) prediction.Interface {

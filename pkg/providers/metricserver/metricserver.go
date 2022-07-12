@@ -33,7 +33,7 @@ func (m *metricsServer) QueryLatestTimeSeries(metricNamer metricnaming.MetricNam
 		return nil, err
 	}
 	klog.V(6).Infof("QueryLatestTimeSeries metricNamer %v", metricNamer.BuildUniqueKey())
-	return m.client.GetMetricValue(msQuery.MetricServer.Metric)
+	return m.client.GetMetricValue(msQuery.GenericQuery.Metric)
 }
 
 func NewProvider(config *rest.Config) (providers.RealTime, error) {
