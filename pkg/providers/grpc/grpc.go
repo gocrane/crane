@@ -13,6 +13,7 @@ import (
 	"github.com/gocrane/crane/pkg/metricquery"
 	"github.com/gocrane/crane/pkg/providers"
 	"github.com/gocrane/crane/pkg/providers/grpc/pb"
+	"github.com/gocrane/crane/pkg/querybuilder"
 )
 
 var _ providers.Interface = &grpcClient{}
@@ -30,7 +31,7 @@ type grpcClient struct {
 }
 
 func (g *grpcClient) QueryTimeSeries(namer metricnaming.MetricNamer, startTime time.Time, endTime time.Time, step time.Duration) ([]*common.TimeSeries, error) {
-	m, err := grpcMetric(namer)
+	m, err := grpcMetric(namer, querybuilder.BuildQueryBehavior{})
 	if err != nil {
 		return nil, err
 	}
@@ -84,8 +85,8 @@ func commonTimeSeriesList(tsList []*pb.TimeSeries) []*common.TimeSeries {
 	return res
 }
 
-func grpcMetric(namer metricnaming.MetricNamer) (*pb.Metric, error) {
-	q, err := namer.QueryBuilder().Builder(metricquery.GrpcMetricSource).BuildQuery()
+func grpcMetric(namer metricnaming.MetricNamer, behavior querybuilder.BuildQueryBehavior) (*pb.Metric, error) {
+	q, err := namer.QueryBuilder().Builder(metricquery.GrpcMetricSource).BuildQuery(behavior)
 	if err != nil {
 		return nil, err
 	}

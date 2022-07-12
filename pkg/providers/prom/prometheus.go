@@ -10,6 +10,7 @@ import (
 	"github.com/gocrane/crane/pkg/metricnaming"
 	"github.com/gocrane/crane/pkg/metricquery"
 	"github.com/gocrane/crane/pkg/providers"
+	"github.com/gocrane/crane/pkg/querybuilder"
 )
 
 type prom struct {
@@ -32,7 +33,7 @@ func NewProvider(config *providers.PromConfig) (providers.Interface, error) {
 
 func (p *prom) QueryTimeSeries(namer metricnaming.MetricNamer, startTime time.Time, endTime time.Time, step time.Duration) ([]*common.TimeSeries, error) {
 	promBuilder := namer.QueryBuilder().Builder(metricquery.PrometheusMetricSource)
-	promQuery, err := promBuilder.BuildQuery()
+	promQuery, err := promBuilder.BuildQuery(querybuilder.BuildQueryBehavior{FederatedClusterScope: p.config.FederatedClusterScope, ClusterLabelName: p.config.ClusterLabelName, ClusterLabelValue: p.config.ClusterLabelValue})
 	if err != nil {
 		klog.Errorf("Failed to BuildQuery: %v", err)
 		return nil, err
@@ -50,7 +51,7 @@ func (p *prom) QueryTimeSeries(namer metricnaming.MetricNamer, startTime time.Ti
 
 func (p *prom) QueryLatestTimeSeries(namer metricnaming.MetricNamer) ([]*common.TimeSeries, error) {
 	promBuilder := namer.QueryBuilder().Builder(metricquery.PrometheusMetricSource)
-	promQuery, err := promBuilder.BuildQuery()
+	promQuery, err := promBuilder.BuildQuery(querybuilder.BuildQueryBehavior{FederatedClusterScope: p.config.FederatedClusterScope, ClusterLabelName: p.config.ClusterLabelName, ClusterLabelValue: p.config.ClusterLabelValue})
 	if err != nil {
 		klog.Errorf("Failed to BuildQuery: %v", err)
 		return nil, err

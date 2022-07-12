@@ -7,6 +7,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/gocrane/crane/pkg/metricquery"
+	"github.com/gocrane/crane/pkg/querybuilder"
 )
 
 func TestNewPromQueryBuilder(t *testing.T) {
@@ -20,7 +21,7 @@ func TestNewPromQueryBuilder(t *testing.T) {
 		},
 	}
 	builder := NewMetricServerQueryBuilder(metric)
-	_, err := builder.BuildQuery()
+	_, err := builder.BuildQuery(querybuilder.BuildQueryBehavior{})
 	if err != nil {
 		t.Log(err)
 	}
@@ -232,7 +233,7 @@ func TestBuildQuery(t *testing.T) {
 
 	for _, tc := range testCases {
 		builder := NewMetricServerQueryBuilder(tc.metric)
-		query, err := builder.BuildQuery()
+		query, err := builder.BuildQuery(querybuilder.BuildQueryBehavior{})
 		if !reflect.DeepEqual(err, tc.err) {
 			t.Fatalf("tc %v failed, got error: %v, want error: %v", tc.desc, err, tc.err)
 		}

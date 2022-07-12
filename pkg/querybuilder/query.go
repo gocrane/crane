@@ -6,9 +6,19 @@ import (
 	"github.com/gocrane/crane/pkg/metricquery"
 )
 
+type BuildQueryBehavior struct {
+	// FederatedClusterScope means this query data source supports multiple clusters data query.
+	// false means do not need use cluster as query param.
+	// true means the data source maybe has multiple clusters, so must require cluster param. it will inject cluster param to the query when build query
+	FederatedClusterScope bool
+	// used to distiguish clusters. such as clusterid=cls-xxx
+	ClusterLabelName  string
+	ClusterLabelValue string
+}
+
 // Builder is an interface which is used to build query for different data sources according a context info about the query.
 type Builder interface {
-	BuildQuery() (*metricquery.Query, error)
+	BuildQuery(behavior BuildQueryBehavior) (*metricquery.Query, error)
 }
 
 // QueryBuilder is an Builder factory to make Builders
