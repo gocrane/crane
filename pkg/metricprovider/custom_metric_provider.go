@@ -22,7 +22,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/custom-metrics-apiserver/pkg/provider"
 
-	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/known"
@@ -182,33 +181,24 @@ func ListAllLocalMetrics(client client.Client) []provider.CustomMetricInfo {
 		Metric:        known.MetricNamePodCpuUsage,
 	})
 
-	var ehpaList autoscalingapi.EffectiveHorizontalPodAutoscalerList
-	err := client.List(context.TODO(), &ehpaList)
+	var hpaList autoscalingv2.HorizontalPodAutoscalerList
+	err := client.List(context.TODO(), &hpaList)
 	if err != nil {
-		klog.Errorf("Failed to list ehpa: %v", err)
+		klog.Errorf("Failed to list hpa: %v", err)
 		return metricInfos
 	}
-	for _, ehpa := range ehpaList.Items {
-		for _, metric := range ehpa.Spec.Metrics {
+	for _, hpa := range hpaList.Items {
+		if !strings.HasPrefix(hpa.Name, "ehpa-") {
+			// filter hpa that not created by ehpa
+			continue
+		}
+		for _, metric := range hpa.Spec.Metrics {
 			if metric.Type == autoscalingv2.PodsMetricSourceType &&
 				metric.Pods != nil &&
 				metric.Pods.Metric.Selector != nil &&
 				metric.Pods.Metric.Selector.MatchLabels != nil {
 				if _, exist := metric.Pods.Metric.Selector.MatchLabels[known.EffectiveHorizontalPodAutoscalerUidLabel]; exist {
-					metricName := utils.GetGeneralPredictionMetricName(autoscalingv2.PodsMetricSourceType, false, metric.Pods.Metric.Name)
-					metricInfos = append(metricInfos, provider.CustomMetricInfo{Metric: metricName})
-				}
-			}
-		}
-
-		for _, metric := range ehpa.Spec.Metrics {
-			if metric.Type == autoscalingv2.ObjectMetricSourceType &&
-				metric.Object != nil &&
-				metric.Object.Metric.Selector != nil &&
-				metric.Object.Metric.Selector.MatchLabels != nil {
-				if _, exist := metric.Object.Metric.Selector.MatchLabels[known.EffectiveHorizontalPodAutoscalerUidLabel]; exist {
-					metricName := utils.GetGeneralPredictionMetricName(autoscalingv2.ObjectMetricSourceType, false, metric.Object.Metric.Name)
-					metricInfos = append(metricInfos, provider.CustomMetricInfo{Metric: metricName})
+					metricInfos = append(metricInfos, provider.CustomMetricInfo{Metric: metric.Pods.Metric.Name, Namespaced: true, GroupResource: schema.GroupResource{Group: "", Resource: "pods"}})
 				}
 			}
 		}
