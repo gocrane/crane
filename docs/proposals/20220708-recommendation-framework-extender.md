@@ -31,27 +31,6 @@ Currently, the only way to implement a recommendation flow based on crane is to 
 
 The Recommendation Framework defines new extension points and Go APIs in the Crane Recommendation for use by "plugins". Plugins add recommendation behaviors to the crane, and are included at compile time. The recommendation's ComponentConfig will allow plugins to be enabled, disabled, and reordered. Custom recommendations can write their plugins "out-of-tree" and compile a craned binary with their own plugins included.
 
-
-### Components
-
-We divide the whole recommendation process into four actions, Fliter, Prepare, Recommend, Observe. The input of the whole system is the kubernetes resource you want to analyze, and the output is the best recommendation for the resource.Below we describe in detail the capabilities and input and output of each part of Recommendation Framework.
-
-#### Fliter
-
-The input of Fliter is an analysis recommendation task queue, and the queue stores the Recommendation CR submitted by the user.In default PreFliter,we will do nothing for the queue, this queue will be a FIFO queue.If you want to follow certain rules for the queue, you can implement it yourself PreFliter extension point.In the default fliter stage, we will first filter the non-recommended resources according to the user-defined analyzable resource type. For example, the analyzable kubernetes resource I defined is deployment,ingress,node. If you submit a recommendation cr for statefulset, it will be abort in this phase.Then, we will check whether the resource you want exists, if not, we will abort.If you wish to use different filtering logic, you can implement your own logic through the fliter extension point. 
-
-#### Prepare
-
-Prepare is the data preparation stage, and will pull the indicator sequence within the specified time according to your recommended tasks.In PrePrepare,by default we will check the connectivity of the metrics system. And we need generate the specified metrics information for metrics server system like prometheus or metrics server. In Prepare,we will get the indicator sequence information.In PostPrepare, we will implement a data processing module.Some data processing such as data correction for cold start application resource glitch, missing data padding, data aggregation,deduplication or noise reduction. The output of whole will be normalized to a specified data type.Of course you can also implement your own PrePrepare, Prepare, PostPrepare logic.
-
-#### Recommend
-
-The input of Recommend is a data sequence, and the output is the result of the recommendation type you specify. For example, if your recommendation type is resource, the output is the recommended size of the resource of the kubernetes workload you specified.In Recommend, we will apply crane's algorithm library to your data sequence.And in PostRecommend,We will use some strategies to regularize the results of the algorithm. For example, if a margin needs to be added when recommending resources, it will be processed at this stage.You can implement your own Recommend logic via extension points.
-
-#### Observer
-
-Observer is to intuitively reflect the effectiveness of the recommendation results. For example, when making resource recommendations, users not only care about the recommended resource configuration, but also how much cost can be saved after modifying the resource configuration. In PreObserver, we will check the cloud api connectivity and establish link with cloud vendor's billing system. And in Observer we will turn resource optimization into cost optimization.You can implement your own Observer logic via extension points.
-
 ### Extension points
 
 The following picture shows the recommendation context of a recommendation task and the extension points that the recommendation framework exposes. Plugins are registered to be called at one or more of these extension points. In the following sections we describe each extension point in the same order they are called.
