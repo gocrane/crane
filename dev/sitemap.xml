@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
     <url>
          <loc>.</loc>
-         <lastmod>2022-07-12</lastmod>
+         <lastmod>2022-07-13</lastmod>
          <changefreq>daily</changefreq>
          <xhtml:link rel="alternate" hreflang="en" href="en/"/>
          <xhtml:link rel="alternate" hreflang="zh" href="zh/"/>
@@ -11,7 +11,7 @@
     </url>
     <url>
          <loc>CONTRIBUTING/</loc>
-         <lastmod>2022-07-12</lastmod>
+         <lastmod>2022-07-13</lastmod>
          <changefreq>daily</changefreq>
          <xhtml:link rel="alternate" hreflang="en" href="en/CONTRIBUTING/"/>
          <xhtml:link rel="alternate" hreflang="zh" href="zh/CONTRIBUTING/"/>
@@ -20,7 +20,7 @@
     </url>
     <url>
          <loc>code-standards/</loc>
-         <lastmod>2022-07-12</lastmod>
+         <lastmod>2022-07-13</lastmod>
          <changefreq>daily</changefreq>
          <xhtml:link rel="alternate" hreflang="en" href="en/code-standards/"/>
          <xhtml:link rel="alternate" hreflang="zh" href="zh/code-standards/"/>
@@ -29,7 +29,7 @@
     </url>
     <url>
          <loc>installation/</loc>
-         <lastmod>2022-07-12</lastmod>
+         <lastmod>2022-07-13</lastmod>
          <changefreq>daily</changefreq>
          <xhtml:link rel="alternate" hreflang="en" href="en/installation/"/>
          <xhtml:link rel="alternate" hreflang="zh" href="zh/installation/"/>
@@ -38,7 +38,7 @@
     </url>
     <url>
          <loc>mirror/</loc>
-         <lastmod>2022-07-12</lastmod>
+         <lastmod>2022-07-13</lastmod>
          <changefreq>daily</changefreq>
          <xhtml:link rel="alternate" hreflang="en" href="en/mirror/"/>
          <xhtml:link rel="alternate" hreflang="zh" href="zh/mirror/"/>
@@ -47,7 +47,7 @@
     </url>
     <url>
          <loc>proposals/20220228-advanced-cpuset-manger/</loc>
-         <lastmod>2022-07-12</lastmod>
+         <lastmod>2022-07-13</lastmod>
          <changefreq>daily</changefreq>
          <xhtml:link rel="alternate" hreflang="en" href="en/proposals/20220228-advanced-cpuset-manger/"/>
          <xhtml:link rel="alternate" hreflang="zh" href="zh/proposals/20220228-advanced-cpuset-manger/"/>
@@ -56,7 +56,7 @@
     </url>
     <url>
          <loc>proposals/Pod-Sorting-And-Precise-Execution-For-Crane-Agent/</loc>
-         <lastmod>2022-07-12</lastmod>
+         <lastmod>2022-07-13</lastmod>
          <changefreq>daily</changefreq>
          <xhtml:link rel="alternate" hreflang="en" href="en/proposals/Pod-Sorting-And-Precise-Execution-For-Crane-Agent/"/>
          <xhtml:link rel="alternate" hreflang="zh" href="zh/proposals/Pod-Sorting-And-Precise-Execution-For-Crane-Agent/"/>
@@ -65,7 +65,7 @@
     </url>
     <url>
          <loc>roadmaps/roadmap-1h-2022/</loc>
-         <lastmod>2022-07-12</lastmod>
+         <lastmod>2022-07-13</lastmod>
          <changefreq>daily</changefreq>
          <xhtml:link rel="alternate" hreflang="en" href="en/roadmaps/roadmap-1h-2022/"/>
          <xhtml:link rel="alternate" hreflang="zh" href="zh/roadmaps/roadmap-1h-2022/"/>
@@ -74,7 +74,7 @@
     </url>
     <url>
          <loc>tutorials/analytics-and-recommendation/</loc>
-         <lastmod>2022-07-12</lastmod>
+         <lastmod>2022-07-13</lastmod>
          <changefreq>daily</changefreq>
          <xhtml:link rel="alternate" hreflang="en" href="en/tutorials/analytics-and-recommendation/"/>
          <xhtml:link rel="alternate" hreflang="zh" href="zh/tutorials/analytics-and-recommendation/"/>
@@ -83,7 +83,7 @@
     </url>
     <url>
          <loc>tutorials/dynamic-scheduler-plugin/</loc>
-         <lastmod>2022-07-12</lastmod>
+         <lastmod>2022-07-13</lastmod>
          <changefreq>daily</changefreq>
          <xhtml:link rel="alternate" hreflang="en" href="en/tutorials/dynamic-scheduler-plugin/"/>
          <xhtml:link rel="alternate" hreflang="zh" href="zh/tutorials/dynamic-scheduler-plugin/"/>
@@ -91,17 +91,17 @@
          
     </url>
     <url>
-         <loc>tutorials/effective-hpa-with-prometheus-adapter.zh/</loc>
-         <lastmod>2022-07-12</lastmod>
+         <loc>tutorials/effective-hpa-with-prometheus-adapter/</loc>
+         <lastmod>2022-07-13</lastmod>
          <changefreq>daily</changefreq>
-         <xhtml:link rel="alternate" hreflang="en" href="en/tutorials/effective-hpa-with-prometheus-adapter.zh/"/>
-         
-         <xhtml:link rel="alternate" hreflang="zh_TW" href="zh_TW/tutorials/effective-hpa-with-prometheus-adapter.zh/"/>
+         <xhtml:link rel="alternate" hreflang="en" href="en/tutorials/effective-hpa-with-prometheus-adapter/"/>
+         <xhtml:link rel="alternate" hreflang="zh" href="zh/tutorials/effective-hpa-with-prometheus-adapter/"/>
+         <xhtml:link rel="alternate" hreflang="zh_TW" href="zh_TW/tutorials/effective-hpa-with-prometheus-adapter/"/>
          
     </url>
     <url>
          <loc>tutorials/replicas-recommendation/</loc>
-         <lastmod>2022-07-12</lastmod>
+         <lastmod>2022-07-13</lastmod>
          <changefreq>daily</changefreq>
          <xhtml:link rel="alternate" hreflang="en" href="en/tutorials/replicas-recommendation/"/>
          <xhtml:link rel="alternate" hreflang="zh" href="zh/tutorials/replicas-recommendation/"/>
@@ -110,7 +110,7 @@
     </url>
     <url>
          <loc>tutorials/resource-recommendation/</loc>
-         <lastmod>2022-07-12</lastmod>
+         <lastmod>2022-07-13</lastmod>
          <changefreq>daily</changefreq>
          <xhtml:link rel="alternate" hreflang="en" href="en/tutorials/resource-recommendation/"/>
          <xhtml:link rel="alternate" hreflang="zh" href="zh/tutorials/resource-recommendation/"/>
@@ -119,7 +119,7 @@
     </url>
     <url>
          <loc>tutorials/scheduling-pods-based-on-actual-node-load/</loc>
-         <lastmod>2022-07-12</lastmod>
+         <lastmod>2022-07-13</lastmod>
          <changefreq>daily</changefreq>
          <xhtml:link rel="alternate" hreflang="en" href="en/tutorials/scheduling-pods-based-on-actual-node-load/"/>
          <xhtml:link rel="alternate" hreflang="zh" href="zh/tutorials/scheduling-pods-based-on-actual-node-load/"/>
@@ -128,7 +128,7 @@
     </url>
     <url>
          <loc>tutorials/using-effective-hpa-to-scaling-with-effectiveness/</loc>
-         <lastmod>2022-07-12</lastmod>
+         <lastmod>2022-07-13</lastmod>
          <changefreq>daily</changefreq>
          <xhtml:link rel="alternate" hreflang="en" href="en/tutorials/using-effective-hpa-to-scaling-with-effectiveness/"/>
          <xhtml:link rel="alternate" hreflang="zh" href="zh/tutorials/using-effective-hpa-to-scaling-with-effectiveness/"/>
@@ -137,7 +137,7 @@
     </url>
     <url>
          <loc>tutorials/using-qos-ensurance/</loc>
-         <lastmod>2022-07-12</lastmod>
+         <lastmod>2022-07-13</lastmod>
          <changefreq>daily</changefreq>
          <xhtml:link rel="alternate" hreflang="en" href="en/tutorials/using-qos-ensurance/"/>
          <xhtml:link rel="alternate" hreflang="zh" href="zh/tutorials/using-qos-ensurance/"/>
@@ -146,7 +146,7 @@
     </url>
     <url>
          <loc>tutorials/using-time-series-prediction/</loc>
-         <lastmod>2022-07-12</lastmod>
+         <lastmod>2022-07-13</lastmod>
          <changefreq>daily</changefreq>
          <xhtml:link rel="alternate" hreflang="en" href="en/tutorials/using-time-series-prediction/"/>
          <xhtml:link rel="alternate" hreflang="zh" href="zh/tutorials/using-time-series-prediction/"/>
