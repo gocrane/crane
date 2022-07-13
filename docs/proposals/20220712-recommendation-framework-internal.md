@@ -8,12 +8,12 @@ This document describes the Crane Recommendation Framework Internal. We will pro
 
 At present, crane Recommendation has been applied to kubernetes resource fields such as resource recommendation, replica recommendation, HPA recommendation, etc. The algorithm modules of crane, such as DSP, Max and Percentile algorithm modules, have been verified to be stable and effective in production practice.At the same time, the offline data source of crane supports prometheus, grpc protocol service, and the online data source supports prometheus and metricsserver. However, we have received a lot of feedback from developers, mainly focusing on the following aspects:
 
-1. After I have defined a lot of Recommendations, I don't know which recommendation results are accurate. I want to add some filtering logic, but there seems to be no such interface.
+1. After I have defined many different Recommendation types, I want to add some filtering or inject logic, but there seems to be no such interface.
 2. Our monitoring system is not in the default implementation, how can I implement a custom interface so that my resources can also use crane's recommended optimization capabilities?
 3. We found that the crane algorithm is not very effective for our business type, but we have explored some effective algorithms before, how to connect to the crane system?
 4. We want to be able to interface directly to the billing system after cost optimization, so we can directly quantify how much money is saved.
 
-In order to solve the above problems, we hope the whole recommendation process is more open and flexible. Therefore, we propose the crane recommendation framework, which will be divided into two types. The first is to implement recommendation flow logic in crane code, and the second is out-of-tree, you need to implement extension point through http request. This documentation will focus on the first implementation type.
+In order to solve the above problems, we hope the whole recommendation process is more open and flexible. Therefore, we propose the crane recommendation framework, which will be divided into two types. The first is to implement recommendation flow logic in crane core code, and the second is out-of-tree, you need to implement extension point through http request or gRPC call. This documentation will focus on the first implementation type.
 
 ## Goals
 
@@ -47,6 +47,6 @@ Prepare is the data preparation stage, and will pull the indicator sequence with
 
 The input of Recommend is a data sequence, and the output is the result of the recommendation type you specify. For example, if your recommendation type is resource, the output is the recommended size of the resource of the kubernetes workload you specified.In Recommend, we will apply crane's algorithm library to your data sequence.And in PostRecommend,We will use some strategies to regularize the results of the algorithm. For example, if a margin needs to be added when recommending resources, it will be processed at this stage.You can implement your own Recommend logic via extension points or override it.
 
-#### Observer
+#### Observe
 
-Observer is to intuitively reflect the effectiveness of the recommendation results. For example, when making resource recommendations, users not only care about the recommended resource configuration, but also how much cost can be saved after modifying the resource configuration. In PreObserver, we will check the cloud api connectivity and establish link with cloud vendor's billing system. And in Observer we will turn resource optimization into cost optimization.You can implement your own Observer logic via extension points or override it.
+Observe is to intuitively reflect the effectiveness of the recommendation results. For example, when making resource recommendations, users not only care about the recommended resource configuration, but also how much cost can be saved after modifying the resource configuration. In PreObserver, we will check the cloud api connectivity and establish link with cloud vendor's billing system. And in Observe we will turn resource optimization into cost optimization.You can implement your own Observe logic via extension points or override it.
