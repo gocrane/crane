@@ -28,6 +28,8 @@ But the recommendations have some limitations now:
 
 ## Proposal
 
+![recommend-arch](../images/recommend-arch.png)
+
 ### Recommendation Definition
 
 Recommendation Definition discuss data model about the recommendation process.  It answers following questions:
