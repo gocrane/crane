@@ -18,3 +18,4 @@ vendor/
 pkg/web/build
 pkg/web/.env
 pkg/web/node_modules
+dist/

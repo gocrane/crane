@@ -1,0 +1,183 @@
+# This is an example .goreleaser.yml file with some sensible defaults.
+# Make sure to check the documentation at https://goreleaser.com
+project_name: crane
+before:
+  hooks:
+    - go mod tidy
+    - make generate
+builds:
+  - id: craned
+    binary: craned
+    dir: ./cmd/craned/
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -extldflags "-static"
+      - -X github.com/kolide/kit/version.appName={{ .ArtifactName }}
+      - -X github.com/kolide/kit/version.version={{ .Version }}
+      - -X github.com/kolide/kit/version.branch={{ .Branch }}
+      - -X github.com/kolide/kit/version.revision={{ .FullCommit }}
+      - -X github.com/kolide/kit/version.buildDate={{ time "2006-01-02" }}
+      - -X github.com/kolide/kit/version.buildUser={{ .Env.USER }}
+      - -X github.com/gocrane/crane/pkg/version.gitVersion={{ .Tag }}
+      - -X github.com/gocrane/crane/pkg/version.gitCommit={{ .FullCommit }}
+      - -X github.com/gocrane/crane/pkg/version.gitTreeState=clean
+      - -X github.com/gocrane/crane/pkg/version.buildDate={{ time "2006-01-02" }}
+  - id: crane-agent
+    binary: crane-agent
+    dir: ./cmd/crane-agent/
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -extldflags "-static"
+      - -X github.com/kolide/kit/version.appName={{ .ArtifactName }}
+      - -X github.com/kolide/kit/version.version={{ .Version }}
+      - -X github.com/kolide/kit/version.branch={{ .Branch }}
+      - -X github.com/kolide/kit/version.revision={{ .FullCommit }}
+      - -X github.com/kolide/kit/version.buildDate={{ time "2006-01-02" }}
+      - -X github.com/kolide/kit/version.buildUser={{ .Env.USER }}
+      - -X github.com/gocrane/crane/pkg/version.gitVersion={{ .Tag }}
+      - -X github.com/gocrane/crane/pkg/version.gitCommit={{ .FullCommit }}
+      - -X github.com/gocrane/crane/pkg/version.gitTreeState=clean
+      - -X github.com/gocrane/crane/pkg/version.buildDate={{ time "2006-01-02" }}
+  - id: metric-adapter
+    binary: metric-adapter
+    dir: ./cmd/metric-adapter/
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -extldflags "-static"
+      - -X github.com/kolide/kit/version.appName={{ .ArtifactName }}
+      - -X github.com/kolide/kit/version.version={{ .Version }}
+      - -X github.com/kolide/kit/version.branch={{ .Branch }}
+      - -X github.com/kolide/kit/version.revision={{ .FullCommit }}
+      - -X github.com/kolide/kit/version.buildDate={{ time "2006-01-02" }}
+      - -X github.com/kolide/kit/version.buildUser={{ .Env.USER }}
+      - -X github.com/gocrane/crane/pkg/version.gitVersion={{ .Tag }}
+      - -X github.com/gocrane/crane/pkg/version.gitCommit={{ .FullCommit }}
+      - -X github.com/gocrane/crane/pkg/version.gitTreeState=clean
+      - -X github.com/gocrane/crane/pkg/version.buildDate={{ time "2006-01-02" }}
+dockers:
+  # craned
+  - goos: linux
+    goarch: amd64
+    use: buildx
+    ids:
+      - craned
+    dockerfile: docker/craned.Dockerfile
+    image_templates:
+      - ghcr.io/gocrane/crane/craned:{{ .Tag }}-amd64
+    build_flag_templates:
+      - "--platform=linux/amd64"
+  - goos: linux
+    goarch: arm64
+    use: buildx
+    ids:
+      - craned
+    dockerfile: docker/craned.Dockerfile
+    image_templates:
+      - ghcr.io/gocrane/crane/craned:{{ .Tag }}-arm64
+    build_flag_templates:
+      - "--platform=linux/arm64/v8"
+  # crane-agent
+  - goos: linux
+    goarch: amd64
+    use: buildx
+    ids:
+      - crane-agent
+    dockerfile: docker/crane-agent.Dockerfile
+    image_templates:
+      - ghcr.io/gocrane/crane/crane-agent:{{ .Tag }}-amd64
+    build_flag_templates:
+      - "--platform=linux/amd64"
+  - goos: linux
+    goarch: arm64
+    use: buildx
+    ids:
+      - crane-agent
+    dockerfile: docker/crane-agent.Dockerfile
+    image_templates:
+      - ghcr.io/gocrane/crane/crane-agent:{{ .Tag }}-arm64
+    build_flag_templates:
+      - "--platform=linux/arm64/v8"
+  # metric-adapter
+  - goos: linux
+    goarch: amd64
+    use: buildx
+    ids:
+      - metric-adapter
+    dockerfile: docker/metric-adapter.Dockerfile
+    image_templates:
+      - ghcr.io/gocrane/crane/metric-adapter:{{ .Tag }}-amd64
+    build_flag_templates:
+      - "--platform=linux/amd64"
+  - goos: linux
+    goarch: arm64
+    use: buildx
+    ids:
+      - metric-adapter
+    dockerfile: docker/metric-adapter.Dockerfile
+    image_templates:
+      - ghcr.io/gocrane/crane/metric-adapter:{{ .Tag }}-arm64
+    build_flag_templates:
+      - "--platform=linux/arm64/v8"
+docker_manifests:
+  - name_template: ghcr.io/gocrane/crane/craned:{{ .Tag }}
+    image_templates:
+      - ghcr.io/gocrane/crane/craned:{{ .Tag }}-amd64
+      - ghcr.io/gocrane/crane/craned:{{ .Tag }}-arm64
+  - name_template: ghcr.io/gocrane/crane/crane-agent:{{ .Tag }}
+    image_templates:
+      - ghcr.io/gocrane/crane/crane-agent:{{ .Tag }}-amd64
+      - ghcr.io/gocrane/crane/crane-agent:{{ .Tag }}-arm64
+  - name_template: ghcr.io/gocrane/crane/metric-adapter:{{ .Tag }}
+    image_templates:
+      - ghcr.io/gocrane/crane/metric-adapter:{{ .Tag }}-amd64
+      - ghcr.io/gocrane/crane/metric-adapter:{{ .Tag }}-arm64
+archives:
+  - replacements:
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      386: i386
+      amd64: x86_64
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+release:
+  github:
+    owner: gocrane
+    name: crane
+  draft: true
+  prerelease: auto
