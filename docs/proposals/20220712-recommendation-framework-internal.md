@@ -31,7 +31,7 @@ In order to solve the above problems, we hope the whole recommendation process i
 
 ![](../images/crane_recommendation_framework.jpg)
 
-### Components
+### Phases
 
 We divide the whole recommendation process into four actions, Fliter, Prepare, Recommend, Observe. The input of the whole system is the kubernetes resource you want to analyze, and the output is the best recommendation for the resource.Below we describe in detail the capabilities and input and output of each part of Recommendation Framework.
 
