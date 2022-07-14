@@ -1,4 +1,4 @@
-# Crane Roadmap for H1 2022
+# Crane Roadmap for 2022
 Please refer the following sections for Crane release plan of H1 2022, new release will be cut on monthly basis.
 
 Please let us know if you have urgent needs which are not presented in the plan. 
