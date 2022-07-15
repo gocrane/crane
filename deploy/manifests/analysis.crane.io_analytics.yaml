@@ -18,7 +18,17 @@ spec:
     singular: analytics
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.type
+      name: Type
+      type: string
+    - jsonPath: .spec.completionStrategy.completionStrategyType
+      name: Strategy
+      type: string
+    - jsonPath: .spec.completionStrategy.periodSeconds
+      name: PeriodSeconds
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Analytics represents the configuration of an analytics object.
@@ -328,6 +338,7 @@ spec:
         type: object
     served: true
     storage: true
+    subresources: {}
 status:
   acceptedNames:
     kind: ""
