@@ -4,7 +4,7 @@ Crane使用在数字信号处理（Digital Signal Processing）领域中常用�
 本文将介绍DSP算法的实现流程和参数设置，以便帮助大家了解算法背后的原理，并将它应用到实际场景中。 （相关代码位于`pkg/prediction/dsp`目录下）
 
 ## 流程
-![](./../images/dsp.png)
+![](../images/algorithm/dsp/dsp.png)
 ### 预处理
 
 #### 填充缺失数据
@@ -12,7 +12,7 @@ Crane使用在数字信号处理（Digital Signal Processing）领域中常用�
 
 假设第$m$个与第$n$个采样点之间采样数据缺失（$m+1 < n$）,设在$m$和$n$点的采样值分别为$v_m$和$v_n$，令$$\Delta = {v_n-v_m \over n-m}$$，则$m$和$n$之间的填充数据依次为$v_m+\Delta , v_m+2\Delta , ...$
 
-![](../images/missing_data_fill.png)
+![](../images/algorithm/dsp/missing_data_fill.png)
 #### 去除异常点
 监控数据中偶尔会出现一些极端的异常数据点，导致这些异常点（outliers）的原因有很多，例如：
 1. 监控系统用0值填充缺失的采样点；
@@ -23,7 +23,7 @@ Crane使用在数字信号处理（Digital Signal Processing）领域中常用�
 
 选取实际序列中所有采样点的$P99.9$和$P0.1$，分别作为上、下限阈值，如果某个采样值低于下限或者高于上限，将采样点的值设置为前一个采样值。
 
-![](../images/remove_outliers.png)
+![](../images/algorithm/dsp/remove_outliers.png)
 
 #### 离散傅里叶变换
 对监控的时间序列（设长度为$N$）做快速离散傅里叶变换（FFT），得到信号的频谱图（spectrogram），频谱图直观地表现为在各个离散点$k$处的「冲击」。
@@ -45,13 +45,13 @@ Crane没有尝试发现任意长度的周期，而是指定几个固定的周期
 我们从生产环境中抓取了一些应用的监控指标，保存为csv格式，放到`pkg/prediction/dsp/test_data`目录下。
 例如，`input0.csv`文件包括了一个应用连续8天的CPU监控数据，对应的时间序列如下图：
 
-![](../images/input0.png)
+![](../images/algorithm/dsp/input0.png)
 
 我们看到，尽管每天的数据不尽相同，但大体「模式」还是基本一致的。
 
 对它做FFT，会得到下面的频谱图：
 
-![](../images/spectrum.png)
+![](../images/algorithm/dsp/spectrum.png)
 
 我们发现在几个点上的「幅值」明显高于其它点，这些点便可以作为我们的「候选周期」，待进一步的验证。
 
@@ -76,7 +76,7 @@ $$\vec r = IFFT(|FFT({\vec x - \mu \over \sigma})|^2)\ \ \ \mu: mean,\ \sigma: s
 
 ACF的图像如下所示，横轴代表信号平移的时间长度$k$；纵轴代表自相关系数$r_k$，反应了平移信号与原始信号的「相似」程度。
 
-![](../images/acf.png)
+![](../images/algorithm/dsp/acf.png)
 
 Crane会依次验证每一个候选周期对应的自相关系数是否位于「山顶」上；并且选择对应「最高峰」的那个候选周期为整个时间序列的主周期（基波周期），并以此为基础进行预测。
 
@@ -84,7 +84,7 @@ Crane会依次验证每一个候选周期对应的自相关系数是否位于「
 
 Crane在两侧个各选取一段曲线，分别做线性回归，当回归后左、右的直线斜率分别大于、小于零时，则认为这个点是在一个「山顶」上。
 
-![](../images/linear_regression.png)
+![](../images/algorithm/dsp/linear_regression.png)
 
 #### 预测
 根据上一步得到的主周期，Crane提供了两种方式去拟合（预测）下一个周期的时序数据
@@ -92,7 +92,7 @@ Crane在两侧个各选取一段曲线，分别做线性回归，当回归后左
 
 选取过去几个周期中相同时刻$t$（例如：下午6:00）中的最大值，作为下一个周期$t$时刻的预测值。
 
-![](../images/max_value.png)
+![](../images/algorithm/dsp/max_value.png)
 **fft**
 
 对原始时间序列做FFT得到频谱序列，去除「高频噪声」后，再做IFFT（逆快速傅里叶变换），将得到的时间序列作为下一个周期的预测结果。
@@ -154,7 +154,7 @@ spec:
 
 下面是对同一时段预测的两条曲线，蓝色、绿色的`highFrequencyThreshold`分别为$0.01$和$0.001$，蓝色曲线过滤掉了更多的高频分量，因此更为平滑。
 
-![](../images/lft_0_001.png) ![](../images/lft_0_01.png)
+![](../images/algorithm/dsp/lft_0_001.png) ![](../images/algorithm/dsp/lft_0_01.png)
 
 并没有一套参数配置适合所有的时间序列，通常需要根据应用指标的特点，去调整算法参数，以期获得最佳的预测效果。
 Crane提供了一个web接口，使用者可以在调整参数后，直观的看到预测效果，使用步骤如下：
@@ -162,7 +162,7 @@ Crane提供了一个web接口，使用者可以在调整参数后，直观的看
 1. 修改`TimeSeriesPrediction`中的`estimators`的参数。
 2. 访问craned http server的`api/prediction/debug/<namespace>/<timeseries prediction name>`，查看参数效果（如下图）。
 
-![](../images/dsp_debug.png)
+![](../images/algorithm/dsp/dsp_debug.png)
 
 上述步骤可多次执行，直到得到满意的预测效果。
 
