@@ -8,6 +8,7 @@ spec:
     kind: Deployment
     name: dep-1-100m-500mib
     namespace: default
+    apiVersion: apps/v1
   predictionWindowSeconds: 3600
   predictionMetrics:
     - resourceIdentifier: workload-cpu
