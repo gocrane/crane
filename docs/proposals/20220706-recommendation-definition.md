@@ -67,13 +67,13 @@ Recommender Configuration is centralized configuration that is read as a config 
 type RecommenderSpec struct {
     // ResourceSelector indicates which resources(e.g. a set of Deployments) are accepted for plugin.
     // Override the accepted resources from plugin's interface
-    AcceptedResourceSelectors []ResourceSelector `json:"AcceptedResources"`
+    AcceptedResourceSelectors []ResourceSelector `json:"acceptedResources"`
 
     // RecommenderName is the name for this recommendation that should be included in all recommender collections
-    RecommenderName string `json:"pluginName"`
+    RecommenderName string `json:"recommenderName"`
 
     // Category indicate the category for this recommender
-    Category string `json:"pluginName"`
+    Category string `json:"category"`
 
     // Override Recommendation configs
     // +optional
@@ -95,7 +95,7 @@ RecommenderPlugin is another section in Recommender Config. Users can develop th
 type RecommenderPluginSpec struct {
 
     // RecommenderName is the name for this recommendation that should be included in all recommender collections
-    RecommenderName string `json:"pluginName"`
+    RecommenderName string `json:"recommenderName"`
 
     // Priority control the sequence when execute plugins
     Priority int32 `json:"priority,omitempty"`
@@ -148,13 +148,13 @@ Use a constructive model for Recommendation.
 
 type RecommendationSpec struct {
 	
-	Resource string 
+	Resource string  `json:"resource"`
 	
-	Value string
+	Value string `json:"value"`
 	
-	RecommendValue string
+	RecommendValue string `json:"recommendValue"`
 	
-	Action string
+	Action string `json:"action"`
 	
 }
 
