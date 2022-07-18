@@ -157,7 +157,7 @@ spec:
   - name: "cpu-usage"
     avoidanceThreshold: 2
     restoreThreshold: 2
-    actionName: "evict"
+    actionName: "eviction"
     strategy: "Preview" #(1) 
     metricRule:
       name: "cpu_total_usage"
