@@ -1,17 +1,17 @@
 package server
 
 import (
+	"context"
+
 	"github.com/gocrane/crane/pkg/server/handler/clusters"
 	"github.com/gocrane/crane/pkg/server/handler/dashboards"
+	"github.com/gocrane/crane/pkg/server/handler/prediction"
+	"github.com/gocrane/crane/pkg/server/handler/recommendation"
 )
 
-func (s *apiServer) initRouter() {
-	s.installHandler()
-}
-
-func (s *apiServer) installHandler() {
-
+func (s *apiServer) initRouter(ctx context.Context) {
 	clusterHandler := clusters.NewClusterHandler(s.clusterSrv)
+	recommendationHandler := recommendation.NewRecommendationHandler(s.config)
 
 	v1 := s.Group("/api/v1")
 	{
@@ -42,6 +42,27 @@ func (s *apiServer) installHandler() {
 		{
 			nsv1.GET(":clusterid", clusterHandler.ListNamespaces)
 		}
+
+		// recommendations
+		recommendv1 := v1.Group("/recommendation")
+		{
+			recommendv1.GET("", recommendationHandler.ListRecommendations)
+		}
+
+		// recommendationRules
+		recommendrulev1 := v1.Group("/recommendationRule")
+		{
+			recommendrulev1.GET("", recommendationHandler.ListRecommendationRules)
+			recommendrulev1.POST("", recommendationHandler.CreateRecommendationRule)
+			recommendrulev1.PUT("recommendationRuleName", recommendationHandler.UpdateRecommendationRule)
+			recommendrulev1.DELETE("recommendationRuleName", recommendationHandler.DeleteRecommendationRule)
+		}
+	}
+
+	debugHandler := prediction.NewDebugHandler(s.config)
+	debug := s.Group("/api/prediction/debug")
+	{
+		debug.GET(":namespace/:tsp", debugHandler.Display)
 	}
 
 }

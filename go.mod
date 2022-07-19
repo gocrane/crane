@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/go-echarts/go-echarts/v2 v2.2.4
-	github.com/gocrane/api v0.6.0
+	github.com/gocrane/api v0.6.1-0.20220719082537-b7bdeaf2fb17
 	github.com/google/cadvisor v0.39.2
 	github.com/mjibson/go-dsp v0.0.0-20180508042940-11479a337f12
 	github.com/prometheus/client_golang v1.11.0

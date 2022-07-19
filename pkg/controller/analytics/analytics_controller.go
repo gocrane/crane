@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
@@ -75,6 +76,13 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if analytics.DeletionTimestamp != nil {
 		klog.InfoS("Analytics resource is being deleted.", "name", req.NamespacedName)
 		return ctrl.Result{}, nil
+	}
+
+	// convert Analytics to RecommendationRule
+	recommendationRule := ConvertToRecommendationRule(analytics)
+	if err := UpsertRecommendationRule(recommendationRule, c.Client); err != nil {
+		klog.Infof(fmt.Sprintf("Upsert recommendation rule failed: %v", err))
+		return ctrl.Result{}, err
 	}
 
 	lastUpdateTime := analytics.Status.LastUpdateTime
@@ -551,4 +559,41 @@ func setReadyCondition(status *analysisv1alph1.AnalyticsStatus, conditionStatus 
 		Message:            message,
 		LastTransitionTime: metav1.Now(),
 	})
+}
+
+func ConvertToRecommendationRule(analytics *analysisv1alph1.Analytics) *analysisv1alph1.RecommendationRule {
+	recommendationRule := &analysisv1alph1.RecommendationRule{}
+	recommendationRule.Name = analytics.Name
+	recommendationRule.Spec.ResourceSelectors = analytics.Spec.ResourceSelectors
+	// todo: make sure the conversion is right after recommendation refactor
+	recommendationRule.Spec.Recommenders = []analysisv1alph1.Recommender{{Name: string(analytics.Spec.Type)}}
+	if analytics.Namespace == known.CraneSystemNamespace {
+		recommendationRule.Spec.NamespaceSelector.Any = true
+	} else {
+		recommendationRule.Spec.NamespaceSelector.MatchNames = []string{analytics.Namespace}
+	}
+	if analytics.Spec.CompletionStrategy.CompletionStrategyType == analysisv1alph1.CompletionStrategyOnce {
+		recommendationRule.Spec.RunInterval = ""
+	} else {
+		recommendationRule.Spec.RunInterval = (time.Duration(*analytics.Spec.CompletionStrategy.PeriodSeconds) * time.Second).String()
+	}
+
+	return recommendationRule
+}
+
+func UpsertRecommendationRule(recommendationRule *analysisv1alph1.RecommendationRule, client client.Client) error {
+	recommendationRuleExist := &analysisv1alph1.RecommendationRule{}
+	if err := client.Get(context.TODO(), types.NamespacedName{Name: recommendationRule.Name}, recommendationRuleExist); err != nil {
+		if errors.IsNotFound(err) {
+			return client.Create(context.TODO(), recommendationRule)
+		}
+		return err
+	}
+
+	if !reflect.DeepEqual(recommendationRule.Spec, recommendationRuleExist.Spec) {
+		recommendationRuleExist.Spec = recommendationRule.Spec
+		return client.Update(context.TODO(), recommendationRuleExist)
+	}
+
+	return nil
 }
