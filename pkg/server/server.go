@@ -135,7 +135,7 @@ func (s *apiServer) Run(ctx context.Context) {
 
 	s.installDefaultMiddlewares()
 	s.installGenericAPIs()
-	s.initRouter(ctx)
+	s.initRouter()
 	s.startGracefulShutDownManager(ctx)
 
 	go func() {

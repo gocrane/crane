@@ -1,15 +1,13 @@
 package server
 
 import (
-	"context"
-
 	"github.com/gocrane/crane/pkg/server/handler/clusters"
 	"github.com/gocrane/crane/pkg/server/handler/dashboards"
 	"github.com/gocrane/crane/pkg/server/handler/prediction"
 	"github.com/gocrane/crane/pkg/server/handler/recommendation"
 )
 
-func (s *apiServer) initRouter(ctx context.Context) {
+func (s *apiServer) initRouter() {
 	clusterHandler := clusters.NewClusterHandler(s.clusterSrv)
 	recommendationHandler := recommendation.NewRecommendationHandler(s.config)
 
