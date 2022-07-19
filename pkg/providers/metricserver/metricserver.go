@@ -1,6 +1,7 @@
 package metricserver
 
 import (
+	"github.com/gocrane/crane/pkg/querybuilder"
 	cacheddiscovery "k8s.io/client-go/discovery/cached"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -27,7 +28,7 @@ type metricsServer struct {
 
 func (m *metricsServer) QueryLatestTimeSeries(metricNamer metricnaming.MetricNamer) ([]*common.TimeSeries, error) {
 	msBuilder := metricNamer.QueryBuilder().Builder(metricquery.MetricServerMetricSource)
-	msQuery, err := msBuilder.BuildQuery()
+	msQuery, err := msBuilder.BuildQuery(querybuilder.BuildQueryBehavior{})
 	if err != nil {
 		klog.Errorf("Failed to QueryLatestTimeSeries metricNamer %v, err: %v", metricNamer.BuildUniqueKey(), err)
 		return nil, err

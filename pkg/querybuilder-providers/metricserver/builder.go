@@ -17,7 +17,7 @@ func NewMetricServerQueryBuilder(metric *metricquery.Metric) querybuilder.Builde
 	}
 }
 
-func (b builder) BuildQuery() (*metricquery.Query, error) {
+func (b builder) BuildQuery(behavior querybuilder.BuildQueryBehavior) (*metricquery.Query, error) {
 	return metricServerQuery(&metricquery.GenericQuery{Metric: b.metric}), nil
 }
 

@@ -8,6 +8,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/gocrane/crane/pkg/metricquery"
+	"github.com/gocrane/crane/pkg/querybuilder"
 )
 
 func TestNewPromQueryBuilder(t *testing.T) {
@@ -21,7 +22,7 @@ func TestNewPromQueryBuilder(t *testing.T) {
 		},
 	}
 	builder := NewPromQueryBuilder(metric)
-	_, err := builder.BuildQuery()
+	_, err := builder.BuildQuery(querybuilder.BuildQueryBehavior{})
 	if err != nil {
 		t.Log(err)
 	}
@@ -46,7 +47,7 @@ func TestBuildQuery(t *testing.T) {
 					APIVersion: "v1",
 				},
 			},
-			want: fmt.Sprintf(WorkloadCpuUsageExprTemplate, "default", "test", "3m"),
+			want: fmt.Sprintf(WorkloadCpuUsageExprTemplate, "default", "test", "", "3m"),
 		},
 		{
 			desc: "tc2-workload-mem",
@@ -60,7 +61,7 @@ func TestBuildQuery(t *testing.T) {
 					APIVersion: "v1",
 				},
 			},
-			want: fmt.Sprintf(WorkloadMemUsageExprTemplate, "default", "test"),
+			want: fmt.Sprintf(WorkloadMemUsageExprTemplate, "default", "test", ""),
 		},
 		{
 			desc: "tc3-container-cpu",
@@ -73,7 +74,7 @@ func TestBuildQuery(t *testing.T) {
 					Name:         "container",
 				},
 			},
-			want: fmt.Sprintf(ContainerCpuUsageExprTemplate, "default", "workload", "container", "3m"),
+			want: fmt.Sprintf(ContainerCpuUsageExprTemplate, "default", "workload", "container", "", "3m"),
 		},
 		{
 			desc: "tc4-container-mem",
@@ -86,7 +87,7 @@ func TestBuildQuery(t *testing.T) {
 					Name:         "container",
 				},
 			},
-			want: fmt.Sprintf(ContainerMemUsageExprTemplate, "default", "workload", "container"),
+			want: fmt.Sprintf(ContainerMemUsageExprTemplate, "default", "workload", "container", ""),
 		},
 		{
 			desc: "tc5-node-cpu",
@@ -97,7 +98,7 @@ func TestBuildQuery(t *testing.T) {
 					Name: "test",
 				},
 			},
-			want: fmt.Sprintf(NodeCpuUsageExprTemplate, "test", "test", "3m"),
+			want: fmt.Sprintf(NodeCpuUsageExprTemplate, "test", "test", "", "", "3m"),
 		},
 		{
 			desc: "tc6-node-mem",
@@ -108,7 +109,7 @@ func TestBuildQuery(t *testing.T) {
 					Name: "test",
 				},
 			},
-			want: fmt.Sprintf(NodeMemUsageExprTemplate, "test", "test"),
+			want: fmt.Sprintf(NodeMemUsageExprTemplate, "test", "test", "", ""),
 		},
 		{
 			desc: "tc7-pod-cpu",
@@ -120,7 +121,7 @@ func TestBuildQuery(t *testing.T) {
 					Name:      "test",
 				},
 			},
-			want: fmt.Sprintf(PodCpuUsageExprTemplate, "default", "test", "3m"),
+			want: fmt.Sprintf(PodCpuUsageExprTemplate, "default", "test", "", "3m"),
 		},
 		{
 			desc: "tc8-pod-mem",
@@ -132,7 +133,7 @@ func TestBuildQuery(t *testing.T) {
 					Name:      "test",
 				},
 			},
-			want: fmt.Sprintf(PodMemUsageExprTemplate, "default", "test"),
+			want: fmt.Sprintf(PodMemUsageExprTemplate, "default", "test", ""),
 		},
 		{
 			desc: "tc9-prom",
@@ -149,7 +150,7 @@ func TestBuildQuery(t *testing.T) {
 
 	for _, tc := range testCases {
 		builder := NewPromQueryBuilder(tc.metric)
-		query, err := builder.BuildQuery()
+		query, err := builder.BuildQuery(querybuilder.BuildQueryBehavior{})
 		if !reflect.DeepEqual(err, tc.err) {
 			t.Fatalf("tc %v failed, got error: %v, want error: %v", tc.desc, err, tc.err)
 		}
