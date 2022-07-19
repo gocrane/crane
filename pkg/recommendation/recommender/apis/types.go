@@ -18,23 +18,23 @@ type RecommenderConfiguration struct {
 
 type Recommender struct {
 	// ResourceSelector indicates which resources(e.g. a set of Deployments) are accepted for plugin.
-	// Override the accepted resources from plugin's interface
+	// Override the accepted resources from recommender's interface
 	AcceptedResourceSelectors []analysisapi.ResourceSelector `json:"acceptedResources"`
-	// RecommenderName is the name for this recommendation that should be included in all recommender collections
-	RecommenderName string `json:"recommenderName"`
-	// Override Recommendation configs
+	// Name should be existed in all predefined recommenders
+	Name string `json:"name"`
+	// Override Recommender configs
 	// +optional
 	Config map[string]string `json:"config,omitempty"`
 }
 
 type RecommenderPlugin struct {
-	// RecommenderName is the name for this recommendation that should be included in all recommender collections
-	RecommenderName string `json:"recommenderName"`
+	// Name is the name for this plugin
+	Name string `json:"name"`
 	// Priority control the sequence when execute plugins
 	Priority int32 `json:"priority,omitempty"`
 	// ServerConfig
 	ServerConfig ServerConfig `json:"serverConfig,omitempty"`
-	// Override Recommendation configs
+	// Override Recommender configs
 	// +optional
 	Config map[string]string `json:"config,omitempty"`
 }
