@@ -52,8 +52,8 @@ func (s *apiServer) initRouter() {
 		{
 			recommendrulev1.GET("", recommendationHandler.ListRecommendationRules)
 			recommendrulev1.POST("", recommendationHandler.CreateRecommendationRule)
-			recommendrulev1.PUT("recommendationRuleName", recommendationHandler.UpdateRecommendationRule)
-			recommendrulev1.DELETE("recommendationRuleName", recommendationHandler.DeleteRecommendationRule)
+			recommendrulev1.PUT(":recommendationRuleName", recommendationHandler.UpdateRecommendationRule)
+			recommendrulev1.DELETE(":recommendationRuleName", recommendationHandler.DeleteRecommendationRule)
 		}
 	}
 
