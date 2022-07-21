@@ -17,7 +17,6 @@ import (
 
 	"github.com/gocrane/crane/pkg/server/config"
 	"github.com/gocrane/crane/pkg/server/ginwrapper"
-	"github.com/gocrane/crane/pkg/server/handler/prediction"
 	"github.com/gocrane/crane/pkg/server/middleware"
 	clustersrv "github.com/gocrane/crane/pkg/server/service/cluster"
 	dashboardsrv "github.com/gocrane/crane/pkg/server/service/dashboard"
@@ -53,14 +52,6 @@ func NewServer(cfg *config.Config) (*apiServer, error) {
 	}
 
 	return server, nil
-}
-
-func (s *apiServer) installPredictionDebugAPIs(ctx context.Context) {
-	debugHandler := prediction.NewDebugHandler(ctx)
-	debug := s.Group("/api/prediction/debug")
-	{
-		debug.GET(":namespace/:tsp", debugHandler.Display)
-	}
 }
 
 func (s *apiServer) installGenericAPIs() {
@@ -116,10 +107,10 @@ func (s *apiServer) initServices() {
 
 	// Kubernetes API setup
 
-	if s.config.KubeRestConfig == nil {
+	if s.config.KubeConfig == nil {
 		klog.Fatal(fmt.Errorf("kubernetes rest config is null"))
 	}
-	kubeClientset, err := kubernetes.NewForConfig(s.config.KubeRestConfig)
+	kubeClientset, err := kubernetes.NewForConfig(s.config.KubeConfig)
 	if err != nil {
 		klog.Fatal(err.Error())
 	}
@@ -145,7 +136,6 @@ func (s *apiServer) Run(ctx context.Context) {
 	s.installDefaultMiddlewares()
 	s.installGenericAPIs()
 	s.initRouter()
-	s.installPredictionDebugAPIs(ctx)
 	s.startGracefulShutDownManager(ctx)
 
 	go func() {
