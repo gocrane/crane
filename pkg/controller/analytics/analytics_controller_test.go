@@ -16,13 +16,13 @@ func TestMatch(t *testing.T) {
 	tests := []struct {
 		description   string
 		matchLabels   map[string]string
-		labelSelector metav1.LabelSelector
+		labelSelector *metav1.LabelSelector
 		expect        bool
 	}{
 		{
 			description: "match labels",
 			matchLabels: matchLabels,
-			labelSelector: metav1.LabelSelector{
+			labelSelector: &metav1.LabelSelector{
 				MatchLabels:      unmatchLabels,
 				MatchExpressions: []metav1.LabelSelectorRequirement{},
 			},
@@ -31,7 +31,7 @@ func TestMatch(t *testing.T) {
 		{
 			description: "match expression key2 exists",
 			matchLabels: matchLabels,
-			labelSelector: metav1.LabelSelector{
+			labelSelector: &metav1.LabelSelector{
 				MatchLabels: matchLabels,
 				MatchExpressions: []metav1.LabelSelectorRequirement{{
 					Key:      "key2",
@@ -44,7 +44,7 @@ func TestMatch(t *testing.T) {
 		{
 			description: "match expression key1 exists",
 			matchLabels: matchLabels,
-			labelSelector: metav1.LabelSelector{
+			labelSelector: &metav1.LabelSelector{
 				MatchLabels: matchLabels,
 				MatchExpressions: []metav1.LabelSelectorRequirement{{
 					Key:      "key1",
@@ -57,7 +57,7 @@ func TestMatch(t *testing.T) {
 		{
 			description: "match expression key1 doesNotExists",
 			matchLabels: matchLabels,
-			labelSelector: metav1.LabelSelector{
+			labelSelector: &metav1.LabelSelector{
 				MatchLabels: matchLabels,
 				MatchExpressions: []metav1.LabelSelectorRequirement{{
 					Key:      "key1",
@@ -70,7 +70,7 @@ func TestMatch(t *testing.T) {
 		{
 			description: "match expression key2 doesNotExists",
 			matchLabels: matchLabels,
-			labelSelector: metav1.LabelSelector{
+			labelSelector: &metav1.LabelSelector{
 				MatchLabels: matchLabels,
 				MatchExpressions: []metav1.LabelSelectorRequirement{{
 					Key:      "key2",
@@ -83,7 +83,7 @@ func TestMatch(t *testing.T) {
 		{
 			description: "match expression key2 in",
 			matchLabels: matchLabels,
-			labelSelector: metav1.LabelSelector{
+			labelSelector: &metav1.LabelSelector{
 				MatchLabels: matchLabels,
 				MatchExpressions: []metav1.LabelSelectorRequirement{{
 					Key:      "key2",
@@ -96,7 +96,7 @@ func TestMatch(t *testing.T) {
 		{
 			description: "match expression key1 in value1",
 			matchLabels: matchLabels,
-			labelSelector: metav1.LabelSelector{
+			labelSelector: &metav1.LabelSelector{
 				MatchLabels: matchLabels,
 				MatchExpressions: []metav1.LabelSelectorRequirement{{
 					Key:      "key1",
@@ -109,7 +109,7 @@ func TestMatch(t *testing.T) {
 		{
 			description: "match expression key1 in value2",
 			matchLabels: matchLabels,
-			labelSelector: metav1.LabelSelector{
+			labelSelector: &metav1.LabelSelector{
 				MatchLabels: matchLabels,
 				MatchExpressions: []metav1.LabelSelectorRequirement{{
 					Key:      "key1",
@@ -122,7 +122,7 @@ func TestMatch(t *testing.T) {
 		{
 			description: "match expression key1 notIn value1",
 			matchLabels: matchLabels,
-			labelSelector: metav1.LabelSelector{
+			labelSelector: &metav1.LabelSelector{
 				MatchLabels: matchLabels,
 				MatchExpressions: []metav1.LabelSelectorRequirement{{
 					Key:      "key1",
@@ -135,7 +135,7 @@ func TestMatch(t *testing.T) {
 		{
 			description: "match expression key1 notIn Value2",
 			matchLabels: matchLabels,
-			labelSelector: metav1.LabelSelector{
+			labelSelector: &metav1.LabelSelector{
 				MatchLabels: matchLabels,
 				MatchExpressions: []metav1.LabelSelectorRequirement{{
 					Key:      "key1",
