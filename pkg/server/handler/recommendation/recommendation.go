@@ -101,8 +101,6 @@ func (h *Handler) DeleteRecommendationRule(c *gin.Context) {
 		return
 	}
 
-	ginwrapper.WriteResponse(c, nil, nil)
-
 	err := h.client.Delete(context.TODO(), recommendationRuleExist)
 	if err != nil {
 		ginwrapper.WriteResponse(c, err, nil)
