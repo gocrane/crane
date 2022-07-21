@@ -18,7 +18,9 @@ import (
 type TspMetricCollector struct {
 	client.Client
 	resourceMetric *prometheus.Desc
-	externalMetric    *prometheus.Desc
+	externalMetric *prometheus.Desc
+	resourceMetricByWindow *prometheus.Desc
+	externalMetricByWindow *prometheus.Desc
 }
 
 func NewTspMetricCollector(client client.Client) *TspMetricCollector {
@@ -30,9 +32,22 @@ func NewTspMetricCollector(client client.Client) *TspMetricCollector {
 			[]string{"targetKind", "targetName", "targetNamespace", "resourceIdentifier", "type", "algorithm"},
 			nil,
 		),
+		resourceMetricByWindow: prometheus.NewDesc(
+			prometheus.BuildFQName("crane", "prediction", "time_series_prediction_resource_by_window"),
+			"prediction resource value for TimeSeriesPrediction by predictionWindow",
+			[]string{"targetKind", "targetName", "targetNamespace", "resourceIdentifier", "type", "algorithm"},
+			nil,
+		),
 		externalMetric: prometheus.NewDesc(
 			prometheus.BuildFQName("crane", "prediction", "time_series_prediction_external"),
 			"prediction external value for TimeSeriesPrediction",
+			[]string{"targetKind", "targetName", "targetNamespace", "resourceIdentifier", "type", "algorithm"},
+			nil,
+		),
+
+		externalMetricByWindow: prometheus.NewDesc(
+			prometheus.BuildFQName("crane", "prediction", "time_series_prediction_external_by_window"),
+			"prediction external value for TimeSeriesPrediction by predictionWindow",
 			[]string{"targetKind", "targetName", "targetNamespace", "resourceIdentifier", "type", "algorithm"},
 			nil,
 		),
@@ -44,7 +59,9 @@ func NewTspMetricCollector(client client.Client) *TspMetricCollector {
 // if use prometheus metric instrument by default, prometheus scrape will use its own scrape timestamp, so that the prediction time series maybe has wrong timestamps in prom.
 func (c *TspMetricCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.resourceMetric
+	ch <- c.resourceMetricByWindow
 	ch <- c.externalMetric
+	ch <- c.externalMetricByWindow
 }
 
 func (c *TspMetricCollector) Collect(ch chan<- prometheus.Metric) {
@@ -84,7 +101,6 @@ func (c *TspMetricCollector) computePredictionMetric(tsp *predictionapi.TimeSeri
 	metricConf := pmMap[status.ResourceIdentifier]
 
 	for _, data := range status.Prediction {
-		key := AggregateSignalKey(status.ResourceIdentifier, data.Labels)
 		labelValues := []string{
 			tsp.Spec.TargetRef.Kind,
 			tsp.Spec.TargetRef.Name,
@@ -114,6 +130,27 @@ func (c *TspMetricCollector) computePredictionMetric(tsp *predictionapi.TimeSeri
 				}
 				if metricConf.ExpressionQuery != nil {
 					s := prometheus.NewMetricWithTimestamp(ts, prometheus.MustNewConstMetric(c.externalMetric, prometheus.GaugeValue, value, labelValues...))
+					ms = append(ms, s)
+				}
+				break
+			}
+		}
+		//hpa metrics
+		for _, sample := range samples {
+			if sample.Timestamp - int64(tsp.Spec.PredictionWindowSeconds) >= now {
+				ts := time.Unix(sample.Timestamp - int64(tsp.Spec.PredictionWindowSeconds) , 0)
+				value, err := strconv.ParseFloat(sample.Value, 64)
+				if err != nil {
+					klog.Error(err, "Failed to parse sample value", "value", value)
+					continue
+				}
+				// only collect resource query cpu or memory now.
+				if metricConf.ResourceQuery != nil {
+					s := prometheus.NewMetricWithTimestamp(ts, prometheus.MustNewConstMetric(c.resourceMetricByWindow, prometheus.GaugeValue, value, labelValues...))
+					ms = append(ms, s)
+				}
+				if metricConf.ExpressionQuery != nil {
+					s := prometheus.NewMetricWithTimestamp(ts, prometheus.MustNewConstMetric(c.externalMetricByWindow, prometheus.GaugeValue, value, labelValues...))
 					ms = append(ms, s)
 				}
 				break
