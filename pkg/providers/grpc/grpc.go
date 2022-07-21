@@ -104,6 +104,16 @@ func grpcMetric(namer metricnaming.MetricNamer) (*pb.Metric, error) {
 				Name:         c.Name,
 			},
 		}
+	case metricquery.WorkloadMetricType:
+		w := q.GenericQuery.Metric.Workload
+		m.Info = &pb.Metric_Workload{
+			Workload: &pb.Workload{
+				Namespace:  w.Namespace,
+				Name:       w.Name,
+				Kind:       w.Kind,
+				ApiVersion: w.APIVersion,
+			},
+		}
 	default:
 		return nil, fmt.Errorf("%s not supported", q.GenericQuery.Metric.Type)
 	}

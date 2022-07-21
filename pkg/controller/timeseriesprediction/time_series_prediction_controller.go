@@ -102,6 +102,7 @@ func (tc *Controller) syncTimeSeriesPrediction(ctx context.Context, tsp *predict
 
 	c, err := NewMetricContext(tc.TargetFetcher, tsp, tc.predictorMgr)
 	if err != nil {
+		klog.ErrorS(err, "Failed to NewMetricContext.")
 		return ctrl.Result{}, err
 	}
 
@@ -116,7 +117,7 @@ func (tc *Controller) syncTimeSeriesPrediction(ctx context.Context, tsp *predict
 			c.WithApiConfigs(tsp.Spec.PredictionMetrics)
 			return
 		}
-		// predictor need an interface to query the config and then diff.
+		// predictor needs an interface to query the config and then diff.
 		// now just diff the cache in the controller to decide, it can not cover all the cases when users modify the spec
 		for _, oldMetricConf := range old.Spec.PredictionMetrics {
 			if !ExistsPredictionMetric(oldMetricConf, tsp.Spec.PredictionMetrics) {

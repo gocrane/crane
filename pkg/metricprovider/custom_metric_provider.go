@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 	"time"
 
+	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	v1 "k8s.io/api/core/v1"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -53,7 +55,7 @@ func NewCustomMetricProvider(client client.Client, remoteAdapter *RemoteAdapter,
 func (p *CustomMetricProvider) GetMetricByName(ctx context.Context, name types.NamespacedName, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValue, error) {
 	klog.Info(fmt.Sprintf("Get metric by name for custom metric, GroupResource %s namespacedName %s metric %s metricSelector %s", info.GroupResource.String(), name.String(), info.Metric, metricSelector.String()))
 
-	if !IsLocalMetric(info) {
+	if !IsLocalCustomMetric(info, p.client) {
 		if p.remoteAdapter != nil {
 			return p.remoteAdapter.GetMetricByName(ctx, name, info, metricSelector)
 		} else {
@@ -64,11 +66,11 @@ func (p *CustomMetricProvider) GetMetricByName(ctx context.Context, name types.N
 	return nil, apiErrors.NewServiceUnavailable("not supported")
 }
 
-// GetMetricBySelector fetches metric for pod resources, get predictive metric from giving selector
+// GetMetricBySelector fetches metric for custom resources, get predictive metric from giving selector
 func (p *CustomMetricProvider) GetMetricBySelector(ctx context.Context, namespace string, selector labels.Selector, info provider.CustomMetricInfo, metricSelector labels.Selector) (*custom_metrics.MetricValueList, error) {
 	klog.Info(fmt.Sprintf("Get metric by selector for custom metric, Info %v namespace %s selector %s metricSelector %s", info, namespace, selector.String(), metricSelector.String()))
 
-	if !IsLocalMetric(info) {
+	if !IsLocalCustomMetric(info, p.client) {
 		if p.remoteAdapter != nil {
 			return p.remoteAdapter.GetMetricBySelector(ctx, namespace, selector, info, metricSelector)
 		} else {
@@ -76,109 +78,92 @@ func (p *CustomMetricProvider) GetMetricBySelector(ctx context.Context, namespac
 		}
 	}
 
-	var matchingMetrics []custom_metrics.MetricValue
-	prediction, err := p.GetPrediction(ctx, namespace, metricSelector)
-	if err != nil {
-		return nil, err
-	}
+	if strings.HasPrefix(info.Metric, "crane") {
+		var matchingMetrics []custom_metrics.MetricValue
+		prediction, err := GetPrediction(ctx, p.client, namespace, metricSelector)
+		if err != nil {
+			return nil, err
+		}
 
-	pods, err := p.GetPods(ctx, namespace, selector)
-	if err != nil {
-		return nil, err
-	}
+		pods, err := p.GetPods(ctx, namespace, selector)
+		if err != nil {
+			return nil, err
+		}
 
-	availablePods := utils.GetAvailablePods(pods)
-	if len(availablePods) == 0 {
-		return nil, fmt.Errorf("failed to get available pods. ")
-	}
+		availablePods := utils.GetAvailablePods(pods)
+		if len(availablePods) == 0 {
+			return nil, fmt.Errorf("failed to get available pods. ")
+		}
 
-	isPredicting := false
-	// check prediction is ongoing
-	if prediction.Status.Conditions != nil {
-		for _, condition := range prediction.Status.Conditions {
-			if condition.Type == string(predictionapi.TimeSeriesPredictionConditionReady) && condition.Status == metav1.ConditionTrue {
-				isPredicting = true
+		timeSeries, err := utils.GetReadyPredictionMetric(info.Metric, prediction)
+		if err != nil {
+			return nil, err
+		}
+
+		// get the largest value from timeSeries
+		// use the largest value will bring up the scaling up and defer the scaling down
+		timestampStart := time.Now()
+		timestampEnd := timestampStart.Add(time.Duration(prediction.Spec.PredictionWindowSeconds) * time.Second)
+		largestMetricValue := &metricValue{}
+		hasValidSample := false
+		for _, v := range timeSeries.Samples {
+			// exclude values that not in time range
+			if v.Timestamp < timestampStart.Unix() || v.Timestamp > timestampEnd.Unix() {
+				continue
+			}
+
+			valueFloat, err := strconv.ParseFloat(v.Value, 32)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse value to float: %v ", err)
+			}
+			if valueFloat > largestMetricValue.value {
+				hasValidSample = true
+				largestMetricValue.value = valueFloat
+				largestMetricValue.timestamp = v.Timestamp
 			}
 		}
-	}
 
-	if !isPredicting {
-		return nil, fmt.Errorf("TimeSeriesPrediction is not ready. ")
-	}
-
-	var timeSeries *predictionapi.MetricTimeSeries
-	for _, metricStatus := range prediction.Status.PredictionMetrics {
-		if metricStatus.ResourceIdentifier == info.Metric && len(metricStatus.Prediction) == 1 {
-			timeSeries = metricStatus.Prediction[0]
-		}
-	}
-	// check time series for current metric is empty
-	if timeSeries == nil {
-		return nil, fmt.Errorf("TimeSeries is empty, metric name %s", info.Metric)
-	}
-
-	// get the largest value from timeSeries
-	// use the largest value will bring up the scaling up and defer the scaling down
-	timestampStart := time.Now()
-	timestampEnd := timestampStart.Add(time.Duration(prediction.Spec.PredictionWindowSeconds) * time.Second)
-	largestMetricValue := &metricValue{}
-	hasValidSample := false
-	for _, v := range timeSeries.Samples {
-		// exclude values that not in time range
-		if v.Timestamp < timestampStart.Unix() || v.Timestamp > timestampEnd.Unix() {
-			continue
+		if !hasValidSample {
+			return nil, fmt.Errorf("TimeSeries is outdated, metric name %s", info.Metric)
 		}
 
-		valueFloat, err := strconv.ParseFloat(v.Value, 32)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse value to float: %v ", err)
-		}
-		if valueFloat > largestMetricValue.value {
-			hasValidSample = true
-			largestMetricValue.value = valueFloat
-			largestMetricValue.timestamp = v.Timestamp
+		if info.GroupResource.String() == "pods" {
+			averageValue := int64(math.Round(largestMetricValue.value * 1000 / float64(len(availablePods)))) // use available replicas for object metric
+
+			klog.Infof("Provide pod custom metric %s average value %f.", info.Metric, float64(averageValue)/1000)
+
+			for _, pod := range availablePods {
+				metric := custom_metrics.MetricValue{
+					DescribedObject: custom_metrics.ObjectReference{
+						APIVersion: "v1",
+						Kind:       "Pod",
+						Name:       pod.Name,
+						Namespace:  namespace,
+					},
+					Metric: custom_metrics.MetricIdentifier{
+						Name: info.Metric,
+					},
+					Timestamp: metav1.Now(),
+				}
+
+				metric.Value = *resource.NewMilliQuantity(averageValue, resource.DecimalSI)
+				matchingMetrics = append(matchingMetrics, metric)
+			}
+
+			return &custom_metrics.MetricValueList{
+				Items: matchingMetrics,
+			}, nil
 		}
 	}
 
-	if !hasValidSample {
-		return nil, fmt.Errorf("TimeSeries is outdated, metric name %s", info.Metric)
-	}
-
-	averageValue := int64(math.Round(largestMetricValue.value * 1000 / float64(len(availablePods))))
-
-	klog.Infof("Provide custom metric %s average value %f.", info.Metric, float64(averageValue)/1000)
-
-	for _, pod := range availablePods {
-		metric := custom_metrics.MetricValue{
-			DescribedObject: custom_metrics.ObjectReference{
-				APIVersion: "v1",
-				Kind:       "Pod",
-				Name:       pod.Name,
-				Namespace:  namespace,
-			},
-			Metric: custom_metrics.MetricIdentifier{
-				Name: info.Metric,
-			},
-			Timestamp: metav1.Now(),
-		}
-
-		if info.Metric == known.MetricNamePodCpuUsage {
-			metric.Value = *resource.NewMilliQuantity(averageValue, resource.DecimalSI)
-		}
-
-		matchingMetrics = append(matchingMetrics, metric)
-	}
-
-	return &custom_metrics.MetricValueList{
-		Items: matchingMetrics,
-	}, nil
+	return nil, apiErrors.NewServiceUnavailable("metric not found")
 }
 
 // ListAllMetrics returns all available custom metrics.
 func (p *CustomMetricProvider) ListAllMetrics() []provider.CustomMetricInfo {
 	klog.Info("List all custom metrics")
 
-	metricInfos := ListAllLocalMetrics()
+	metricInfos := ListAllLocalMetrics(p.client)
 
 	if p.remoteAdapter != nil {
 		metricInfos = append(metricInfos, p.remoteAdapter.ListAllMetrics()...)
@@ -187,18 +172,43 @@ func (p *CustomMetricProvider) ListAllMetrics() []provider.CustomMetricInfo {
 	return metricInfos
 }
 
-func ListAllLocalMetrics() []provider.CustomMetricInfo {
-	return []provider.CustomMetricInfo{
-		{
-			GroupResource: schema.GroupResource{Group: "", Resource: "pods"},
-			Namespaced:    true,
-			Metric:        known.MetricNamePodCpuUsage,
-		},
+func ListAllLocalMetrics(client client.Client) []provider.CustomMetricInfo {
+	var metricInfos []provider.CustomMetricInfo
+
+	metricInfos = append(metricInfos, provider.CustomMetricInfo{
+		GroupResource: schema.GroupResource{Group: "", Resource: "pods"},
+		Namespaced:    true,
+		Metric:        known.MetricNamePodCpuUsage,
+	})
+
+	var hpaList autoscalingv2.HorizontalPodAutoscalerList
+	err := client.List(context.TODO(), &hpaList)
+	if err != nil {
+		klog.Errorf("Failed to list hpa: %v", err)
+		return metricInfos
 	}
+	for _, hpa := range hpaList.Items {
+		if !strings.HasPrefix(hpa.Name, "ehpa-") {
+			// filter hpa that not created by ehpa
+			continue
+		}
+		for _, metric := range hpa.Spec.Metrics {
+			if metric.Type == autoscalingv2.PodsMetricSourceType &&
+				metric.Pods != nil &&
+				metric.Pods.Metric.Selector != nil &&
+				metric.Pods.Metric.Selector.MatchLabels != nil {
+				if _, exist := metric.Pods.Metric.Selector.MatchLabels[known.EffectiveHorizontalPodAutoscalerUidLabel]; exist {
+					metricInfos = append(metricInfos, provider.CustomMetricInfo{Metric: metric.Pods.Metric.Name, Namespaced: true, GroupResource: schema.GroupResource{Group: "", Resource: "pods"}})
+				}
+			}
+		}
+	}
+
+	return metricInfos
 }
 
-func IsLocalMetric(metricInfo provider.CustomMetricInfo) bool {
-	for _, info := range ListAllLocalMetrics() {
+func IsLocalCustomMetric(metricInfo provider.CustomMetricInfo, client client.Client) bool {
+	for _, info := range ListAllLocalMetrics(client) {
 		if info.Namespaced == metricInfo.Namespaced &&
 			info.Metric == metricInfo.Metric &&
 			info.GroupResource.String() == metricInfo.GroupResource.String() {
@@ -209,7 +219,7 @@ func IsLocalMetric(metricInfo provider.CustomMetricInfo) bool {
 	return false
 }
 
-func (p *CustomMetricProvider) GetPrediction(ctx context.Context, namespace string, metricSelector labels.Selector) (*predictionapi.TimeSeriesPrediction, error) {
+func GetPrediction(ctx context.Context, kubeclient client.Client, namespace string, metricSelector labels.Selector) (*predictionapi.TimeSeriesPrediction, error) {
 	labelSelector, err := labels.ConvertSelectorToLabelsMap(metricSelector.String())
 	if err != nil {
 		klog.Error(err, "Failed to convert metric selectors to labels")
@@ -227,7 +237,7 @@ func (p *CustomMetricProvider) GetPrediction(ctx context.Context, namespace stri
 		matchingLabels,
 		client.InNamespace(namespace),
 	}
-	err = p.client.List(ctx, predictionList, opts...)
+	err = kubeclient.List(ctx, predictionList, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get TimeSeriesPrediction when get custom metric ")
 	} else if len(predictionList.Items) != 1 {

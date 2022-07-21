@@ -144,6 +144,35 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 				},
 			})
 		}
+		// get expressionQuery according to metric.Type
+		var expressionQuery string
+		var metricName string
+		switch metric.Type {
+		case autoscalingv2.ExternalMetricSourceType:
+			expressionQuery = utils.GetExpressionQuery(metric.External.Metric.Name, ehpa.Annotations)
+			metricName = metric.External.Metric.Name
+		case autoscalingv2.PodsMetricSourceType:
+			expressionQuery = utils.GetExpressionQuery(metric.Pods.Metric.Name, ehpa.Annotations)
+			metricName = metric.Pods.Metric.Name
+		}
+
+		if len(expressionQuery) == 0 {
+			continue
+		}
+
+		metricIdentifier := utils.GetGeneralPredictionMetricName(metric.Type, false, metricName)
+		predictionMetrics = append(predictionMetrics, predictionapi.PredictionMetric{
+			ResourceIdentifier: metricIdentifier,
+			Type:               predictionapi.ExpressionQueryMetricType,
+			ExpressionQuery: &predictionapi.ExpressionQuery{
+				Expression: expressionQuery,
+			},
+			Algorithm: predictionapi.Algorithm{
+				AlgorithmType: ehpa.Spec.Prediction.PredictionAlgorithm.AlgorithmType,
+				DSP:           ehpa.Spec.Prediction.PredictionAlgorithm.DSP,
+				Percentile:    ehpa.Spec.Prediction.PredictionAlgorithm.Percentile,
+			},
+		})
 	}
 	prediction.Spec.PredictionMetrics = predictionMetrics
 
@@ -163,14 +192,4 @@ func setPredictionCondition(status *autoscalingapi.EffectiveHorizontalPodAutosca
 			}
 		}
 	}
-}
-
-func isPredictionReady(status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus) bool {
-	for _, cond := range status.Conditions {
-		if cond.Type == string(autoscalingapi.PredictionReady) && cond.Status == metav1.ConditionTrue {
-			return true
-		}
-	}
-
-	return false
 }

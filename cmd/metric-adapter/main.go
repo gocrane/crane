@@ -54,12 +54,11 @@ type MetricAdapter struct {
 }
 
 func (a *MetricAdapter) makeCustomMetricProvider(remoteAdapter *metricprovider.RemoteAdapter, client client.Client, recorder record.EventRecorder) provider.CustomMetricsProvider {
-
 	return metricprovider.NewCustomMetricProvider(client, remoteAdapter, recorder)
 }
 
-func (a *MetricAdapter) makeExternalMetricProvider(client client.Client, recorder record.EventRecorder, scaleClient scale.ScalesGetter, restMapper meta.RESTMapper) *metricprovider.ExternalMetricProvider {
-	return metricprovider.NewExternalMetricProvider(client, recorder, scaleClient, restMapper)
+func (a *MetricAdapter) makeExternalMetricProvider(remoteAdapter *metricprovider.RemoteAdapter, client client.Client, recorder record.EventRecorder, scaleClient scale.ScalesGetter, restMapper meta.RESTMapper) *metricprovider.ExternalMetricProvider {
+	return metricprovider.NewExternalMetricProvider(client, remoteAdapter, recorder, scaleClient, restMapper)
 }
 
 func main() {
@@ -144,7 +143,7 @@ func main() {
 	ctx := signals.SetupSignalHandler()
 
 	customMetricProvider := cmd.makeCustomMetricProvider(remoteAdapter, client, recorder)
-	externalMetricProvider := cmd.makeExternalMetricProvider(client, recorder, scaleClient, restMapper)
+	externalMetricProvider := cmd.makeExternalMetricProvider(remoteAdapter, client, recorder, scaleClient, restMapper)
 
 	cmd.WithCustomMetrics(customMetricProvider)
 	cmd.WithExternalMetrics(externalMetricProvider)
