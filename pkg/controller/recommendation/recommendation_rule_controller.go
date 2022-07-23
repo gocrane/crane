@@ -151,7 +151,7 @@ func (c *Controller) doReconcile(ctx context.Context, recommendationRule *analys
 	err = c.Client.List(ctx, &currRecommendations, opts...)
 	if err != nil {
 		c.Recorder.Event(recommendationRule, corev1.EventTypeNormal, "FailedSelectResource", err.Error())
-		msg := fmt.Sprintf("Failed to get recomendations, Analytics %s error %v", klog.KObj(recommendationRule), err)
+		msg := fmt.Sprintf("Failed to get recomendations, RecommendationRule %s error %v", klog.KObj(recommendationRule), err)
 		klog.Errorf(msg)
 		c.UpdateStatus(ctx, recommendationRule, newStatus)
 		return false
@@ -160,7 +160,7 @@ func (c *Controller) doReconcile(ctx context.Context, recommendationRule *analys
 	if klog.V(6).Enabled() {
 		// Print identities
 		for k, id := range identities {
-			klog.V(6).InfoS("identities", "analytics", klog.KObj(recommendationRule), "key", k, "apiVersion", id.APIVersion, "kind", id.Kind, "namespace", id.Namespace, "name", id.Name)
+			klog.V(6).InfoS("identities", "RecommendationRule", klog.KObj(recommendationRule), "key", k, "apiVersion", id.APIVersion, "kind", id.Kind, "namespace", id.Namespace, "name", id.Name)
 		}
 	}
 
@@ -272,7 +272,7 @@ func (c *Controller) SetupWithManager(mgr ctrl.Manager) error {
 	c.K8SVersion = version.MustParseGeneric(serverVersion.GitVersion)
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&analysisv1alph1.Analytics{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		For(&analysisv1alph1.RecommendationRule{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(c)
 }
 
@@ -435,7 +435,7 @@ func (c *Controller) UpdateStatus(ctx context.Context, recommendationRule *analy
 			return
 		}
 
-		klog.Infof("Update RecommendationRule status successful, Analytics %s", klog.KObj(recommendationRule))
+		klog.Infof("Update RecommendationRule status successful, RecommendationRule %s", klog.KObj(recommendationRule))
 	}
 }
 
