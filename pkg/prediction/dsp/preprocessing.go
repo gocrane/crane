@@ -86,6 +86,7 @@ func removeExtremeOutliers(ts *common.TimeSeries) error {
 
 	for i := 1; i < len(ts.Samples); i++ {
 		if ts.Samples[i].Value > highThreshold || ts.Samples[i].Value < lowThreshold {
+			klog.Errorf("ts.Samples[i].Value: %f, ts.Samples[i-1].Value: %f", ts.Samples[i].Value, ts.Samples[i-1].Value)
 			ts.Samples[i].Value = ts.Samples[i-1].Value
 		}
 	}
@@ -111,7 +112,7 @@ func preProcessTimeSeriesList(tsList []*common.TimeSeries, config *internalConfi
 	n := len(tsList)
 	wg.Add(n)
 	tsCh := make(chan *common.TimeSeries, n)
-	for _, ts := range tsList {
+	for i := range tsList {
 		go func(ts *common.TimeSeries) {
 			defer wg.Done()
 			if err := preProcessTimeSeries(ts, config, Hour); err != nil {
@@ -119,7 +120,7 @@ func preProcessTimeSeriesList(tsList []*common.TimeSeries, config *internalConfi
 			} else {
 				tsCh <- ts
 			}
-		}(ts)
+		}(tsList[i])
 	}
 	wg.Wait()
 	close(tsCh)
