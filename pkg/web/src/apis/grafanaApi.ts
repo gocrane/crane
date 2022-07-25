@@ -22,7 +22,7 @@ export const grafanaApi = createApi({
     fetchDashboardList: builder.query<any, FetchDashboardListArgs>({
       query: args => {
         return {
-          url: `${args.craneUrl ?? ''}/grafana/api/search?query=%`,
+          url: `${args.craneUrl ?? ''}/grafana/api/search`,
           method: 'get'
         };
       }
