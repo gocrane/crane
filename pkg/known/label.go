@@ -15,3 +15,9 @@ const (
 	AnalyticsUidLabel  = "analysis.crane.io/analytics-uid"
 	AnalyticsTypeLabel = "analysis.crane.io/analytics-type"
 )
+
+const (
+	RecommendationRuleNameLabel        = "analysis.crane.io/recommendation-rule-name"
+	RecommendationRuleUidLabel         = "analysis.crane.io/recommendation-rule-uid"
+	RecommendationRuleRecommenderLabel = "analysis.crane.io/recommendation-rule-recommender"
+)

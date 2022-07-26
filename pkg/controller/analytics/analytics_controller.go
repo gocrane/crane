@@ -496,7 +496,10 @@ func objRefKey(kind, apiVersion, namespace, name, recommendType string) string {
 	return fmt.Sprintf("%s#%s#%s#%s#%s", kind, apiVersion, namespace, name, recommendType)
 }
 
-func match(labelSelector metav1.LabelSelector, matchLabels map[string]string) bool {
+func match(labelSelector *metav1.LabelSelector, matchLabels map[string]string) bool {
+	if labelSelector == nil {
+		return true
+	}
 	for k, v := range labelSelector.MatchLabels {
 		if matchLabels[k] != v {
 			return false
