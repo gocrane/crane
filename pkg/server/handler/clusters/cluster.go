@@ -29,7 +29,6 @@ func NewClusterHandler(srv cluster.Service) *ClusterHandler {
 
 // ListClusters list the clusters which has deployed crane server.
 func (ch *ClusterHandler) ListClusters(c *gin.Context) {
-
 	clusterList, err := ch.clusterSrv.ListClusters(context.TODO())
 	if err != nil {
 		ginwrapper.WriteResponse(c, err, nil)
@@ -138,7 +137,6 @@ func (ch *ClusterHandler) UpdateCluster(c *gin.Context) {
 
 // DeleteCluster del the clusters
 func (ch *ClusterHandler) DeleteCluster(c *gin.Context) {
-
 	err := ch.clusterSrv.DeleteCluster(context.TODO(), c.Param("clusterid"))
 	if err != nil {
 		ginwrapper.WriteResponse(c, err, nil)

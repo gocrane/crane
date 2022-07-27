@@ -1,9 +1,12 @@
 package config
 
 import (
-	predictormgr "github.com/gocrane/crane/pkg/predictor"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	predictormgr "github.com/gocrane/crane/pkg/predictor"
 	"github.com/gocrane/crane/pkg/server/service/dashboard"
 )
 
@@ -18,8 +21,12 @@ type Config struct {
 	EnableGrafana bool                     `json:"enableGrafana"`
 	GrafanaConfig *dashboard.GrafanaConfig `json:"grafanaConfig"`
 
-	KubeRestConfig *rest.Config `json:"KubeRestConfig"`
-	StoreType      string       `json:"storeType"`
+	KubeConfig *rest.Config    `json:"kubeConfig"`
+	Scheme     *runtime.Scheme `json:"scheme"`
+	Client     client.Client   `json:"client"`
+	RestMapper meta.RESTMapper `json:"restMapper"`
+
+	StoreType string `json:"storeType"`
 
 	PredictorMgr predictormgr.Manager
 }

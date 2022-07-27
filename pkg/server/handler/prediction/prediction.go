@@ -10,16 +10,19 @@ import (
 	"github.com/go-echarts/go-echarts/v2/components"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/go-echarts/go-echarts/v2/types"
-	"github.com/gocrane/crane/pkg/prediction/dsp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/rest"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/scale"
 	"k8s.io/klog/v2"
 
 	craneclientset "github.com/gocrane/api/pkg/generated/clientset/versioned"
 	"github.com/gocrane/api/prediction/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/controller/timeseriesprediction"
+	"github.com/gocrane/crane/pkg/prediction/dsp"
 	predictormgr "github.com/gocrane/crane/pkg/predictor"
+	"github.com/gocrane/crane/pkg/server/config"
 	"github.com/gocrane/crane/pkg/server/ginwrapper"
 	"github.com/gocrane/crane/pkg/utils/target"
 )
@@ -37,27 +40,19 @@ var (
 	SelectorFetcherKey  ContextKey = "selectorFetcher"
 )
 
-func NewDebugHandler(ctx context.Context) *DebugHandler {
-	config, err := rest.InClusterConfig()
+func NewDebugHandler(config *config.Config) *DebugHandler {
+	discoveryClientSet, err := discovery.NewDiscoveryClientForConfig(config.KubeConfig)
 	if err != nil {
-		klog.Fatalf("Failed to get InClusterConfig, %v.", err)
+		klog.Exit(err, "Unable to create discover client")
 	}
 
-	val := ctx.Value(PredictorManagerKey)
-	if val == nil {
-		klog.Fatalf("predictorManager not found")
-	}
-	predictorManager := val.(predictormgr.Manager)
-
-	val = ctx.Value(SelectorFetcherKey)
-	if val == nil {
-		klog.Fatalf("selectorFetcher not found")
-	}
-	selectorFetcher := val.(target.SelectorFetcher)
+	scaleKindResolver := scale.NewDiscoveryScaleKindResolver(discoveryClientSet)
+	scaleClient := scale.New(discoveryClientSet.RESTClient(), config.RestMapper, dynamic.LegacyAPIPathResolverFunc, scaleKindResolver)
+	selectorFetcher := target.NewSelectorFetcher(config.Scheme, config.RestMapper, scaleClient, config.Client)
 
 	return &DebugHandler{
-		craneClient:      craneclientset.NewForConfigOrDie(config),
-		predictorManager: predictorManager,
+		craneClient:      craneclientset.NewForConfigOrDie(config.KubeConfig),
+		predictorManager: config.PredictorMgr,
 		selectorFetcher:  selectorFetcher,
 	}
 }

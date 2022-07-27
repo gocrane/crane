@@ -22,7 +22,7 @@ import (
 	"github.com/gocrane/crane/pkg/utils"
 )
 
-func (c *Controller) UpdateRecommendation(ctx context.Context, recommendation *analysisapi.Recommendation) (bool, error) {
+func (c *RecommendationController) UpdateRecommendation(ctx context.Context, recommendation *analysisapi.Recommendation) (bool, error) {
 	var proposedRecommendation recommendtypes.ProposedRecommendation
 	needUpdate := false
 
