@@ -96,7 +96,7 @@ func preProcessTimeSeries(ts *common.TimeSeries, config *internalConfig, unit ti
 	var err error
 
 	err = fillMissingData(ts, config, unit)
-	if err == nil {
+	if err != nil {
 		return err
 	}
 
