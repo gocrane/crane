@@ -4,6 +4,7 @@ import (
 	gocontext "context"
 	"time"
 
+	promapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"k8s.io/klog/v2"
 
 	"github.com/gocrane/crane/pkg/common"
@@ -17,8 +18,14 @@ type prom struct {
 	config *providers.PromConfig
 }
 
+type Provider interface {
+	providers.Interface
+
+	GetPromClient() promapiv1.API
+}
+
 // NewProvider return a prometheus data provider
-func NewProvider(config *providers.PromConfig) (providers.Interface, error) {
+func NewProvider(config *providers.PromConfig) (Provider, error) {
 
 	client, err := NewPrometheusClient(config)
 	if err != nil {
@@ -68,4 +75,8 @@ func (p *prom) QueryLatestTimeSeries(namer metricnaming.MetricNamer) ([]*common.
 		return nil, err
 	}
 	return timeSeries, nil
+}
+
+func (p *prom) GetPromClient() promapiv1.API {
+	return p.ctx.api
 }

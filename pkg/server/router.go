@@ -4,12 +4,14 @@ import (
 	"github.com/gocrane/crane/pkg/server/handler/clusters"
 	"github.com/gocrane/crane/pkg/server/handler/dashboards"
 	"github.com/gocrane/crane/pkg/server/handler/prediction"
+	"github.com/gocrane/crane/pkg/server/handler/prometheus"
 	"github.com/gocrane/crane/pkg/server/handler/recommendation"
 )
 
 func (s *apiServer) initRouter() {
 	clusterHandler := clusters.NewClusterHandler(s.clusterSrv)
 	recommendationHandler := recommendation.NewRecommendationHandler(s.config)
+	prometheusHandler := prometheus.NewPrometheusAPIHandler(s.config)
 
 	v1 := s.Group("/api/v1")
 	{
@@ -54,6 +56,13 @@ func (s *apiServer) initRouter() {
 			recommendrulev1.POST("", recommendationHandler.CreateRecommendationRule)
 			recommendrulev1.PUT(":recommendationRuleName", recommendationHandler.UpdateRecommendationRule)
 			recommendrulev1.DELETE(":recommendationRuleName", recommendationHandler.DeleteRecommendationRule)
+		}
+
+		// prometheus API
+		prometheusapiv1 := v1.Group("/prometheus")
+		{
+			prometheusapiv1.GET("query", prometheusHandler.Query)
+			prometheusapiv1.GET("query_range", prometheusHandler.RangeQuery)
 		}
 	}
 
