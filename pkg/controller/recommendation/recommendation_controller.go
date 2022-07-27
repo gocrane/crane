@@ -3,6 +3,8 @@ package recommendation
 import (
 	"context"
 	"fmt"
+	recommender "github.com/gocrane/crane/pkg/recommendation"
+	"github.com/gocrane/crane/pkg/recommendation/recommender/apis"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -17,20 +19,19 @@ import (
 
 	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
 
-	predictormgr "github.com/gocrane/crane/pkg/predictor"
 	"github.com/gocrane/crane/pkg/providers"
 )
 
 // Controller is responsible for reconcile Recommendation
 type Controller struct {
 	client.Client
-	ConfigSet    *analysisv1alph1.ConfigSet
-	Scheme       *runtime.Scheme
-	Recorder     record.EventRecorder
-	RestMapper   meta.RESTMapper
-	ScaleClient  scale.ScalesGetter
-	PredictorMgr predictormgr.Manager
-	Provider     providers.History
+	Config         apis.RecommenderConfiguration
+	Scheme         *runtime.Scheme
+	Recorder       record.EventRecorder
+	RestMapper     meta.RESTMapper
+	ScaleClient    scale.ScalesGetter
+	RecommenderMgr recommender.RecommenderManager
+	Provider       providers.Interface
 }
 
 func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
