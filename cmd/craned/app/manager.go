@@ -107,15 +107,15 @@ func Run(ctx context.Context, opts *options.Options) error {
 		return err
 	}
 	// initialize data sources and predictor
-	realtimeDataSources, histroyDataSources, _ := initDataSources(mgr, opts)
-	predictorMgr := initPredictorManager(opts, realtimeDataSources, histroyDataSources)
+	realtimeDataSources, historyDataSources, dataSourceProviders := initDataSources(mgr, opts)
+	predictorMgr := initPredictorManager(opts, realtimeDataSources, historyDataSources)
 
 	initScheme()
 	initWebhooks(mgr, opts)
-	initControllers(ctx, mgr, opts, predictorMgr, histroyDataSources[providers.PrometheusDataSource])
+	initControllers(ctx, mgr, opts, predictorMgr, historyDataSources[providers.PrometheusDataSource])
 	// initialize custom collector metrics
 	initMetricCollector(mgr)
-	runAll(ctx, mgr, predictorMgr, opts)
+	runAll(ctx, mgr, predictorMgr, dataSourceProviders[providers.PrometheusDataSource], opts)
 
 	return nil
 }
@@ -323,7 +323,7 @@ func initControllers(ctx context.Context, mgr ctrl.Manager, opts *options.Option
 	}
 }
 
-func runAll(ctx context.Context, mgr ctrl.Manager, predictorMgr predictor.Manager, opts *options.Options) {
+func runAll(ctx context.Context, mgr ctrl.Manager, predictorMgr predictor.Manager, provider providers.Interface, opts *options.Options) {
 	var eg errgroup.Group
 
 	eg.Go(func() error {
@@ -350,6 +350,9 @@ func runAll(ctx context.Context, mgr ctrl.Manager, predictorMgr predictor.Manage
 		serverConfig.Scheme = mgr.GetScheme()
 		serverConfig.RestMapper = mgr.GetRESTMapper()
 		serverConfig.PredictorMgr = predictorMgr
+		if promProvider, ok := provider.(prom.Provider); ok {
+			serverConfig.Api = promProvider.GetPromClient()
+		}
 		craneServer, err := server.NewServer(serverConfig)
 		if err != nil {
 			klog.Exit(err)
