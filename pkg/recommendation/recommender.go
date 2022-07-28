@@ -5,7 +5,7 @@ import (
 )
 
 type Recommender interface {
-	Name() RecommenderName
+	Name() string
 	Run(ctx *framework.RecommendationContext)
 	framework.Filter
 	framework.PrePrepare

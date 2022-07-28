@@ -3,16 +3,15 @@ package framework
 import (
 	"context"
 	"github.com/gocrane/api/analysis/v1alpha1"
-	"github.com/gocrane/crane/pkg/providers"
-
 	"github.com/gocrane/crane/pkg/common"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"github.com/gocrane/crane/pkg/controller/analytics"
+	"github.com/gocrane/crane/pkg/providers"
 )
 
 type RecommendationContext struct {
-	context.Context
-	// The kubernetes resource object of recommendation flow.
-	Object client.Object
+	Context context.Context
+	// The kubernetes resource object reference of recommendation flow.
+	Identity analytics.ObjectIdentity
 	// Time series data from data source.
 	Values *common.TimeSeries
 	// DataProviders contains data source of your recommendation flow.
@@ -23,9 +22,10 @@ type RecommendationContext struct {
 	CancelCh <-chan struct{}
 }
 
-func NewRecommendationContext(object client.Object, dataProviders map[providers.DataSourceType]providers.Interface) RecommendationContext {
+func NewRecommendationContext(context context.Context, identity analytics.ObjectIdentity, dataProviders map[providers.DataSourceType]providers.Interface) RecommendationContext {
 	return RecommendationContext{
-		Object:        object,
+		Identity:      identity,
+		Context:       context,
 		DataProviders: dataProviders,
 	}
 }

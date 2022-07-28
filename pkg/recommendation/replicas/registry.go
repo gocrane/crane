@@ -3,21 +3,23 @@ package replicas
 import (
 	"github.com/gocrane/crane/pkg/recommendation"
 	"github.com/gocrane/crane/pkg/recommendation/framework"
+	"github.com/gocrane/crane/pkg/recommendation/recommender/apis"
 	"k8s.io/klog"
 )
 
 var _ recommendation.Recommender = &ReplicasRecommender{}
 
 type ReplicasRecommender struct {
+	apis.Recommender
 }
 
-func (rr *ReplicasRecommender) Name() recommendation.RecommenderName {
+func (rr *ReplicasRecommender) Name() string {
 	return recommendation.ReplicasRecommender
 }
 
 // NewReplicasRecommender create a new replicas recommender.
-func NewReplicasRecommender() ReplicasRecommender {
-	return ReplicasRecommender{}
+func NewReplicasRecommender(recommender apis.Recommender) *ReplicasRecommender {
+	return &ReplicasRecommender{recommender}
 }
 
 func (rr *ReplicasRecommender) Run(ctx *framework.RecommendationContext) {

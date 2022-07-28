@@ -1,8 +1,6 @@
 package recommendation
 
-type RecommenderName string
-
 const (
 	// ReplicasRecommender name
-	ReplicasRecommender RecommenderName = "ReplicasRecommender"
+	ReplicasRecommender string = "ReplicasRecommender"
 )

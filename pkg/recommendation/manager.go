@@ -1,15 +1,14 @@
 package recommendation
 
-type RecommenderManager struct {
-	recommenders []Recommender
+type RecommenderManager interface {
 }
 
-func NewRecommenderManager(recommenders []Recommender) *RecommenderManager {
-	return &RecommenderManager{
+func NewRecommenderManager(recommenders []Recommender) RecommenderManager {
+	return &manager{
 		recommenders: recommenders,
 	}
 }
 
-func LoadRecommendationConfiguration(file string) []Recommender {
-	recommenders := make([]Recommender)
+type manager struct {
+	recommenders []Recommender
 }

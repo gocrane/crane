@@ -312,12 +312,11 @@ func initControllers(ctx context.Context, mgr ctrl.Manager, opts *options.Option
 			klog.Exit(err, "unable to create controller", "controller", "AnalyticsController")
 		}
 
-		if err := (&recommendation.Controller{
-			Client:         mgr.GetClient(),
-			Scheme:         mgr.GetScheme(),
-			RestMapper:     mgr.GetRESTMapper(),
-			Recorder:       mgr.GetEventRecorderFor("recommendation-controller"),
-			RecommenderMgr: recommenderMgr,
+		if err := (&recommendation.RecommendationController{
+			Client:     mgr.GetClient(),
+			Scheme:     mgr.GetScheme(),
+			RestMapper: mgr.GetRESTMapper(),
+			Recorder:   mgr.GetEventRecorderFor("recommendation-controller"),
 		}).SetupWithManager(mgr); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "RecommendationController")
 		}
