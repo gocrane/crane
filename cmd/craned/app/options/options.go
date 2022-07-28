@@ -51,6 +51,10 @@ type Options struct {
 
 	// EhpaControllerConfig is the configuration for Ehpa controller
 	EhpaControllerConfig ehpa.EhpaControllerConfig
+
+	// RecommendationConfiguration is configuration file for recommendation framework.
+	// If unspecified, a default is provided.
+	RecommendationConfiguration string
 }
 
 // NewOptions builds an empty options.
@@ -109,6 +113,7 @@ func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.DurationVar(&o.AlgorithmModelConfig.UpdateInterval, "model-update-interval", 12*time.Hour, "algorithm model update interval, now used for dsp model update interval")
 	flags.BoolVar(&o.WebhookConfig.Enabled, "webhook-enabled", true, "whether enable webhook or not, default to true")
 	flags.StringVar(&o.RecommendationConfigFile, "recommendation-config-file", "", "recommendation configuration file")
+	flags.StringVar(&o.RecommendationConfiguration, "recommendation-configuration-file", "/tmp/recommendation-framework/recommendation_configuration.yaml", "recommendation configuration file")
 	flags.StringSliceVar(&o.EhpaControllerConfig.PropagationConfig.LabelPrefixes, "ehpa-propagation-label-prefixes", []string{}, "propagate labels whose key has the prefix to hpa")
 	flags.StringSliceVar(&o.EhpaControllerConfig.PropagationConfig.AnnotationPrefixes, "ehpa-propagation-annotation-prefixes", []string{}, "propagate annotations whose key has the prefix to hpa")
 	flags.StringSliceVar(&o.EhpaControllerConfig.PropagationConfig.Labels, "ehpa-propagation-labels", []string{}, "propagate labels whose key is complete matching to hpa")

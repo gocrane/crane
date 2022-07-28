@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"flag"
+	recommender "github.com/gocrane/crane/pkg/recommendation"
 	"os"
 	"strings"
 
@@ -110,14 +111,25 @@ func Run(ctx context.Context, opts *options.Options) error {
 	realtimeDataSources, histroyDataSources, _ := initDataSources(mgr, opts)
 	predictorMgr := initPredictorManager(opts, realtimeDataSources, histroyDataSources)
 
+	recommenders, err := initRecommenders(opts)
+	recommenderMgr := initRecommenderManager(recommenders)
+
 	initScheme()
 	initWebhooks(mgr, opts)
-	initControllers(ctx, mgr, opts, predictorMgr, histroyDataSources[providers.PrometheusDataSource])
+	initControllers(ctx, mgr, opts, predictorMgr, recommenderMgr, histroyDataSources[providers.PrometheusDataSource])
 	// initialize custom collector metrics
 	initMetricCollector(mgr)
 	runAll(ctx, mgr, predictorMgr, opts)
 
 	return nil
+}
+
+func initRecommenders(opts *options.Options) ([]recommender.Recommender, error) {
+	return recommender.GetRecommendersFromConfiguration(opts.RecommendationConfiguration)
+}
+
+func initRecommenderManager(recommenders []recommender.Recommender) recommender.RecommenderManager {
+	return recommender.NewRecommenderManager(recommenders)
 }
 
 func initScheme() {
@@ -202,7 +214,7 @@ func initPredictorManager(opts *options.Options, realtimeDataSources map[provide
 }
 
 // initControllers setup controllers with manager
-func initControllers(ctx context.Context, mgr ctrl.Manager, opts *options.Options, predictorMgr predictor.Manager, historyDataSource providers.History) {
+func initControllers(ctx context.Context, mgr ctrl.Manager, opts *options.Options, predictorMgr predictor.Manager, recommenderMgr recommender.RecommenderManager, historyDataSource providers.History) {
 	discoveryClientSet, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
 	if err != nil {
 		klog.Exit(err, "Unable to create discover client")

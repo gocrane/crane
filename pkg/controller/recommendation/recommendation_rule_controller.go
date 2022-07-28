@@ -41,16 +41,17 @@ import (
 
 type Controller struct {
 	client.Client
+	ConfigSet       *analysisv1alph1.ConfigSet
 	Scheme          *runtime.Scheme
-	RestMapper      meta.RESTMapper
 	Recorder        record.EventRecorder
+	RestMapper      meta.RESTMapper
+	ScaleClient     scale.ScalesGetter
+	PredictorMgr    predictormgr.Manager
+	Provider        providers.History
 	kubeClient      kubernetes.Interface
 	dynamicClient   dynamic.Interface
 	discoveryClient discovery.DiscoveryInterface
 	K8SVersion      *version.Version
-	ScaleClient     scale.ScalesGetter
-	PredictorMgr    predictormgr.Manager
-	Provider        providers.History
 }
 
 func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
