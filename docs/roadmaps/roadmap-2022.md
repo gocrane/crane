@@ -20,15 +20,35 @@ Please let us know if you have urgent needs which are not presented in the plan.
 - Scalability to support 1K TSP and 1K EPA			
 ### 0.4.0 [released]
 - UI to support EPA.					
-### 0.5.0 [May]
+### 0.5.0 [released]
 - Resource and Replicas Recommendation
 - Load-aware Scheduler
-### 0.6.0 [June]
+### 0.6.0 [released]
 - Scalability to support 3k TSP and 3k EPA		
 - Algorithm and QoS Documentation
 - EHPA grafana dashboard
+- DSP Algorithm Optimization
+- Support remote adapter for external metric
+- Prediction with business metrics
 ### 0.7.0 [July]
-- Support apiservice router for multiple metric adapters
-- Prediction with Business Metrics
+- Recommendation Framework
+- Crane-Descheduler based on CPU/Memory metrics
+- Offline Algorithm Evaluator
 ### 0.8.0 [August]
-- Algorithm estimate notebook
+- External recommendation plugins
+- Built-in CICD Pipeline integration
+- CPU topology aware scheduler
+- Enhanced Console with resource optimization
+### 0.9.0 [September]
+- Flexible conflict prediction and detection 
+- Builtin AI Prediction
+- Wastes discovery and dashboard
+- Enhanced Console with more cost visibility dashboard
+### 0.10.0 [October]
+- Business Maturity Model Dashboard 
+- In-place Update support by EVPA
+- Kubernetes and Elastic Kubernetes Service price comparison
+### 0.11.0 [November]
+- Multi-cluster cost dashboard
+### 0.12.0 [December]
+- Multi-cluster cost optimization
