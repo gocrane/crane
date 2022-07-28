@@ -11,6 +11,7 @@ import (
 
 	"github.com/gocrane/crane/pkg/server/config"
 	"github.com/gocrane/crane/pkg/server/ginwrapper"
+	"github.com/gocrane/crane/pkg/utils"
 )
 
 type Handler struct {
@@ -25,7 +26,7 @@ func NewPrometheusAPIHandler(config *config.Config) *Handler {
 
 // Query delicate prometheus query api.
 func (h *Handler) Query(c *gin.Context) {
-	ts, err := time.Parse("2006-01-02 15:04:05", c.Query("time"))
+	ts, err := utils.ParseTimestamp(c.Query("time"))
 	if err != nil {
 		ginwrapper.WriteResponse(c, fmt.Errorf("parse time failed: %v", err), nil)
 		return
@@ -45,13 +46,13 @@ func (h *Handler) Query(c *gin.Context) {
 
 // RangeQuery delicate prometheus range query api.
 func (h *Handler) RangeQuery(c *gin.Context) {
-	tsStart, err := time.Parse("2006-01-02 15:04:05", c.Query("start"))
+	tsStart, err := utils.ParseTimestamp(c.Query("start"))
 	if err != nil {
 		ginwrapper.WriteResponse(c, fmt.Errorf("parse start failed: %v", err), nil)
 		return
 	}
 
-	tsEnd, err := time.Parse("2006-01-02 15:04:05", c.Query("end"))
+	tsEnd, err := utils.ParseTimestamp(c.Query("end"))
 	if err != nil {
 		ginwrapper.WriteResponse(c, fmt.Errorf("parse end failed: %v", err), nil)
 		return
