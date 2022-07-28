@@ -18,7 +18,7 @@ func ParseDuration(s string) (time.Duration, error) {
 
 // ParseTimestamp parse a string to time.Time
 func ParseTimestamp(ts string) (time.Time, error) {
-	i, err := strconv.ParseInt("ts", 10, 64)
+	i, err := strconv.ParseInt(ts, 10, 64)
 	if err != nil {
 		return time.Now(), err
 	}
