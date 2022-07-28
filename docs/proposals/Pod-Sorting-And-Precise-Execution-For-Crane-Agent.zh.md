@@ -101,7 +101,7 @@ metric的属性包含如下几个：
 6. ThrottleQuantified 表明压制（restore）一个pod后，能否准确计算出经过压制后释放出的对应metric的资源量，我们将可以准确量化的指标称为可Quantified，否则为不可Quantified；
    比如cpu用量，可以通过限制cgroup用量进行压制，同时可以通过当前运行值和压制后的值计算压制后释放的cpu使用量；而比如memory usage就不属于压制可量化metric，因为memory没有对应的throttle实现，也就无法准确衡量压制一个pod后释放出来的memory资源具体用量；
 7. ThrottleFunc，执行Throttle动作的具体方法，如果不可Throttle，返回的released为空
-8. RestoreFunc，被Throttle后，执行恢复动作的具体方法，如果不可Throttle，返回的released为空
+8. RestoreFunc，被Throttle后，执行恢复动作的具体方法，如果不可Restore，返回的released为空
 9. EvictAble，EvictQuantified，EvictFunc 对evict动作的相关定义，具体内容和Throttle动作类似
 
 
@@ -184,21 +184,27 @@ type metric struct {
 
 4. 如果不存在3中的情况，则遍历ThrottoleDownGapToWaterLines中可以量化的metric：如果metric具有排序方法则直接使用其SortFunc对pod进行排序，如果没有就使用GeneralSorter进行排序，之后使用其对应的ThrottleFunc对pod进行压制，并计算释放出来的对应metric的资源量，直到ThrottoleDownGapToWaterLines中该metric对应的gap已不存在
 ```go
+//将所有触发水位线的metrics根据其Quantified属性区分为两部分
 metricsQuantified, MetricsNotQuantified := ThrottleDownWaterLine.DivideMetricsByQuantified()
+// 如果存在不可Quantified的metric，获取具有最高ActionPriority的一个throttleAble的metric对所选择的所有pod进行操作
 if len(MetricsNotThrottleQuantified) != 0 {
     highestPrioriyMetric := GetHighestPriorityThrottleAbleMetric()
     if highestPrioriyMetric != "" {
-        errPodKeys = t.throttlePods(ctx, &totalReleased, highestPrioriyMetric)
+        t.throttlePods(ctx, &totalReleased, highestPrioriyMetric)
     }
 } else {
+    //获取节点和workload的最新用量，构造和水位线差距
     ThrottoleDownGapToWaterLines = buildGapToWaterLine(ctx.getStateFunc())
+    //如果触发水位线中存在metric的实时用量无法获取，则获取具有最高ActionPriority的一个throttleAble的metric对所选择的所有pod进行压制操作
     if ThrottoleDownGapToWaterLines.HasUsageMissedMetric() {
         highestPrioriyMetric := ThrottleDownWaterLine.GetHighestPriorityThrottleAbleMetric()
         if highestPrioriyMetric != "" {
-            errPodKeys = throttlePods(ctx, &totalReleased, highestPrioriyMetric)
+            throttlePods(ctx, &totalReleased, highestPrioriyMetric)
         }
     } else {
         var released ReleaseResource
+		//遍历触发水位线的metric中可以量化的metric：如果metric具有排序方法则直接使用其SortFunc对pod进行排序，否则使用GeneralSorter排序；
+		//之后使用其对应的操作方法对pod执行操作，并计算释放出来的对应metric的资源量，直到对应metric到水位线的差距已不存在
         for _, m := range metricsQuantified {
             if m.SortAble {
                 m.SortFunc(ThrottleDownPods)
@@ -208,8 +214,7 @@ if len(MetricsNotThrottleQuantified) != 0 {
     
             for !ThrottoleDownGapToWaterLines.TargetGapsRemoved(m) {
                 for index, _ := range ThrottleDownPods {
-                    errKeys, released = m.ThrottleFunc(ctx, index, ThrottleDownPods, &totalReleased)
-                    errPodKeys = append(errPodKeys, errKeys...)
+                    released = m.ThrottleFunc(ctx, index, ThrottleDownPods, &totalReleased)
                     ThrottoleDownGapToWaterLines[m] -= released[m]
                 }
             }
@@ -227,14 +232,14 @@ metricsEvictQuantified, MetricsNotEvcitQuantified := EvictWaterLine.DivideMetric
 if len(MetricsNotEvcitQuantified) != 0 {
     highestPrioriyMetric := e.EvictWaterLine.GetHighestPriorityEvictAbleMetric()
     if highestPrioriyMetric != "" {
-        errPodKeys = e.evictPods(ctx, &totalReleased, highestPrioriyMetric)
+		e.evictPods(ctx, &totalReleased, highestPrioriyMetric)
     }
 } else {
     EvictGapToWaterLines = buildGapToWaterLine(ctx.getStateFunc(), ThrottleExecutor{}, *e)
 	if EvictGapToWaterLines.HasUsageMissedMetric() {
         highestPrioriyMetric := EvictWaterLine.GetHighestPriorityEvictAbleMetric()
         if highestPrioriyMetric != "" {
-            errPodKeys = e.evictPods(ctx, &totalReleased, highestPrioriyMetric)
+            e.evictPods(ctx, &totalReleased, highestPrioriyMetric)
         }
     } else {
 		wg := sync.WaitGroup{}
@@ -249,8 +254,7 @@ if len(MetricsNotEvcitQuantified) != 0 {
             for !EvictGapToWaterLines.TargetGapsRemoved(m) {
                 if podinfo.HasNoExecutedPod(e.EvictPods) {
                     index := podinfo.GetFirstNoExecutedPod(e.EvictPods)
-                    errKeys, released = MetricMap[m].EvictFunc(&wg, ctx, index, &totalReleased, e.EvictPods)
-                    errPodKeys = append(errPodKeys, errKeys...)
+                    released = MetricMap[m].EvictFunc(&wg, ctx, index, &totalReleased, e.EvictPods)
     
                     e.EvictPods[index].HasBeenActioned = true
                     ctx.EvictGapToWaterLines[m] -= released[m]
@@ -259,7 +263,6 @@ if len(MetricsNotEvcitQuantified) != 0 {
         }
         wg.Wait()
         }
-    
 }
 ```
 

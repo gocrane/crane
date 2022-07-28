@@ -190,14 +190,14 @@ metricsQuantified, MetricsNotQuantified := ThrottleDownWaterLine.DivideMetricsBy
 if len(MetricsNotThrottleQuantified) != 0 {
     highestPrioriyMetric := GetHighestPriorityThrottleAbleMetric()
     if highestPrioriyMetric != "" {
-        errPodKeys = t.throttlePods(ctx, &totalReleased, highestPrioriyMetric)
+        t.throttlePods(ctx, &totalReleased, highestPrioriyMetric)
     }
 } else {
     ThrottoleDownGapToWaterLines = buildGapToWaterLine(ctx.getStateFunc())
     if ThrottoleDownGapToWaterLines.HasUsageMissedMetric() {
         highestPrioriyMetric := ThrottleDownWaterLine.GetHighestPriorityThrottleAbleMetric()
         if highestPrioriyMetric != "" {
-            errPodKeys = throttlePods(ctx, &totalReleased, highestPrioriyMetric)
+            throttlePods(ctx, &totalReleased, highestPrioriyMetric)
         }
     } else {
         var released ReleaseResource
@@ -210,8 +210,7 @@ if len(MetricsNotThrottleQuantified) != 0 {
     
             for !ThrottoleDownGapToWaterLines.TargetGapsRemoved(m) {
                 for index, _ := range ThrottleDownPods {
-                    errKeys, released = m.ThrottleFunc(ctx, index, ThrottleDownPods, &totalReleased)
-                    errPodKeys = append(errPodKeys, errKeys...)
+                    released = m.ThrottleFunc(ctx, index, ThrottleDownPods, &totalReleased)
                     ThrottoleDownGapToWaterLines[m] -= released[m]
                 }
             }
@@ -229,14 +228,14 @@ metricsEvictQuantified, MetricsNotEvcitQuantified := EvictWaterLine.DivideMetric
 if len(MetricsNotEvcitQuantified) != 0 {
     highestPrioriyMetric := e.EvictWaterLine.GetHighestPriorityEvictAbleMetric()
     if highestPrioriyMetric != "" {
-        errPodKeys = e.evictPods(ctx, &totalReleased, highestPrioriyMetric)
+        e.evictPods(ctx, &totalReleased, highestPrioriyMetric)
     }
 } else {
     EvictGapToWaterLines = buildGapToWaterLine(ctx.getStateFunc(), ThrottleExecutor{}, *e)
 	if EvictGapToWaterLines.HasUsageMissedMetric() {
         highestPrioriyMetric := EvictWaterLine.GetHighestPriorityEvictAbleMetric()
         if highestPrioriyMetric != "" {
-            errPodKeys = e.evictPods(ctx, &totalReleased, highestPrioriyMetric)
+            e.evictPods(ctx, &totalReleased, highestPrioriyMetric)
         }
     } else {
 		wg := sync.WaitGroup{}
@@ -251,8 +250,7 @@ if len(MetricsNotEvcitQuantified) != 0 {
             for !EvictGapToWaterLines.TargetGapsRemoved(m) {
                 if podinfo.HasNoExecutedPod(e.EvictPods) {
                     index := podinfo.GetFirstNoExecutedPod(e.EvictPods)
-                    errKeys, released = MetricMap[m].EvictFunc(&wg, ctx, index, &totalReleased, e.EvictPods)
-                    errPodKeys = append(errPodKeys, errKeys...)
+                    released = MetricMap[m].EvictFunc(&wg, ctx, index, &totalReleased, e.EvictPods)
     
                     e.EvictPods[index].HasBeenActioned = true
                     ctx.EvictGapToWaterLines[m] -= released[m]
