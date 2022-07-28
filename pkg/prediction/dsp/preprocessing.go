@@ -86,7 +86,6 @@ func removeExtremeOutliers(ts *common.TimeSeries) error {
 
 	for i := 1; i < len(ts.Samples); i++ {
 		if ts.Samples[i].Value > highThreshold || ts.Samples[i].Value < lowThreshold {
-			klog.Errorf("ts.Samples[i].Value: %f, ts.Samples[i-1].Value: %f", ts.Samples[i].Value, ts.Samples[i-1].Value)
 			ts.Samples[i].Value = ts.Samples[i-1].Value
 		}
 	}
