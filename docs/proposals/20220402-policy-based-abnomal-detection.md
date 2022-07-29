@@ -50,7 +50,7 @@ accordingly.
 #### Story 3
 The traffic of online applications is very low at night, and the offline jobs are run during this time.
 Comparing with online applications, offline jobs always require more CPU resource quantities but less resource qualities. 
-In this case, the SRE time wants to set different node CPU load thresholds in the daytime and at night.
+In this case, the SRE team wants to set different node CPU load thresholds in the daytime and at night.
 
 
 
