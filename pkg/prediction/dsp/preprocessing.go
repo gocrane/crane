@@ -111,7 +111,7 @@ func preProcessTimeSeriesList(tsList []*common.TimeSeries, config *internalConfi
 	n := len(tsList)
 	wg.Add(n)
 	tsCh := make(chan *common.TimeSeries, n)
-	for _, ts := range tsList {
+	for i := range tsList {
 		go func(ts *common.TimeSeries) {
 			defer wg.Done()
 			if err := preProcessTimeSeries(ts, config, Hour); err != nil {
@@ -119,7 +119,7 @@ func preProcessTimeSeriesList(tsList []*common.TimeSeries, config *internalConfi
 			} else {
 				tsCh <- ts
 			}
-		}(ts)
+		}(tsList[i])
 	}
 	wg.Wait()
 	close(tsCh)
