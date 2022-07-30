@@ -1,7 +1,6 @@
 import { useSelector as useRawSelector, shallowEqual } from 'react-redux';
 
-import { RootState } from '../store/store';
+import { RootState } from 'modules/store';
 
-export const useSelector = <T>(selector: (state: RootState) => T): T => {
-  return useRawSelector(state => selector(state as RootState), shallowEqual);
-};
+export const useSelector = <T>(selector: (state: RootState) => T): T =>
+  useRawSelector((state) => selector(state as RootState), shallowEqual);

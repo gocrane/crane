@@ -1,31 +1,60 @@
 module.exports = {
-  env: {
-    browser: true,
-    es2021: true
-  },
+  root: true,
   extends: [
-    'plugin:react/recommended',
-    'google',
+    'airbnb-base',
     'prettier',
-    'plugin:react/jsx-runtime',
-    'plugin:react-hooks/recommended'
+    'plugin:react/recommended',
+    'plugin:import/typescript',
+    'plugin:@typescript-eslint/recommended',
   ],
+  plugins: ['eslint-plugin-prettier'],
   parser: '@typescript-eslint/parser',
-  parserOptions: {
-    ecmaFeatures: {
-      jsx: true
-    },
-    ecmaVersion: 'latest',
-    sourceType: 'module'
+  env: {
+    jest: true,
   },
-  plugins: ['react', '@typescript-eslint'],
+  settings: {
+    react: {
+      version: 'detect',
+    },
+  },
   rules: {
-    'react/display-name': [0],
-    'no-unused-vars': [1],
-    'valid-jsdoc': [0],
-    'require-jsdoc': [0],
-    'guard-for-in': [1],
-    'prefer-spread': [1],
-    'react/jsx-sort-props': [2, { callbacksLast: true }]
-  }
+    'no-shadow': 'off',
+    'no-param-reassign': ['error', { props: false }],
+    'no-console': 'off',
+    'no-plusplus': [
+      'error',
+      {
+        allowForLoopAfterthoughts: true,
+      },
+    ],
+    'react/display-name': 'off',
+    // jsx 单引号
+    'jsx-quotes': [2, 'prefer-single'],
+    'import/no-cycle': 'off', // TODO: remove
+    'import/extensions': 'off',
+    'import/no-unresolved': 'off',
+    'import/order': 'off',
+    'import/prefer-default-export': 'off',
+    'import/no-extraneous-dependencies': ['error', { devDependencies: true }],
+    // 关闭variable必须全部大写规则
+    '@typescript-eslint/naming-convention': [
+      'error',
+      {
+        selector: 'variable',
+        modifiers: ['const'],
+        format: null,
+      },
+    ],
+    '@typescript-eslint/no-empty-function': 'off',
+    '@typescript-eslint/no-explicit-any': 'off',
+    '@typescript-eslint/ban-types': 'off',
+    // 统一eslint prettier配置
+    'prettier/prettier': [
+      'warn',
+      {},
+      {
+        usePrettierrc: true,
+      },
+    ],
+  },
 };

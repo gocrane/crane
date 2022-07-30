@@ -1,13 +1,14 @@
 import React from 'react';
 
-export const useIsIntersecting = ref => {
+export const useIsIntersecting = (ref: { current: Element }) => {
   const [isIntersecting, setIntersecting] = React.useState(false);
 
   const observer = React.useMemo(
     () => new IntersectionObserver(([entry]) => setIntersecting(entry.isIntersecting)),
-    []
+    [],
   );
 
+  // eslint-disable-next-line consistent-return
   React.useEffect(() => {
     if (ref && ref.current) {
       observer.observe(ref.current);

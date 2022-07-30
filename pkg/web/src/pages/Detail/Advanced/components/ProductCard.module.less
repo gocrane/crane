@@ -1,0 +1,108 @@
+.productionCard {
+  position: relative;
+  background-color: var(--td-bg-color-container);
+  border: 1px solid var(--td-component-border);
+  border-radius: 3px;
+  padding: 20px 32px 24px;
+  height: 212px;
+  box-sizing: content-box;
+}
+
+.productionTitle {
+  margin-bottom: 25px;
+  position: relative;
+}
+
+.title {
+  font-weight: 500;
+  font-size: 24px;
+  color: var(--td-text-color-primary);
+}
+
+.productionIcon {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  background: var(--td-brand-color-1);
+  color: var(--td-brand-color);
+  font-size: 56px;
+  padding: 14px;
+  border-radius: 100%;
+}
+
+.tag {
+  margin-right: 4px;
+  margin-top: 8px;
+  margin-left: unset;
+  border: unset;
+}
+
+.item {
+  position: relative;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.info {
+  display: inline-block;
+  width: 60%;
+  text-align: left;
+  font-size: 14px;
+  color: var(--td-text-color-placeholder);
+}
+
+.icon {
+  position: absolute;
+  bottom: 8px;
+  right: 0;
+  color: rgba(0, 0, 0, 0.26);
+}
+
+.footer {
+  position: absolute;
+  width: 100%;
+  bottom: 0px;
+  left: 0;
+  .percent {
+    position: absolute;
+    bottom: 15px;
+    right: 32px;
+    color: var(--td-text-color-placeholder);
+  }
+  .progress {
+    margin: 0;
+  }
+}
+
+.productionAdd {
+  position: relative;
+  background-color: var(--td-bg-color-container);
+  border: 1px dashed var(--td-component-border);
+  border-radius: 3px;
+  padding: 20px 32px 24px;
+  height: 212px;
+  box-sizing: content-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.productionAddBtn {
+  font-size: 14px;
+  color: var(--td-text-color-secondary);
+  margin: 0 auto;
+  text-align: center;
+  line-height: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  .productionAddIcon {
+    background: var(--td-brand-color-1);
+    color: var(--td-brand-color);
+    font-size: 33px;
+    padding: 8px;
+    border-radius: 100%;
+    margin-bottom: 12px;
+  }
+}

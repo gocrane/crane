@@ -1,0 +1,54 @@
+.secondaryNotification {
+  background-color: var(--td-bg-color-container);
+  border-radius: 3px;
+  padding: 24px 32px;
+  .msgList {
+    height: 70vh;
+    .listItem {
+      cursor: pointer;
+      padding: 13px 24px 13px 0;
+      &:hover {
+        background-color: var(--td-bg-color-container-hover);
+      }
+      &:hover .createTime {
+        display: none;
+      }
+      .action {
+        display: none;
+      }
+      &:hover .action {
+        display: block;
+      }
+      &:after {
+        content: "";
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        height: 1px;
+        background: var(--td-border-level-1-color);
+      }
+    }
+    .content {
+      margin: 0;
+      font-size: 14px;
+      color: var(--td-text-color-placeholder);
+      text-align: left;
+      line-height: 22px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .tag {
+      margin-right: 8px;
+    }
+    .noData {
+      text-align: center;
+      height: 28px;
+      line-height: 28px;
+    }
+    .unread {
+      color: var(--td-brand-color-8);
+    }
+  }
+}

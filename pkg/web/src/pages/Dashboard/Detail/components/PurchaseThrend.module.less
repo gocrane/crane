@@ -1,0 +1,56 @@
+.purchaseTrendPanel {
+  margin-top: 16px;
+}
+
+.productTrendPanel {
+  display: flex;
+  flex-direction: column;
+  border-radius: 3px;
+  overflow: hidden;
+  cursor: pointer;
+  color: var(--td-text-color-secondary);
+  background: var(--td-bg-color-container);
+  padding: 24px 32px;
+}
+
+.productLogo {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--td-brand-color-1);
+  font-size: 32px;
+  color: var(--td-brand-color);
+}
+
+.productName {
+  margin: 24px 0 8px;
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--td-text-color-primary);
+}
+
+.productDesc {
+  font-size: 12px;
+  line-height: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  margin-bottom: 24px;
+  height: 40px;
+}
+
+.iconWrap {
+  position: relative;
+  .lightBtn {
+    position: absolute;
+    left: 22px;
+    background-color: var(--td-brand-color-2);
+    --ripple-color: var(--td-brand-color-2);
+    color: var(--td-brand-color);
+  }
+}
