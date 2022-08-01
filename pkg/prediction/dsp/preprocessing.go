@@ -102,7 +102,9 @@ func preProcessTimeSeries(ts *common.TimeSeries, config *internalConfig, unit ti
 
 	_ = deTrend()
 
-	return removeExtremeOutliers(ts)
+	_ = removeExtremeOutliers(ts)
+
+	return nil
 }
 
 func preProcessTimeSeriesList(tsList []*common.TimeSeries, config *internalConfig) ([]*common.TimeSeries, error) {
