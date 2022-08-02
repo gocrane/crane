@@ -13,7 +13,9 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 
@@ -151,7 +153,7 @@ func (c *EffectiveVPAController) SetupWithManager(mgr ctrl.Manager) error {
 	estimatorManager := estimator.NewResourceEstimatorManager(mgr.GetClient(), c.TargetFetcher, c.OOMRecorder, c.Predictor)
 	c.EstimatorManager = estimatorManager
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&autoscalingapi.EffectiveVerticalPodAutoscaler{}).
+		For(&autoscalingapi.EffectiveVerticalPodAutoscaler{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(c)
 }
 

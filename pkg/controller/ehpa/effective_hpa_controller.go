@@ -16,7 +16,9 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/yaml"
 
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
@@ -177,7 +179,7 @@ func (c *EffectiveHPAController) SetupWithManager(mgr ctrl.Manager) error {
 	}
 	c.K8SVersion = K8SVersion
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&autoscalingapi.EffectiveHorizontalPodAutoscaler{}).
+		For(&autoscalingapi.EffectiveHorizontalPodAutoscaler{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Owns(&autoscalingv2.HorizontalPodAutoscaler{}).
 		Owns(&predictionapi.TimeSeriesPrediction{}).
 		Complete(c)
