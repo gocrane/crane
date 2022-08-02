@@ -12,7 +12,9 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	"github.com/gocrane/crane/pkg/utils"
@@ -89,6 +91,6 @@ func (c *SubstituteController) Reconcile(ctx context.Context, req ctrl.Request) 
 
 func (c *SubstituteController) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&autoscalingapi.Substitute{}).
+		For(&autoscalingapi.Substitute{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(c)
 }

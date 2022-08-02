@@ -13,7 +13,9 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
 
@@ -92,7 +94,7 @@ func (c *RecommendationController) UpdateStatus(ctx context.Context, recommendat
 
 func (c *RecommendationController) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&analysisv1alph1.Recommendation{}).
+		For(&analysisv1alph1.Recommendation{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(c)
 }
 
