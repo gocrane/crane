@@ -1,9 +1,0 @@
-@import 'tdesign-react/es/style/index.css';
-
-.isError .t-input {
-  border-color: var(--td-error-color);
-}
-
-.isError .t-input:hover {
-  border-color: var(--td-error-color);
-}

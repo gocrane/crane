@@ -5,7 +5,7 @@ export const Card = ({
   title = null,
   operations = null,
   style = {},
-  className
+  className,
 }: {
   children: React.ReactNode;
   title?: string;

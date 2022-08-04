@@ -7,7 +7,7 @@ module.exports = {
     debug: true,
     func: {
       list: ['t', 'i18n.t'],
-      extensions: ['.js', '.jsx', '.ts', '.tsx']
+      extensions: ['.js', '.jsx', '.ts', '.tsx'],
     },
     lngs: ['zh'],
     ns: ['translation'],
@@ -17,17 +17,17 @@ module.exports = {
       loadPath: 'src/i18n/resources/{{lng}}/{{ns}}.json',
       savePath: 'src/i18n/resources/{{lng}}/{{ns}}.json',
       jsonIndent: 2,
-      lineEnding: '\n'
+      lineEnding: '\n',
     },
     nsSeparator: false, // namespace separator
     keySeparator: false, // key separator
     interpolation: {
       prefix: '{{',
-      suffix: '}}'
-    }
+      suffix: '}}',
+    },
   },
   transform: function customTransform(file, enc, done) {
-    const parser = this.parser;
+    const { parser } = this;
     const content = fs.readFileSync(file.path, enc);
 
     parser.parseFuncFromString(content, (key, options) => {
@@ -36,5 +36,5 @@ module.exports = {
     });
 
     done();
-  }
+  },
 };
