@@ -45,7 +45,7 @@ Using following command to install prometheus components: prometheus-server, nod
                             --set pushgateway.enabled=false \
                             --set alertmanager.enabled=false \
                             --set server.persistentVolume.enabled=false \
-                            -f https://finops.coding.net/p/gocrane/d/helm-charts/git/raw/main/integration/prometheus/override_values.yaml?download=false \
+                            -f https://gitee.com/finops/helm-charts/raw/main/integration/prometheus/override_values.yaml \
                             --create-namespace  prometheus-community/prometheus
     ```
 Fadvisor use grafana to present cost estimates. Using following command to install a grafana.
@@ -66,7 +66,7 @@ Fadvisor use grafana to present cost estimates. Using following command to insta
     ```bash
     helm repo add grafana https://finops-helm.pkg.coding.net/gocrane/grafana
     helm install grafana \
-                 -f https://finops.coding.net/p/gocrane/d/helm-charts/git/raw/main/integration/grafana/override_values.yaml?download=false \
+                 -f https://gitee.com/finops/helm-charts/raw/main/integration/grafana/override_values.yaml \
                  -n crane-system \
                  --create-namespace grafana/grafana
     ```

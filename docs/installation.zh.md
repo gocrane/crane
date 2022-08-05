@@ -56,7 +56,7 @@ Crane 使用 Prometheus 抓取集群工作负载对资源的使用情况。安�
                             --set pushgateway.enabled=false \
                             --set alertmanager.enabled=false \
                             --set server.persistentVolume.enabled=false \
-                            -f https://finops.coding.net/p/gocrane/d/helm-charts/git/raw/main/integration/prometheus/override_values.yaml?download=false \
+                            -f https://gitee.com/finops/helm-charts/raw/main/integration/prometheus/override_values.yaml \
                             --create-namespace  prometheus-community/prometheus
     ```
 
@@ -78,7 +78,7 @@ Crane 的 Fadvisor 使用 Grafana 展示成本预估。安装 Grafana：
     ```bash
     helm repo add grafana https://finops-helm.pkg.coding.net/gocrane/grafana
     helm install grafana \
-                 -f https://finops.coding.net/p/gocrane/d/helm-charts/git/raw/main/integration/grafana/override_values.yaml?download=false \
+                 -f https://gitee.com/finops/helm-charts/raw/main/integration/grafana/override_values.yaml \
                  -n crane-system \
                  --create-namespace grafana/grafana
     ```

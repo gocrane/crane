@@ -25,8 +25,8 @@ Create an **Resource** `Analytics` to give recommendation for deployment: `nginx
 === "Mirror"
 
       ```bash
-      kubectl apply -f https://finops.coding.net/p/gocrane/d/crane/git/raw/main/examples/analytics/nginx-deployment.yaml?download=false
-      kubectl apply -f https://finops.coding.net/p/gocrane/d/crane/git/raw/main/examples/analytics/analytics-resource.yaml?download=false
+      kubectl apply -f https://gitee.com/finops/crane/raw/main/examples/analytics/nginx-deployment.yaml
+      kubectl apply -f https://gitee.com/finops/crane/raw/main/examples/analytics/analytics-resource.yaml
       kubectl get analytics
       ```
 

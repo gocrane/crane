@@ -26,8 +26,8 @@ Kubernetes 用户在创建应用资源时常常是基于经验值来设置 reque
 === "Mirror"
 
       ```bash
-      kubectl apply -f https://finops.coding.net/p/gocrane/d/crane/git/raw/main/examples/analytics/nginx-deployment.yaml?download=false
-      kubectl apply -f https://finops.coding.net/p/gocrane/d/crane/git/raw/main/examples/analytics/analytics-resource.yaml?download=false
+      kubectl apply -f https://gitee.com/finops/crane/raw/main/examples/analytics/nginx-deployment.yaml
+      kubectl apply -f https://gitee.com/finops/crane/raw/main/examples/analytics/analytics-resource.yaml
       kubectl get analytics
       ```
 

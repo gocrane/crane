@@ -178,8 +178,8 @@ profiles:
 
 
       ```bash
-      kubectl apply -f https://finops.coding.net/p/gocrane/d/crane-scheduler/git/raw/main/deploy/controller/rbac.yaml?download=false
-      kubectl apply -f https://finops.coding.net/p/gocrane/d/crane-scheduler/git/raw/main/deploy/controller/deployment.yaml?download=false
+      kubectl apply -f https://gitee.com/finops/crane-scheduler/raw/main/deploy/controller/rbac.yaml
+      kubectl apply -f https://gitee.com/finops/crane-scheduler/raw/main/deploy/controller/deployment.yaml
       ```
 
 ### Schedule Pods With Crane-scheduler
