@@ -1,3 +1,2 @@
-export const useIsValidPanel = ({ panel }: { panel: any }) => {
-  return !panel.hasOwnProperty('collapsed');
-};
+// eslint-disable-next-line no-prototype-builtins
+export const useIsValidPanel = ({ panel }: { panel: any }) => !panel.hasOwnProperty('collapsed');

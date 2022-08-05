@@ -1,12 +1,11 @@
+import { clusterApi } from '../../apis/clusterApi';
+import { useSelector } from '../../hooks';
+import { insightAction } from '../../store/insightSlice';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDispatch } from 'react-redux';
 import { useMatch } from 'react-router-dom';
 import { Select } from 'tdesign-react';
-
-import { clusterApi } from '../../apis/clusterApi';
-import { useSelector } from '../../hooks';
-import { insightAction } from '../../store/insightSlice';
 
 export const ContentHeader = React.memo(() => {
   const { t } = useTranslation();
@@ -14,16 +13,18 @@ export const ContentHeader = React.memo(() => {
   const isOverview = useMatch('/overview');
   const isInsight = useMatch('/insight');
 
-  const selectedClusterId = useSelector(state => state.insight.selectedClusterId);
+  const selectedClusterId = useSelector((state) => state.insight.selectedClusterId);
 
   const clusterList = clusterApi.useFetchClusterListQuery({});
 
-  const options = React.useMemo(() => {
-    return (clusterList.data?.data?.items ?? []).map(item => ({
-      text: `${item.name} (${item.id})`,
-      value: item.id
-    }));
-  }, [clusterList.data?.data?.items]);
+  const options = React.useMemo(
+    () =>
+      (clusterList.data?.data?.items ?? []).map((item) => ({
+        text: `${item.name} (${item.id})`,
+        value: item.id,
+      })),
+    [clusterList.data?.data?.items],
+  );
 
   React.useEffect(() => {
     if (clusterList.isSuccess && options.length > 0) {
@@ -47,9 +48,9 @@ export const ContentHeader = React.memo(() => {
               dispatch(insightAction.selectedClusterId(value));
             }}
           >
-            {options.map(option => {
-              return <Select.Option key={option.value} label={option.text} value={option.value} />;
-            })}
+            {options.map((option) => (
+              <Select.Option key={option.value} label={option.text} value={option.value} />
+            ))}
           </Select>
         </div>
       ) : null}

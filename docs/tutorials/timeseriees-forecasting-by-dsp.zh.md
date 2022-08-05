@@ -15,6 +15,7 @@ Crane使用在数字信号处理（Digital Signal Processing）领域中常用�
 ![](../images/algorithm/dsp/missing_data_fill.png)
 #### 去除异常点
 监控数据中偶尔会出现一些极端的异常数据点，导致这些异常点（outliers）的原因有很多，例如：
+
 1. 监控系统用0值填充缺失的采样点；
 2. 被监控组件由于自身的bug上报了错误的指标数据；
 3. 应用启动时会消耗远超正常运行时的资源
