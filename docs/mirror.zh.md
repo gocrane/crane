@@ -22,6 +22,10 @@
 !!! tips 
     每天同步一次上游仓库
 
+!!! warning
+    Now Coding is not support to fetch raw contents directly. You must be get token first.
+
+### Coding
 | Origin                                         | Mirror                                              | Type | Public |
 | --------------------------------------------- | --------------------------------------------------------- | ------ | ---- |
 | https://github.com/gocrane/crane.git | https://e.coding.net/finops/gocrane/crane.git | Git | [Public](https://finops.coding.net/public/gocrane/crane/git/files) |
@@ -30,7 +34,17 @@
 | https://github.com/gocrane/crane-scheduler.git | https://e.coding.net/finops/gocrane/crane-scheduler.git | Git | [Public](https://finops.coding.net/public/gocrane/crane-scheduler/git/files) |
 | https://github.com/gocrane/fadvisor.git | https://e.coding.net/finops/gocrane/fadvisor.git | Git | [Public](https://finops.coding.net/public/gocrane/fadvisor/git/files) |
 
+### Gitee
+
+| Origin                                         | Mirror                                              | Type | Public |
+| --------------------------------------------- | --------------------------------------------------------- | ------ | ---- |
+| https://github.com/gocrane/crane.git | https://gitee.com/finops/crane | Git | [Public](https://gitee.com/finops/crane) |
+| https://github.com/gocrane/helm-charts.git | https://gitee.com/finops/helm-charts | Git | [Public](https://gitee.com/finops/helm-charts) |
+
 ## 获取 Coding Git 仓库源文件内容
+
+!!! warning
+    Now Coding is not support to fetch raw contents directly. You must be get token first.
 
 在这里将为您介绍，如何通过HTTP请求直接获取 Coding Git 仓库中的源文件内容。
 

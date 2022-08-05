@@ -23,6 +23,11 @@ For a better experience, GoCrane offers several additional mirror repositories f
 !!! tips
     Sync upstream repository every day
 
+### Coding
+
+!!! warning
+    Now Coding is not support to fetch raw contents directly. You must be get token first.
+
 | Origin                                         | Mirror                                              | Type | Public |
 | --------------------------------------------- | --------------------------------------------------------- | ------ | ---- |
 | https://github.com/gocrane/crane.git | https://e.coding.net/finops/gocrane/crane.git | Git | [Public](https://finops.coding.net/public/gocrane/crane/git/files) |
@@ -31,7 +36,18 @@ For a better experience, GoCrane offers several additional mirror repositories f
 | https://github.com/gocrane/crane-scheduler.git | https://e.coding.net/finops/gocrane/crane-scheduler.git | Git | [Public](https://finops.coding.net/public/gocrane/crane-scheduler/git/files) |
 | https://github.com/gocrane/fadvisor.git | https://e.coding.net/finops/gocrane/fadvisor.git | Git | [Public](https://finops.coding.net/public/gocrane/fadvisor/git/files) |
 
+### Gitee
+
+| Origin                                         | Mirror                                              | Type | Public |
+| --------------------------------------------- | --------------------------------------------------------- | ------ | ---- |
+| https://github.com/gocrane/crane.git | https://gitee.com/finops/crane | Git | [Public](https://gitee.com/finops/crane) |
+| https://github.com/gocrane/helm-charts.git | https://gitee.com/finops/helm-charts | Git | [Public](https://gitee.com/finops/helm-charts) |
+| https://github.com/gocrane/crane-scheduler.git | https://gitee.com/finops/crane-scheduler | Git | [Public](https://gitee.com/finops/crane-scheduler) |
+
 ## Get the raw file contents of the Coding repo
+
+!!! warning
+    Now Coding is not support to fetch raw contents directly. You must be get token first.
 
 Here you'll find out how to get the contents of a source file directly from the Coding Git repository via an HTTP request.
 
