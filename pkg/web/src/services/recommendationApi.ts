@@ -1,5 +1,5 @@
-import { fetchBaseQuery, createApi } from '@reduxjs/toolkit/query/react';
-import { parse, stringify } from 'yaml';
+import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { parse } from 'yaml';
 
 interface ownerReference {
   apiVersion: string;

@@ -1,15 +1,12 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { Col, Row } from 'tdesign-react';
-import Board, { ETrend, IBoardProps, TimeType } from 'components/BoardChart';
+import Board, { IBoardProps, TimeType } from 'components/BoardChart';
 
 const PANE_LIST: Array<IBoardProps> = [
   {
     title: '当月总成本',
     countPrefix: '¥ ',
-    trend: ETrend.up,
-    trendNum: '20.5%',
     lineColor: '#fff',
-    // Icon: <PieChartIcon />,
     query: `sum (
     avg(
         avg_over_time(node_total_hourly_cost[1h])
@@ -22,9 +19,6 @@ by (node)) * 730 * (100/100.0)`,
   {
     title: '预测每月总成本',
     countPrefix: '¥ ',
-    trend: ETrend.up,
-    trendNum: '20.5%',
-    // Icon: <PieChartIcon />,
     query: `sum(
   sum(
     sum(kube_pod_container_resource_requests{resource="cpu", unit="core"}) by (container, pod, node, namespace)
@@ -59,8 +53,6 @@ sum(
   ) by (node)
 ) * 730 * (100./100.)`,
     countPrefix: '¥ ',
-    trend: ETrend.down,
-    trendNum: '20.5%',
     timeType: TimeType.Range,
   },
   {
@@ -73,8 +65,6 @@ sum(
   ) by (node)
 ) * 730 * (100./100.)`,
     countPrefix: '¥ ',
-    trend: ETrend.down,
-    trendNum: '20.5%',
     timeType: TimeType.Range,
   },
 ];

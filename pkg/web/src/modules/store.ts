@@ -7,8 +7,8 @@ import { editClusterReducer } from './editClusterSlice';
 import global from './global';
 import { insightReducer } from './insightSlice';
 import { overviewReducer } from './overviewSlice';
-import { configureStore, combineReducers } from '@reduxjs/toolkit';
-import { TypedUseSelectorHook, useSelector, useDispatch } from 'react-redux';
+import { combineReducers, configureStore } from '@reduxjs/toolkit';
+import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
 import { recommendationApi } from '../services/recommendationApi';
 import { prometheusApi } from '../services/prometheusApi';
 

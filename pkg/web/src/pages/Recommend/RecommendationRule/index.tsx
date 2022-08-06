@@ -1,11 +1,11 @@
-import { recommendationRuleApi, useFetchRecommendationRuleListQuery } from '../../../services/recommendationRuleApi';
+import { useFetchRecommendationRuleListQuery } from '../../../services/recommendationRuleApi';
 import CommonStyle from '../../../styles/common.module.less';
 import SearchForm from './components/SearchForm';
 import './index.module.less';
 import classnames from 'classnames';
 import { useCraneUrl } from 'hooks';
-import React, { useState, memo } from 'react';
-import { Table, Dialog, Button, Row, Col, Divider, Tag, Space } from 'tdesign-react';
+import React, { memo, useState } from 'react';
+import { Button, Col, Dialog, Divider, Row, Space, Table, Tag } from 'tdesign-react';
 
 export const SelectTable = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<(string | number)[]>([0, 1]);

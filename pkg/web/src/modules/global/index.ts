@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { ETheme } from 'types/index.d';
-import { CHART_COLORS, defaultColor, colorMap } from 'configs/color';
+import { CHART_COLORS, colorMap, defaultColor } from 'configs/color';
 import { RootState } from '../store';
 import { version } from '../../../package.json';
 

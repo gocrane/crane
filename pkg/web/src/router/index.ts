@@ -35,7 +35,7 @@ export interface IRouter {
 const routes: IRouter[] = [
   {
     path: '/',
-    redirect: '/dashboard/base',
+    redirect: '/dashboard',
   },
 ];
 

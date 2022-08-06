@@ -1,4 +1,4 @@
-import { fetchBaseQuery, createApi } from '@reduxjs/toolkit/query/react';
+import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { IBoardProps } from '../components/BoardChart';
 import queryString from 'query-string';
 
@@ -31,6 +31,7 @@ interface QueryRangePrometheusResult {
   error: string;
   latestValue?: number;
   emptyData?: boolean;
+  metricData?: (number | string)[][];
   data: {
     metric?: any;
     values?: (number | string)[][];
@@ -81,6 +82,7 @@ export const prometheusApi = createApi({
           res.emptyData = false;
         } else {
           res.emptyData = true;
+          res.metricData = [];
         }
         return res;
       },
@@ -124,9 +126,11 @@ export const prometheusApi = createApi({
             });
             res.latestValue = values[values.length - 1][1];
           });
+          res.metricData = res.data[0].values;
           res.emptyData = false;
         } else {
           res.emptyData = true;
+          res.metricData = [];
         }
         return res;
       },

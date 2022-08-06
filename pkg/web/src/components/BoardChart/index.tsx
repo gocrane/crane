@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRightIcon, CloseCircleFilledIcon, CloseCircleIcon, UsergroupIcon } from 'tdesign-icons-react';
+import { ChevronRightIcon, CloseCircleIcon, UsergroupIcon } from 'tdesign-icons-react';
 import { Card } from 'tdesign-react';
 import classnames from 'classnames';
 import Style from './index.module.less';

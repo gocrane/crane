@@ -1,8 +1,6 @@
-import {
-  RECOMMENDATION_RULE_TYPE_OPTIONS
-} from "../consts";
-import React, { useRef, memo } from 'react';
-import { Row, Col, Form, Input, Button, MessagePlugin, Select } from 'tdesign-react';
+import { RECOMMENDATION_RULE_TYPE_OPTIONS } from '../consts';
+import React, { memo, useRef } from 'react';
+import { Button, Col, Form, Input, MessagePlugin, Row, Select } from 'tdesign-react';
 import { FormInstanceFunctions, SubmitContext } from 'tdesign-react/es/form/type';
 
 const { FormItem } = Form;

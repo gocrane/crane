@@ -1,5 +1,5 @@
-import React, { Suspense, memo } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import React, { memo, Suspense } from 'react';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { Layout, Loading } from 'tdesign-react';
 import routers, { IRouter } from 'router';
 import { resolve } from 'utils/path';

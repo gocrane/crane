@@ -3,8 +3,8 @@ import SearchForm from './components/SearchForm';
 import './index.module.less';
 import classnames from 'classnames';
 import { useCraneUrl } from 'hooks';
-import React, { useState, memo } from 'react';
-import { Table, Dialog, Button, Row, Col, Divider, Tag, Space} from "tdesign-react";
+import React, { memo, useState } from 'react';
+import { Button, Col, Dialog, Divider, Row, Space, Table, Tag } from 'tdesign-react';
 import { RecommendationType, useFetchRecommendationListQuery } from '../../../services/recommendationApi';
 import { useNavigate } from 'react-router-dom';
 
@@ -94,7 +94,7 @@ export const SelectTable = () => {
             colKey: 'status.resourceRequest.containers',
             cell({ row }) {
               console.log('row', row);
-              if (typeof row.status.recommendedValue !== 'string'){
+              if (typeof row.status.recommendedValue !== 'string') {
                 const containers = row?.status?.recommendedValue?.resourceRequest?.containers || [];
                 if (containers.length > 0) {
                   return (

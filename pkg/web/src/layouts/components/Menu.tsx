@@ -3,7 +3,7 @@ import MenuLogo from './MenuLogo';
 import { selectGlobal } from 'modules/global';
 import { useAppSelector } from 'modules/store';
 import React, { memo, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import router, { IRouter } from 'router';
 import { Menu, MenuValue } from 'tdesign-react';
 import { resolve } from 'utils/path';

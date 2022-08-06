@@ -1,4 +1,4 @@
-import { useCraneUrl, useSelector } from '../../../hooks';
+import { useSelector } from '../../../hooks';
 import { insightAction } from '../../../modules/insightSlice';
 import { HeaderMenu } from '../Menu';
 import HeaderIcon from './HeaderIcon';
@@ -9,7 +9,7 @@ import React, { memo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ViewListIcon } from 'tdesign-icons-react';
-import { Layout, Button, Row, Col, Select, MessagePlugin } from 'tdesign-react';
+import { Button, Col, Layout, MessagePlugin, Row, Select } from 'tdesign-react';
 import { useFetchClusterListQuery } from '../../../services/clusterApi';
 
 const { Header } = Layout;
@@ -33,8 +33,8 @@ export default memo((props: { showMenu?: boolean }) => {
 
     if (clusterList?.data?.data?.items?.length === 0) {
       dispatch(insightAction.selectedClusterId(''));
-      if (location.pathname !== '/manager/cluster') {
-        console.log(`From ${location.pathname} to /manager/cluster`);
+      if (location.pathname !== '/settings/cluster') {
+        console.log(`From ${location.pathname} to /settings/cluster`);
         MessagePlugin.error(
           {
             content: t('添加一个集群以启用Dashboard'),
@@ -42,7 +42,7 @@ export default memo((props: { showMenu?: boolean }) => {
           },
           10000,
         );
-        navigate('/manager/cluster');
+        navigate('/settings/cluster');
       }
     }
   });

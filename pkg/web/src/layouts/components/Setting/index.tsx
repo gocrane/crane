@@ -1,16 +1,16 @@
 import React, { memo } from 'react';
-import { Row, Col, Switch } from 'tdesign-react';
+import { Col, Row, Switch } from 'tdesign-react';
 import { useAppDispatch, useAppSelector } from 'modules/store';
 import {
+  ELayout,
+  openSystemTheme,
   selectGlobal,
-  toggleShowHeader,
-  toggleShowBreadcrumbs,
-  toggleShowFooter,
-  switchTheme,
   switchColor,
   switchLayout,
-  openSystemTheme,
-  ELayout,
+  switchTheme,
+  toggleShowBreadcrumbs,
+  toggleShowFooter,
+  toggleShowHeader,
 } from 'modules/global';
 import { ETheme } from 'types/index.d';
 import RadioColor from './RadioColor';
