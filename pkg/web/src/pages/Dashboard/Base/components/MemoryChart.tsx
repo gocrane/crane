@@ -3,13 +3,12 @@ import { Col, Row, Card } from 'tdesign-react';
 import ReactEcharts from 'echarts-for-react';
 import useDynamicChart from 'hooks/useDynamicChart';
 import LastWeekDatePicker from 'components/DatePicker';
-import { getLineChartOptions, getPieChartOptions } from '../chart';
-import Style from './MiddleChart.module.less';
+import { getLineChartOptions } from '../chart';
+import Style from './MemoryChart.module.less';
 
 const lineOptions = getLineChartOptions();
-const pieOptions = getPieChartOptions();
 
-const MiddleChart = () => {
+const MemoryChart = () => {
   const [customOptions, setCustomOptions] = useState(lineOptions);
 
   const onTimeChange = (value: Array<string>) => {
@@ -22,26 +21,15 @@ const MiddleChart = () => {
     borderColor: ['series.0.itemStyle.borderColor', 'series.1.itemStyle.borderColor'],
   });
 
-  const dynamicPieChartOption = useDynamicChart(pieOptions, {
-    placeholderColor: ['legend.textStyle.color'],
-    containerColor: ['series.0.itemStyle.borderColor'],
-    textColor: ['label.color', 'label.color'],
-  });
-
   return (
-    <Row gutter={[16, 16]} className={Style.middleChartPanel}>
-      <Col xs={12} xl={9}>
-        <Card title='成本走势' subtitle='(元)' actions={LastWeekDatePicker(onTimeChange)}>
+    <Row gutter={[16, 16]} className={Style.cpuChartPanel}>
+      <Col span={12}>
+        <Card title='Memory 资源使用' actions={LastWeekDatePicker(onTimeChange)}>
           <ReactEcharts option={dynamicLineChartOption} notMerge={true} lazyUpdate={false} />
-        </Card>
-      </Col>
-      <Col xs={12} xl={3}>
-        <Card title='命名空间成本分布' subtitle='2021-12'>
-          <ReactEcharts option={dynamicPieChartOption} notMerge={true} lazyUpdate={true} />
         </Card>
       </Col>
     </Row>
   );
 };
 
-export default React.memo(MiddleChart);
+export default React.memo(MemoryChart);
