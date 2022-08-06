@@ -2,17 +2,17 @@ import { IRouter } from '../index';
 import { lazy } from 'react';
 import { SettingIcon } from 'tdesign-icons-react';
 
-const manager: IRouter[] = [
+const settings: IRouter[] = [
   {
-    path: '/manager',
+    path: '/settings',
     meta: {
-      title: '管理中心',
+      title: '设置',
       Icon: SettingIcon,
     },
     children: [
       {
         path: 'cluster',
-        Component: lazy(() => import('pages/Manager/cluster/OverviewPanel')),
+        Component: lazy(() => import('pages/Settings/cluster/OverviewPanel')),
         meta: {
           title: '集群管理',
         },
@@ -21,4 +21,4 @@ const manager: IRouter[] = [
   },
 ];
 
-export default manager;
+export default settings;

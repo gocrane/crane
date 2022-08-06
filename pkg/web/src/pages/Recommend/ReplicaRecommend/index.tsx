@@ -41,7 +41,7 @@ export const SelectTable = () => {
   return (
     <>
       <Row>
-        <Button onClick={() => navigate('/workload-optimize/recommendationRule')}>新建推荐规则</Button>
+        <Button onClick={() => navigate('/recommend/recommendationRule')}>管理推荐规则</Button>
       </Row>
       <Divider></Divider>
       <Row justify='start' style={{ marginBottom: '20px' }}>

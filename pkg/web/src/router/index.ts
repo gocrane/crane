@@ -1,8 +1,8 @@
 import cost from './modules/cost';
 import dashboard from './modules/dashboard';
-import manager from './modules/manager';
+import settings from './modules/settings';
 import otherRoutes from './modules/others';
-import workloadOptimize from './modules/workload-optimize';
+import recommend from './modules/recommend';
 import React from 'react';
 import { BrowserRouterProps } from 'react-router-dom';
 
@@ -39,6 +39,6 @@ const routes: IRouter[] = [
   },
 ];
 
-const allRoutes = [...routes, ...dashboard, ...cost, ...workloadOptimize, ...manager, ...otherRoutes];
+const allRoutes = [...routes, ...dashboard, ...cost, ...recommend, ...settings, ...otherRoutes];
 
 export default allRoutes;

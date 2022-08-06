@@ -4,7 +4,7 @@ import Board, { ETrend, IBoardProps, TimeType } from 'components/BoardChart';
 
 const PANE_LIST: Array<IBoardProps> = [
   {
-    title: 'Nodes Monthly Estimated Costs',
+    title: '当月总成本',
     countPrefix: '¥ ',
     trend: ETrend.up,
     trendNum: '20.5%',
@@ -20,7 +20,7 @@ by (node)) * 730 * (100/100.0)`,
     timeType: TimeType.Range,
   },
   {
-    title: 'Total Requests Monthly Estimated Costs',
+    title: '预测每月总成本',
     countPrefix: '¥ ',
     trend: ETrend.up,
     trendNum: '20.5%',
@@ -49,32 +49,7 @@ sum(
     timeType: TimeType.Range,
   },
   {
-    title: 'Total Usage Monthly Estimated Costs',
-    countPrefix: '¥ ',
-    trend: ETrend.up,
-    trendNum: '20.5%',
-    // Icon: <PieChartIcon />,
-    query: `sum (
-  sum(label_replace(irate(container_cpu_usage_seconds_total{container!="POD", container!="",image!=""}[1h]), "node", "$1", "instance",  "(.*)")) by (container, pod, node, namespace)
-  * on (node) group_left()
-  avg(
-    avg_over_time(node_cpu_hourly_cost[1h]) * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet",label_node_kubernetes_io_instance_type!~"eklet"}
-    ) by (node)
-  ) by (node)
-
-+
-
-  sum(label_replace(avg_over_time(container_memory_working_set_bytes{container!="POD",container!="",image!=""}[1h]), "node", "$1", "instance",  "(.*)")) by (container, pod, node, namespace) / 1024.0 / 1024.0 / 1024.0
-  * on (node) group_left()
-  avg(
-    avg_over_time(node_ram_hourly_cost[1h]) * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}
-    ) by (node)
-  ) by (node)
-) * 730 * (100./100.)`,
-    timeType: TimeType.Range,
-  },
-  {
-    title: 'Cpu Requests Monthly Estimated Costs',
+    title: '当月CPU总成本',
     query: `sum(
   sum(kube_pod_container_resource_requests{resource="cpu", unit="core"}) by (container, pod, node, namespace)
   * on (node) group_left()
@@ -89,38 +64,10 @@ sum(
     timeType: TimeType.Range,
   },
   {
-    title: 'Cpu Usage Monthly Estimated Costs',
-    query: `sum(
-  sum(label_replace(irate(container_cpu_usage_seconds_total{container!="POD", container!="",image!=""}[1h]), "node", "$1", "instance",  "(.*)")) by (container, pod, node, namespace) * on (node) group_left()
-  avg(
-    avg_over_time(node_cpu_hourly_cost[1h]) * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}
-    ) by (node)
-  ) by (node)
-) * 730 * (100./100.)`,
-    countPrefix: '¥ ',
-    trend: ETrend.down,
-    trendNum: '20.5%',
-    timeType: TimeType.Range,
-  },
-  {
-    title: 'Ram Requests Monthly Estimated Costs',
+    title: '当月Memory总成本',
     query: `sum(
   sum(kube_pod_container_resource_requests{resource="memory", unit="byte", namespace!=""} / 1024./ 1024. / 1024.) by (container, pod, node, namespace) * on (node) group_left()
   avg(
-    avg_over_time(node_ram_hourly_cost[1h]) * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}
-    ) by (node)
-  ) by (node)
-) * 730 * (100./100.)`,
-    countPrefix: '¥ ',
-    trend: ETrend.down,
-    trendNum: '20.5%',
-    timeType: TimeType.Range,
-  },
-  {
-    title: 'Ram Usage Monthly Estimated Costs',
-    query: `sum(
-  sum(label_replace(avg_over_time(container_memory_working_set_bytes{container!="POD",container!="",image!=""}[1h]), "node", "$1", "instance",  "(.*)")) by (container, pod, node, namespace) / 1024.0 / 1024.0 / 1024.0 * on (node) group_left()
-    avg(
     avg_over_time(node_ram_hourly_cost[1h]) * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}
     ) by (node)
   ) by (node)
