@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronRightIcon, CloseCircleIcon, UsergroupIcon } from 'tdesign-icons-react';
-import { Card } from 'tdesign-react';
+import { Card, MessagePlugin } from "tdesign-react";
 import classnames from 'classnames';
 import Style from './index.module.less';
 import { useInstantPrometheusQuery, useRangePrometheusQuery } from '../../services/prometheusApi';
@@ -287,8 +287,11 @@ const BoardChart = ({
     trend = ETrend.error;
   }
 
+  if (result?.isError) MessagePlugin.error(`[${title}] Check Your Network Or Query Params !!!`, 10 * 1000);
+
   return (
     <Card
+      loading={result?.isFetching}
       header={<div className={Style.boardTitle}>{title}</div>}
       className={classnames({
         [Style.boardPanelDark]: dark,

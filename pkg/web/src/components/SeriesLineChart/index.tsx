@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, DateRangePicker } from 'tdesign-react';
+import { Card, DateRangePicker, MessagePlugin } from "tdesign-react";
 import ReactEcharts from 'echarts-for-react';
 import { useRangePrometheusQuery } from '../../services/prometheusApi';
 import { useCraneUrl } from '../../hooks';
@@ -46,7 +46,8 @@ const fetchLinesData = (craneUrl, timeDateRangePicker, step, lines: ISeriesLine[
   const end = dayjs(timeDateRangePicker[1]).valueOf();
   return lines.map((line) => {
     const { name, query } = line;
-    const { data } = useRangePrometheusQuery({ craneUrl, start, end, step, query });
+    const { data, isError } = useRangePrometheusQuery({ craneUrl, start, end, step, query });
+    if (isError) MessagePlugin.error(`[${name}] Check Your Network Or Query Params !!!`, 10 * 1000);
     console.log(name, data?.metricData, data?.emptyData);
     return {
       ...line,
