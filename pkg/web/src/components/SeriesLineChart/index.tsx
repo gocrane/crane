@@ -82,6 +82,12 @@ const buildLineChartOption = (lineStyle: LineStyle | undefined, linesData: ISeri
     legend: {
       data: legend,
     },
+    dataZoom: [
+      {
+        type: 'slider',
+        show: true,
+      },
+    ],
     grid: {
       left: '1%',
       right: '1%',
