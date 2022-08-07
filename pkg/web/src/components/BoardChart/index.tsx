@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronRightIcon, CloseCircleIcon, UsergroupIcon } from 'tdesign-icons-react';
-import { Card, MessagePlugin } from "tdesign-react";
+import { Card, MessagePlugin } from 'tdesign-react';
 import classnames from 'classnames';
 import Style from './index.module.less';
 import { useInstantPrometheusQuery, useRangePrometheusQuery } from '../../services/prometheusApi';
@@ -224,12 +224,9 @@ function getPercentageChange(oldNumber, newNumber) {
 
 const BoardChart = ({
   title,
-  count,
   prefix,
   countPrefix,
   desc,
-  trend,
-  trendNum,
   Icon,
   dark,
   border,
@@ -262,6 +259,7 @@ const BoardChart = ({
     console.log(IconResult);
   }
 
+  let count;
   if (error) {
     count = error;
   } else if ((typeof result?.isFetching === 'boolean' && result?.isFetching === true) || result?.data?.emptyData) {
@@ -270,6 +268,8 @@ const BoardChart = ({
     count = `${countPrefix || ''}${result?.data?.latestValue || ''}`;
   }
 
+  let trendNum;
+  let trend;
   if (
     fetchDataResult?.result?.data &&
     fetchDataResult?.preResult?.data &&

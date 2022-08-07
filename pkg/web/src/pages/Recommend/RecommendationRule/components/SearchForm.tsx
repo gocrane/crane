@@ -2,6 +2,8 @@ import { RECOMMENDATION_RULE_TYPE_OPTIONS } from '../consts';
 import React, { memo, useRef } from 'react';
 import { Button, Col, Form, Input, MessagePlugin, Row, Select } from 'tdesign-react';
 import { FormInstanceFunctions, SubmitContext } from 'tdesign-react/es/form/type';
+import _ from 'lodash';
+import { useDispatch } from 'react-redux';
 
 const { FormItem } = Form;
 
@@ -14,48 +16,44 @@ export type FormValueType = {
 };
 
 export type SearchFormProps = {
-  onCancel: () => void;
-  onSubmit: (values: FormValueType) => Promise<void>;
+  setFilterParams: any;
+  filterParams: any;
 };
 
-const SearchForm: React.FC<SearchFormProps> = (props) => {
+const SearchForm: React.FC<SearchFormProps> = ({ setFilterParams, filterParams }) => {
   const formRef = useRef<FormInstanceFunctions>();
-  const onSubmit = (e: SubmitContext) => {
-    if (e.validateResult === true) {
-      MessagePlugin.info('提交成功');
-    }
-    const queryValue = formRef?.current?.getFieldsValue?.(true);
-    console.log('form 数据', queryValue);
+
+  const onValuesChange = (changeValue, allValues) => {
+    console.log(allValues);
+    if (!allValues.name) delete allValues.name;
+    if (!allValues.recommenderType) delete allValues.recommenderType;
+    setFilterParams(allValues);
   };
 
   const onReset = () => {
-    props.onCancel();
-    MessagePlugin.info('重置成功');
+    setFilterParams({});
   };
 
   return (
     <div className='list-common-table-query'>
-      <Form ref={formRef} onSubmit={onSubmit} onReset={onReset} labelWidth={80} colon>
+      <Form ref={formRef} onValuesChange={onValuesChange} onReset={onReset} labelWidth={80} >
         <Row>
           <Col flex='1'>
             <Row gutter={16}>
               <Col>
                 <FormItem label='推荐名称' name='name'>
-                  <Input placeholder='请输入推荐名称' />
+                  <Input placeholder='请输入推荐名称(支持前缀模糊)' autoWidth={true} />
                 </FormItem>
               </Col>
               <Col>
-                <FormItem label='推荐类型' name='status'>
+                <FormItem label='推荐类型' name='recommenderType'>
                   <Select options={RECOMMENDATION_RULE_TYPE_OPTIONS} placeholder='请选择推荐类型' />
                 </FormItem>
               </Col>
             </Row>
           </Col>
           <Col flex='160px'>
-            <Button theme='primary' type='submit' style={{ margin: '0px 20px' }}>
-              查询
-            </Button>
-            <Button type='reset' variant='base' theme='default'>
+            <Button type='reset' variant='base' theme='default' style={{ margin: '0px 50px' }}>
               重置
             </Button>
           </Col>

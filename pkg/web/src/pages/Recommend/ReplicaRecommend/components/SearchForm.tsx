@@ -1,60 +1,69 @@
-import { RECOMMENDATION_RULE_TYPE_OPTIONS } from '../consts';
 import React, { memo, useRef } from 'react';
 import { Button, Col, Form, Input, MessagePlugin, Row, Select } from 'tdesign-react';
 import { FormInstanceFunctions, SubmitContext } from 'tdesign-react/es/form/type';
+import _ from 'lodash';
 
 const { FormItem } = Form;
 
-export type FormValueType = {
-  name?: string;
-  status?: string;
-  number?: string;
-  time?: string;
-  type?: string;
-};
-
 export type SearchFormProps = {
-  onCancel: () => void;
-  onSubmit: (values: FormValueType) => Promise<void>;
+  recommendation: any;
+  setFilterParams: any;
 };
 
-const SearchForm: React.FC<SearchFormProps> = (props) => {
+const SearchForm: React.FC<SearchFormProps> = ({ recommendation, setFilterParams }) => {
   const formRef = useRef<FormInstanceFunctions>();
-  const onSubmit = (e: SubmitContext) => {
-    if (e.validateResult === true) {
-      MessagePlugin.info('提交成功');
-    }
-    const queryValue = formRef?.current?.getFieldsValue?.(true);
-    console.log('form 数据', queryValue);
+  const onValuesChange = (changeValues: any, allValues: { name: any; namespace: any; workloadType: any }) => {
+    if (!allValues.name) delete allValues.name;
+    if (!allValues.namespace) delete allValues.namespace;
+    if (!allValues.workloadType) delete allValues.workloadType;
+    setFilterParams(allValues);
   };
 
-  const onReset = () => {
-    props.onCancel();
-    MessagePlugin.info('重置成功');
-  };
+  const onReset = () => setFilterParams({});
+
+  const nameSpaceOptions = _.uniqBy(
+    recommendation.map((r: { namespace: any; label: any }) => ({ value: r.namespace, label: r.label })),
+    'value',
+  );
+  const workloadTypeOptions = _.uniqBy(
+    recommendation.map((r: { workloadType: any }) => ({ value: r.workloadType, label: r.workloadType })),
+    'value',
+  );
 
   return (
     <div className='list-common-table-query'>
-      <Form ref={formRef} onSubmit={onSubmit} onReset={onReset} labelWidth={80} colon>
+      <Form ref={formRef} onValuesChange={onValuesChange} onReset={onReset} labelWidth={80} layout={'inline'} >
         <Row>
-          <Col flex='1'>
-            <Row gutter={16}>
+          <Col>
+            <Row>
               <Col>
                 <FormItem label='推荐名称' name='name'>
                   <Input placeholder='请输入推荐名称' />
                 </FormItem>
               </Col>
               <Col>
-                <FormItem label='推荐类型' name='status'>
-                  <Select options={RECOMMENDATION_RULE_TYPE_OPTIONS} placeholder='请选择推荐类型' />
+                <FormItem label='NameSpace' name='namespace' style={{ margin: '0px 10px' }}>
+                  <Select
+                    options={nameSpaceOptions}
+                    placeholder='请选择NameSpace'
+                    autoWidth={true}
+                    style={{ margin: '0px 20px' }}
+                  />
+                </FormItem>
+              </Col>
+              <Col>
+                <FormItem label='工作负载类型' name='workloadType'>
+                  <Select
+                    options={workloadTypeOptions}
+                    placeholder='请选择工作负载类型'
+                    autoWidth={true}
+                    style={{ margin: '0px 20px' }}
+                  />
                 </FormItem>
               </Col>
             </Row>
           </Col>
-          <Col flex='160px'>
-            <Button theme='primary' type='submit' style={{ margin: '0px 20px' }}>
-              查询
-            </Button>
+          <Col>
             <Button type='reset' variant='base' theme='default'>
               重置
             </Button>

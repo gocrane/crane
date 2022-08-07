@@ -1,5 +1,5 @@
 import CommonStyle from '../../../styles/common.module.less';
-import SearchForm from './components/SearchForm';
+import SearchForm from '../ReplicaRecommend/components/SearchForm';
 import './index.module.less';
 import classnames from 'classnames';
 import { useCraneUrl } from 'hooks';
@@ -14,11 +14,34 @@ export const SelectTable = () => {
   const [visible, setVisible] = useState(false);
   const craneUrl: any = useCraneUrl();
 
+  const [filterParams, setFilterParams] = useState({
+    namespace: undefined,
+    workloadType: undefined,
+    name: undefined,
+  });
+
   const { data, isFetching } = useFetchRecommendationListQuery({
     craneUrl,
     recommendationType: RecommendationType.Resource,
   });
   const recommendation = data?.data?.items || [];
+
+  const filterResult = recommendation
+    .filter((recommendation) => {
+      console.log(recommendation);
+      if (filterParams?.name) {
+        return new RegExp(`${filterParams.name}.*`).test(recommendation.name);
+      }
+      return true;
+    })
+    .filter((recommendation) => {
+      if (filterParams?.workloadType) return filterParams?.workloadType === recommendation.workloadType;
+      return true;
+    })
+    .filter((recommendation) => {
+      if (filterParams?.namespace) return filterParams?.namespace === recommendation?.namespace;
+      return true;
+    });
 
   function onSelectChange(value: (string | number)[]) {
     setSelectedRowKeys(value);
@@ -45,17 +68,12 @@ export const SelectTable = () => {
       <Divider></Divider>
       <Row justify='start' style={{ marginBottom: '20px' }}>
         <Col>
-          <SearchForm
-            onSubmit={async (value) => {
-              console.log(value);
-            }}
-            onCancel={() => {}}
-          />
+          <SearchForm recommendation={recommendation} setFilterParams={setFilterParams} />
         </Col>
       </Row>
       <Table
         loading={isFetching}
-        data={recommendation}
+        data={filterResult}
         tableLayout='auto'
         verticalAlign='middle'
         columns={[
@@ -163,6 +181,23 @@ export const SelectTable = () => {
         selectedRowKeys={selectedRowKeys}
         hover
         onSelectChange={onSelectChange}
+        pagination={{
+          defaultCurrent: 1,
+          defaultPageSize: 5,
+          total: filterResult.length,
+          showJumper: true,
+          onChange(pageInfo) {
+            console.log(pageInfo, 'onChange pageInfo');
+          },
+          onCurrentChange(current, pageInfo) {
+            console.log(current, 'onCurrentChange current');
+            console.log(pageInfo, 'onCurrentChange pageInfo');
+          },
+          onPageSizeChange(size, pageInfo) {
+            console.log(size, 'onPageSizeChange size');
+            console.log(pageInfo, 'onPageSizeChange pageInfo');
+          },
+        }}
       />
       <Dialog header='确认删除当前所选推荐规则？' visible={visible} onClose={handleClose}>
         <p>推荐规则将从API Server中删除,且无法恢复</p>

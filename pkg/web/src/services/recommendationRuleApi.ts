@@ -15,6 +15,8 @@ interface RecommendationRuleSimpleInfo {
   kind: string;
   apiVersion: string;
   metadata?: metadata;
+  name: string;
+  recommenderType: string;
 }
 
 interface FetchRecommendationRuleResult {
@@ -82,6 +84,19 @@ export const recommendationRuleApi = createApi({
         url: `${args.craneUrl}${URI}`,
         method: 'get',
       }),
+      transformResponse: (res, meta, arg) => {
+        if (res?.data?.items?.length > 0) {
+          res.data.items.map((value) => {
+            if (value?.spec?.recommenders[0]?.name) value.recommenderType = value.spec.recommenders[0].name;
+            if (value?.metadata?.name) value.name = value.metadata.name;
+            return value;
+          });
+          res.emptyData = false;
+        } else {
+          res.emptyData = true;
+        }
+        return res;
+      },
     }),
     fetchRecommendationRuleListMu: builder.mutation<FetchRecommendationRuleResult, FetchRecommendationRuleListArgs>({
       query: (args) => ({

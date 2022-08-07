@@ -10,9 +10,25 @@ import { Button, Col, Dialog, Divider, Row, Space, Table, Tag } from 'tdesign-re
 export const SelectTable = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<(string | number)[]>([0, 1]);
   const [visible, setVisible] = useState(false);
+  const [filterParams, setFilterParams] = useState({
+    recommenderType: undefined,
+    name: undefined,
+  });
   const craneUrl: any = useCraneUrl();
   const { data, isFetching } = useFetchRecommendationRuleListQuery({ craneUrl });
   const recommendationRuleList = data?.data?.items || [];
+  const filterResult = recommendationRuleList
+    .filter((recommendationRule) => {
+      console.log(recommendationRule);
+      if (filterParams?.name) {
+        return new RegExp(`${filterParams.name}.*`).test(recommendationRule.name);
+      }
+      return true;
+    })
+    .filter((recommendationRule) => {
+      if (filterParams?.recommenderType) return filterParams?.recommenderType === recommendationRule.recommenderType;
+      return true;
+    });
 
   function onSelectChange(value: (string | number)[]) {
     setSelectedRowKeys(value);
@@ -34,22 +50,17 @@ export const SelectTable = () => {
   return (
     <>
       <Row>
-        <Button>新建推荐规则</Button>
+        <Button disabled>新建推荐规则</Button>
       </Row>
       <Divider></Divider>
       <Row justify='start' style={{ marginBottom: '20px' }}>
         <Col>
-          <SearchForm
-            onSubmit={async (value) => {
-              console.log(value);
-            }}
-            onCancel={() => {}}
-          />
+          <SearchForm filterParams={filterParams} setFilterParams={setFilterParams} />
         </Col>
       </Row>
       <Table
         loading={isFetching}
-        data={recommendationRuleList}
+        data={filterResult}
         columns={[
           {
             title: '推荐规则名称',
@@ -158,6 +169,23 @@ export const SelectTable = () => {
         selectedRowKeys={selectedRowKeys}
         hover
         onSelectChange={onSelectChange}
+        pagination={{
+          defaultCurrent: 1,
+          defaultPageSize: 5,
+          total: filterResult.length,
+          showJumper: true,
+          onChange(pageInfo) {
+            console.log(pageInfo, 'onChange pageInfo');
+          },
+          onCurrentChange(current, pageInfo) {
+            console.log(current, 'onCurrentChange current');
+            console.log(pageInfo, 'onCurrentChange pageInfo');
+          },
+          onPageSizeChange(size, pageInfo) {
+            console.log(size, 'onPageSizeChange size');
+            console.log(pageInfo, 'onPageSizeChange pageInfo');
+          },
+        }}
       />
       <Dialog header='确认删除当前所选推荐规则？' visible={visible} onClose={handleClose}>
         <p>推荐规则将从API Server中删除,且无法恢复</p>
