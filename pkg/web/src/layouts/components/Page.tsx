@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../modules/store';
 import { selectGlobal, switchFullPage } from '../../modules/global';
-import { Layout, Breadcrumb } from 'tdesign-react';
+import { Breadcrumb, Layout } from 'tdesign-react';
 import Style from './Page.module.less';
 
 const { Content } = Layout;

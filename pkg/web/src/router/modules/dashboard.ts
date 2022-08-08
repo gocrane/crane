@@ -6,18 +6,10 @@ const dashboard: IRouter[] = [
   {
     path: '/dashboard',
     meta: {
-      title: '统计报表',
+      title: '集群总览',
       Icon: DashboardIcon,
     },
-    children: [
-      {
-        path: 'base',
-        Component: lazy(() => import('pages/Dashboard/Base')),
-        meta: {
-          title: '概览仪表盘',
-        },
-      },
-    ],
+    Component: lazy(() => import('pages/Dashboard/Base')),
   },
 ];
 

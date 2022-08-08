@@ -1,6 +1,6 @@
 import React from 'react';
-import { ChevronRightIcon, CloseCircleFilledIcon, CloseCircleIcon, UsergroupIcon } from 'tdesign-icons-react';
-import { Card } from 'tdesign-react';
+import { ChevronRightIcon, CloseCircleIcon, UsergroupIcon } from 'tdesign-icons-react';
+import { Card, MessagePlugin } from 'tdesign-react';
 import classnames from 'classnames';
 import Style from './index.module.less';
 import { useInstantPrometheusQuery, useRangePrometheusQuery } from '../../services/prometheusApi';
@@ -224,12 +224,9 @@ function getPercentageChange(oldNumber, newNumber) {
 
 const BoardChart = ({
   title,
-  count,
   prefix,
   countPrefix,
   desc,
-  trend,
-  trendNum,
   Icon,
   dark,
   border,
@@ -262,6 +259,7 @@ const BoardChart = ({
     console.log(IconResult);
   }
 
+  let count;
   if (error) {
     count = error;
   } else if ((typeof result?.isFetching === 'boolean' && result?.isFetching === true) || result?.data?.emptyData) {
@@ -270,6 +268,8 @@ const BoardChart = ({
     count = `${countPrefix || ''}${result?.data?.latestValue || ''}`;
   }
 
+  let trendNum;
+  let trend;
   if (
     fetchDataResult?.result?.data &&
     fetchDataResult?.preResult?.data &&
@@ -287,8 +287,11 @@ const BoardChart = ({
     trend = ETrend.error;
   }
 
+  if (result?.isError) MessagePlugin.error(`[${title}] Check Your Network Or Query Params !!!`, 10 * 1000);
+
   return (
     <Card
+      loading={result?.isFetching}
       header={<div className={Style.boardTitle}>{title}</div>}
       className={classnames({
         [Style.boardPanelDark]: dark,

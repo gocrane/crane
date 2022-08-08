@@ -5,7 +5,7 @@ export interface OverviewState {
 }
 
 export const initialOverviewState: OverviewState = {
-  searchText: ''
+  searchText: '',
 };
 
 const slice = createSlice({
@@ -14,8 +14,8 @@ const slice = createSlice({
   reducers: {
     searchText: (state, action: PayloadAction<any>) => {
       state.searchText = action.payload;
-    }
-  }
+    },
+  },
 });
 
 export const overviewActions = slice.actions;

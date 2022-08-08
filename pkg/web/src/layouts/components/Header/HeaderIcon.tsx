@@ -1,12 +1,12 @@
-import { SupportLanguages, changeLanguage } from '../../../i18n';
+import { changeLanguage, SupportLanguages } from '../../../i18n';
 import Style from './HeaderIcon.module.less';
 import { toggleSetting } from 'modules/global';
 import { useAppDispatch } from 'modules/store';
 import React, { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Icon, LogoGithubIcon, HelpCircleIcon, SettingIcon } from 'tdesign-icons-react';
-import { Button, Popup, Badge, Dropdown, Row, Col } from 'tdesign-react';
+import { HelpCircleIcon, Icon, LogoGithubIcon, SettingIcon } from 'tdesign-icons-react';
+import { Button, Col, Dropdown, Popup, Row } from 'tdesign-react';
 
 export default memo(() => {
   const { t } = useTranslation();

@@ -22,10 +22,10 @@ export const HeadBubble = React.memo((props: HeadBubbleProps) => {
   const { title = '', text = '', position, autoflow } = props;
   return (
     <div>
-      {autoflow ? <span className="text-overflow">{title}</span> : <span>{title}</span>}
+      {autoflow ? <span className='text-overflow'>{title}</span> : <span>{title}</span>}
       <Tooltip content={<p style={{ fontWeight: 'normal' }}>{text}</p>} placement={position || 'top'}>
-        <span className="tc-15-bubble-icon">
-          <i className="tc-icon icon-what" />
+        <span className='tc-15-bubble-icon'>
+          <i className='tc-icon icon-what' />
         </span>
       </Tooltip>
     </div>

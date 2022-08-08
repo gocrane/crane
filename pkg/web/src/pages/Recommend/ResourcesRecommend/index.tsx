@@ -1,10 +1,10 @@
 import CommonStyle from '../../../styles/common.module.less';
-import SearchForm from './components/SearchForm';
+import SearchForm from '../ReplicaRecommend/components/SearchForm';
 import './index.module.less';
 import classnames from 'classnames';
 import { useCraneUrl } from 'hooks';
-import React, { useState, memo } from 'react';
-import { Table, Dialog, Button, Row, Col, Divider, Tag, Space} from "tdesign-react";
+import React, { memo, useState } from 'react';
+import { Button, Col, Dialog, Divider, Row, Space, Table, Tag } from 'tdesign-react';
 import { RecommendationType, useFetchRecommendationListQuery } from '../../../services/recommendationApi';
 import { useNavigate } from 'react-router-dom';
 
@@ -14,11 +14,34 @@ export const SelectTable = () => {
   const [visible, setVisible] = useState(false);
   const craneUrl: any = useCraneUrl();
 
+  const [filterParams, setFilterParams] = useState({
+    namespace: undefined,
+    workloadType: undefined,
+    name: undefined,
+  });
+
   const { data, isFetching } = useFetchRecommendationListQuery({
     craneUrl,
     recommendationType: RecommendationType.Resource,
   });
   const recommendation = data?.data?.items || [];
+
+  const filterResult = recommendation
+    .filter((recommendation) => {
+      console.log(recommendation);
+      if (filterParams?.name) {
+        return new RegExp(`${filterParams.name}.*`).test(recommendation.name);
+      }
+      return true;
+    })
+    .filter((recommendation) => {
+      if (filterParams?.workloadType) return filterParams?.workloadType === recommendation.workloadType;
+      return true;
+    })
+    .filter((recommendation) => {
+      if (filterParams?.namespace) return filterParams?.namespace === recommendation?.namespace;
+      return true;
+    });
 
   function onSelectChange(value: (string | number)[]) {
     setSelectedRowKeys(value);
@@ -40,22 +63,17 @@ export const SelectTable = () => {
   return (
     <>
       <Row>
-        <Button onClick={() => navigate('/workload-optimize/recommendationRule')}>新建推荐规则</Button>
+        <Button onClick={() => navigate('/recommend/recommendationRule')}>管理推荐规则</Button>
       </Row>
       <Divider></Divider>
       <Row justify='start' style={{ marginBottom: '20px' }}>
         <Col>
-          <SearchForm
-            onSubmit={async (value) => {
-              console.log(value);
-            }}
-            onCancel={() => {}}
-          />
+          <SearchForm recommendation={recommendation} setFilterParams={setFilterParams} />
         </Col>
       </Row>
       <Table
         loading={isFetching}
-        data={recommendation}
+        data={filterResult}
         tableLayout='auto'
         verticalAlign='middle'
         columns={[
@@ -94,7 +112,7 @@ export const SelectTable = () => {
             colKey: 'status.resourceRequest.containers',
             cell({ row }) {
               console.log('row', row);
-              if (typeof row.status.recommendedValue !== 'string'){
+              if (typeof row.status.recommendedValue !== 'string') {
                 const containers = row?.status?.recommendedValue?.resourceRequest?.containers || [];
                 if (containers.length > 0) {
                   return (
@@ -163,6 +181,23 @@ export const SelectTable = () => {
         selectedRowKeys={selectedRowKeys}
         hover
         onSelectChange={onSelectChange}
+        pagination={{
+          defaultCurrent: 1,
+          defaultPageSize: 5,
+          total: filterResult.length,
+          showJumper: true,
+          onChange(pageInfo) {
+            console.log(pageInfo, 'onChange pageInfo');
+          },
+          onCurrentChange(current, pageInfo) {
+            console.log(current, 'onCurrentChange current');
+            console.log(pageInfo, 'onCurrentChange pageInfo');
+          },
+          onPageSizeChange(size, pageInfo) {
+            console.log(size, 'onPageSizeChange size');
+            console.log(pageInfo, 'onPageSizeChange pageInfo');
+          },
+        }}
       />
       <Dialog header='确认删除当前所选推荐规则？' visible={visible} onClose={handleClose}>
         <p>推荐规则将从API Server中删除,且无法恢复</p>

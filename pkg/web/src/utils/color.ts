@@ -1,5 +1,5 @@
 import { Color } from 'tvision-color';
-import { defaultColor, darkColor, CHART_COLORS } from 'configs/color';
+import { CHART_COLORS, darkColor, defaultColor } from 'configs/color';
 import { ETheme } from 'types/index.d';
 
 /**

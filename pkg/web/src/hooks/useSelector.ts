@@ -1,4 +1,4 @@
-import { useSelector as useRawSelector, shallowEqual } from 'react-redux';
+import { shallowEqual, useSelector as useRawSelector } from 'react-redux';
 
 import { RootState } from 'modules/store';
 

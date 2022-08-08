@@ -1,4 +1,4 @@
-import i18n, { t } from '../i18n';
+import { t } from '../i18n';
 
 export enum QueryWindow {
   LAST_1_DAY = 'last1day',

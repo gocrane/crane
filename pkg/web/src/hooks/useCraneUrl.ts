@@ -1,5 +1,5 @@
 import { useSelector } from './useSelector';
-import { useFetchClusterListQuery } from "services/clusterApi";
+import { useFetchClusterListQuery } from 'services/clusterApi';
 
 export const useCraneUrl = () => {
   const selectedClusterId = useSelector((state) => state.insight.selectedClusterId);

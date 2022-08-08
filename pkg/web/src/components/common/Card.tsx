@@ -12,14 +12,12 @@ export const Card = ({
   operations?: React.ReactNode;
   style?: React.CSSProperties;
   className?: string;
-}) => {
-  return (
-    <div className={className} style={{ padding: 20, background: 'white', ...style }}>
-      <div>
-        {title}
-        {operations}
-      </div>
-      {children}
+}) => (
+  <div className={className} style={{ padding: 20, background: 'white', ...style }}>
+    <div>
+      {title}
+      {operations}
     </div>
-  );
-};
+    {children}
+  </div>
+);

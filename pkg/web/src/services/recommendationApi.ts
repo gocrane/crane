@@ -1,5 +1,5 @@
-import { fetchBaseQuery, createApi } from '@reduxjs/toolkit/query/react';
-import { parse, stringify } from 'yaml';
+import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { parse } from 'yaml';
 
 interface ownerReference {
   apiVersion: string;
@@ -97,6 +97,9 @@ export interface RecommendationSimpleInfo {
     recommendedValue?: RecommendedValue | string;
     lastUpdateTime?: string;
   };
+  workloadType: string;
+  name: string;
+  namespace: string;
 }
 
 interface FetchRecommendationArgs {
@@ -141,6 +144,9 @@ export const recommendationApi = createApi({
               value.status.recommendedValue = parse(value.status.recommendedValue);
             }
           }
+          if (value?.metadata?.name) value.name = value?.metadata?.name;
+          if (value?.spec.targetRef?.namespace) value.namespace = value?.spec.targetRef?.namespace;
+          if (value?.spec.targetRef?.kind) value.workloadType = value?.spec.targetRef?.kind;
           return value;
         });
         return res;

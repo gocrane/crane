@@ -3,7 +3,7 @@ import { PanelWrapper } from './PanelWrapper';
 import { useSelector } from 'hooks';
 import React, { memo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { grafanaApi, useFetchDashboardDetailQuery } from "services/grafanaApi";
+import { useFetchDashboardDetailQuery } from 'services/grafanaApi';
 import { Row } from 'tdesign-react';
 
 export default memo(() => {

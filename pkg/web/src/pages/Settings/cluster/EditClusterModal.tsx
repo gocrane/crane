@@ -301,6 +301,24 @@ export const EditClusterModal = React.memo(() => {
                     />
                   </div>
                 </Form.FormItem>
+                <Form.FormItem>
+                  <Button
+                    block={true}
+                    onClick={() => {
+                      dispatch(
+                        editClusterActions.updateCluster({
+                          id: cluster.id,
+                          data: {
+                            craneUrl: window.location.origin,
+                            clusterName: 'Demo Cluster',
+                          },
+                        }),
+                      );
+                    }}
+                  >
+                    快速填入页面地址作为集群地址
+                  </Button>
+                </Form.FormItem>
               </div>
             </Tabs.TabPanel>
           ))}

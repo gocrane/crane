@@ -2,7 +2,7 @@ import { QueryWindow, QueryWindowOptions } from '../../../models';
 import CommonStyle from '../../../styles/common.module.less';
 import classnames from 'classnames';
 import { Card } from 'components/common/Card';
-import { useSelector, useCraneUrl, useIsNeedSelectNamespace } from 'hooks';
+import { useCraneUrl, useIsNeedSelectNamespace, useSelector } from 'hooks';
 import { insightAction } from 'modules/insightSlice';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
