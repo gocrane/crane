@@ -93,6 +93,10 @@ lint: golangci-lint  ## Run golang lint against code
 test: fmt vet lint ## Run tests.
 	go test -coverprofile coverage.out -covermode=atomic ./...
 
+.PHONY: echoLDFLAGS
+echoLDFLAGS:
+	@echo $(LDFLAGS)
+
 .PHONY: build
 build: craned crane-agent metric-adapter
 
