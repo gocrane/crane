@@ -1,6 +1,6 @@
-# 鏡像倉庫
+# 鏡像資源
 
-## 關於鏡像倉庫
+## 關於鏡像資源
 
 因為各種網絡問題，導致部分地域難以訪問GitHub 資源，如GitHub Repo, GitHub Release, GitHub Raw Content `raw.githubusercontent.com`。
 
