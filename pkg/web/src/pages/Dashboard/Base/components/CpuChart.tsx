@@ -1,19 +1,15 @@
-import React, { useState } from 'react';
-import { Col, Row } from 'tdesign-react';
-import useDynamicChart from 'hooks/useDynamicChart';
-import { getLineChartOptions } from '../chart';
+import React from 'react';
+import {Col, Row} from 'tdesign-react';
 import Style from './CpuChart.module.less';
-import SeriesLineChart, { ISeriesLineChart } from '../../../../components/SeriesLineChart';
+import SeriesLineChart, {ISeriesLineChart, LineStyle} from '../../../../components/SeriesLineChart';
 
-const lineOptions = getLineChartOptions();
 
 const item: ISeriesLineChart = {
   title: 'CPU 资源使用',
-  subTitle: '',
+  subTitle: '(Core)',
   datePicker: true,
-  timeRange: 3600,
   step: '1h',
-  xAxis: { type: 'time' },
+  xAxis: {type: 'time'},
   lines: [
     {
       name: 'capacity',
@@ -23,21 +19,18 @@ const item: ISeriesLineChart = {
       name: 'request',
       query: `SUM(kube_pod_container_resource_requests{resource="cpu", unit="core"}  * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!="eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node))`,
     },
+    {
+      name: 'limit',
+      query: `SUM(kube_pod_container_resource_limits{resource="cpu", unit="core"}  * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!="eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node))`,
+    },
+    {
+      name: 'usage',
+      query: `sum(label_replace(irate(container_cpu_usage_seconds_total{container!="POD", container!="",image!=""}[1h]), "node", "$1", "instance",  "(.*)") * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node))`,
+    },
   ],
 };
 
 const CpuChart = () => {
-  const [customOptions, setCustomOptions] = useState(lineOptions);
-
-  const onTimeChange = (value: Array<string>) => {
-    const options = getLineChartOptions(value);
-    setCustomOptions(options);
-  };
-
-  const dynamicLineChartOption = useDynamicChart(customOptions, {
-    placeholderColor: ['legend.textStyle.color', 'xAxis.axisLabel.color', 'yAxis.axisLabel.color'],
-    borderColor: ['series.0.itemStyle.borderColor', 'series.1.itemStyle.borderColor'],
-  });
 
   return (
     <Row gutter={[16, 16]} className={Style.cpuChartPanel}>

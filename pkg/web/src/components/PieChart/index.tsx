@@ -22,6 +22,8 @@ export interface IPieChart {
 const fetchPieData = (craneUrl, title, timeDateRangePicker, step, query) => {
   const start = dayjs(timeDateRangePicker[0]).valueOf();
   const end = dayjs(timeDateRangePicker[1]).valueOf();
+  const minutesDuration = Math.round((end - start)/1000/60)
+  query = query.replaceAll("{DURATION}", minutesDuration.toString())
   const { data, isError } = useRangePrometheusQuery({ craneUrl, start, end, step, query });
   if (isError) MessagePlugin.error(`[${title}] Check Your Network Or Query Params !!!`, 10 * 1000);
   const result: never[] = [];
@@ -57,7 +59,7 @@ const PieChart = ({ title, subTitle, datePicker, timeRange, step, query }: IPieC
     ]);
   } else {
     [timeDateRangePicker, setTimeDateRangePicker] = useState([
-      dayjs().subtract(3, 'days').format('YYYY-MM-DD'),
+      dayjs().subtract(7, 'days').format('YYYY-MM-DD'),
       dayjs().subtract(0, 's').format('YYYY-MM-DD HH:mm:ss'),
     ]);
   }
@@ -97,7 +99,7 @@ const PieChart = ({ title, subTitle, datePicker, timeRange, step, query }: IPieC
     },
     legend: {
       type: 'scroll',
-      top: '0%',
+      top: 'bottom',
       left: 'center',
     },
     label: {
@@ -105,6 +107,7 @@ const PieChart = ({ title, subTitle, datePicker, timeRange, step, query }: IPieC
       position: 'center',
     },
     timeline: {
+      show: false,
       currentIndex: Object.keys(pieData).length - 1,
       bottom: '0',
       axisType: 'category',

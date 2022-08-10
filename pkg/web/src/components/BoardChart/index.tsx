@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChevronRightIcon, CloseCircleIcon, UsergroupIcon } from 'tdesign-icons-react';
-import { Card, MessagePlugin } from 'tdesign-react';
+import { Card, MessagePlugin, Tooltip } from 'tdesign-react';
+import { InfoCircleIcon } from 'tdesign-icons-react';
 import classnames from 'classnames';
 import Style from './index.module.less';
 import { useInstantPrometheusQuery, useRangePrometheusQuery } from '../../services/prometheusApi';
@@ -58,6 +59,8 @@ export interface IBoardProps extends React.HTMLAttributes<HTMLElement> {
   start?: number;
   // Prometheus Query End Time, unit: unix timestamp; Trans to sec: Math.floor(Date.now() / 1000)
   end?: number;
+  // Tooltips description, unit: string.
+  tips?: string
 }
 
 const fetchData = (craneUrl: string, { query, timeType, start, end, step }: IBoardProps) => {
@@ -236,6 +239,7 @@ const BoardChart = ({
   start,
   end,
   step,
+  tips,
 }: IBoardProps) => {
   const craneUrl: any = useCraneUrl();
   let fetchDataResult;
@@ -292,7 +296,15 @@ const BoardChart = ({
   return (
     <Card
       loading={result?.isFetching}
-      header={<div className={Style.boardTitle}>{title}</div>}
+      header={
+      <div className={Style.boardTitle}>
+        {title}
+        <span style={{ marginLeft: '5px'}}>
+          <Tooltip content={<p style={{ fontWeight: 'normal' }}>{tips}</p>} placement={'top'}>
+            <InfoCircleIcon />
+          </Tooltip>
+        </span>
+      </div>}
       className={classnames({
         [Style.boardPanelDark]: dark,
       })}
