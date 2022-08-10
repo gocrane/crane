@@ -418,10 +418,14 @@ jobs:
             ```bash
             helm repo add crane https://finops-helm.pkg.coding.net/gocrane/gocrane
             helm install crane -n crane-system --create-namespace \
-                               --set craned.image.tag=gocrane/craned:${{steps.image-tags.outputs.image-tags}} \
-                               --set metricAdapter.image.tag=gocrane/metric-adapter:${{steps.image-tags.outputs.image-tags}} \
-                               --set craneAgent.image.tag=gocrane/crane-agent:${{steps.image-tags.outputs.image-tags}} \
-                               --set cranedDashboard.image.tag=gocrane/dashboard:${{steps.image-tags.outputs.image-tags}} crane/crane
+                               --set craned.image.repository=gocrane/craned \
+                               --set craned.image.tag=${{steps.image-tags.outputs.image-tags}} \
+                               --set metricAdapter.image.repository=gocrane/metric-adapter \
+                               --set metricAdapter.image.tag=${{steps.image-tags.outputs.image-tags}} \
+                               --set craneAgent.image.repository=gocrane/crane-agent \
+                               --set craneAgent.image.tag=${{steps.image-tags.outputs.image-tags}} \
+                               --set cranedDashboard.image.repository=gocrane/dashboard \
+                               --set cranedDashboard.image.tag=${{steps.image-tags.outputs.image-tags}} crane/crane
             ```
 
             ---
@@ -441,10 +445,14 @@ jobs:
             ```bash
             helm repo add crane https://finops-helm.pkg.coding.net/gocrane/gocrane
             helm install crane -n crane-system --create-namespace \
-                               --set craned.image.tag=finops-docker.pkg.coding.net/gocrane/crane/craned:${{steps.image-tags.outputs.image-tags}} \
-                               --set metricAdapter.image.tag=finops-docker.pkg.coding.net/gocrane/crane/metric-adapter:${{steps.image-tags.outputs.image-tags}} \
-                               --set craneAgent.image.tag=finops-docker.pkg.coding.net/gocrane/crane/crane-agent:${{steps.image-tags.outputs.image-tags}} \
-                               --set cranedDashboard.image.tag=finops-docker.pkg.coding.net/gocrane/crane/dashboard:${{steps.image-tags.outputs.image-tags}} crane/crane
+                               --set craned.image.repository=finops-docker.pkg.coding.net/gocrane/crane/craned \
+                               --set craned.image.tag=${{steps.image-tags.outputs.image-tags}} \
+                               --set metricAdapter.image.repository=finops-docker.pkg.coding.net/gocrane/crane/metric-adapter \
+                               --set metricAdapter.image.tag=${{steps.image-tags.outputs.image-tags}} \
+                               --set craneAgent.image.repository=finops-docker.pkg.coding.net/gocrane/crane/crane-agent \
+                               --set craneAgent.image.tag=${{steps.image-tags.outputs.image-tags}} \
+                               --set cranedDashboard.image.repository=finops-docker.pkg.coding.net/gocrane/crane/dashboard \
+                               --set cranedDashboard.image.tag=${{steps.image-tags.outputs.image-tags}} crane/crane
             ```
 
             ---
@@ -464,10 +472,14 @@ jobs:
             ```bash
             helm repo add crane https://finops-helm.pkg.coding.net/gocrane/gocrane
             helm install crane -n crane-system --create-namespace \
-                               --set craned.image.tag=ghcr.io/gocrane/crane/craned:${{steps.image-tags.outputs.image-tags}} \
-                               --set metricAdapter.image.tag=ghcr.io/gocrane/crane/metric-adapter:${{steps.image-tags.outputs.image-tags}} \
-                               --set craneAgent.image.tag=ghcr.io/gocrane/crane/crane-agent:${{steps.image-tags.outputs.image-tags}} \
-                               --set cranedDashboard.image.tag=ghcr.io/gocrane/crane/dashboard:${{steps.image-tags.outputs.image-tags}} crane/crane
+                               --set craned.image.repository=ghcr.io/gocrane/crane/craned \
+                               --set craned.image.tag=${{steps.image-tags.outputs.image-tags}} \
+                               --set metricAdapter.image.repository=ghcr.io/gocrane/crane/metric-adapter \
+                               --set metricAdapter.image.tag=${{steps.image-tags.outputs.image-tags}} \
+                               --set craneAgent.image.repository=ghcr.io/gocrane/crane/crane-agent \
+                               --set craneAgent.image.tag=${{steps.image-tags.outputs.image-tags}} \
+                               --set cranedDashboard.image.repository=ghcr.io/gocrane/crane/dashboard \
+                               --set cranedDashboard.image.tag=${{steps.image-tags.outputs.image-tags}} crane/crane
             ```
 
             <!-- Created by actions-cool/maintain-one-comment -->
