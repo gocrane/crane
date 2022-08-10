@@ -14,7 +14,8 @@
     "test:coverage": "echo \"no test specified,work in process\"",
     "lint": "eslint ./src --ext ts,tsx",
     "lint:fix": "eslint ./src --ext ts,tsx --fix",
-    "prepare": "node -e \"if(require('fs').existsSync('.git')){process.exit(1)}\" || is-ci || husky install"
+    "prepare": "node -e \"if(require('fs').existsSync('.git')){process.exit(1)}\" || is-ci || husky install",
+    "scan": "i18next-scanner"
   },
   "devDependencies": {
     "@honkhonk/vite-plugin-svgr": "^1.1.0",

@@ -39,6 +39,7 @@ export interface ISeriesLineChart {
   };
   lines: ISeriesLine[];
   lineStyle?: LineStyle;
+  tips?: string;
 }
 
 const fetchLinesData = (craneUrl, timeDateRangePicker, step, lines: ISeriesLine[]) => {
@@ -66,6 +67,7 @@ const buildLineChartOption = (lineStyle: LineStyle | undefined, linesData: ISeri
           type: 'line',
           data: series.data,
           areaStyle: {},
+          showSymbol: false,
           emphasis: {
             focus: 'series',
           },
@@ -74,20 +76,21 @@ const buildLineChartOption = (lineStyle: LineStyle | undefined, linesData: ISeri
           name: series.name,
           type: 'line',
           data: series.data,
-        }));
+          showSymbol: false,
+      }));
   return {
     tooltip: {
       trigger: 'axis',
+      axisPointer: {
+        type: 'cross',
+        label: {
+          backgroundColor: '#6a7985'
+        }
+      }
     },
     legend: {
       data: legend,
     },
-    dataZoom: [
-      {
-        type: 'slider',
-        show: true,
-      },
-    ],
     grid: {
       left: '1%',
       right: '1%',
@@ -122,6 +125,7 @@ const SeriesLineChart = ({
   xAxis,
   lines,
   lineStyle,
+  tips,
 }: ISeriesLineChart) => {
   const craneUrl: any = useCraneUrl();
 
@@ -135,7 +139,7 @@ const SeriesLineChart = ({
     ]);
   } else {
     [timeDateRangePicker, setTimeDateRangePicker] = useState([
-      dayjs().subtract(30, 'days').format('YYYY-MM-DD HH:mm:ss'),
+      dayjs().subtract(7, 'days').format('YYYY-MM-DD HH:mm:ss'),
       dayjs().subtract(0, 's').format('YYYY-MM-DD HH:mm:ss'),
     ]);
   }

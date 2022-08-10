@@ -39,5 +39,6 @@
   "确认删除集群": "Are you sure you want to delete cluster",
   "请选择集群": "Select Cluster",
   "请选择Dashboard": "Select Dashboard",
-  "共 {total} 项数据": "Total {total} items"
+  "共 {total} 项数据": "Total {total} items",
+  "成本走势": "Cost Trend"
 }
