@@ -1,4 +1,4 @@
-package recommendation
+package recommender
 
 const (
 	// ReplicasRecommender name

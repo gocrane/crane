@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gocrane/crane/pkg/metricnaming"
+
 	"github.com/montanaflynn/stats"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/autoscaling/v1"
@@ -18,8 +20,6 @@ import (
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/common"
-	"github.com/gocrane/crane/pkg/metricnaming"
-	"github.com/gocrane/crane/pkg/metricquery"
 	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/recommend/types"
@@ -54,7 +54,7 @@ func (a *ReplicasAdvisor) Advise(proposed *types.ProposedRecommendation) error {
 		return err
 	}
 	caller := fmt.Sprintf(callerFormat, klog.KObj(a.Recommendation), a.Recommendation.UID)
-	metricNamer := ResourceToWorkloadMetricNamer(target, &resourceCpu, labelSelector, caller)
+	metricNamer := metricnaming.ResourceToWorkloadMetricNamer(target, &resourceCpu, labelSelector, caller)
 	if err := metricNamer.Validate(); err != nil {
 		return err
 	}
@@ -304,7 +304,7 @@ func (a *ReplicasAdvisor) proposeTargetUtilization() (int32, int64, error) {
 	// use percentile algo to get the 99 percentile cpu usage for this target
 	for _, container := range a.PodTemplate.Spec.Containers {
 		caller := fmt.Sprintf(callerFormat, klog.KObj(a.Recommendation), a.Recommendation.UID)
-		metricNamer := ResourceToContainerMetricNamer(a.Recommendation.Spec.TargetRef.Namespace, a.Recommendation.Spec.TargetRef.APIVersion,
+		metricNamer := metricnaming.ResourceToContainerMetricNamer(a.Recommendation.Spec.TargetRef.Namespace, a.Recommendation.Spec.TargetRef.APIVersion,
 			a.Recommendation.Spec.TargetRef.Kind, a.Recommendation.Spec.TargetRef.Name, container.Name, corev1.ResourceCPU, caller)
 		cpuConfig := makeCpuConfig(a.ConfigProperties)
 		tsList, err := utils.QueryPredictedValuesOnce(a.Recommendation,
@@ -428,23 +428,5 @@ func GetTargetLabelSelector(target *corev1.ObjectReference, scale *v1.Scale, ds 
 			return labelsMap, nil
 		}
 		return nil, fmt.Errorf("no daemonset specified")
-	}
-}
-
-func ResourceToWorkloadMetricNamer(target *corev1.ObjectReference, resourceName *corev1.ResourceName, workloadLabelSelector labels.Selector, caller string) metricnaming.MetricNamer {
-	// workload
-	return &metricnaming.GeneralMetricNamer{
-		CallerName: caller,
-		Metric: &metricquery.Metric{
-			Type:       metricquery.WorkloadMetricType,
-			MetricName: resourceName.String(),
-			Workload: &metricquery.WorkloadNamerInfo{
-				Namespace:  target.Namespace,
-				Kind:       target.Kind,
-				APIVersion: target.APIVersion,
-				Name:       target.Name,
-				Selector:   workloadLabelSelector,
-			},
-		},
 	}
 }

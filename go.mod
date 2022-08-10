@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/go-echarts/go-echarts/v2 v2.2.4
-	github.com/gocrane/api v0.6.1-0.20220721081535-2cf15fc58bf3
+	github.com/gocrane/api v0.6.1-0.20220809112454-68f0199a774e
 	github.com/google/cadvisor v0.39.2
 	github.com/mjibson/go-dsp v0.0.0-20180508042940-11479a337f12
 	github.com/prometheus/client_golang v1.11.0
@@ -171,6 +171,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/lithammer/fuzzysearch v1.1.5
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/afero v1.6.0 // indirect
@@ -181,7 +182,6 @@ require (
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/tools v0.1.8 // indirect
 	google.golang.org/genproto v0.0.0-20211208223120-3a66f561d7aa // indirect
-	k8s.io/klog v0.3.0
 )
 
 replace (

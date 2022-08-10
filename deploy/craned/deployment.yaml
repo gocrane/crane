@@ -49,7 +49,7 @@ spec:
             - --prometheus-address=PROMETHEUS_ADDRESS
             - --feature-gates=Analysis=true,TimeSeriesPrediction=true,Autoscaling=true
             - --recommendation-config-file=/tmp/recommendation-config/config_set.yaml
-            - --recommendation-configiguration-file=/tmp/recommendation-framework/recommendation_configuration.yaml
+            - --recommendation-configuration-file=/tmp/recommendation-framework/recommendation_configuration.yaml
             - -v=4
           volumeMounts:
             - mountPath: /tmp/k8s-webhook-server/serving-certs

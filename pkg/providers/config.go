@@ -58,4 +58,11 @@ const (
 	PrometheusDataSource   DataSourceType = "prom"
 	MetricServerDataSource DataSourceType = "metricserver"
 	GrpcDataSource         DataSourceType = "grpc"
+	DataSourceTypeKey      string         = "data-source-type"
 )
+
+var PrometheusConfigKeys = []string{"prometheus-address", "prometheus-auth-username", "prometheus-auth-password",
+	"prometheus-auth-bearertoken", "prometheus-query-concurrency", "prometheus-insecure-skip-verify",
+	"prometheus-keepalive", "prometheus-timeout", "prometheus-bratelimit", "prometheus-maxpoints"}
+
+var GrpcConfigKeys = []string{"grpc-ds-address", "grpc-ds-timeout"}

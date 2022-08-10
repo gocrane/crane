@@ -1,4 +1,4 @@
-package recommendation
+package recommender
 
 import (
 	"github.com/gocrane/crane/pkg/recommendation/framework"
@@ -6,11 +6,11 @@ import (
 
 type Recommender interface {
 	Name() string
-	Run(ctx *framework.RecommendationContext)
 	framework.Filter
 	framework.PrePrepare
 	framework.Prepare
 	framework.PostPrepare
+	framework.PreRecommend
 	framework.Recommend
 	framework.PostRecommend
 	framework.Observe

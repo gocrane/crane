@@ -8,6 +8,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gocrane/crane/pkg/controller/analytics"
+	"github.com/gocrane/crane/pkg/providers"
+	recommender "github.com/gocrane/crane/pkg/recommendation"
+	"github.com/gocrane/crane/pkg/recommendation/framework"
+
+	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -28,33 +34,26 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/yaml"
-
-	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/known"
-	predictormgr "github.com/gocrane/crane/pkg/predictor"
-	"github.com/gocrane/crane/pkg/providers"
-	"github.com/gocrane/crane/pkg/recommend"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
-type Controller struct {
+type RecommendationRuleController struct {
 	client.Client
-	ConfigSet       *analysisv1alph1.ConfigSet
 	Scheme          *runtime.Scheme
 	Recorder        record.EventRecorder
 	RestMapper      meta.RESTMapper
 	ScaleClient     scale.ScalesGetter
-	PredictorMgr    predictormgr.Manager
-	Provider        providers.History
+	RecommenderMgr  recommender.RecommenderManager
 	kubeClient      kubernetes.Interface
 	dynamicClient   dynamic.Interface
 	discoveryClient discovery.DiscoveryInterface
 	K8SVersion      *version.Version
+	Provider        providers.History
 }
 
-func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (c *RecommendationRuleController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	klog.V(4).InfoS("Got a RecommendationRule resource.", "RecommendationRule", req.NamespacedName)
 
 	recommendationRule := &analysisv1alph1.RecommendationRule{}
@@ -108,7 +107,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{RequeueAfter: time.Second * 1}, nil
 }
 
-func (c *Controller) doReconcile(ctx context.Context, recommendationRule *analysisv1alph1.RecommendationRule, interval time.Duration) bool {
+func (c *RecommendationRuleController) doReconcile(ctx context.Context, recommendationRule *analysisv1alph1.RecommendationRule, interval time.Duration) bool {
 	newStatus := recommendationRule.Status.DeepCopy()
 
 	identities, err := c.getIdentities(ctx, recommendationRule)
@@ -137,11 +136,17 @@ func (c *Controller) doReconcile(ctx context.Context, recommendationRule *analys
 	}
 
 	if currMissions == nil {
-		// create recommendation missions for this round
+		// create recommendation rule missions for this round
+		// every recommendation rule have multi recommender for one identity
 		for _, id := range identities {
-			currMissions = append(currMissions, analysisv1alph1.RecommendationMission{
-				TargetRef: id.GetObjectReference(),
-			})
+			for _, recommender := range recommendationRule.Spec.Recommenders {
+				currMissions = append(currMissions, analysisv1alph1.RecommendationMission{
+					TargetRef: id.GetObjectReference(),
+					RecommenderRef: analysisv1alph1.Recommender{
+						Name: recommender.Name,
+					},
+				})
+			}
 		}
 	}
 
@@ -232,7 +237,7 @@ func (c *Controller) doReconcile(ctx context.Context, recommendationRule *analys
 	return finished
 }
 
-func (c *Controller) CreateRecommendationObject(recommendationRule *analysisv1alph1.RecommendationRule,
+func (c *RecommendationRuleController) CreateRecommendationObject(recommendationRule *analysisv1alph1.RecommendationRule,
 	target corev1.ObjectReference, id ObjectIdentity, recommenderName string) *analysisv1alph1.Recommendation {
 
 	recommendation := &analysisv1alph1.Recommendation{
@@ -261,7 +266,7 @@ func (c *Controller) CreateRecommendationObject(recommendationRule *analysisv1al
 	return recommendation
 }
 
-func (c *Controller) SetupWithManager(mgr ctrl.Manager) error {
+func (c *RecommendationRuleController) SetupWithManager(mgr ctrl.Manager) error {
 	c.kubeClient = kubernetes.NewForConfigOrDie(mgr.GetConfig())
 	c.discoveryClient = discovery.NewDiscoveryClientForConfigOrDie(mgr.GetConfig())
 	c.dynamicClient = dynamic.NewForConfigOrDie(mgr.GetConfig())
@@ -277,7 +282,7 @@ func (c *Controller) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(c)
 }
 
-func (c *Controller) getIdentities(ctx context.Context, recommendationRule *analysisv1alph1.RecommendationRule) (map[string]ObjectIdentity, error) {
+func (c *RecommendationRuleController) getIdentities(ctx context.Context, recommendationRule *analysisv1alph1.RecommendationRule) (map[string]ObjectIdentity, error) {
 	identities := map[string]ObjectIdentity{}
 
 	for _, rs := range recommendationRule.Spec.ResourceSelectors {
@@ -357,7 +362,7 @@ func (c *Controller) getIdentities(ctx context.Context, recommendationRule *anal
 	return identities, nil
 }
 
-func (c *Controller) executeMission(ctx context.Context, wg *sync.WaitGroup, recommendationRule *analysisv1alph1.RecommendationRule, identities map[string]ObjectIdentity, mission *analysisv1alph1.RecommendationMission, existingRecommendation *analysisv1alph1.Recommendation, timeNow metav1.Time) {
+func (c *RecommendationRuleController) executeMission(ctx context.Context, wg *sync.WaitGroup, recommendationRule *analysisv1alph1.RecommendationRule, identities map[string]ObjectIdentity, mission *analysisv1alph1.RecommendationMission, existingRecommendation *analysisv1alph1.Recommendation, timeNow metav1.Time) {
 	defer func() {
 		mission.LastStartTime = &timeNow
 		klog.Infof("Mission message: %s", mission.Message)
@@ -372,32 +377,27 @@ func (c *Controller) executeMission(ctx context.Context, wg *sync.WaitGroup, rec
 	} else {
 		recommendation := existingRecommendation
 		if recommendation == nil {
-			recommendation = c.CreateRecommendationObject(recommendationRule, mission.TargetRef, id, "")
+			recommendation = c.CreateRecommendationObject(recommendationRule, mission.TargetRef, id, mission.RecommenderRef.Name)
 		}
-		// do recommendation
-		//recommender, err := recommend.NewRecommender(c.Client, c.RestMapper, c.ScaleClient, recommendation, c.PredictorMgr, c.Provider, c.configSet, analytics.Spec.Config)
-		//if err != nil {
-		//	mission.Message = fmt.Sprintf("Failed to create recommender, Recommendation %s error %v", klog.KObj(recommendation), err)
-		//	return
-		//}
 
-		var recommender recommend.Recommender
+		r := c.RecommenderMgr.GetRecommender(mission.RecommenderRef.Name)
+		p := make(map[providers.DataSourceType]providers.History)
+		p[providers.PrometheusDataSource] = c.Provider
+		identity := analytics.ObjectIdentity{
+			Namespace:  identities[k].Namespace,
+			Name:       identities[k].Name,
+			Kind:       identities[k].Kind,
+			APIVersion: identities[k].APIVersion,
+			Labels:     identities[k].Labels,
+		}
+		recommendationContext := framework.NewRecommendationContext(ctx, identity, p, recommendation, c.Client)
+		err := recommender.Run(&recommendationContext, r)
 
-		proposed, err := recommender.Offer()
 		if err != nil {
-			mission.Message = fmt.Sprintf("Failed to offer recommendation: %s", err.Error())
+			mission.Message = fmt.Sprintf("Failed to run recommendation flow in recommender %s: %s", r.Name(), err.Error())
 			return
 		}
 
-		var value string
-		valueBytes, err := yaml.Marshal(proposed)
-		if err != nil {
-			mission.Message = err.Error()
-			return
-		}
-		value = string(valueBytes)
-
-		recommendation.Status.RecommendedValue = value
 		recommendation.Status.LastUpdateTime = &timeNow
 		if existingRecommendation != nil {
 			klog.Infof("Update recommendation %s", klog.KObj(recommendation))
@@ -426,7 +426,7 @@ func (c *Controller) executeMission(ctx context.Context, wg *sync.WaitGroup, rec
 	}
 }
 
-func (c *Controller) UpdateStatus(ctx context.Context, recommendationRule *analysisv1alph1.RecommendationRule, newStatus *analysisv1alph1.RecommendationRuleStatus) {
+func (c *RecommendationRuleController) UpdateStatus(ctx context.Context, recommendationRule *analysisv1alph1.RecommendationRule, newStatus *analysisv1alph1.RecommendationRuleStatus) {
 	if !equality.Semantic.DeepEqual(&recommendationRule.Status, newStatus) {
 		recommendationRule.Status = *newStatus
 		err := c.Update(ctx, recommendationRule)

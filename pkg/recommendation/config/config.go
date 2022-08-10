@@ -1,12 +1,12 @@
-package recommendation
+package config
 
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gocrane/crane/pkg/recommendation/recommender/apis"
-	"github.com/gocrane/crane/pkg/recommendation/replicas"
 	"io/ioutil"
-	"k8s.io/klog"
+
+	"github.com/gocrane/crane/pkg/recommendation/recommender/apis"
+	klog "k8s.io/klog/v2"
 )
 
 func LoadRecommenderConfigFromFile(filePath string) (*apis.RecommenderConfiguration, error) {
@@ -37,7 +37,7 @@ func loadConfigFromBytes(buf []byte) (*apis.RecommenderConfiguration, error) {
 	return config, nil
 }
 
-func GetRecommendersFromConfiguration(file string) ([]Recommender, error) {
+func GetRecommendersFromConfiguration(file string) ([]apis.Recommender, error) {
 	config, err := LoadRecommenderConfigFromFile(file)
 	if err != nil {
 		klog.Errorf("load recommender configuration failed, %v", err)
@@ -45,14 +45,36 @@ func GetRecommendersFromConfiguration(file string) ([]Recommender, error) {
 	}
 
 	configRecommenders := config.Recommenders
-	recommenders := make([]Recommender, len(configRecommenders))
-	for _, recommender := range configRecommenders {
-		switch recommender.Name {
-		case ReplicasRecommender:
-			recommenders = append(recommenders, replicas.NewReplicasRecommender(recommender))
-		default:
-			recommenders = append(recommenders, replicas.NewReplicasRecommender(recommender))
-		}
+	recommenders := make([]apis.Recommender, len(configRecommenders))
+	for _, r := range configRecommenders {
+		recommenders = append(recommenders, r)
 	}
 	return recommenders, nil
+}
+
+func GetKeysOfMap(m map[string]string) (keys []string) {
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return
+}
+
+func SlicesContainSlice(src []string, target []string) bool {
+	contain := true
+	for _, value := range target {
+		if !contains(src, value) {
+			contain = false
+		}
+	}
+	return contain
+}
+
+func contains(s []string, str string) bool {
+	for _, v := range s {
+		if v == str {
+			return true
+		}
+	}
+
+	return false
 }
