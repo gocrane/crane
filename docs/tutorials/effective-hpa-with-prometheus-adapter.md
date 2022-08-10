@@ -1,34 +1,34 @@
-# 基于 Effective HPA 实现自定义指标的智能弹性实践
+# Intelligent Autoscaling Practices Based on Effective HPA for Custom Metrics
 
-Kubernetes HPA 支持了丰富的弹性扩展能力，Kubernetes 平台开发者部署服务实现自定义 Metric 的服务，Kubernetes 用户配置多项内置的资源指标或者自定义 Metric 指标实现自定义水平弹性。
-Effective HPA 兼容社区的 Kubernetes HPA 的能力，提供了更智能的弹性策略，比如基于预测的弹性和基于 Cron 周期的弹性等。
-Prometheus 是当下流行的开源监控系统，通过 Prometheus 可以获取到用户的自定义指标配置。
+The Kubernetes HPA supports rich elasticity scaling capabilities, with Kubernetes platform developers deploying services to implement custom Metric services and Kubernetes users configuring multiple built-in resource metrics or custom Metric metrics to achieve custom horizontal elasticity.
+Effective HPA is compatible with the community's Kubernetes HPA capabilities, providing smarter autoscaling policies such as prediction-based autoscaling and Cron-cycle-based autoscaling.
+Prometheus is a popular open source monitoring system today, through which user-defined metrics configurations are accessible.
 
-本文将通过一个例子介绍了如何基于 Effective HPA 实现自定义指标的智能弹性。部分配置来自于 [官方文档](https://github.com/kubernetes-sigs/prometheus-adapter/blob/master/docs/walkthrough.md)
+In this article, we present an example of how to implement intelligent resilience of custom metrics based on Effective HPA. Some configurations are taken from [official documentation](https://github.com/kubernetes-sigs/prometheus-adapter/blob/master/docs/walkthrough.md)
 
-## 部署环境要求
+## Environment Requirements
 
 - Kubernetes 1.18+
 - Helm 3.1.0
 - Crane v0.6.0+
 - Prometheus
 
-参考 [安裝文档](https://docs.gocrane.io/dev/installation/) 在集群中安装 Crane，Prometheus 可以使用安装文档中的也可以是已部署的 Prometheus。
+Refer to [installation documentation](https://docs.gocrane.io/dev/installation/) to install Crane in the cluster, Prometheus can be used either from the installation documentation or from the deployed Prometheus.
 
-## 环境搭建
+## Environment build
 
-### 安装 PrometheusAdapter
+### Installing PrometheusAdapter
 
-Crane 组件 Metric-Adapter 和 PrometheusAdapter 都基于 [custom-metric-apiserver](https://github.com/kubernetes-sigs/custom-metrics-apiserver) 实现了 Custom Metric 和 External Metric 的 ApiService。在安装 Crane 时会将对应的 ApiService 安装为 Crane 的 Metric-Adapter，因此安装 PrometheusAdapter 前需要删除 ApiService 以确保 Helm 安装成功。
+The Crane components Metric-Adapter and PrometheusAdapter are both based on [custom-metric-apiserver](https://github.com/kubernetes-sigs/custom-metrics-apiserver) which implements When installing Crane, the corresponding ApiService will be installed as the Metric-Adapter of Crane, so you need to remove the ApiService before installing PrometheusAdapter to ensure that Helm is installed successfully.
 
-```bash
-# 查看当前集群 ApiService
+```sh
+# View the current ApiService
 kubectl get apiservice 
 ```
 
-因为安装了 Crane， 结果如下：
+Since Crane is installed, the result is as follows.
 
-```bash
+```sh
 NAME                                   SERVICE                           AVAILABLE   AGE
 v1beta1.batch                          Local                             True        35d
 v1beta1.custom.metrics.k8s.io          crane-system/metric-adapter       True        18d
@@ -39,14 +39,14 @@ v1beta1.flowcontrol.apiserver.k8s.io   Local                             True   
 v1beta1.metrics.k8s.io                 kube-system/metrics-service       True        35d
 ```
 
-删除 crane 安装的 ApiService
+Remove the installed ApiService by crane
 
 ```bash
 kubectl delete apiservice v1beta1.custom.metrics.k8s.io
 kubectl delete apiservice v1beta1.external.metrics.k8s.io
 ```
 
-通过 Helm 安装 PrometheusAdapter
+Install PrometheusAdapter via Helm
 
 ```bash
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
@@ -54,24 +54,24 @@ helm repo update
 helm install prometheus-adapter -n crane-system prometheus-community/prometheus-adapter
 ```
 
-再将 ApiService 改回 Crane 的 Metric-Adapter
+Then change the ApiService back to Crane's Metric-Adapter
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/deploy/metric-adapter/apiservice.yaml
 ```
 
-### 配置 Metric-Adapter 开启 RemoteAdapter 功能
+### Configure Metric-Adapter to enable RemoteAdapter functionality
 
-在安装 PrometheusAdapter 时没有将 ApiService 指向 PrometheusAdapter，因此为了让 PrometheusAdapter 也可以提供自定义 Metric，通过 Crane Metric Adapter 的 `RemoteAdapter` 功能将请求转发给 PrometheusAdapter。
+The installation of PrometheusAdapter did not point the ApiService to PrometheusAdapter, so in order to allow PrometheusAdapter to provide custom Metric as well, the ``RemoteAdapter`` function of Crane Metric Adapter is used to forward requests to PrometheusAdapter.
 
-修改 Metric-Adapter 的配置，将 PrometheusAdapter 的 Service 配置成 Crane Metric Adapter 的 RemoteAdapter
+Modify the Metric-Adapter configuration to configure PrometheusAdapter's Service as Crane Metric Adapter's RemoteAdapter
 
 ```bash
-# 查看当前集群 ApiService
+# View the current ApiService
 kubectl edit deploy metric-adapter -n crane-system
 ```
 
-根据 PrometheusAdapter 的配置做以下修改：
+Make the following changes based on the PrometheusAdapter configuration.
 
 ```yaml
 apiVersion: apps/v1
@@ -84,27 +84,27 @@ spec:
     spec:
       containers:
       - args:
-          #添加外部 Adapter 配置
+          #Add external Adapter configuration
         - --remote-adapter=true
         - --remote-adapter-service-namespace=crane-system
         - --remote-adapter-service-name=prometheus-adapter
         - --remote-adapter-service-port=443
 ```
 
-#### RemoteAdapter 能力
+#### RemoteAdapter Capabilities
 
 ![](../images/remote-adapter.png)
 
-Kubernetes 限制一个 ApiService 只能配置一个后端服务，因此，为了在一个集群内使用 Crane 提供的 Metric 和 PrometheusAdapter 提供的 Metric，Crane 支持了 RemoteAdapter 解决此问题
+Kubernetes restricts an ApiService to configure only one backend service, so in order to use the Metric provided by Crane and the Metric provided by PrometheusAdapter within a cluster, Crane supports a RemoteAdapter to solve this problem
 
-- Crane Metric-Adapter 支持配置一个 Kubernetes Service 作为一个远程 Adapter
-- Crane Metric-Adapter 处理请求时会先检查是否是 Crane 提供的 Local Metric，如果不是，则转发给远程 Adapter
+- Crane Metric-Adapter supports the configuration of a Kubernetes Service as a Remote Adapter
+- The Crane Metric-Adapter will first check if the request is a Crane provided Local Metric, and if not, forward it to the Remote Adapter
 
-## 运行例子
+## Run the example
 
-### 准备应用
+### Preparing the application
 
-将以下应用部署到集群中，应用暴露了 Metric 展示每秒收到的 http 请求数量。
+Deploy the following application to the cluster, which exposes the Metric to show the number of http requests received per second.
 
 <summary>sample-app.deploy.yaml</summary>
 
@@ -158,21 +158,21 @@ kubectl create -f sample-app.deploy.yaml
 kubectl create -f sample-app.service.yaml
 ```
 
-当应用部署完成后，您可以通过命令检查 `http_requests_total` Metric：
+When the application is deployed, you can check the `http_requests_total` Metric with the command
 
 ```bash
 curl http://$(kubectl get service sample-app -o jsonpath='{ .spec.clusterIP }')/metrics
 ```
 
-### 配置采集规则
+### Configure collection rules
 
-配置 Prometheus 的 ScrapeConfig，收集应用的 Metric: http_requests_total
+Configure Prometheus' ScrapeConfig to collect the application's Metric: http_requests_total
 
 ```bash
 kubectl edit configmap -n crane-system prometheus-server
 ```
 
-添加以下配置
+Add the following configuration
 
 ```yaml
     - job_name: sample-app
@@ -195,17 +195,17 @@ kubectl edit configmap -n crane-system prometheus-server
         target_label: pod
 ```
 
-此时，您可以在 Prometheus 查询 psql：sum(rate(http_requests_total[5m])) by (pod)
+At this point, you can use psql to query Prometheus: sum(rate(http_requests_total[5m])) by (pod)
 
-### 验证 PrometheusAdapter 
+### Verify PrometheusAdapter 
 
-PrometheusAdapter 默认的 Rule 配置支持将 http_requests_total 转换成 Pods 类型的 Custom Metric，通过命令验证：
+The default rule configuration of PrometheusAdapter supports converting http_requests_total to a custom metric of type Pods, verified by the command
 
 ```bash
 kubectl get --raw /apis/custom.metrics.k8s.io/v1beta1 | jq . 
 ```
 
-结果应包括 `pods/http_requests`:
+The result should include ``pods/http_requests``:
 
 ```bash
 {
@@ -219,15 +219,15 @@ kubectl get --raw /apis/custom.metrics.k8s.io/v1beta1 | jq .
 }
 ```
 
-这表明现在可以通过 Pod Metric 配置 HPA。
+This indicates that the HPA can now be configured via Pod Metric.
 
-### 配置弹性
+### Configuring autoscaling
 
-现在我们可以创建 Effective HPA。此时 Effective HPA 可以通过 Pod Metric `http_requests` 进行弹性：
+We can now create the Effective HPA. at this point the Effective HPA can be resilient via Pod Metric `http_requests`:
 
-#### 如何定义一个自定义指标开启预测功能
+#### How to define a custom metric to enable prediction
 
-在 Effective HPA 的 Annotation 按以下规则添加配置：
+Annotation in the Effective HPA adds the configuration according to the following rules:
 
 ```yaml
 annotations:
@@ -284,7 +284,7 @@ spec:
 kubectl create -f sample-app-hpa.yaml
 ```
 
-查看 TimeSeriesPrediction 状态，如果应用运行时间较短，可能会无法预测：
+Check the TimeSeriesPrediction status, which may be unpredictable if the app has been running for a short time:
 
 ```yaml
 apiVersion: prediction.crane.io/v1alpha1
@@ -350,7 +350,7 @@ status:
       resourceIdentifier: crane_custom.pods_http_requests  
 ```
 
-查看 Effective HPA 创建的 HPA 对象，可以观测到已经创建出基于自定义指标预测的 Metric: `crane_custom.pods_http_requests`
+Looking at the HPA object created by Effective HPA, you can observe that a Metric has been created based on custom metrics predictions: ``crane_custom.pods_http_requests``.
 
 ```yaml
 apiVersion: autoscaling/v2beta2
@@ -397,6 +397,6 @@ spec:
     name: sample-app
 ```
 
-## 总结
+## Summary
 
-由于生产环境的复杂性，基于多指标的弹性（CPU/Memory/自定义指标）往往是生产应用的常见选择，因此 Effective HPA 通过预测算法覆盖了多指标的弹性，达到了帮助更多业务在生产环境落地水平弹性的成效。
+Due to the complexity of production environments, multi-metric-based autoscaling (CPU/Memory/custom metrics) is often a common choice for production applications, so Effective HPA achieves the effectiveness of helping more businesses land horizontal autoscaling in production environments by covering multi-metric autoscaling with predictive algorithms.
