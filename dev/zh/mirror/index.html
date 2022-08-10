@@ -13,7 +13,7 @@
     
     
       
-        <title>镜像仓库 - Crane - Cloud Resource Analytics and Economics</title>
+        <title>镜像资源 - Crane - Cloud Resource Analytics and Economics</title>
       
     
     
@@ -104,7 +104,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              镜像仓库
+              镜像资源
             
           </span>
         </div>
@@ -717,12 +717,12 @@
       
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
-          镜像仓库
+          镜像资源
           <span class="md-nav__icon md-icon"></span>
         </label>
       
       <a href="./" class="md-nav__link md-nav__link--active">
-        镜像仓库
+        镜像资源
       </a>
       
         
@@ -742,8 +742,69 @@
       
         <li class="md-nav__item">
   <a href="#_2" class="md-nav__link">
-    关于镜像仓库
+    关于镜像资源
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#image-registry" class="md-nav__link">
+    Image Registry
+  </a>
+  
+    <nav class="md-nav" aria-label="Image Registry">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#platforms" class="md-nav__link">
+    Platforms
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#repo" class="md-nav__link">
+    Repo
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build-logic" class="md-nav__link">
+    Build logic
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-to-use-the-images" class="md-nav__link">
+    How to use the images?
+  </a>
+  
+    <nav class="md-nav" aria-label="How to use the images?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#base-on-the-branch-name" class="md-nav__link">
+    Base on the branch name
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#base-on-the-branch-name-and-the-specific-commit-hash" class="md-nav__link">
+    Base on the branch name and the specific commit hash
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -844,8 +905,69 @@
       
         <li class="md-nav__item">
   <a href="#_2" class="md-nav__link">
-    关于镜像仓库
+    关于镜像资源
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#image-registry" class="md-nav__link">
+    Image Registry
+  </a>
+  
+    <nav class="md-nav" aria-label="Image Registry">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#platforms" class="md-nav__link">
+    Platforms
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#repo" class="md-nav__link">
+    Repo
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build-logic" class="md-nav__link">
+    Build logic
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-to-use-the-images" class="md-nav__link">
+    How to use the images?
+  </a>
+  
+    <nav class="md-nav" aria-label="How to use the images?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#base-on-the-branch-name" class="md-nav__link">
+    Base on the branch name
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#base-on-the-branch-name-and-the-specific-commit-hash" class="md-nav__link">
+    Base on the branch name and the specific commit hash
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -928,10 +1050,79 @@
 
 
 
-<h1 id="_1">镜像仓库<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
-<h2 id="_2">关于镜像仓库<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<h1 id="_1">镜像资源<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
+<h2 id="_2">关于镜像资源<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <p>因为各种网络问题，导致部分地域难以访问GitHub 资源，如GitHub Repo, GitHub Release, GitHub Raw Content <code>raw.githubusercontent.com</code>。</p>
 <p>为了更好的使用体验，GoCrane 为您额外提供了多个镜像仓库，但具有一定的时延。</p>
+<h2 id="image-registry">Image Registry<a class="headerlink" href="#image-registry" title="Permanent link">&para;</a></h2>
+<p>GoCrane提供了一种友好的方式来使用镜像进行部署和测试。</p>
+<p>GoCrane使用CI(GitHub Action)进行镜像构建。</p>
+<h3 id="platforms">Platforms<a class="headerlink" href="#platforms" title="Permanent link">&para;</a></h3>
+<p>GoCrane 现在支持 linux/amd64 和 linux/arm64。</p>
+<p>GoCrane 也在关注ARM用户，譬如 apple m1/m2。</p>
+<h3 id="repo">Repo<a class="headerlink" href="#repo" title="Permanent link">&para;</a></h3>
+<p>由于网络原因，GoCrane 将同时将镜像推送到三个镜像仓库。</p>
+<div class="admonition tips">
+<p class="admonition-title">Tips</p>
+<p>点击链接，查阅更多</p>
+</div>
+<ul>
+<li><a href="https://hub.docker.com/u/gocrane">DockerHub</a></li>
+<li><a href="https://finops.coding.net/public-artifacts/gocrane/crane/packages">Coding</a></li>
+<li><a href="https://github.com/orgs/gocrane/packages?repo_name=crane">GitHub Container Registry</a></li>
+</ul>
+<p>如果你在中国，我们推荐使用 Coding。该仓库的速度比其他两个快。</p>
+<p>如果你在中国境外，我们推荐你使用 DockHub以及GHCR。如果你使用Coding，速度上面不太理想。</p>
+<h3 id="build-logic">Build logic<a class="headerlink" href="#build-logic" title="Permanent link">&para;</a></h3>
+<ul>
+<li>每个分支</li>
+</ul>
+<p>你可以使用该分支镜像尝试最新的特性。此外，我们依旧保存较早之前的镜像。</p>
+<ul>
+<li>每个pull request</li>
+</ul>
+<p>当你发起一个pull request到crane repo的时候，将会自动触发CI任务来构建对应的镜像。CI会将最后的镜像结果通过评论的方式附加在对应的pull request中。</p>
+<h3 id="how-to-use-the-images">How to use the images?<a class="headerlink" href="#how-to-use-the-images" title="Permanent link">&para;</a></h3>
+<p>这里将使用 main 分支作为例子。
+Git commit hash 为 abc123。</p>
+<h4 id="base-on-the-branch-name">Base on the branch name<a class="headerlink" href="#base-on-the-branch-name" title="Permanent link">&para;</a></h4>
+<div class="admonition tips">
+<p class="admonition-title">Tips</p>
+<p>branch name的镜像一直指向最新的Git commit。当你想尝试新特性的时候，不要忘记重新拉取镜像。</p>
+</div>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">DockerHub</label><label for="__tabbed_1_2">Coding</label><label for="__tabbed_1_3">GitHub Container Registry</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1"></a><a href="#__codelineno-0-1"><span class="linenos" data-linenos="1 "></span></a>docker pull gocrane/craned:main
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1"></a><a href="#__codelineno-1-1"><span class="linenos" data-linenos="1 "></span></a>docker pull finops-docker.pkg.coding.net/gocrane/crane/craned:main
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1"></a><a href="#__codelineno-2-1"><span class="linenos" data-linenos="1 "></span></a>docker pull ghcr.io/gocrane/crane/craned:main
+</code></pre></div>
+</div>
+</div>
+</div>
+<h4 id="base-on-the-branch-name-and-the-specific-commit-hash">Base on the branch name and the specific commit hash<a class="headerlink" href="#base-on-the-branch-name-and-the-specific-commit-hash" title="Permanent link">&para;</a></h4>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:3"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><input id="__tabbed_2_3" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">DockerHub</label><label for="__tabbed_2_2">Coding</label><label for="__tabbed_2_3">GitHub Container Registry</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1"></a><a href="#__codelineno-3-1"><span class="linenos" data-linenos="1 "></span></a>docker pull gocrane/craned:main-abc123
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1"></a><a href="#__codelineno-4-1"><span class="linenos" data-linenos="1 "></span></a>docker pull finops-docker.pkg.coding.net/gocrane/crane/craned:main-abc123
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1"></a><a href="#__codelineno-5-1"><span class="linenos" data-linenos="1 "></span></a>docker pull ghcr.io/gocrane/crane/craned:main-abc123
+</code></pre></div>
+</div>
+</div>
+</div>
 <h2 id="helm-resources">Helm Resources<a class="headerlink" href="#helm-resources" title="Permanent link">&para;</a></h2>
 <div class="admonition tips">
 <p class="admonition-title">Tips</p>
@@ -1095,15 +1286,15 @@
 </table>
 <h3 id="http">构造HTTP请求<a class="headerlink" href="#http" title="Permanent link">&para;</a></h3>
 <p>根据上面所提到的属性，按照下面的URL构造规则依次填入，即可获得一个可以直接获取源文件内容的URL。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1"></a><a href="#__codelineno-0-1"><span class="linenos" data-linenos="1 "></span></a>https://&lt;team&gt;.coding.net/p/&lt;project&gt;/d/&lt;repo&gt;/git/raw/&lt;branch&gt;/&lt;file path&gt;?download<span class="o">=</span><span class="nb">false</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2"></a><a href="#__codelineno-0-2"><span class="linenos" data-linenos="2 "></span></a>
-<a id="__codelineno-0-3" name="__codelineno-0-3"></a><a href="#__codelineno-0-3"><span class="linenos" data-linenos="3 "></span></a>https://finops.coding.net/p/gocrane/d/helm-charts/git/raw/main/integration/grafana/override_values.yaml?download<span class="o">=</span><span class="nb">false</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1"></a><a href="#__codelineno-6-1"><span class="linenos" data-linenos="1 "></span></a>https://&lt;team&gt;.coding.net/p/&lt;project&gt;/d/&lt;repo&gt;/git/raw/&lt;branch&gt;/&lt;file path&gt;?download<span class="o">=</span><span class="nb">false</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2"></a><a href="#__codelineno-6-2"><span class="linenos" data-linenos="2 "></span></a>
+<a id="__codelineno-6-3" name="__codelineno-6-3"></a><a href="#__codelineno-6-3"><span class="linenos" data-linenos="3 "></span></a>https://finops.coding.net/p/gocrane/d/helm-charts/git/raw/main/integration/grafana/override_values.yaml?download<span class="o">=</span><span class="nb">false</span>
 </code></pre></div>
 <div class="admonition tips">
 <p class="admonition-title">Tips</p>
 <p>尝试以下的命令</p>
 </div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1"></a><a href="#__codelineno-1-1"><span class="linenos" data-linenos="1 "></span></a>curl https://finops.coding.net/p/gocrane/d/helm-charts/git/raw/main/integration/grafana/override_values.yaml?download<span class="o">=</span><span class="nb">false</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1"></a><a href="#__codelineno-7-1"><span class="linenos" data-linenos="1 "></span></a>curl https://finops.coding.net/p/gocrane/d/helm-charts/git/raw/main/integration/grafana/override_values.yaml?download<span class="o">=</span><span class="nb">false</span>
 </code></pre></div>
 
               
