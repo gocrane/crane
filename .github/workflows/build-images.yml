@@ -414,6 +414,16 @@ jobs:
             | metric-adapter:${{steps.image-tags.outputs.image-tags}} | docker pull gocrane/metric-adapter:${{steps.image-tags.outputs.image-tags}} |
             | craned:${{steps.image-tags.outputs.image-tags}}         | docker pull gocrane/craned:${{steps.image-tags.outputs.image-tags}}         |
 
+            Quick Deploy - Helm
+            ```bash
+            helm repo add crane https://finops-helm.pkg.coding.net/gocrane/gocrane
+            helm install crane -n crane-system --create-namespace \
+                               --set craned.image.tag=gocrane/craned:${{steps.image-tags.outputs.image-tags}} \
+                               --set metricAdapter.image.tag=gocrane/metric-adapter:${{steps.image-tags.outputs.image-tags}} \
+                               --set craneAgent.image.tag=gocrane/crane-agent:${{steps.image-tags.outputs.image-tags}} \
+                               --set cranedDashboard.image.tag=gocrane/dashboard:${{steps.image-tags.outputs.image-tags}} crane/crane
+            ```
+
             ---
 
             #### Coding Registry
@@ -427,6 +437,16 @@ jobs:
             | metric-adapter:${{steps.image-tags.outputs.image-tags}} | docker pull finops-docker.pkg.coding.net/gocrane/crane/metric-adapter:${{steps.image-tags.outputs.image-tags}} |
             | craned:${{steps.image-tags.outputs.image-tags}}         | docker pull finops-docker.pkg.coding.net/gocrane/crane/craned:${{steps.image-tags.outputs.image-tags}}         |
 
+            Quick Deploy - Helm
+            ```bash
+            helm repo add crane https://finops-helm.pkg.coding.net/gocrane/gocrane
+            helm install crane -n crane-system --create-namespace \
+                               --set craned.image.tag=finops-docker.pkg.coding.net/gocrane/crane/craned:${{steps.image-tags.outputs.image-tags}} \
+                               --set metricAdapter.image.tag=finops-docker.pkg.coding.net/gocrane/crane/metric-adapter:${{steps.image-tags.outputs.image-tags}} \
+                               --set craneAgent.image.tag=finops-docker.pkg.coding.net/gocrane/crane/crane-agent:${{steps.image-tags.outputs.image-tags}} \
+                               --set cranedDashboard.image.tag=finops-docker.pkg.coding.net/gocrane/crane/dashboard:${{steps.image-tags.outputs.image-tags}} crane/crane
+            ```
+
             ---
 
             #### Ghcr Registry
@@ -439,5 +459,16 @@ jobs:
             | dashboard:${{steps.image-tags.outputs.image-tags}}      | docker pull ghcr.io/gocrane/crane/dashboard:${{steps.image-tags.outputs.image-tags}}      |
             | metric-adapter:${{steps.image-tags.outputs.image-tags}} | docker pull ghcr.io/gocrane/crane/metric-adapter:${{steps.image-tags.outputs.image-tags}} |
             | craned:${{steps.image-tags.outputs.image-tags}}         | docker pull ghcr.io/gocrane/crane/craned:${{steps.image-tags.outputs.image-tags}}         |
+
+            Quick Deploy - Helm
+            ```bash
+            helm repo add crane https://finops-helm.pkg.coding.net/gocrane/gocrane
+            helm install crane -n crane-system --create-namespace \
+                               --set craned.image.tag=ghcr.io/gocrane/crane/craned:${{steps.image-tags.outputs.image-tags}} \
+                               --set metricAdapter.image.tag=ghcr.io/gocrane/crane/metric-adapter:${{steps.image-tags.outputs.image-tags}} \
+                               --set craneAgent.image.tag=ghcr.io/gocrane/crane/crane-agent:${{steps.image-tags.outputs.image-tags}} \
+                               --set cranedDashboard.image.tag=ghcr.io/gocrane/crane/dashboard:${{steps.image-tags.outputs.image-tags}} crane/crane
+            ```
+
             <!-- Created by actions-cool/maintain-one-comment -->
           body-include: '<!-- Created by actions-cool/maintain-one-comment -->'
