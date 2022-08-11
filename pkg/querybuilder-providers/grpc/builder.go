@@ -17,7 +17,7 @@ func NewQueryBuilder(metric *metricquery.Metric) querybuilder.Builder {
 	}
 }
 
-func (b builder) BuildQuery() (*metricquery.Query, error) {
+func (b builder) BuildQuery(behavior querybuilder.BuildQueryBehavior) (*metricquery.Query, error) {
 	return gRPCQuery(&metricquery.GenericQuery{Metric: b.metric}), nil
 }
 

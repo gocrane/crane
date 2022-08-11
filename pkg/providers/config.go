@@ -16,6 +16,12 @@ type PromConfig struct {
 	QueryConcurrency            int
 	BRateLimit                  bool
 	MaxPointsLimitPerTimeSeries int
+	FederatedClusterScope       bool
+	// for thanos query, it must when use thanos as query source https://thanos.io/tip/components/query.md/#partial-response
+	ThanosPartial     bool
+	ThanosDedup       bool
+	ClusterLabelName  string
+	ClusterLabelValue string
 }
 
 // ClientAuth holds the HTTP client identity info.
