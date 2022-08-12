@@ -3,6 +3,9 @@ package framework
 import (
 	"context"
 
+	v1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/gocrane/api/analysis/v1alpha1"
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/controller/analytics"
@@ -10,8 +13,6 @@ import (
 	"github.com/gocrane/crane/pkg/prediction/config"
 	predictormgr "github.com/gocrane/crane/pkg/predictor"
 	"github.com/gocrane/crane/pkg/providers"
-	v1 "k8s.io/api/core/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type RecommendationContext struct {

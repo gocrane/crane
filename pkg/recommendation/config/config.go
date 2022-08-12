@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/gocrane/crane/pkg/recommendation/recommender/apis"
 	klog "k8s.io/klog/v2"
+
+	"github.com/gocrane/crane/pkg/recommendation/recommender/apis"
 )
 
 func LoadRecommenderConfigFromFile(filePath string) (*apis.RecommenderConfiguration, error) {

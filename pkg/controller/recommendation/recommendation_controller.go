@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	predictormgr "github.com/gocrane/crane/pkg/predictor"
 	"k8s.io/klog/v2"
 
 	v1 "k8s.io/api/core/v1"
@@ -20,6 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
+	predictormgr "github.com/gocrane/crane/pkg/predictor"
 	"github.com/gocrane/crane/pkg/providers"
 )
 

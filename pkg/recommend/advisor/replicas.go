@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gocrane/crane/pkg/metricnaming"
-
 	"github.com/montanaflynn/stats"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/autoscaling/v1"
@@ -20,6 +18,7 @@ import (
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/common"
+	"github.com/gocrane/crane/pkg/metricnaming"
 	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/recommend/types"

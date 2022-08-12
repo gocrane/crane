@@ -10,7 +10,6 @@ import (
 	"k8s.io/klog/v2"
 
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
-
 	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/recommend/types"

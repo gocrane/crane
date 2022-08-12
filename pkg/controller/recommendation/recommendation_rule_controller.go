@@ -8,12 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gocrane/crane/pkg/controller/analytics"
-	"github.com/gocrane/crane/pkg/providers"
-	recommender "github.com/gocrane/crane/pkg/recommendation"
-	"github.com/gocrane/crane/pkg/recommendation/framework"
-
-	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -35,7 +29,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
+	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
+	"github.com/gocrane/crane/pkg/controller/analytics"
 	"github.com/gocrane/crane/pkg/known"
+	"github.com/gocrane/crane/pkg/providers"
+	recommender "github.com/gocrane/crane/pkg/recommendation"
+	"github.com/gocrane/crane/pkg/recommendation/framework"
 	"github.com/gocrane/crane/pkg/utils"
 )
 

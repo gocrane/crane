@@ -4,14 +4,15 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/gocrane/api/analysis/v1alpha1"
-	"github.com/gocrane/crane/pkg/controller/analytics"
-	"github.com/gocrane/crane/pkg/metricnaming"
-	"github.com/gocrane/crane/pkg/recommendation/framework"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog/v2"
+
+	"github.com/gocrane/api/analysis/v1alpha1"
+	"github.com/gocrane/crane/pkg/controller/analytics"
+	"github.com/gocrane/crane/pkg/metricnaming"
+	"github.com/gocrane/crane/pkg/recommendation/framework"
 )
 
 // Filter out k8s resources that are not supported by the recommender.

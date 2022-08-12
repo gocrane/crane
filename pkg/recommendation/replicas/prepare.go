@@ -5,12 +5,13 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/lithammer/fuzzysearch/fuzzy"
+	"k8s.io/klog/v2"
+
 	"github.com/gocrane/crane/pkg/providers"
 	"github.com/gocrane/crane/pkg/providers/prom"
 	"github.com/gocrane/crane/pkg/recommendation/config"
 	"github.com/gocrane/crane/pkg/recommendation/framework"
-	"github.com/lithammer/fuzzysearch/fuzzy"
-	"k8s.io/klog/v2"
 )
 
 // CheckDataProviders in PrePrepare phase, will create data source provider via your recommendation config.

@@ -3,10 +3,11 @@ package recommendation
 import (
 	"sync"
 
+	"k8s.io/klog/v2"
+
 	"github.com/gocrane/crane/pkg/providers"
 	"github.com/gocrane/crane/pkg/recommendation/framework"
 	"github.com/gocrane/crane/pkg/recommendation/recommender"
-	"k8s.io/klog/v2"
 )
 
 type RecommenderManager interface {

@@ -6,16 +6,17 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/montanaflynn/stats"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/klog/v2"
+	"sigs.k8s.io/yaml"
+
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/recommend/types"
 	"github.com/gocrane/crane/pkg/recommendation/framework"
 	"github.com/gocrane/crane/pkg/utils"
-	"github.com/montanaflynn/stats"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/klog/v2"
-	"sigs.k8s.io/yaml"
 )
 
 func (rr *ReplicasRecommender) PreRecommend(ctx *framework.RecommendationContext) error {
