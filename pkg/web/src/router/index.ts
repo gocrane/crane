@@ -1,10 +1,10 @@
-import cost from './modules/cost';
-import dashboard from './modules/dashboard';
-import settings from './modules/settings';
+import { useCostRouteConfig } from './modules/cost';
 import otherRoutes from './modules/others';
-import recommend from './modules/recommend';
 import React from 'react';
 import { BrowserRouterProps } from 'react-router-dom';
+import { useDashboardRouteConfig } from './modules/dashboard';
+import { useRecommendRouteConfig } from './modules/recommend';
+import { useSettingRouteConfig } from './modules/settings';
 
 export interface IRouter {
   path: string;
@@ -39,6 +39,11 @@ const routes: IRouter[] = [
   },
 ];
 
-const allRoutes = [...routes, ...dashboard, ...cost, ...recommend, ...settings, ...otherRoutes];
+export const useRouteConfig = () => {
+  const cost = useCostRouteConfig();
+  const dashboard = useDashboardRouteConfig();
+  const recommend = useRecommendRouteConfig();
+  const settings = useSettingRouteConfig();
 
-export default allRoutes;
+  return [...routes, ...dashboard, ...cost, ...recommend, ...settings, ...otherRoutes];
+};

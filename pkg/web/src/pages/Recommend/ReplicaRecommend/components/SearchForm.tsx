@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { Button, Col, Form, Input, Row, Select } from 'tdesign-react';
 import _ from 'lodash';
+import { useTranslation } from 'react-i18next';
 
 const { FormItem } = Form;
 
@@ -10,7 +11,8 @@ export type SearchFormProps = {
 };
 
 const SearchForm: React.FC<SearchFormProps> = ({ recommendation, setFilterParams }) => {
-  const onValuesChange = (changeValues: any, allValues: { name: any; namespace: any; workloadType: any }) => {
+  const { t } = useTranslation();
+  const onValuesChange = (changeValues: any, allValues: any) => {
     if (!allValues.name) delete allValues.name;
     if (!allValues.namespace) delete allValues.namespace;
     if (!allValues.workloadType) delete allValues.workloadType;
@@ -23,6 +25,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ recommendation, setFilterParams
     recommendation.map((r: { namespace: any; label: any }) => ({ value: r.namespace, label: r.namespace })),
     'value',
   );
+
   const workloadTypeOptions = _.uniqBy(
     recommendation.map((r: { workloadType: any }) => ({ value: r.workloadType, label: r.workloadType })),
     'value',
@@ -35,20 +38,24 @@ const SearchForm: React.FC<SearchFormProps> = ({ recommendation, setFilterParams
           <Col>
             <Row>
               <Col>
-                <FormItem label='推荐名称' name='name'>
-                  <Input placeholder='请输入推荐名称' />
+                <FormItem label={t('推荐名称')} name='name'>
+                  <Input placeholder={t('请输入推荐名称')} />
                 </FormItem>
               </Col>
               <Col>
-                <FormItem label='NameSpace' name='namespace' style={{ margin: '0px 10px' }}>
-                  <Select options={nameSpaceOptions} placeholder='请选择NameSpace' style={{ margin: '0px 20px' }} />
+                <FormItem label={t('NameSpace')} name='namespace' style={{ margin: '0px 10px' }}>
+                  <Select
+                    options={nameSpaceOptions}
+                    placeholder={t('请选择NameSpace')}
+                    style={{ margin: '0px 20px' }}
+                  />
                 </FormItem>
               </Col>
               <Col>
-                <FormItem label='工作负载类型' name='workloadType'>
+                <FormItem label={t('工作负载类型')} name='workloadType'>
                   <Select
                     options={workloadTypeOptions}
-                    placeholder='请选择工作负载类型'
+                    placeholder={t('请选择工作负载类型')}
                     style={{ margin: '0px 20px' }}
                   />
                 </FormItem>
@@ -57,7 +64,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ recommendation, setFilterParams
           </Col>
           <Col>
             <Button type='reset' variant='base' theme='default'>
-              重置
+              {t('重置')}
             </Button>
           </Col>
         </Row>

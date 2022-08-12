@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Card, DateRangePicker, MessagePlugin } from "tdesign-react";
+import { Card, DateRangePicker, MessagePlugin } from 'tdesign-react';
 import ReactEcharts from 'echarts-for-react';
 import { useRangePrometheusQuery } from '../../services/prometheusApi';
 import { useCraneUrl } from '../../hooks';
 import dayjs from 'dayjs';
+import { useTranslation } from 'react-i18next';
 
 export interface ISeriesLine {
   name: string;
@@ -41,7 +42,7 @@ export interface ISeriesLineChart {
   lineStyle?: LineStyle;
 }
 
-const fetchLinesData = (craneUrl, timeDateRangePicker, step, lines: ISeriesLine[]) => {
+const fetchLinesData = (craneUrl: string, timeDateRangePicker: string[], step: string, lines: ISeriesLine[]) => {
   const start = dayjs(timeDateRangePicker[0]).valueOf();
   const end = dayjs(timeDateRangePicker[1]).valueOf();
   return lines.map((line) => {
@@ -123,6 +124,7 @@ const SeriesLineChart = ({
   lines,
   lineStyle,
 }: ISeriesLineChart) => {
+  const { t } = useTranslation();
   const craneUrl: any = useCraneUrl();
 
   // Time
@@ -139,11 +141,11 @@ const SeriesLineChart = ({
       dayjs().subtract(0, 's').format('YYYY-MM-DD HH:mm:ss'),
     ]);
   }
-  const [presets] = useState({
-    最近7天: [dayjs().subtract(6, 'day'), dayjs()],
-    最近3天: [dayjs().subtract(2, 'day'), dayjs()],
-    最近24小时: [dayjs().subtract(24, 'h'), dayjs()],
-    最近1小时: [dayjs().subtract(1, 'h'), dayjs()],
+  const [presets] = useState<Record<string, [Date, Date]>>({
+    [t('最近7天')]: [dayjs().subtract(6, 'day').toDate(), dayjs().toDate()],
+    [t('最近3天')]: [dayjs().subtract(2, 'day').toDate(), dayjs().toDate()],
+    [t('最近2天')]: [dayjs().subtract(24, 'h').toDate(), dayjs().toDate()],
+    [t('最近1天')]: [dayjs().subtract(1, 'h').toDate(), dayjs().toDate()],
   });
 
   const onTimeChange = (time: any) => {
@@ -152,7 +154,7 @@ const SeriesLineChart = ({
   };
 
   // Fetch Data
-  const linesData = fetchLinesData(craneUrl, timeDateRangePicker, step, lines);
+  const linesData = fetchLinesData(craneUrl, timeDateRangePicker, step ?? '', lines);
 
   // Build ECharts Option
   const dynamicLineChartOption = buildLineChartOption(lineStyle, linesData);
@@ -165,7 +167,7 @@ const SeriesLineChart = ({
         datePicker && (
           <DateRangePicker
             mode='date'
-            placeholder={['开始时间', '结束时间']}
+            placeholder={[t('开始时间'), t('结束时间')]}
             value={timeDateRangePicker}
             format='YYYY-MM-DD HH:mm:ss'
             enableTimePicker

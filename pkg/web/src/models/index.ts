@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { useTranslation } from 'react-i18next';
 
 export enum QueryWindow {
   LAST_1_DAY = 'last1day',
@@ -6,11 +6,14 @@ export enum QueryWindow {
   LAST_30_DAY = 'last30day',
 }
 
-export const QueryWindowOptions = [
-  { value: QueryWindow.LAST_1_DAY, text: t('24小时') },
-  { value: QueryWindow.LAST_7_DAY, text: t('7天') },
-  { value: QueryWindow.LAST_30_DAY, text: t('30天') },
-];
+export const useQueryWindowOptions = () => {
+  const { t } = useTranslation();
+  return [
+    { value: QueryWindow.LAST_1_DAY, text: t('24小时') },
+    { value: QueryWindow.LAST_7_DAY, text: t('7天') },
+    { value: QueryWindow.LAST_30_DAY, text: t('30天') },
+  ];
+};
 
 export enum Aggregation {
   CLUSTER = 'cluster',
@@ -26,52 +29,55 @@ export enum Aggregation {
   CONTAINER = 'container',
 }
 
-export const AggregationOptions = [
-  {
-    value: Aggregation.CLUSTER,
-    text: t('集群'),
-  },
-  {
-    value: Aggregation.NAMESPACE,
-    text: t('命名空间'),
-  },
-  {
-    value: Aggregation.NODE,
-    text: t('节点'),
-  },
-  {
-    value: Aggregation.DEPLOYMENT,
-    text: 'Deployment',
-  },
-  {
-    value: Aggregation.DAEMONSET,
-    text: 'Daemonset',
-  },
-  {
-    value: Aggregation.STATEFULSET,
-    text: 'Statefulset',
-  },
-  {
-    value: Aggregation.JOB,
-    text: 'Job',
-  },
-  // {
-  //   value: Aggregation.CRONJOB,
-  //   text: 'Cronjob'
-  // },
-  {
-    value: Aggregation.CONTROLLER,
-    text: 'Controller',
-  },
-  {
-    value: Aggregation.POD,
-    text: 'Pod',
-  },
-  {
-    value: Aggregation.CONTAINER,
-    text: 'Container',
-  },
-];
+export const useAggregationOptions = () => {
+  const { t } = useTranslation();
+  return [
+    {
+      value: Aggregation.CLUSTER,
+      text: t('集群'),
+    },
+    {
+      value: Aggregation.NAMESPACE,
+      text: t('命名空间'),
+    },
+    {
+      value: Aggregation.NODE,
+      text: t('节点'),
+    },
+    {
+      value: Aggregation.DEPLOYMENT,
+      text: 'Deployment',
+    },
+    {
+      value: Aggregation.DAEMONSET,
+      text: 'Daemonset',
+    },
+    {
+      value: Aggregation.STATEFULSET,
+      text: 'Statefulset',
+    },
+    {
+      value: Aggregation.JOB,
+      text: 'Job',
+    },
+    // {
+    //   value: Aggregation.CRONJOB,
+    //   text: 'Cronjob'
+    // },
+    {
+      value: Aggregation.CONTROLLER,
+      text: 'Controller',
+    },
+    {
+      value: Aggregation.POD,
+      text: 'Pod',
+    },
+    {
+      value: Aggregation.CONTAINER,
+      text: 'Container',
+    },
+  ];
+};
 
 export interface ClusterSimpleInfo {
   id: string;
