@@ -33,6 +33,9 @@ export default (params) => ({
   },
 
   plugins: [
+    // monacoEditorPlugin({
+    //   languageWorkers: ['typescript'],
+    // }),
     svgr(),
     react(),
     params.mode === 'mock' &&
@@ -54,12 +57,12 @@ export default (params) => ({
         // 用于开发环境下的转发请求
         // 更多请参考：https://vitejs.dev/config/#server-proxy
         // Set to your craned address
-        target: 'http://10.100.100.114:32505',
+        target: 'http://106.55.68.174:9090',
         changeOrigin: true,
       },
       '/grafana': {
         // Set to your craned address
-        target: 'http://10.100.100.114:32505',
+        target: 'http://106.55.68.174:9090',
         changeOrigin: true,
       },
     },

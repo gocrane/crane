@@ -5,10 +5,24 @@ import classnames from 'classnames';
 import { useCraneUrl } from 'hooks';
 import React, { memo, useState } from 'react';
 import { Button, Col, Dialog, Divider, Row, Space, Table, Tag } from 'tdesign-react';
-import { RecommendationType, useFetchRecommendationListQuery } from '../../../services/recommendationApi';
+import {
+  RecommendationSimpleInfo,
+  RecommendationType,
+  useFetchRecommendationListQuery,
+} from '../../../services/recommendationApi';
 import { useNavigate } from 'react-router-dom';
+import JsYaml from 'js-yaml';
+import { useTranslation } from 'react-i18next';
+import { Prism } from '@mantine/prism';
+
+const Editor = React.lazy(() => import('components/common/Editor'));
 
 export const SelectTable = () => {
+  const { t } = useTranslation();
+  const [yamlDialogVisible, setYamlDialogVisible] = useState<boolean>(false);
+  const [currentSelection, setCurrentSelection] = useState<RecommendationSimpleInfo | null>(null);
+  const [commandDialogVisible, setCommandDialogVisible] = useState<boolean>(false);
+
   const navigate = useNavigate();
   const [selectedRowKeys, setSelectedRowKeys] = useState<(string | number)[]>([0, 1]);
   const [visible, setVisible] = useState(false);
@@ -58,10 +72,21 @@ export const SelectTable = () => {
     setVisible(false);
   }
 
+  const toYaml = (resource: any) => {
+    let yaml = null;
+    try {
+      yaml = JsYaml.dump(resource);
+    } catch (error) {
+      //
+    }
+    console.log(yaml);
+    return yaml;
+  };
+
   return (
     <>
       <Row>
-        <Button onClick={() => navigate('/recommend/recommendationRule')}>管理推荐规则</Button>
+        <Button onClick={() => navigate('/recommend/recommendationRule')}>{t('管理推荐规则')}</Button>
       </Row>
       <Divider></Divider>
       <Row justify='start' style={{ marginBottom: '20px' }}>
@@ -75,21 +100,21 @@ export const SelectTable = () => {
         verticalAlign='middle'
         columns={[
           {
-            title: '推荐规则名称',
+            title: t('推荐规则名称'),
             colKey: 'metadata.name',
             ellipsis: true,
           },
           {
-            title: '工作负载名称',
+            title: t('工作负载名称'),
             colKey: 'spec.targetRef.name',
           },
           {
-            title: 'NameSpace',
+            title: t('NameSpace'),
             ellipsis: true,
             colKey: 'spec.targetRef.namespace',
           },
           {
-            title: '工作负载类型',
+            title: t('工作负载类型'),
             ellipsis: true,
             colKey: 'spec.targetRef',
             cell({ row }) {
@@ -104,16 +129,16 @@ export const SelectTable = () => {
             },
           },
           {
-            title: '副本数推荐',
+            title: t('副本数推荐'),
             ellipsis: true,
             colKey: 'status.recommendedValue.replicasRecommendation.replicas',
           },
           {
-            title: '周期性',
+            title: t('周期性'),
             colKey: 'spec.completionStrategy.completionStrategyType',
           },
           {
-            title: '创建时间',
+            title: t('创建时间'),
             ellipsis: true,
             colKey: 'metadata.creationTimestamp',
             cell({ row }) {
@@ -126,7 +151,7 @@ export const SelectTable = () => {
             fixed: 'right',
             width: 200,
             colKey: 'op',
-            title: '操作',
+            title: t('操作'),
             cell(record) {
               return (
                 <>
@@ -138,7 +163,7 @@ export const SelectTable = () => {
                       rehandleClickOp(record);
                     }}
                   >
-                    管理
+                    {t('管理')}
                   </Button>
                   <Button
                     theme='primary'
@@ -148,7 +173,27 @@ export const SelectTable = () => {
                       handleClickDelete(record);
                     }}
                   >
-                    删除
+                    {t('删除')}
+                  </Button>
+                  <Button
+                    theme='primary'
+                    variant='text'
+                    onClick={() => {
+                      setCurrentSelection(record.row as RecommendationSimpleInfo);
+                      setCommandDialogVisible(true);
+                    }}
+                  >
+                    {t('查看命令')}
+                  </Button>
+                  <Button
+                    theme='primary'
+                    variant='text'
+                    onClick={() => {
+                      setCurrentSelection(record.row as RecommendationSimpleInfo);
+                      setYamlDialogVisible(true);
+                    }}
+                  >
+                    {t('查看YAML')}
                   </Button>
                 </>
               );
@@ -177,8 +222,45 @@ export const SelectTable = () => {
           },
         }}
       />
-      <Dialog header='确认删除当前所选推荐规则？' visible={visible} onClose={handleClose}>
-        <p>推荐规则将从API Server中删除,且无法恢复</p>
+      <Dialog header={t('确认删除当前所选推荐规则？')} visible={visible} onClose={handleClose}>
+        <p>{t('推荐规则将从API Server中删除,且无法恢复')}</p>
+      </Dialog>
+      <Dialog
+        width={850}
+        visible={yamlDialogVisible}
+        onClose={() => {
+          setYamlDialogVisible(false);
+          setCurrentSelection(null);
+        }}
+        cancelBtn={null}
+        onConfirm={() => {
+          setYamlDialogVisible(false);
+          setCurrentSelection(null);
+        }}
+      >
+        <React.Suspense fallback={'loading'}>
+          <Editor value={currentSelection ? toYaml(currentSelection) ?? '' : ''} />
+        </React.Suspense>
+      </Dialog>
+      <Dialog
+        width={850}
+        header={t('查看命令')}
+        visible={commandDialogVisible}
+        cancelBtn={null}
+        onConfirm={() => {
+          setCommandDialogVisible(false);
+          setCurrentSelection(null);
+        }}
+        onClose={() => {
+          setCommandDialogVisible(false);
+          setCurrentSelection(null);
+        }}
+      >
+        <Prism withLineNumbers language='tsx'>
+          {` <Prism withLineNumbers language='tsx'>
+          {/* ...code */}
+        </Prism>`}
+        </Prism>
       </Dialog>
     </>
   );

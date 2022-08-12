@@ -6,8 +6,10 @@ import { ELayout, selectGlobal, switchTheme, toggleMenu, toggleSetting } from 'm
 import Setting from './components/Setting';
 import AppLayout from './components/AppLayout';
 import Style from './index.module.less';
+import { useTranslation } from 'react-i18next';
 
 export default memo(() => {
+  const { t } = useTranslation();
   const globalState = useAppSelector(selectGlobal);
   const dispatch = useAppDispatch();
 
@@ -36,7 +38,7 @@ export default memo(() => {
         visible={globalState.setting}
         size='458px'
         footer={false}
-        header='页面配置'
+        header={t('页面配置')}
         onClose={() => dispatch(toggleSetting())}
       >
         <Setting />

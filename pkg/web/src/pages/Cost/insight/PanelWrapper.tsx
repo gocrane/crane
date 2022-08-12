@@ -19,8 +19,8 @@ export const PanelWrapper = React.memo(({ panel }: PanelWrapperProps) => {
   const isNeedSelectNamespace = useIsNeedSelectNamespace();
   const queryStr = useGrafanaQueryStr({ panelId: panel.id });
 
-  const span = panel?.gridPos?.w > 0 && panel?.gridPos?.w <= 24 ? Math.floor(panel?.gridPos?.w / 2) : 6;
-  const minHeight = Math.max(panel?.gridPos?.h * baselineHeight, defaultHeight);
+  const span = panel?.gridPos?.w > 0 && panel?.gridPos?.w <= 24 ? Math.floor(panel.gridPos.w / 2) : 6;
+  const minHeight = panel?.gridPos?.h ? Math.max(panel.gridPos.h * baselineHeight, defaultHeight) : defaultHeight;
 
   return (isNeedSelectNamespace && !selectedNamespace) || !isValidPanel ? null : (
     <Col key={panel.id} span={span}>

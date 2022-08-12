@@ -11,7 +11,7 @@ export interface metadata {
   managedFields?: any;
 }
 
-interface RecommendationRuleSimpleInfo {
+export interface RecommendationRuleSimpleInfo {
   kind: string;
   apiVersion: string;
   metadata?: metadata;

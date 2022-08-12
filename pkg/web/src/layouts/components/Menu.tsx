@@ -4,7 +4,7 @@ import { selectGlobal } from 'modules/global';
 import { useAppSelector } from 'modules/store';
 import React, { memo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import router, { IRouter } from 'router';
+import { useRouteConfig, IRouter } from 'router';
 import { Menu, MenuValue } from 'tdesign-react';
 import { resolve } from 'utils/path';
 
@@ -71,6 +71,7 @@ const renderMenuItems = (menu: IRouter[], parentPath = '') => {
  * 顶部菜单
  */
 export const HeaderMenu = memo(() => {
+  const router = useRouteConfig();
   const globalState = useAppSelector(selectGlobal);
   const location = useLocation();
   const [active, setActive] = useState<MenuValue>(location.pathname); // todo
@@ -92,6 +93,7 @@ export const HeaderMenu = memo(() => {
  * 左侧菜单
  */
 export default memo((props: IMenuProps) => {
+  const router = useRouteConfig();
   const location = useLocation();
   const globalState = useAppSelector(selectGlobal);
 

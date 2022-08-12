@@ -21,28 +21,11 @@ import Dark from 'assets/svg/assets-setting-dark.svg?component';
 import System from 'assets/svg/assets-setting-auto.svg?component';
 
 import Style from './index.module.less';
+import { useTranslation } from 'react-i18next';
 
 enum ESettingTheme {
   system,
 }
-
-const themeList = [
-  {
-    value: ETheme.light,
-    image: <Light />,
-    name: '明亮',
-  },
-  {
-    value: ETheme.dark,
-    image: <Dark />,
-    name: '黑暗',
-  },
-  {
-    value: ESettingTheme.system,
-    image: <System />,
-    name: '跟随系统',
-  },
-];
 
 const layoutList = [
   {
@@ -60,6 +43,24 @@ const layoutList = [
 ];
 
 export default memo(() => {
+  const { t } = useTranslation();
+  const themeList = [
+    {
+      value: ETheme.light,
+      image: <Light />,
+      name: t('明亮'),
+    },
+    {
+      value: ETheme.dark,
+      image: <Dark />,
+      name: t('黑暗'),
+    },
+    {
+      value: ESettingTheme.system,
+      image: <System />,
+      name: t('跟随系统'),
+    },
+  ];
   const dispatch = useAppDispatch();
   const globalState = useAppSelector(selectGlobal);
 
@@ -73,27 +74,27 @@ export default memo(() => {
 
   return (
     <div>
-      <div className={Style.settingTitle}>主题模式</div>
+      <div className={Style.settingTitle}>{t('主题模式')}</div>
       <RadioRect
         defaultValue={globalState.systemTheme ? ESettingTheme.system : globalState.theme}
         onChange={handleThemeSwitch}
         options={themeList}
       />
 
-      <div className={Style.settingTitle}>主题色</div>
+      <div className={Style.settingTitle}>{t('主题色')}</div>
       <RadioColor defaultValue={globalState.color} onChange={(value) => dispatch(switchColor(value))} />
 
-      <div className={Style.settingTitle}>导航布局</div>
+      <div className={Style.settingTitle}>{t('导航布局')}</div>
       <RadioRect
         defaultValue={globalState.layout}
         onChange={(value) => dispatch(switchLayout(value))}
         options={layoutList}
       />
 
-      <div className={Style.settingTitle}>元素开关</div>
+      <div className={Style.settingTitle}>{t('元素开关')}</div>
       <Row justify='space-between'>
         <Col>
-          <div className={Style.settingSubTitle}>显示 Header</div>
+          <div className={Style.settingSubTitle}>{t('显示 Header')}</div>
         </Col>
         <Col>
           <Switch size='large' value={globalState.showHeader} onChange={() => dispatch(toggleShowHeader())} />
@@ -102,7 +103,7 @@ export default memo(() => {
 
       <Row justify='space-between'>
         <Col>
-          <div className={Style.settingSubTitle}>显示 Breadcrumbs</div>
+          <div className={Style.settingSubTitle}>{t('显示 Breadcrumbs')}</div>
         </Col>
         <Col>
           <Switch size='large' value={globalState.showBreadcrumbs} onChange={() => dispatch(toggleShowBreadcrumbs())} />
@@ -111,7 +112,7 @@ export default memo(() => {
 
       <Row justify='space-between'>
         <Col>
-          <div className={Style.settingSubTitle}>显示 Footer</div>
+          <div className={Style.settingSubTitle}>{t('显示 Footer')}</div>
         </Col>
         <Col>
           <Switch size='large' value={globalState.showFooter} onChange={() => dispatch(toggleShowFooter())} />
