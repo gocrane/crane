@@ -83,6 +83,7 @@ func (rr *ReplicasRecommender) CheckDataProviders(ctx *framework.RecommendationC
 		providers.PrometheusDataSource: promDataProvider,
 	}
 
+	// will be use in future.
 	// if no data provider config set, use default history data provider
 	/*
 		if len(dataSourceKeys) > 0 {

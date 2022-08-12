@@ -389,9 +389,9 @@ func (c *RecommendationRuleController) executeMission(ctx context.Context, wg *s
 			APIVersion: identities[k].APIVersion,
 			Labels:     identities[k].Labels,
 		}
-		recommendationContext := framework.NewRecommendationContext(ctx, identity, p, recommendation, c.Client)
-		err := recommender.Run(&recommendationContext, r)
 
+		recommendationContext := framework.NewRecommendationContext(ctx, identity, p, recommendation, c.Client, c.RestMapper, c.ScaleClient)
+		err := recommender.Run(&recommendationContext, r)
 		if err != nil {
 			mission.Message = fmt.Sprintf("Failed to run recommendation flow in recommender %s: %s", r.Name(), err.Error())
 			return

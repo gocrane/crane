@@ -3,7 +3,10 @@ package framework
 import (
 	"context"
 
-	v1 "k8s.io/api/core/v1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/client-go/scale"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/gocrane/api/analysis/v1alpha1"
@@ -39,18 +42,25 @@ type RecommendationContext struct {
 	// Manager of predict algorithm
 	PredictorMgr predictormgr.Manager
 	// Pod template
-	PodTemplate *v1.PodTemplateSpec
+	PodTemplate *corev1.PodTemplateSpec
 	// Client
-	Client client.Client
+	Client      client.Client
+	RestMapper  meta.RESTMapper
+	ScaleClient scale.ScalesGetter
+	RestMapping *meta.RESTMapping
+	DaemonSet   *appsv1.DaemonSet
 }
 
-func NewRecommendationContext(context context.Context, identity analytics.ObjectIdentity, dataProviders map[providers.DataSourceType]providers.History, recommendation *v1alpha1.Recommendation, client client.Client) RecommendationContext {
+func NewRecommendationContext(context context.Context, identity analytics.ObjectIdentity, dataProviders map[providers.DataSourceType]providers.History,
+	recommendation *v1alpha1.Recommendation, client client.Client, restMapper meta.RESTMapper, scaleClient scale.ScalesGetter) RecommendationContext {
 	return RecommendationContext{
 		Identity:       identity,
 		Context:        context,
 		DataProviders:  dataProviders,
 		Recommendation: recommendation,
 		Client:         client,
+		RestMapper:     restMapper,
+		ScaleClient:    scaleClient,
 		//CancelCh:       context.Done(),
 	}
 }

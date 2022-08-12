@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -13,6 +15,7 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/gocrane/crane/pkg/known"
 )
@@ -232,4 +235,25 @@ func ExtResourceAllocated(pod *v1.Pod, resName v1.ResourceName) (hasExtResource 
 		}
 	}
 	return
+}
+
+func GetDaemonSetPods(kubeClient client.Client, namespace string, name string) ([]corev1.Pod, error) {
+	ds := appsv1.DaemonSet{}
+	err := kubeClient.Get(context.TODO(), client.ObjectKey{Namespace: namespace, Name: name}, &ds)
+	if err != nil {
+		return nil, err
+	}
+
+	opts := []client.ListOption{
+		client.InNamespace(namespace),
+		client.MatchingLabels(ds.Spec.Selector.MatchLabels),
+	}
+
+	podList := &corev1.PodList{}
+	err = kubeClient.List(context.TODO(), podList, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	return podList.Items, nil
 }
