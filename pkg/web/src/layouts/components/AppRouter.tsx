@@ -1,7 +1,7 @@
 import React, { memo, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Layout, Loading } from 'tdesign-react';
-import routers, { IRouter } from 'router';
+import { useRouteConfig, IRouter } from 'router';
 import { resolve } from 'utils/path';
 import Page from './Page';
 import Style from './AppRouter.module.less';
@@ -48,18 +48,21 @@ const renderRoutes: TRenderRoutes = (routes, parentPath = '', breadcrumb = []) =
     return children ? renderRoutes(children, currentPath, currentBreadcrumb) : null;
   });
 
-const AppRouter = () => (
-  <Content>
-    <Suspense
-      fallback={
-        <div className={Style.loading}>
-          <Loading />
-        </div>
-      }
-    >
-      <Routes>{renderRoutes(routers)}</Routes>
-    </Suspense>
-  </Content>
-);
+const AppRouter = () => {
+  const routers = useRouteConfig();
+  return (
+    <Content>
+      <Suspense
+        fallback={
+          <div className={Style.loading}>
+            <Loading />
+          </div>
+        }
+      >
+        <Routes>{renderRoutes(routers)}</Routes>
+      </Suspense>
+    </Content>
+  );
+};
 
 export default memo(AppRouter);

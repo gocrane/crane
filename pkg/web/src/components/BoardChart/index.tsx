@@ -97,7 +97,7 @@ const fetchData = (craneUrl: string, { query, timeType, start, end, step }: IBoa
   }
 };
 
-const buildIcon = ({ data }, { title, timeType, lineColor = '#0352d9' }): { Icon: any; error: string } => {
+const buildIcon = ({ data }: any, { title, timeType, lineColor = '#0352d9' }: any): { Icon: any; error: string } => {
   console.log(title, 'data', data);
   const dynamicChartOption = {
     dataset: {
@@ -186,7 +186,7 @@ export const TrendIcon = ({ trend, trendNum }: { trend?: ETrend; trendNum?: stri
         [Style.trendColorError]: trend === ETrend.error,
       })}
     >
-      {((trend: ETrend) => {
+      {((trend?: ETrend) => {
         switch (trend) {
           case ETrend.up:
             return (
@@ -219,7 +219,7 @@ export const TrendIcon = ({ trend, trendNum }: { trend?: ETrend; trendNum?: stri
  * @param oldNumber The initial value
  * @param newNumber The value that changed
  */
-function getPercentageChange(oldNumber, newNumber) {
+function getPercentageChange(oldNumber: any, newNumber: any) {
   const decreaseValue = oldNumber - newNumber;
 
   return (decreaseValue / oldNumber) * 100;
@@ -257,15 +257,15 @@ const BoardChart = ({
   const { result, error } = fetchDataResult;
 
   let IconResult;
-  if (!Icon && result?.ifFetching !== true) {
+  if (!Icon && result?.isFetching !== true) {
     // Build Icon
     IconResult = buildIcon(result, { title, timeType, lineColor });
     console.log(IconResult);
   }
 
-  let count;
+  let count: React.ReactNode = null;
   if (error) {
-    count = error;
+    count = error as any;
   } else if ((typeof result?.isFetching === 'boolean' && result?.isFetching === true) || result?.data?.emptyData) {
     count = 'No Data';
   } else {
@@ -321,7 +321,7 @@ const BoardChart = ({
     >
       <div className={Style.boardItem}>
         <div className={Style.boardItemLeft}>{count}</div>
-        <div className={Style.boardItemRight}>{Icon || IconResult.Icon}</div>
+        <div className={Style.boardItemRight}>{Icon || IconResult?.Icon}</div>
       </div>
     </Card>
   );

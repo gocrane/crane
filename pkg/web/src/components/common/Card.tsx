@@ -8,7 +8,7 @@ export const Card = ({
   className,
 }: {
   children: React.ReactNode;
-  title?: string;
+  title?: string | null;
   operations?: React.ReactNode;
   style?: React.CSSProperties;
   className?: string;

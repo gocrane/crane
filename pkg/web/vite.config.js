@@ -33,6 +33,9 @@ export default (params) => ({
   },
 
   plugins: [
+    // monacoEditorPlugin({
+    //   languageWorkers: ['typescript'],
+    // }),
     svgr(),
     react(),
     params.mode === 'mock' &&

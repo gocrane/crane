@@ -1,11 +1,11 @@
-import { clusterApi } from '../../apis/clusterApi';
 import { useSelector } from '../../hooks';
-import { insightAction } from '../../store/insightSlice';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDispatch } from 'react-redux';
 import { useMatch } from 'react-router-dom';
 import { Select } from 'tdesign-react';
+import { clusterApi } from 'services/clusterApi';
+import { insightAction } from 'modules/insightSlice';
 
 export const ContentHeader = React.memo(() => {
   const { t } = useTranslation();
@@ -44,7 +44,7 @@ export const ContentHeader = React.memo(() => {
             placeholder={t('请选择集群')}
             style={{ width: '200px' }}
             value={selectedClusterId}
-            onChange={(value: string) => {
+            onChange={(value: any) => {
               dispatch(insightAction.selectedClusterId(value));
             }}
           >

@@ -5,6 +5,7 @@ import ReactEcharts from 'echarts-for-react';
 import dayjs from 'dayjs';
 import { TimeIcon } from 'tdesign-icons-react';
 import { useRangePrometheusQuery } from '../../services/prometheusApi';
+import { useTranslation } from 'react-i18next';
 
 export interface IPieChart {
   title?: string;
@@ -19,17 +20,17 @@ export interface IPieChart {
   query: string;
 }
 
-const fetchPieData = (craneUrl, title, timeDateRangePicker, step, query) => {
+const fetchPieData = (craneUrl: string, title: string, timeDateRangePicker: string[], step: string, query: string) => {
   const start = dayjs(timeDateRangePicker[0]).valueOf();
   const end = dayjs(timeDateRangePicker[1]).valueOf();
   const minutesDuration = Math.round((end - start)/1000/60)
   query = query.replaceAll("{DURATION}", minutesDuration.toString())
   const { data, isError } = useRangePrometheusQuery({ craneUrl, start, end, step, query });
   if (isError) MessagePlugin.error(`[${title}] Check Your Network Or Query Params !!!`, 10 * 1000);
-  const result: never[] = [];
+  const result: any = {};
   data?.data?.map((namesapce) => {
     const namespaceName = namesapce.metric.namespace;
-    namesapce.values.map((value) => {
+    (namesapce?.values ?? []).map((value) => {
       const timestamp = dayjs(value[0]).format('MM-DD');
       // const timestamp = value[0];
       const metricValue = value[1];
@@ -47,6 +48,7 @@ const fetchPieData = (craneUrl, title, timeDateRangePicker, step, query) => {
 };
 
 const PieChart = ({ title, subTitle, datePicker, timeRange, step, query }: IPieChart) => {
+  const { t } = useTranslation();
   const craneUrl: any = useCraneUrl();
 
   // Time
@@ -63,12 +65,12 @@ const PieChart = ({ title, subTitle, datePicker, timeRange, step, query }: IPieC
       dayjs().subtract(0, 's').format('YYYY-MM-DD HH:mm:ss'),
     ]);
   }
-  const [presets] = useState({
-    最近7天: [dayjs().subtract(7, 'day'), dayjs()],
-    最近3天: [dayjs().subtract(3, 'day'), dayjs()],
-    最近2天: [dayjs().subtract(2, 'day'), dayjs()],
-    最近1天: [dayjs().subtract(1, 'day'), dayjs()],
-    实时: [dayjs(), dayjs()],
+  const [presets] = useState<Record<string, [Date, Date]>>({
+    [t('最近7天')]: [dayjs().subtract(7, 'day').toDate(), dayjs().toDate()],
+    [t('最近3天')]: [dayjs().subtract(3, 'day').toDate(), dayjs().toDate()],
+    [t('最近2天')]: [dayjs().subtract(2, 'day').toDate(), dayjs().toDate()],
+    [t('最近1天')]: [dayjs().subtract(1, 'day').toDate(), dayjs().toDate()],
+    [t('实时')]: [dayjs().toDate(), dayjs().toDate()],
   });
 
   const onTimeChange = (time: any) => {
@@ -77,10 +79,10 @@ const PieChart = ({ title, subTitle, datePicker, timeRange, step, query }: IPieC
   };
 
   // Fetch Data
-  const pieData = fetchPieData(craneUrl, title, timeDateRangePicker, step, query);
+  const pieData = fetchPieData(craneUrl, title ?? '', timeDateRangePicker, step ?? '', query);
 
   const timeLineData: string[] = [];
-  const options: { series: { data: any; }[]; }[] = [];
+  const options: { series: { data: any }[] }[] = [];
   Object.keys(pieData).map(
     (value) =>
       timeLineData.push(value) &&
@@ -136,7 +138,7 @@ const PieChart = ({ title, subTitle, datePicker, timeRange, step, query }: IPieC
             content={
               <DateRangePicker
                 mode='date'
-                placeholder={['开始时间', '结束时间']}
+                placeholder={[t('开始时间'), t('结束时间')]}
                 enableTimePicker
                 value={timeDateRangePicker}
                 format='YYYY-MM-DD HH:mm'
