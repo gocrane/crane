@@ -13,6 +13,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import JsYaml from 'js-yaml';
 import { useTranslation } from 'react-i18next';
+import { Prism } from '@mantine/prism';
 
 const Editor = React.lazy(() => import('components/common/Editor'));
 
@@ -20,7 +21,8 @@ export const SelectTable = () => {
   const { t } = useTranslation();
   const [yamlDialogVisible, setYamlDialogVisible] = useState<boolean>(false);
   const [currentSelection, setCurrentSelection] = useState<RecommendationSimpleInfo | null>(null);
-
+  const [commandDialogVisible, setCommandDialogVisible] = useState<boolean>(false);
+  
   const navigate = useNavigate();
   const [selectedRowKeys, setSelectedRowKeys] = useState<(string | number)[]>([0, 1]);
   const [visible, setVisible] = useState(false);
@@ -199,6 +201,16 @@ export const SelectTable = () => {
                     variant='text'
                     onClick={() => {
                       setCurrentSelection(record.row as RecommendationSimpleInfo);
+                      setCommandDialogVisible(true);
+                    }}
+                  >
+                    {t('查看命令')}
+                  </Button>
+                  <Button
+                    theme='primary'
+                    variant='text'
+                    onClick={() => {
+                      setCurrentSelection(record.row as RecommendationSimpleInfo);
                       setYamlDialogVisible(true);
                     }}
                   >
@@ -250,6 +262,26 @@ export const SelectTable = () => {
         <React.Suspense fallback={'loading'}>
           <Editor value={currentSelection ? toYaml(currentSelection) ?? '' : ''} />
         </React.Suspense>
+      </Dialog>
+      <Dialog
+        width={850}
+        header={t('查看命令')}
+        visible={commandDialogVisible}
+        cancelBtn={null}
+        onConfirm={() => {
+          setCommandDialogVisible(false);
+          setCurrentSelection(null);
+        }}
+        onClose={() => {
+          setCommandDialogVisible(false);
+          setCurrentSelection(null);
+        }}
+      >
+        <Prism withLineNumbers language='tsx'>
+          {` <Prism withLineNumbers language='tsx'>
+          {/* ...code */}
+        </Prism>`}
+        </Prism>
       </Dialog>
     </>
   );
