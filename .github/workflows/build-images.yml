@@ -8,6 +8,15 @@ on:
       - 'pkg/**'
       - '**.go'
       - 'go.*'
+      - '**.yml'
+  push:
+    paths:
+      - 'cmd/**'
+      - 'pkg/**'
+      - '**.go'
+      - 'go.*'
+      - '**.yml'
+  workflow_dispatch:
 
 jobs:
   build-craned:
@@ -21,18 +30,32 @@ jobs:
       - id: git-versions
         run: |
           echo "::set-output name=git-version::$(git describe --tags --always)"
+      - id: git-branch
+        run: |
+          echo "::set-output name=git-branch::$(echo ${GITHUB_REF##*/} | tr '[A-Z]' '[a-z]')"
       - id: build-name-image
         run: |
           echo "::set-output name=build-name-image::craned"
       - id: build-name-file
         run: |
           echo "::set-output name=build-name-file::$(echo "${{steps.build-name-image.outputs.build-name-image}}" | tr '/' '-')"
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
-
-      - name: Build and export
+      - name: Inspect builder
         run: |
-          make image-craned
+          echo "Name:      ${{ steps.buildx.outputs.name }}"
+          echo "Endpoint:  ${{ steps.buildx.outputs.endpoint }}"
+          echo "Status:    ${{ steps.buildx.outputs.status }}"
+          echo "Flags:     ${{ steps.buildx.outputs.flags }}"
+          echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to Coding Container Registry
         uses: docker/login-action@v1
@@ -41,18 +64,51 @@ jobs:
           username: ${{ secrets.CODING_USERNAME }}
           password: ${{ secrets.CODING_PASSWORD }}
 
-      - name: Push image
-        run: |
-          IMAGE_NAME=${{steps.build-name-image.outputs.build-name-image}}
-          IMAGE_ID=finops-docker.pkg.coding.net/gocrane/crane/$IMAGE_NAME
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-          # Change all uppercase to lowercase
-          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
-          VERSION=${{steps.git-versions.outputs.git-version}}
-          echo IMAGE_ID=$IMAGE_ID
-          echo VERSION=$VERSION
-          docker tag gocrane/$IMAGE_NAME:$VERSION $IMAGE_ID:pr-${{github.event.number}}-$VERSION
-          docker push $IMAGE_ID:pr-${{github.event.number}}-$VERSION
+      - id: build-ldflags
+        run: |
+          echo "::set-output name=build-ldflags::$(make echoLDFLAGS)"
+
+      - name: Build craned and push - push
+        if: ${{ github.event_name == 'push' }}
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            PKGNAME=craned
+            LDFLAGS=${{steps.build-ldflags.outputs.build-ldflags}}
+            BUILD=CI
+          tags: |
+            gocrane/${{steps.build-name-image.outputs.build-name-image}}:${{steps.git-branch.outputs.git-branch}}-${{steps.git-versions.outputs.git-version}}
+            gocrane/${{steps.build-name-image.outputs.build-name-image}}:${{steps.git-branch.outputs.git-branch}}
+            ghcr.io/gocrane/crane/${{steps.build-name-image.outputs.build-name-image}}:${{steps.git-branch.outputs.git-branch}}-${{steps.git-versions.outputs.git-version}}
+            ghcr.io/gocrane/crane/${{steps.build-name-image.outputs.build-name-image}}:${{steps.git-branch.outputs.git-branch}}
+            finops-docker.pkg.coding.net/gocrane/crane/${{steps.build-name-image.outputs.build-name-image}}:${{steps.git-branch.outputs.git-branch}}-${{steps.git-versions.outputs.git-version}}
+            finops-docker.pkg.coding.net/gocrane/crane/${{steps.build-name-image.outputs.build-name-image}}:${{steps.git-branch.outputs.git-branch}}
+
+      - name: Build craned and push - pull_request_target
+        if: ${{ github.event_name == 'pull_request_target' }}
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            PKGNAME=craned
+            LDFLAGS=${{steps.build-ldflags.outputs.build-ldflags}}
+            BUILD=CI
+          tags: |
+            gocrane/${{steps.build-name-image.outputs.build-name-image}}:pr-${{github.event.number}}-${{steps.git-versions.outputs.git-version}}
+            ghcr.io/gocrane/crane/${{steps.build-name-image.outputs.build-name-image}}:pr-${{github.event.number}}-${{steps.git-versions.outputs.git-version}}
+            finops-docker.pkg.coding.net/gocrane/crane/${{steps.build-name-image.outputs.build-name-image}}:pr-${{github.event.number}}-${{steps.git-versions.outputs.git-version}}
 
   build-metric-adapter:
     runs-on: ubuntu-latest
@@ -65,18 +121,32 @@ jobs:
       - id: git-versions
         run: |
           echo "::set-output name=git-version::$(git describe --tags --always)"
+      - id: git-branch
+        run: |
+          echo "::set-output name=git-branch::$(echo ${GITHUB_REF##*/} | tr '[A-Z]' '[a-z]')"
       - id: build-name-image
         run: |
           echo "::set-output name=build-name-image::metric-adapter"
       - id: build-name-file
         run: |
           echo "::set-output name=build-name-file::$(echo "${{steps.build-name-image.outputs.build-name-image}}" | tr '/' '-')"
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
-
-      - name: Build and export
+      - name: Inspect builder
         run: |
-          make image-metric-adapter
+          echo "Name:      ${{ steps.buildx.outputs.name }}"
+          echo "Endpoint:  ${{ steps.buildx.outputs.endpoint }}"
+          echo "Status:    ${{ steps.buildx.outputs.status }}"
+          echo "Flags:     ${{ steps.buildx.outputs.flags }}"
+          echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to Coding Container Registry
         uses: docker/login-action@v1
@@ -85,18 +155,51 @@ jobs:
           username: ${{ secrets.CODING_USERNAME }}
           password: ${{ secrets.CODING_PASSWORD }}
 
-      - name: Push image
-        run: |
-          IMAGE_NAME=${{steps.build-name-image.outputs.build-name-image}}
-          IMAGE_ID=finops-docker.pkg.coding.net/gocrane/crane/$IMAGE_NAME
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-          # Change all uppercase to lowercase
-          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
-          VERSION=${{steps.git-versions.outputs.git-version}}
-          echo IMAGE_ID=$IMAGE_ID
-          echo VERSION=$VERSION
-          docker tag gocrane/$IMAGE_NAME:$VERSION $IMAGE_ID:pr-${{github.event.number}}-$VERSION
-          docker push $IMAGE_ID:pr-${{github.event.number}}-$VERSION
+      - id: build-ldflags
+        run: |
+          echo "::set-output name=build-ldflags::$(make echoLDFLAGS)"
+
+      - name: Build crane-agent and push - push
+        if: ${{ github.event_name == 'push' }}
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            PKGNAME=metric-adapter
+            LDFLAGS=${{steps.build-ldflags.outputs.build-ldflags}}
+            BUILD=CI
+          tags: |
+            gocrane/${{steps.build-name-image.outputs.build-name-image}}:${{steps.git-branch.outputs.git-branch}}-${{steps.git-versions.outputs.git-version}}
+            gocrane/${{steps.build-name-image.outputs.build-name-image}}:${{steps.git-branch.outputs.git-branch}}
+            ghcr.io/gocrane/crane/${{steps.build-name-image.outputs.build-name-image}}:${{steps.git-branch.outputs.git-branch}}-${{steps.git-versions.outputs.git-version}}
+            ghcr.io/gocrane/crane/${{steps.build-name-image.outputs.build-name-image}}:${{steps.git-branch.outputs.git-branch}}
+            finops-docker.pkg.coding.net/gocrane/crane/${{steps.build-name-image.outputs.build-name-image}}:${{steps.git-branch.outputs.git-branch}}-${{steps.git-versions.outputs.git-version}}
+            finops-docker.pkg.coding.net/gocrane/crane/${{steps.build-name-image.outputs.build-name-image}}:${{steps.git-branch.outputs.git-branch}}
+
+      - name: Build crane-agent and push - pull_request_target
+        if: ${{ github.event_name == 'pull_request_target' }}
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            PKGNAME=metric-adapter
+            LDFLAGS=${{steps.build-ldflags.outputs.build-ldflags}}
+            BUILD=CI
+          tags: |
+            gocrane/${{steps.build-name-image.outputs.build-name-image}}:pr-${{github.event.number}}-${{steps.git-versions.outputs.git-version}}
+            ghcr.io/gocrane/crane/${{steps.build-name-image.outputs.build-name-image}}:pr-${{github.event.number}}-${{steps.git-versions.outputs.git-version}}
+            finops-docker.pkg.coding.net/gocrane/crane/${{steps.build-name-image.outputs.build-name-image}}:pr-${{github.event.number}}-${{steps.git-versions.outputs.git-version}}
 
   build-crane-agent:
     runs-on: ubuntu-latest
@@ -109,18 +212,32 @@ jobs:
       - id: git-versions
         run: |
           echo "::set-output name=git-version::$(git describe --tags --always)"
+      - id: git-branch
+        run: |
+          echo "::set-output name=git-branch::$(echo ${GITHUB_REF##*/} | tr '[A-Z]' '[a-z]')"
       - id: build-name-image
         run: |
           echo "::set-output name=build-name-image::crane-agent"
       - id: build-name-file
         run: |
           echo "::set-output name=build-name-file::$(echo "${{steps.build-name-image.outputs.build-name-image}}" | tr '/' '-')"
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
-
-      - name: Build and export
+      - name: Inspect builder
         run: |
-          make image-crane-agent
+          echo "Name:      ${{ steps.buildx.outputs.name }}"
+          echo "Endpoint:  ${{ steps.buildx.outputs.endpoint }}"
+          echo "Status:    ${{ steps.buildx.outputs.status }}"
+          echo "Flags:     ${{ steps.buildx.outputs.flags }}"
+          echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to Coding Container Registry
         uses: docker/login-action@v1
@@ -129,18 +246,51 @@ jobs:
           username: ${{ secrets.CODING_USERNAME }}
           password: ${{ secrets.CODING_PASSWORD }}
 
-      - name: Push image
-        run: |
-          IMAGE_NAME=${{steps.build-name-image.outputs.build-name-image}}
-          IMAGE_ID=finops-docker.pkg.coding.net/gocrane/crane/$IMAGE_NAME
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-          # Change all uppercase to lowercase
-          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
-          VERSION=${{steps.git-versions.outputs.git-version}}
-          echo IMAGE_ID=$IMAGE_ID
-          echo VERSION=$VERSION
-          docker tag gocrane/$IMAGE_NAME:$VERSION $IMAGE_ID:pr-${{github.event.number}}-$VERSION
-          docker push $IMAGE_ID:pr-${{github.event.number}}-$VERSION
+      - id: build-ldflags
+        run: |
+            echo "::set-output name=build-ldflags::$(make echoLDFLAGS)"
+
+      - name: Build crane-agent and push - push
+        uses: docker/build-push-action@v3
+        if: ${{ github.event_name == 'push' }}
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            PKGNAME=crane-agent
+            LDFLAGS=${{steps.build-ldflags.outputs.build-ldflags}}
+            BUILD=CI
+          tags: |
+            gocrane/${{steps.build-name-image.outputs.build-name-image}}:${{steps.git-branch.outputs.git-branch}}-${{steps.git-versions.outputs.git-version}}
+            gocrane/${{steps.build-name-image.outputs.build-name-image}}:${{steps.git-branch.outputs.git-branch}}
+            ghcr.io/gocrane/crane/${{steps.build-name-image.outputs.build-name-image}}:${{steps.git-branch.outputs.git-branch}}-${{steps.git-versions.outputs.git-version}}
+            ghcr.io/gocrane/crane/${{steps.build-name-image.outputs.build-name-image}}:${{steps.git-branch.outputs.git-branch}}
+            finops-docker.pkg.coding.net/gocrane/crane/${{steps.build-name-image.outputs.build-name-image}}:${{steps.git-branch.outputs.git-branch}}-${{steps.git-versions.outputs.git-version}}
+            finops-docker.pkg.coding.net/gocrane/crane/${{steps.build-name-image.outputs.build-name-image}}:${{steps.git-branch.outputs.git-branch}}
+
+      - name: Build crane-agent and push - pull_request_target
+        uses: docker/build-push-action@v3
+        if: ${{ github.event_name == 'pull_request_target' }}
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            PKGNAME=crane-agent
+            LDFLAGS=${{steps.build-ldflags.outputs.build-ldflags}}
+            BUILD=CI
+          tags: |
+            gocrane/${{steps.build-name-image.outputs.build-name-image}}:pr-${{github.event.number}}-${{steps.git-versions.outputs.git-version}}
+            ghcr.io/gocrane/crane/${{steps.build-name-image.outputs.build-name-image}}:pr-${{github.event.number}}-${{steps.git-versions.outputs.git-version}}
+            finops-docker.pkg.coding.net/gocrane/crane/${{steps.build-name-image.outputs.build-name-image}}:pr-${{github.event.number}}-${{steps.git-versions.outputs.git-version}}
 
   build-dashboard:
     runs-on: ubuntu-latest
@@ -153,18 +303,32 @@ jobs:
       - id: git-versions
         run: |
           echo "::set-output name=git-version::$(git describe --tags --always)"
+      - id: git-branch
+        run: |
+          echo "::set-output name=git-branch::$(echo ${GITHUB_REF##*/} | tr '[A-Z]' '[a-z]')"
       - id: build-name-image
         run: |
           echo "::set-output name=build-name-image::dashboard"
       - id: build-name-file
         run: |
           echo "::set-output name=build-name-file::$(echo "${{steps.build-name-image.outputs.build-name-image}}" | tr '/' '-')"
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
-
-      - name: Build and export
+      - name: Inspect builder
         run: |
-          make image-dashboard
+          echo "Name:      ${{ steps.buildx.outputs.name }}"
+          echo "Endpoint:  ${{ steps.buildx.outputs.endpoint }}"
+          echo "Status:    ${{ steps.buildx.outputs.status }}"
+          echo "Flags:     ${{ steps.buildx.outputs.flags }}"
+          echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to Coding Container Registry
         uses: docker/login-action@v1
@@ -173,21 +337,42 @@ jobs:
           username: ${{ secrets.CODING_USERNAME }}
           password: ${{ secrets.CODING_PASSWORD }}
 
-      - name: Push image
-        run: |
-          IMAGE_NAME=${{steps.build-name-image.outputs.build-name-image}}
-          IMAGE_ID=finops-docker.pkg.coding.net/gocrane/crane/$IMAGE_NAME
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-          # Change all uppercase to lowercase
-          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
-          VERSION=${{steps.git-versions.outputs.git-version}}
-          echo IMAGE_ID=$IMAGE_ID
-          echo VERSION=$VERSION
-          docker tag gocrane/$IMAGE_NAME:$VERSION $IMAGE_ID:pr-${{github.event.number}}-$VERSION
-          docker push $IMAGE_ID:pr-${{github.event.number}}-$VERSION
+      - name: Build Dashboard and push - push to branch
+        if: ${{ github.event_name == 'push' }}
+        uses: docker/build-push-action@v3
+        with:
+          context: ./pkg/web
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            gocrane/${{steps.build-name-image.outputs.build-name-image}}:${{steps.git-branch.outputs.git-branch}}-${{steps.git-versions.outputs.git-version}}
+            gocrane/${{steps.build-name-image.outputs.build-name-image}}:${{steps.git-branch.outputs.git-branch}}
+            ghcr.io/gocrane/crane/${{steps.build-name-image.outputs.build-name-image}}:${{steps.git-branch.outputs.git-branch}}-${{steps.git-versions.outputs.git-version}}
+            ghcr.io/gocrane/crane/${{steps.build-name-image.outputs.build-name-image}}:${{steps.git-branch.outputs.git-branch}}
+            finops-docker.pkg.coding.net/gocrane/crane/${{steps.build-name-image.outputs.build-name-image}}:${{steps.git-branch.outputs.git-branch}}-${{steps.git-versions.outputs.git-version}}
+            finops-docker.pkg.coding.net/gocrane/crane/${{steps.build-name-image.outputs.build-name-image}}:${{steps.git-branch.outputs.git-branch}}
 
+      - name: Build Dashboard and push - pull_request_target
+        if: ${{ github.event_name == 'pull_request_target' }}
+        uses: docker/build-push-action@v3
+        with:
+          context: ./pkg/web
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            gocrane/${{steps.build-name-image.outputs.build-name-image}}:pr-${{github.event.number}}-${{steps.git-versions.outputs.git-version}}
+            ghcr.io/gocrane/crane/${{steps.build-name-image.outputs.build-name-image}}:pr-${{github.event.number}}-${{steps.git-versions.outputs.git-version}}
+            finops-docker.pkg.coding.net/gocrane/crane/${{steps.build-name-image.outputs.build-name-image}}:pr-${{github.event.number}}-${{steps.git-versions.outputs.git-version}}
   post-comment:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request_target' }}
     needs:
       - build-craned
       - build-metric-adapter
@@ -205,12 +390,47 @@ jobs:
       - id: image-tags
         run: |
           echo "::set-output name=image-tags::pr-${{github.event.number}}-${{steps.git-versions.outputs.git-version}}"
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(TZ='Asia/Shanghai' date +'%Y-%m-%d %H:%M')"
       - name: maintain-comment
         uses: actions-cool/maintain-one-comment@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
             🎉 Successfully Build Images.
+            **Now Support ARM Platforms.**
+            Comment Post Time: ${{ steps.date.outputs.date }}
+            Git Version: ${{steps.git-versions.outputs.git-version}}
+
+            #### Docker Registry
+
+            Overview: https://hub.docker.com/u/gocrane
+
+            | Image                                         | Pull Command                                              |
+            | --------------------------------------------- | --------------------------------------------------------- |
+            | crane-agent:${{steps.image-tags.outputs.image-tags}}    | docker pull gocrane/crane-agent:${{steps.image-tags.outputs.image-tags}}    |
+            | dashboard:${{steps.image-tags.outputs.image-tags}}      | docker pull gocrane/dashboard:${{steps.image-tags.outputs.image-tags}}      |
+            | metric-adapter:${{steps.image-tags.outputs.image-tags}} | docker pull gocrane/metric-adapter:${{steps.image-tags.outputs.image-tags}} |
+            | craned:${{steps.image-tags.outputs.image-tags}}         | docker pull gocrane/craned:${{steps.image-tags.outputs.image-tags}}         |
+
+            Quick Deploy - Helm
+            ```bash
+            helm repo add crane https://finops-helm.pkg.coding.net/gocrane/gocrane
+            helm install crane -n crane-system --create-namespace \
+                               --set craned.image.repository=gocrane/craned \
+                               --set craned.image.tag=${{steps.image-tags.outputs.image-tags}} \
+                               --set metricAdapter.image.repository=gocrane/metric-adapter \
+                               --set metricAdapter.image.tag=${{steps.image-tags.outputs.image-tags}} \
+                               --set craneAgent.image.repository=gocrane/crane-agent \
+                               --set craneAgent.image.tag=${{steps.image-tags.outputs.image-tags}} \
+                               --set cranedDashboard.image.repository=gocrane/dashboard \
+                               --set cranedDashboard.image.tag=${{steps.image-tags.outputs.image-tags}} crane/crane
+            ```
+
+            ---
+
+            #### Coding Registry
 
             Overview: https://finops.coding.net/public-artifacts/gocrane/crane/packages
 
@@ -220,5 +440,47 @@ jobs:
             | dashboard:${{steps.image-tags.outputs.image-tags}}      | docker pull finops-docker.pkg.coding.net/gocrane/crane/dashboard:${{steps.image-tags.outputs.image-tags}}      |
             | metric-adapter:${{steps.image-tags.outputs.image-tags}} | docker pull finops-docker.pkg.coding.net/gocrane/crane/metric-adapter:${{steps.image-tags.outputs.image-tags}} |
             | craned:${{steps.image-tags.outputs.image-tags}}         | docker pull finops-docker.pkg.coding.net/gocrane/crane/craned:${{steps.image-tags.outputs.image-tags}}         |
+
+            Quick Deploy - Helm
+            ```bash
+            helm repo add crane https://finops-helm.pkg.coding.net/gocrane/gocrane
+            helm install crane -n crane-system --create-namespace \
+                               --set craned.image.repository=finops-docker.pkg.coding.net/gocrane/crane/craned \
+                               --set craned.image.tag=${{steps.image-tags.outputs.image-tags}} \
+                               --set metricAdapter.image.repository=finops-docker.pkg.coding.net/gocrane/crane/metric-adapter \
+                               --set metricAdapter.image.tag=${{steps.image-tags.outputs.image-tags}} \
+                               --set craneAgent.image.repository=finops-docker.pkg.coding.net/gocrane/crane/crane-agent \
+                               --set craneAgent.image.tag=${{steps.image-tags.outputs.image-tags}} \
+                               --set cranedDashboard.image.repository=finops-docker.pkg.coding.net/gocrane/crane/dashboard \
+                               --set cranedDashboard.image.tag=${{steps.image-tags.outputs.image-tags}} crane/crane
+            ```
+
+            ---
+
+            #### Ghcr Registry
+
+            Overview: https://github.com/orgs/gocrane/packages?repo_name=crane
+
+            | Image                                         | Pull Command                                              |
+            | --------------------------------------------- | --------------------------------------------------------- |
+            | crane-agent:${{steps.image-tags.outputs.image-tags}}    | docker pull ghcr.io/gocrane/crane/crane-agent:${{steps.image-tags.outputs.image-tags}}    |
+            | dashboard:${{steps.image-tags.outputs.image-tags}}      | docker pull ghcr.io/gocrane/crane/dashboard:${{steps.image-tags.outputs.image-tags}}      |
+            | metric-adapter:${{steps.image-tags.outputs.image-tags}} | docker pull ghcr.io/gocrane/crane/metric-adapter:${{steps.image-tags.outputs.image-tags}} |
+            | craned:${{steps.image-tags.outputs.image-tags}}         | docker pull ghcr.io/gocrane/crane/craned:${{steps.image-tags.outputs.image-tags}}         |
+
+            Quick Deploy - Helm
+            ```bash
+            helm repo add crane https://finops-helm.pkg.coding.net/gocrane/gocrane
+            helm install crane -n crane-system --create-namespace \
+                               --set craned.image.repository=ghcr.io/gocrane/crane/craned \
+                               --set craned.image.tag=${{steps.image-tags.outputs.image-tags}} \
+                               --set metricAdapter.image.repository=ghcr.io/gocrane/crane/metric-adapter \
+                               --set metricAdapter.image.tag=${{steps.image-tags.outputs.image-tags}} \
+                               --set craneAgent.image.repository=ghcr.io/gocrane/crane/crane-agent \
+                               --set craneAgent.image.tag=${{steps.image-tags.outputs.image-tags}} \
+                               --set cranedDashboard.image.repository=ghcr.io/gocrane/crane/dashboard \
+                               --set cranedDashboard.image.tag=${{steps.image-tags.outputs.image-tags}} crane/crane
+            ```
+
             <!-- Created by actions-cool/maintain-one-comment -->
           body-include: '<!-- Created by actions-cool/maintain-one-comment -->'

@@ -51,7 +51,7 @@ plugins:
           Replicas Recommendation: 副本数推荐
           Proposals: 提案
           Contributing: 贡献
-          Mirror Repo: 镜像仓库
+          Mirror Resource: 镜像资源
           Code Standard: 代码标准
           Roadmap: 路线图
           Overview: 概述
@@ -69,7 +69,7 @@ plugins:
           Replicas Recommendation: 副本數推薦
           Proposals: 提案
           Contributing: 貢獻
-          Mirror Repo: 鏡像倉庫
+          Mirror Resource: 鏡像資源
           Code Standard: 代碼標準
           Roadmap: 技術路線
           Overview: 概述
@@ -121,4 +121,4 @@ nav:
   - Code Standard: code-standards.md
   - Roadmap:
     - 2022: roadmaps/roadmap-2022.md
-  - Mirror Repo: mirror.md
+  - Mirror Resource: mirror.md

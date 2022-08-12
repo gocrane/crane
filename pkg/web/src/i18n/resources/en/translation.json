@@ -8,12 +8,13 @@
   "暂无数据": "No Data",
   "中文": "Chinese",
   "英文": "English",
-  "切换语言": "Change language",
+  "切换语言": "Change Language",
   "集群名称不能为空": "Cluster name cannot left empty",
   "Crane URL不能为空": "Crane URL cannot left empty",
   "Crane URL格式不正确，请输入正确的URL": "Crane URL format error，please enter a correct URL",
   "成功连接: {craneUrl}": "Successfully connected: {craneUrl}",
   "无法连接: {craneUrl} , 请检查填写信息以及后端服务": "Unable to connect: {craneUrl} , please check fill in information and backend service",
+  "添加一个集群以启用Dashboard": "Add a cluster to enable Dashboard",
   "测试集群": "Test Cluster",
   "取消": "Cancel",
   "确定": "Confirm",
@@ -38,5 +39,6 @@
   "确认删除集群": "Are you sure you want to delete cluster",
   "请选择集群": "Select Cluster",
   "请选择Dashboard": "Select Dashboard",
-  "共 {total} 项数据": "Total {total} items"
+  "共 {total} 项数据": "Total {total} items",
+  "成本走势": "Cost Trend"
 }

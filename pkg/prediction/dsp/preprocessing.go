@@ -96,13 +96,15 @@ func preProcessTimeSeries(ts *common.TimeSeries, config *internalConfig, unit ti
 	var err error
 
 	err = fillMissingData(ts, config, unit)
-	if err == nil {
+	if err != nil {
 		return err
 	}
 
 	_ = deTrend()
 
-	return removeExtremeOutliers(ts)
+	_ = removeExtremeOutliers(ts)
+
+	return nil
 }
 
 func preProcessTimeSeriesList(tsList []*common.TimeSeries, config *internalConfig) ([]*common.TimeSeries, error) {
@@ -111,7 +113,7 @@ func preProcessTimeSeriesList(tsList []*common.TimeSeries, config *internalConfi
 	n := len(tsList)
 	wg.Add(n)
 	tsCh := make(chan *common.TimeSeries, n)
-	for _, ts := range tsList {
+	for i := range tsList {
 		go func(ts *common.TimeSeries) {
 			defer wg.Done()
 			if err := preProcessTimeSeries(ts, config, Hour); err != nil {
@@ -119,7 +121,7 @@ func preProcessTimeSeriesList(tsList []*common.TimeSeries, config *internalConfi
 			} else {
 				tsCh <- ts
 			}
-		}(ts)
+		}(tsList[i])
 	}
 	wg.Wait()
 	close(tsCh)

@@ -50,7 +50,7 @@ Full documentation is available on the [Crane website](https://docs.gocrane.io).
 
 ## RoadMap
 
-Please see [this document](./docs/roadmaps/roadmap-1h-2022.md) to learn more.
+Please see [this document](./docs/roadmaps/roadmap-2022.md) to learn more.
 
 ## Contributing
 

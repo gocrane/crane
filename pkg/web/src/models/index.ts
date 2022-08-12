@@ -1,15 +1,15 @@
-import i18n from '../i18n';
+import { t } from '../i18n';
 
 export enum QueryWindow {
   LAST_1_DAY = 'last1day',
   LAST_7_DAY = 'last7day',
-  LAST_30_DAY = 'last30day'
+  LAST_30_DAY = 'last30day',
 }
 
 export const QueryWindowOptions = [
-  { value: QueryWindow.LAST_1_DAY, text: i18n.t('24小时') },
-  { value: QueryWindow.LAST_7_DAY, text: i18n.t('7天') },
-  { value: QueryWindow.LAST_30_DAY, text: i18n.t('30天') }
+  { value: QueryWindow.LAST_1_DAY, text: t('24小时') },
+  { value: QueryWindow.LAST_7_DAY, text: t('7天') },
+  { value: QueryWindow.LAST_30_DAY, text: t('30天') },
 ];
 
 export enum Aggregation {
@@ -23,37 +23,37 @@ export enum Aggregation {
   CRONJOB = 'cronjob',
   CONTROLLER = 'controller',
   POD = 'pod',
-  CONTAINER = 'container'
+  CONTAINER = 'container',
 }
 
 export const AggregationOptions = [
   {
     value: Aggregation.CLUSTER,
-    text: i18n.t('集群')
+    text: t('集群'),
   },
   {
     value: Aggregation.NAMESPACE,
-    text: i18n.t('命名空间')
+    text: t('命名空间'),
   },
   {
     value: Aggregation.NODE,
-    text: i18n.t('节点')
+    text: t('节点'),
   },
   {
     value: Aggregation.DEPLOYMENT,
-    text: 'Deployment'
+    text: 'Deployment',
   },
   {
     value: Aggregation.DAEMONSET,
-    text: 'Daemonset'
+    text: 'Daemonset',
   },
   {
     value: Aggregation.STATEFULSET,
-    text: 'Statefulset'
+    text: 'Statefulset',
   },
   {
     value: Aggregation.JOB,
-    text: 'Job'
+    text: 'Job',
   },
   // {
   //   value: Aggregation.CRONJOB,
@@ -61,16 +61,16 @@ export const AggregationOptions = [
   // },
   {
     value: Aggregation.CONTROLLER,
-    text: 'Controller'
+    text: 'Controller',
   },
   {
     value: Aggregation.POD,
-    text: 'Pod'
+    text: 'Pod',
   },
   {
     value: Aggregation.CONTAINER,
-    text: 'Container'
-  }
+    text: 'Container',
+  },
 ];
 
 export interface ClusterSimpleInfo {

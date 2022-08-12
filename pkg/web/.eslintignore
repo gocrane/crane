@@ -1,3 +1,5 @@
-.d.ts
-.env.example
-.eslintrc.js
+build
+mock
+config
+public
+scripts

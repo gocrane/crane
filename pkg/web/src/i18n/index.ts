@@ -9,16 +9,16 @@ import zh from './resources/zh/translation.json';
 
 const resources = {
   zh: {
-    translation: { ...zh }
+    translation: { ...zh },
   },
   en: {
-    translation: { ...en }
-  }
+    translation: { ...en },
+  },
 };
 
 export enum SupportLanguages {
   zh = 'zh',
-  en = 'en'
+  en = 'en',
 }
 
 i18n
@@ -32,8 +32,8 @@ i18n
     saveMissing: true,
 
     interpolation: {
-      escapeValue: false // react already safes from xss
-    }
+      escapeValue: false, // react already safes from xss
+    },
   });
 
 const changeLanguage = (language: SupportLanguages) => {

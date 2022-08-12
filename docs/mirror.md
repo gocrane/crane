@@ -1,11 +1,88 @@
-# Mirror Repo
+# Mirror Resources
 
-
-## About mirror repo
+## About mirror resources
 
 Because of various network issues, it is difficult to access GitHub resources such as GitHub Repo, GitHub Release, GitHub Raw Content `raw.githubusercontent.com` in some regions.
 
 For a better experience, GoCrane offers several additional mirror repositories for you, but with some latency.
+
+## Image Registry
+
+GoCrane provides a friendly way to use images to deploy and test.
+
+GoCrane builds images based on the CI(GitHub Action).
+
+### Platforms
+
+GoCrane now supports linux/amd64 and linux/arm64.
+
+GoCrane still cares about arm users, like apple m1/m2.
+
+### Repo
+Because of the network problems, GoCrane pushes the images to three different repo at the same time.
+
+!!! tips
+    Click these links to see details.
+- [DockerHub](https://hub.docker.com/u/gocrane)
+- [Coding](https://finops.coding.net/public-artifacts/gocrane/crane/packages)
+- [GitHub Container Registry](https://github.com/orgs/gocrane/packages?repo_name=crane)
+
+If you locate in China, we recommend using the Coding repo. It's fast than other registry repo.
+
+If you locate outside of China, we recommend using DockerHub and GitHub Container Registry. However, if you use Coding, the Registry may be slow.
+
+### Build logic
+
+- Each branch
+
+    You can try the new features based on the branch images. In addition, we still reserve the early images.
+
+- Each pull request
+
+    When you make a pull request to the crane repo, that will trigger CI to build images. In addition, a comment will include image info to the pull request when CI completes.
+
+### How to use the images?
+
+Here use the main branch as an example.
+The git commit hash is abc123.
+
+#### Base on the branch name
+
+!!! tips
+    The branch name still points to the last commit. Don't forget to re-pull the images when you want to try the new features.
+
+=== "DockerHub"
+    ```bash
+    docker pull gocrane/craned:main
+    ```
+
+=== "Coding"
+    ```bash
+    docker pull finops-docker.pkg.coding.net/gocrane/crane/craned:main
+    ```
+
+=== "GitHub Container Registry"
+    ```bash
+    docker pull ghcr.io/gocrane/crane/craned:main
+    ```
+
+#### Base on the branch name and the specific commit hash
+
+=== "DockerHub"
+    ```bash
+    docker pull gocrane/craned:main-abc123
+    ```
+
+=== "Coding"
+    ```bash
+    docker pull finops-docker.pkg.coding.net/gocrane/crane/craned:main-abc123
+    ```
+
+=== "GitHub Container Registry"
+    ```bash
+    docker pull ghcr.io/gocrane/crane/craned:main-abc123
+    ```
+
 
 ## Helm Resources
 
@@ -23,6 +100,11 @@ For a better experience, GoCrane offers several additional mirror repositories f
 !!! tips
     Sync upstream repository every day
 
+### Coding
+
+!!! warning
+    Now Coding is not support to fetch raw contents directly. You must be get token first.
+
 | Origin                                         | Mirror                                              | Type | Public |
 | --------------------------------------------- | --------------------------------------------------------- | ------ | ---- |
 | https://github.com/gocrane/crane.git | https://e.coding.net/finops/gocrane/crane.git | Git | [Public](https://finops.coding.net/public/gocrane/crane/git/files) |
@@ -31,7 +113,18 @@ For a better experience, GoCrane offers several additional mirror repositories f
 | https://github.com/gocrane/crane-scheduler.git | https://e.coding.net/finops/gocrane/crane-scheduler.git | Git | [Public](https://finops.coding.net/public/gocrane/crane-scheduler/git/files) |
 | https://github.com/gocrane/fadvisor.git | https://e.coding.net/finops/gocrane/fadvisor.git | Git | [Public](https://finops.coding.net/public/gocrane/fadvisor/git/files) |
 
+### Gitee
+
+| Origin                                         | Mirror                                              | Type | Public |
+| --------------------------------------------- | --------------------------------------------------------- | ------ | ---- |
+| https://github.com/gocrane/crane.git | https://gitee.com/finops/crane | Git | [Public](https://gitee.com/finops/crane) |
+| https://github.com/gocrane/helm-charts.git | https://gitee.com/finops/helm-charts | Git | [Public](https://gitee.com/finops/helm-charts) |
+| https://github.com/gocrane/crane-scheduler.git | https://gitee.com/finops/crane-scheduler | Git | [Public](https://gitee.com/finops/crane-scheduler) |
+
 ## Get the raw file contents of the Coding repo
+
+!!! warning
+    Now Coding is not support to fetch raw contents directly. You must be get token first.
 
 Here you'll find out how to get the contents of a source file directly from the Coding Git repository via an HTTP request.
 

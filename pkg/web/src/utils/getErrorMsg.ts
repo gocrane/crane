@@ -1,10 +1,10 @@
 import { SerializedError } from '@reduxjs/toolkit';
 import { FetchBaseQueryError } from '@reduxjs/toolkit/dist/query';
 
-import i18n from '../i18n';
+import { t } from '../i18n';
 
 export const getErrorMsg = (error: FetchBaseQueryError | SerializedError | undefined): string => {
-  let msg = i18n.t('发生未知错误，请稍候再试');
+  let msg = t('发生未知错误，请稍候再试');
 
   const serializedError = error as SerializedError;
   const fetchBaseQueryError = error as FetchBaseQueryError;

@@ -1,6 +1,7 @@
 package config
 
 import (
+	promapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
@@ -29,6 +30,7 @@ type Config struct {
 	StoreType string `json:"storeType"`
 
 	PredictorMgr predictormgr.Manager
+	Api          promapiv1.API
 }
 
 func NewServerConfig() *Config {
