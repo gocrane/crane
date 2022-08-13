@@ -3,8 +3,16 @@ package app
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
 	"strings"
+
+	recommendationctrl "github.com/gocrane/crane/pkg/controller/recommendation"
+	"github.com/gocrane/crane/pkg/recommendation"
+	"github.com/gocrane/crane/pkg/recommendation/config"
+	recommender "github.com/gocrane/crane/pkg/recommendation/recommender"
+	"github.com/gocrane/crane/pkg/recommendation/replicas"
+	"github.com/gocrane/crane/pkg/recommendation/resource"
 
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
@@ -29,7 +37,6 @@ import (
 	"github.com/gocrane/crane/pkg/controller/cnp"
 	"github.com/gocrane/crane/pkg/controller/ehpa"
 	"github.com/gocrane/crane/pkg/controller/evpa"
-	recommendationctrl "github.com/gocrane/crane/pkg/controller/recommendation"
 	"github.com/gocrane/crane/pkg/controller/timeseriesprediction"
 	"github.com/gocrane/crane/pkg/features"
 	"github.com/gocrane/crane/pkg/known"
@@ -44,10 +51,6 @@ import (
 	_ "github.com/gocrane/crane/pkg/querybuilder-providers/grpc"
 	_ "github.com/gocrane/crane/pkg/querybuilder-providers/metricserver"
 	_ "github.com/gocrane/crane/pkg/querybuilder-providers/prometheus"
-	"github.com/gocrane/crane/pkg/recommendation"
-	"github.com/gocrane/crane/pkg/recommendation/config"
-	recommender "github.com/gocrane/crane/pkg/recommendation/recommender"
-	"github.com/gocrane/crane/pkg/recommendation/replicas"
 	"github.com/gocrane/crane/pkg/server"
 	serverconfig "github.com/gocrane/crane/pkg/server/config"
 	"github.com/gocrane/crane/pkg/utils/target"
@@ -142,8 +145,10 @@ func initRecommenders(opts *options.Options) (map[string]recommender.Recommender
 		switch r.Name {
 		case recommender.ReplicasRecommender:
 			recommenders[recommender.ReplicasRecommender] = replicas.NewReplicasRecommender(r)
+		case recommender.ResourceRecommender:
+			recommenders[recommender.ResourceRecommender] = resource.NewResourceRecommender(r)
 		default:
-			recommenders[recommender.ReplicasRecommender] = replicas.NewReplicasRecommender(r)
+			return nil, fmt.Errorf("unknown recommender name: %s", r.Name)
 		}
 	}
 	return recommenders, nil

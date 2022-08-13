@@ -2,5 +2,8 @@ package recommender
 
 const (
 	// ReplicasRecommender name
-	ReplicasRecommender string = "ReplicasRecommender"
+	ReplicasRecommender string = "Replicas"
+
+	// ResourceRecommender name
+	ResourceRecommender string = "Resource"
 )

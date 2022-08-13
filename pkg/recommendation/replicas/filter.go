@@ -18,7 +18,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
-	"github.com/gocrane/crane/pkg/controller/analytics"
 	"github.com/gocrane/crane/pkg/metricnaming"
 	"github.com/gocrane/crane/pkg/recommendation/framework"
 	"github.com/gocrane/crane/pkg/utils"
@@ -117,7 +116,6 @@ func (rr *ReplicasRecommender) Filter(ctx *framework.RecommendationContext) erro
 		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructured.UnstructuredContent(), &daemonSet); err != nil {
 			return err
 		}
-		ctx.DaemonSet = &daemonSet
 		pods, err = utils.GetDaemonSetPods(ctx.Client, identity.Namespace, identity.Name)
 	}
 	if err != nil {
@@ -127,6 +125,7 @@ func (rr *ReplicasRecommender) Filter(ctx *framework.RecommendationContext) erro
 	if len(pods) == 0 {
 		return fmt.Errorf("existing pods should be larger than 0 ")
 	}
+	ctx.Pods = pods
 
 	podMinReadySeconds, err := strconv.ParseInt(configSet["replicas.pod-min-ready-seconds"], 10, 32)
 	if err != nil {
@@ -158,7 +157,7 @@ func (rr *ReplicasRecommender) Filter(ctx *framework.RecommendationContext) erro
 }
 
 // IsIdentitySupported check weather object identity fit resource selector.
-func IsIdentitySupported(identity analytics.ObjectIdentity, selectors []analysisapi.ResourceSelector) bool {
+func IsIdentitySupported(identity framework.ObjectIdentity, selectors []analysisapi.ResourceSelector) bool {
 
 	supported := false
 	for _, selector := range selectors {

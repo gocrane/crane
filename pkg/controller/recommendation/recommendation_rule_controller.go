@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -29,8 +30,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
-	"github.com/gocrane/crane/pkg/controller/analytics"
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/providers"
 	recommender "github.com/gocrane/crane/pkg/recommendation"
@@ -382,15 +381,14 @@ func (c *RecommendationRuleController) executeMission(ctx context.Context, wg *s
 		r := c.RecommenderMgr.GetRecommender(mission.RecommenderRef.Name)
 		p := make(map[providers.DataSourceType]providers.History)
 		p[providers.PrometheusDataSource] = c.Provider
-		identity := analytics.ObjectIdentity{
+		identity := framework.ObjectIdentity{
 			Namespace:  identities[k].Namespace,
 			Name:       identities[k].Name,
 			Kind:       identities[k].Kind,
 			APIVersion: identities[k].APIVersion,
 			Labels:     identities[k].Labels,
 		}
-
-		recommendationContext := framework.NewRecommendationContext(ctx, identity, p, recommendation, c.Client, c.RestMapper, c.ScaleClient)
+		recommendationContext := framework.NewRecommendationContext(ctx, identity, p, recommendation, c.Client, c.ScaleClient)
 		err := recommender.Run(&recommendationContext, r)
 		if err != nil {
 			mission.Message = fmt.Sprintf("Failed to run recommendation flow in recommender %s: %s", r.Name(), err.Error())
