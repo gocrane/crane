@@ -10,6 +10,9 @@ func ContainsString(slice []string, str string) bool {
 }
 
 func RemoveString(slice []string, str string) []string {
+	if len(slice) == 0 {
+		return slice
+	}
 	var newSlice []string
 	for _, item := range slice {
 		if item != str {
