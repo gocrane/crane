@@ -1,7 +1,9 @@
 import type { EChartOption } from 'echarts';
+import { useTranslation } from 'react-i18next';
 import { getChartDataSet, ONE_WEEK_LIST } from 'utils/chart';
 
-export const getLineChartOptions = (dateTime: Array<string> = []): EChartOption => {
+export const useLineChartOptions = (dateTime: Array<string> = []): EChartOption => {
+  const { t } = useTranslation();
   const [timeArray, inArray, outArray] = getChartDataSet(dateTime);
   return {
     tooltip: {
@@ -18,7 +20,7 @@ export const getLineChartOptions = (dateTime: Array<string> = []): EChartOption 
       left: 'center',
       bottom: '0',
       orient: 'horizontal', // legend 横向布局。
-      data: ['本月', '上月'],
+      data: [t('本月') as string, t('上月') as string],
       textStyle: {
         fontSize: 12,
       },
@@ -69,63 +71,67 @@ export const getLineChartOptions = (dateTime: Array<string> = []): EChartOption 
   };
 };
 
-export const getPieChartOptions = (radius = 42): EChartOption => ({
-  tooltip: {
-    trigger: 'item',
-  },
-  grid: {
-    top: '0',
-    right: '0',
-  },
-  legend: {
-    itemWidth: 12,
-    itemHeight: 4,
-    textStyle: {
-      fontSize: 12,
+export const usePieChartOptions = (radius = 42): EChartOption => {
+  const { t } = useTranslation();
+  return {
+    tooltip: {
+      trigger: 'item',
     },
-    left: 'center',
-    bottom: '0',
-    orient: 'horizontal', // legend 横向布局。
-  },
-  series: [
-    {
-      name: '命名空间成本分布',
-      type: 'pie',
-      radius: ['48%', '60%'],
-      avoidLabelOverlap: false,
-      silent: true,
-      itemStyle: {
-        borderWidth: 1,
+    grid: {
+      top: '0',
+      right: '0',
+    },
+    legend: {
+      itemWidth: 12,
+      itemHeight: 4,
+      textStyle: {
+        fontSize: 12,
       },
-      label: {
-        show: true,
-        position: 'center',
-        formatter: ['{value|{d}%}', '{name|{b}占比}'].join('\n'),
-        rich: {
-          value: {
-            fontSize: 28,
-            fontWeight: 'normal',
-            lineHeight: 46,
-          },
-          name: {
-            color: '#909399',
-            fontSize: 12,
-            lineHeight: 14,
+      left: 'center',
+      bottom: '0',
+      orient: 'horizontal', // legend 横向布局。
+    },
+    series: [
+      {
+        name: t('命名空间成本分布'),
+        type: 'pie',
+        radius: ['48%', '60%'],
+        avoidLabelOverlap: false,
+        silent: true,
+        itemStyle: {
+          borderWidth: 1,
+        },
+        label: {
+          show: true,
+          position: 'center',
+          formatter: ['{value|{d}%}', `{name|{b}${t('占比')}}`].join('\n'),
+          rich: {
+            value: {
+              fontSize: 28,
+              fontWeight: 'normal',
+              lineHeight: 46,
+            },
+            name: {
+              color: '#909399',
+              fontSize: 12,
+              lineHeight: 14,
+            },
           },
         },
+        labelLine: {
+          show: false,
+        },
+        data: [
+          { value: 1048, name: 'kube-system' },
+          { value: radius * 7, name: 'crane-system' },
+        ],
       },
-      labelLine: {
-        show: false,
-      },
-      data: [
-        { value: 1048, name: 'kube-system' },
-        { value: radius * 7, name: 'crane-system' },
-      ],
-    },
-  ],
-});
+    ],
+  };
+};
 
-export const getBarChartOptions = (dateTime: Array<string> = []): EChartOption => {
+export const useBarChartOptions = (dateTime: Array<string> = []): EChartOption => {
+  const [t] = useTranslation();
   const [timeArray, inArray, outArray] = getChartDataSet(dateTime);
   return {
     tooltip: {
@@ -161,16 +167,16 @@ export const getBarChartOptions = (dateTime: Array<string> = []): EChartOption =
       left: 'center',
       bottom: '0',
       orient: 'horizontal',
-      data: ['本月', '上月'],
+      data: [t('本月') as string, t('上月') as string],
     },
     series: [
       {
-        name: '本月',
+        name: t('本月'),
         data: outArray,
         type: 'bar',
       },
       {
-        name: '上月',
+        name: t('上月'),
         data: inArray,
         type: 'bar',
       },

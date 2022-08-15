@@ -1,24 +1,26 @@
 import { IRouter } from '../index';
 import { lazy } from 'react';
 import { ChartIcon } from 'tdesign-icons-react';
+import { useTranslation } from 'react-i18next';
 
-const cost: IRouter[] = [
-  {
-    path: '/cost',
-    meta: {
-      title: '成本洞察',
-      Icon: ChartIcon,
-    },
-    children: [
-      {
-        path: 'insight',
-        Component: lazy(() => import('pages/Cost/insight/InsightPanel')),
-        meta: {
-          title: 'Grafana 图表',
-        },
+export const useCostRouteConfig = (): IRouter[] => {
+  const { t } = useTranslation();
+  return [
+    {
+      path: '/cost',
+      meta: {
+        title: t('成本洞察'),
+        Icon: ChartIcon,
       },
-    ],
-  },
-];
-
-export default cost;
+      children: [
+        {
+          path: 'insight',
+          Component: lazy(() => import('pages/Cost/insight/InsightPanel')),
+          meta: {
+            title: t('Grafana 图表'),
+          },
+        },
+      ],
+    },
+  ];
+};

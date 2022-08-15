@@ -1,4 +1,4 @@
-import { QueryWindow, QueryWindowOptions } from '../../../models';
+import { QueryWindow, useQueryWindowOptions } from '../../../models';
 import CommonStyle from '../../../styles/common.module.less';
 import classnames from 'classnames';
 import { Card } from 'components/common/Card';
@@ -31,6 +31,8 @@ export const InsightSearchPanel = React.memo(() => {
 
   const dashboardList = useFetchDashboardListQuery({ craneUrl }, { skip: !craneUrl });
   const namespaceList = useFetchNamespaceListQuery({ clusterId }, { skip: !clusterId || !isNeedSelectNamespace });
+
+  const queryWindowOptions = useQueryWindowOptions();
 
   const dashboardOptions = React.useMemo(
     () =>
@@ -120,7 +122,7 @@ export const InsightSearchPanel = React.memo(() => {
                 );
               }}
             >
-              {QueryWindowOptions.map((option) => (
+              {queryWindowOptions.map((option) => (
                 <Radio.Button key={option.value} value={option.value}>
                   {option.text}
                 </Radio.Button>
@@ -136,7 +138,7 @@ export const InsightSearchPanel = React.memo(() => {
               dispatch(
                 insightAction.customRange({
                   ...customRange,
-                  start,
+                  start: start as string,
                 }),
               );
             }}
@@ -191,7 +193,7 @@ export const InsightSearchPanel = React.memo(() => {
             <Select
               options={namespaceOptions}
               placeholder={t('命名空间')}
-              value={selectedNamespace ?? null}
+              value={selectedNamespace ?? undefined}
               onChange={(value: any) => {
                 dispatch(insightAction.selectedNamespace(value));
               }}

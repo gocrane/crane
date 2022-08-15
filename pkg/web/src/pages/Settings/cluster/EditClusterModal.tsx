@@ -91,14 +91,14 @@ export const EditClusterModal = React.memo(() => {
     }));
 
     if (!res.error) {
-      const result: any = dispatch(clusterApi.endpoints.fetchClusterListMu.initiate({ craneUrl: cluster.craneUrl }));
+      const result: any = dispatch(clusterApi.endpoints.fetchClusterListMu.initiate({ craneUrl: cluster?.craneUrl }));
       result
         .unwrap()
-        .then(() => MessagePlugin.success(t('成功连接: {craneUrl}', { craneUrl: cluster.craneUrl })))
+        .then(() => MessagePlugin.success(t('成功连接: {craneUrl}', { craneUrl: cluster?.craneUrl })))
         .catch(() =>
           MessagePlugin.error(
             {
-              content: t('无法连接: {craneUrl} , 请检查填写信息以及后端服务', { craneUrl: cluster.craneUrl }),
+              content: t('无法连接: {craneUrl} , 请检查填写信息以及后端服务', { craneUrl: cluster?.craneUrl }),
               closeBtn: true,
             },
             10000,
@@ -160,7 +160,7 @@ export const EditClusterModal = React.memo(() => {
     }
 
     if (error) {
-      dispatch(editClusterActions.editingClusterId(firstErrorClusterId));
+      dispatch(editClusterActions.editingClusterId(firstErrorClusterId as string));
     } else if (mode === 'create') {
       addClustersMutation({
         data: {
@@ -216,7 +216,7 @@ export const EditClusterModal = React.memo(() => {
           addable={mode === 'create'}
           style={{ border: '1px solid var(--td-component-stroke)' }}
           theme='card'
-          value={editingClusterId}
+          value={editingClusterId ?? undefined}
           onAdd={() => {
             if (mode === 'create') dispatch(editClusterActions.addCluster());
           }}
@@ -316,7 +316,7 @@ export const EditClusterModal = React.memo(() => {
                       );
                     }}
                   >
-                    快速填入页面地址作为集群地址
+                    {t('快速填入页面地址作为集群地址')}
                   </Button>
                 </Form.FormItem>
               </div>

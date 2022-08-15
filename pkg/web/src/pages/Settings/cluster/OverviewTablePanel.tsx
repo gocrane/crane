@@ -92,28 +92,28 @@ export const OverviewTablePanel = memo(() => {
               width: 200,
               ellipsis: true,
               colKey: 'id',
-              title: '集群ID',
+              title: t('集群ID'),
             },
             {
               align: 'left',
               width: 200,
               ellipsis: true,
               colKey: 'name',
-              title: '集群名称',
+              title: t('集群名称'),
             },
             {
               align: 'left',
               width: 200,
               ellipsis: true,
               colKey: 'craneUrl',
-              title: 'CraneURL',
+              title: t('CraneURL'),
             },
             {
               align: 'left',
               fixed: 'right',
               width: 180,
               colKey: 'op',
-              title: '操作',
+              title: t('操作'),
               cell({ row: cluster }) {
                 return (
                   <>
@@ -135,7 +135,7 @@ export const OverviewTablePanel = memo(() => {
                         );
                       }}
                     >
-                      修改
+                      {t('修改')}
                     </Button>
                     <Button
                       theme='primary'
@@ -144,7 +144,7 @@ export const OverviewTablePanel = memo(() => {
                         setDeleteDialog({ visible: true, clusterId: cluster.id, clusterName: cluster.name });
                       }}
                     >
-                      删除
+                      {t('删除')}
                     </Button>
                   </>
                 );
