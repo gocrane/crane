@@ -99,7 +99,7 @@ func (s *StateCollector) Run(stop <-chan struct{}) {
 				start := time.Now()
 				metrics.UpdateLastTime(string(known.ModuleStateCollector), metrics.StepMain, start)
 				s.healthCheck.UpdateLastActivity(start)
-				s.Collect(false)
+				s.Collect()
 				metrics.UpdateDurationFromStart(string(known.ModuleStateCollector), metrics.StepMain, start)
 			case <-stop:
 				klog.Infof("StateCollector exit")
@@ -111,7 +111,7 @@ func (s *StateCollector) Run(stop <-chan struct{}) {
 	return
 }
 
-func (s *StateCollector) Collect(waterLine bool) {
+func (s *StateCollector) Collect() {
 	wg := sync.WaitGroup{}
 	start := time.Now()
 
@@ -182,17 +182,26 @@ func (s *StateCollector) UpdateCollectors() {
 			s.collectors.Store(types.CadvisorCollectorType, cadvisor.NewCadvisorCollector(s.podLister, s.GetCadvisorManager()))
 		}
 
-		if nodeResourceGate := utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResource); nodeResourceGate {
-			if _, exists := s.collectors.Load(types.NodeResourceCollectorType); !exists {
-				c := noderesource.NewNodeResourceCollector(s.nodeName, s.nodeLister, s.podLister)
-				if c != nil {
-					s.collectors.Store(types.NodeResourceCollectorType, c)
-				}
-			}
-		}
 		break
 	}
+	// if node resource controller is enabled, it indicates local metrics need to be collected no matter nep is defined or not
+	if nodeResourceGate := utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResource); nodeResourceGate {
+		if _, exists := s.collectors.Load(types.NodeLocalCollectorType); !exists {
+			nc := nodelocal.NewNodeLocal(s.ifaces, s.exclusiveCPUSet)
+			s.collectors.Store(types.NodeLocalCollectorType, nc)
+		}
 
+		if _, exists := s.collectors.Load(types.CadvisorCollectorType); !exists {
+			s.collectors.Store(types.CadvisorCollectorType, cadvisor.NewCadvisorCollector(s.podLister, s.GetCadvisorManager()))
+		}
+		if _, exists := s.collectors.Load(types.NodeResourceCollectorType); !exists {
+			c := noderesource.NewNodeResourceCollector(s.nodeName, s.nodeLister, s.podLister)
+			if c != nil {
+				s.collectors.Store(types.NodeResourceCollectorType, c)
+			}
+		}
+		nodeLocal = true
+	}
 	if !nodeLocal {
 		stopCollectors := []types.CollectType{types.NodeLocalCollectorType, types.CadvisorCollectorType}
 
@@ -249,7 +258,7 @@ func CheckMetricNameExist(name string) bool {
 
 func (s *StateCollector) GetStateFunc() func() map[string][]common.TimeSeries {
 	return func() map[string][]common.TimeSeries {
-		s.Collect(true)
+		s.Collect()
 		return s.State
 	}
 }

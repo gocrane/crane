@@ -2,7 +2,6 @@ package resource
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math"
 	"strconv"
@@ -193,7 +192,7 @@ func (o *NodeResourceManager) FindTargetNode(tsp *predictionapi.TimeSeriesPredic
 	return false, nil
 }
 
-func (o *NodeResourceManager) BuildNodeStatus(node *v1.Node) map[v1.ResourceName]string {
+func (o *NodeResourceManager) BuildNodeStatus(node *v1.Node) map[string]int64 {
 	tspCanNotBeReclaimedResource := o.GetCanNotBeReclaimedResourceFromTsp(node)
 	localCanNotBeReclaimedResource := o.GetCanNotBeReclaimedResourceFromLocal()
 	reserveCpuPercent := o.reserveResource.CpuPercent
@@ -201,7 +200,7 @@ func (o *NodeResourceManager) BuildNodeStatus(node *v1.Node) map[v1.ResourceName
 		reserveCpuPercent = &nodeReserveCpuPercent
 	}
 
-	extResourceFrom := map[v1.ResourceName]string{}
+	extResourceFrom := map[string]int64{}
 
 	for resourceName, value := range tspCanNotBeReclaimedResource {
 		resourceFrom := "tsp"
@@ -241,7 +240,7 @@ func (o *NodeResourceManager) BuildNodeStatus(node *v1.Node) map[v1.ResourceName
 		node.Status.Allocatable[v1.ResourceName(extResourceName)] =
 			*resource.NewQuantity(int64(nextRecommendation), resource.DecimalSI)
 
-		extResourceFrom[resourceName] = resourceFrom
+		extResourceFrom[resourceFrom+"-"+resourceName.String()] = int64(nextRecommendation)
 	}
 
 	return extResourceFrom
@@ -311,7 +310,7 @@ func (o *NodeResourceManager) GetCpuCoreCanNotBeReclaimedFromLocal() float64 {
 
 	nodeCpuUsageTotalTimeSeries, ok := o.state[string(types.MetricNameCpuTotalUsage)]
 	if !ok {
-		klog.V(1).Infof("Can't get %s from NodeResourceManager local state", types.MetricNameCpuTotalUsage)
+		klog.V(4).Infof("Can't get %s from NodeResourceManager local state, please make sure cpu metrics collector is defined in NodeQOS.", types.MetricNameCpuTotalUsage)
 		return 0
 	}
 	nodeCpuUsageTotal := nodeCpuUsageTotalTimeSeries[0].Samples[0].Value
@@ -321,7 +320,7 @@ func (o *NodeResourceManager) GetCpuCoreCanNotBeReclaimedFromLocal() float64 {
 	if ok {
 		extResContainerCpuUsageTotal = extResContainerCpuUsageTotalTimeSeries[0].Samples[0].Value * 1000
 	} else {
-		klog.V(1).Infof("Can't get %s from NodeResourceManager local state", types.MetricNameExtResContainerCpuTotalUsage)
+		klog.V(4).Infof("Can't get %s from NodeResourceManager local state", types.MetricNameExtResContainerCpuTotalUsage)
 	}
 
 	var exclusiveCPUIdle float64 = 0
@@ -329,7 +328,7 @@ func (o *NodeResourceManager) GetCpuCoreCanNotBeReclaimedFromLocal() float64 {
 	if ok {
 		exclusiveCPUIdle = exclusiveCPUIdleTimeSeries[0].Samples[0].Value
 	} else {
-		klog.V(1).Infof("Can't get %s from NodeResourceManager local state", types.MetricNameExclusiveCPUIdle)
+		klog.V(4).Infof("Can't get %s from NodeResourceManager local state", types.MetricNameExclusiveCPUIdle)
 	}
 
 	klog.V(6).Infof("nodeCpuUsageTotal: %s, exclusiveCPUIdle: %s, extResContainerCpuUsageTotal: %s", nodeCpuUsageTotal, exclusiveCPUIdle, extResContainerCpuUsageTotal)
@@ -366,10 +365,10 @@ func getReserveResourcePercentFromNodeAnnotations(annotations map[string]string,
 	return reserveResourcePercent, ok
 }
 
-func generateUpdateEventMessage(resourcesFrom map[v1.ResourceName]string) string {
-	message, err := json.Marshal(resourcesFrom)
-	if err != nil {
-		return ""
+func generateUpdateEventMessage(resourcesFrom map[string]int64) string {
+	message := ""
+	for k, v := range resourcesFrom {
+		message = message + fmt.Sprintf("Updating elastic resource %s with %d.", k, v)
 	}
-	return string(message)
+	return message
 }
