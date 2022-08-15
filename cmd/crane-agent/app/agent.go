@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -56,6 +57,11 @@ func NewAgentCommand(ctx context.Context) *cobra.Command {
 			if err := opts.Validate(); err != nil {
 				klog.Exitf("Opts validate failed: %v", err)
 			}
+
+			cmd.Flags().VisitAll(func(flag *pflag.Flag) {
+				klog.Infof("FLAG: --%s=%q\n", flag.Name, flag.Value)
+			})
+
 			if err := Run(ctx, opts); err != nil {
 				klog.Exit(err)
 			}
@@ -71,7 +77,6 @@ func NewAgentCommand(ctx context.Context) *cobra.Command {
 
 func Run(ctx context.Context, opts *options.Options) error {
 	hostname := getHostName(opts.HostnameOverride)
-
 	healthCheck := metrics.NewHealthCheck(opts.MaxInactivity)
 	metrics.RegisterCraneAgent()
 
