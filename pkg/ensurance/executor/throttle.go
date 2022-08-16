@@ -23,9 +23,9 @@ const (
 type ThrottleExecutor struct {
 	ThrottleDownPods ThrottlePods
 	ThrottleUpPods   ThrottlePods
-	// All metrics(not only metrics that can be quantified) metioned in triggerd NodeQOSEnsurancePolicy and their corresponding waterlines
-	ThrottleDownWaterLine WaterLines
-	ThrottleUpWaterLine   WaterLines
+	// All metrics(not only metrics that can be quantified) metioned in triggerd NodeQOS and their corresponding watermarks
+	ThrottleDownWatermark Watermarks
+	ThrottleUpWatermark   Watermarks
 }
 
 type ThrottlePods []podinfo.PodContext
@@ -68,34 +68,34 @@ func (t *ThrottleExecutor) Avoid(ctx *ExecuteContext) error {
 	totalReleased := ReleaseResource{}
 
 	/* The step to throttle:
-	1. If ThrottleDownWaterLine has metrics that can't be quantified, select a throttleable metric which has the highest action priority, use its throttlefunc to throttle all ThrottleDownPods, then return
-	2. Get the gaps between current usage and waterlines
+	1. If ThrottleDownWatermark has metrics that can't be quantified, select a throttleable metric which has the highest action priority, use its throttlefunc to throttle all ThrottleDownPods, then return
+	2. Get the gaps between current usage and watermarks
 		2.1 If there is a metric that can't get current usage, select a throttleable metric which has the highest action priority, use its throttlefunc to throttle all ThrottleDownPods, then return
 		2.2 Traverse metrics that can be quantified, if there is a gap for the metric, then sort candidate pods by its SortFunc if exists, otherwise use GeneralSorter by default.
-	       Then throttle sorted pods one by one util there is no gap to waterline
+	       Then throttle sorted pods one by one util there is no gap to watermark
 	*/
-	metricsThrottleQuantified, MetricsNotThrottleQuantified := t.ThrottleDownWaterLine.DivideMetricsByThrottleQuantified()
+	metricsThrottleQuantified, MetricsNotThrottleQuantified := t.ThrottleDownWatermark.DivideMetricsByThrottleQuantified()
 
 	// There is a metric that can't be ThrottleQuantified, so throttle all selected pods
 	if len(MetricsNotThrottleQuantified) != 0 {
 		klog.V(6).Info("ThrottleDown: There is a metric that can't be ThrottleQuantified")
 
-		highestPriorityMetric := t.ThrottleDownWaterLine.GetHighestPriorityThrottleAbleMetric()
+		highestPriorityMetric := t.ThrottleDownWatermark.GetHighestPriorityThrottleAbleMetric()
 		if highestPriorityMetric != "" {
 			klog.V(6).Infof("The highestPriorityMetric is %s", highestPriorityMetric)
 			errPodKeys = t.throttlePods(ctx, &totalReleased, highestPriorityMetric)
 		}
 	} else {
-		ctx.ThrottoleDownGapToWaterLines, _, _ = buildGapToWaterLine(ctx.stateMap, *t, EvictExecutor{}, ctx.executeExcessPercent)
+		ctx.ThrottoleDownGapToWatermarks, _, _ = buildGapToWatermark(ctx.stateMap, *t, EvictExecutor{}, ctx.executeExcessPercent)
 
-		if ctx.ThrottoleDownGapToWaterLines.HasUsageMissedMetric() {
+		if ctx.ThrottoleDownGapToWatermarks.HasUsageMissedMetric() {
 			klog.V(6).Info("There is a metric usage missed")
-			highestPriorityMetric := t.ThrottleDownWaterLine.GetHighestPriorityThrottleAbleMetric()
+			highestPriorityMetric := t.ThrottleDownWatermark.GetHighestPriorityThrottleAbleMetric()
 			if highestPriorityMetric != "" {
 				errPodKeys = t.throttlePods(ctx, &totalReleased, highestPriorityMetric)
 			}
 		} else {
-			// The metrics in ThrottoleDownGapToWaterLines are all in WaterLineMetricsCanBeQuantified and has current usage, then throttle precisely
+			// The metrics in ThrottoleDownGapToWatermarks are all in WatermarkMetricsCanBeQuantified and has current usage, then throttle precisely
 			var released ReleaseResource
 			for _, m := range metricsThrottleQuantified {
 				klog.V(6).Infof("ThrottleDown precisely on metric %s", m)
@@ -110,14 +110,14 @@ func (t *ThrottleExecutor) Avoid(ctx *ExecuteContext) error {
 					klog.V(6).Info(pc.Key.String(), pc.ContainerCPUUsages)
 				}
 
-				for index := 0; !ctx.ThrottoleDownGapToWaterLines.TargetGapsRemoved(m) && index < len(t.ThrottleDownPods); index++ {
-					klog.V(6).Infof("For metric %s, there is still gap to waterlines: %f", m, ctx.ThrottoleDownGapToWaterLines[m])
+				for index := 0; !ctx.ThrottoleDownGapToWatermarks.TargetGapsRemoved(m) && index < len(t.ThrottleDownPods); index++ {
+					klog.V(6).Infof("For metric %s, there is still gap to watermarks: %f", m, ctx.ThrottoleDownGapToWatermarks[m])
 
 					errKeys, released = metricMap[m].ThrottleFunc(ctx, index, t.ThrottleDownPods, &totalReleased)
 					klog.V(6).Infof("ThrottleDown pods %s, released %f resource", t.ThrottleDownPods[index].Key, released[m])
 					errPodKeys = append(errPodKeys, errKeys...)
 
-					ctx.ThrottoleDownGapToWaterLines[m] -= released[m]
+					ctx.ThrottoleDownGapToWatermarks[m] -= released[m]
 				}
 			}
 		}
@@ -130,7 +130,7 @@ func (t *ThrottleExecutor) Avoid(ctx *ExecuteContext) error {
 	return nil
 }
 
-func (t *ThrottleExecutor) throttlePods(ctx *ExecuteContext, totalReleasedResource *ReleaseResource, m WaterLineMetric) (errPodKeys []string) {
+func (t *ThrottleExecutor) throttlePods(ctx *ExecuteContext, totalReleasedResource *ReleaseResource, m WatermarkMetric) (errPodKeys []string) {
 	for i := range t.ThrottleDownPods {
 		errKeys, _ := metricMap[m].ThrottleFunc(ctx, i, t.ThrottleDownPods, totalReleasedResource)
 		errPodKeys = append(errPodKeys, errKeys...)
@@ -158,34 +158,34 @@ func (t *ThrottleExecutor) Restore(ctx *ExecuteContext) error {
 	totalReleased := ReleaseResource{}
 
 	/* The step to restore:
-	1. If ThrottleUpWaterLine has metrics that can't be quantified, select a throttleable metric which has the highest action priority, use its RestoreFunc to restore all ThrottleUpPods, then return
-	2. Get the gaps between current usage and waterlines
+	1. If ThrottleUpWatermark has metrics that can't be quantified, select a throttleable metric which has the highest action priority, use its RestoreFunc to restore all ThrottleUpPods, then return
+	2. Get the gaps between current usage and watermarks
 		2.1 If there is a metric that can't get current usage, select a throttleable metric which has the highest action priority, use its RestoreFunc to restore all ThrottleUpPods, then return
 		2.2 Traverse metrics that can be quantified, if there is a gap for the metric, then sort candidate pods by its SortFunc if exists, otherwise use GeneralSorter by default.
-	       Then restore sorted pods one by one util there is no gap to waterline
+	       Then restore sorted pods one by one util there is no gap to watermark
 	*/
-	metricsThrottleQuantified, MetricsNotThrottleQuantified := t.ThrottleUpWaterLine.DivideMetricsByThrottleQuantified()
+	metricsThrottleQuantified, MetricsNotThrottleQuantified := t.ThrottleUpWatermark.DivideMetricsByThrottleQuantified()
 
 	// There is a metric that can't be ThrottleQuantified, so restore all selected pods
 	if len(MetricsNotThrottleQuantified) != 0 {
 		klog.V(6).Info("ThrottleUp: There is a metric that can't be ThrottleQuantified")
 
-		highestPrioriyMetric := t.ThrottleUpWaterLine.GetHighestPriorityThrottleAbleMetric()
+		highestPrioriyMetric := t.ThrottleUpWatermark.GetHighestPriorityThrottleAbleMetric()
 		if highestPrioriyMetric != "" {
 			klog.V(6).Infof("The highestPrioriyMetric is %s", highestPrioriyMetric)
 			errPodKeys = t.restorePods(ctx, &totalReleased, highestPrioriyMetric)
 		}
 	} else {
-		_, ctx.ThrottoleUpGapToWaterLines, _ = buildGapToWaterLine(ctx.stateMap, *t, EvictExecutor{}, ctx.executeExcessPercent)
+		_, ctx.ThrottoleUpGapToWatermarks, _ = buildGapToWatermark(ctx.stateMap, *t, EvictExecutor{}, ctx.executeExcessPercent)
 
-		if ctx.ThrottoleUpGapToWaterLines.HasUsageMissedMetric() {
+		if ctx.ThrottoleUpGapToWatermarks.HasUsageMissedMetric() {
 			klog.V(6).Info("There is a metric usage missed")
-			highestPrioriyMetric := t.ThrottleUpWaterLine.GetHighestPriorityThrottleAbleMetric()
+			highestPrioriyMetric := t.ThrottleUpWatermark.GetHighestPriorityThrottleAbleMetric()
 			if highestPrioriyMetric != "" {
 				errPodKeys = t.restorePods(ctx, &totalReleased, highestPrioriyMetric)
 			}
 		} else {
-			// The metrics in ThrottoleUpGapToWaterLines are all in WaterLineMetricsCanBeQuantified and has current usage, then throttle precisely
+			// The metrics in ThrottoleUpGapToWatermarks are all in WatermarkMetricsCanBeQuantified and has current usage, then throttle precisely
 			var released ReleaseResource
 			for _, m := range metricsThrottleQuantified {
 				klog.V(6).Infof("ThrottleUp precisely on metric %s", m)
@@ -201,14 +201,14 @@ func (t *ThrottleExecutor) Restore(ctx *ExecuteContext) error {
 					klog.V(6).Info(pc.Key.String())
 				}
 
-				for index := 0; !ctx.ThrottoleUpGapToWaterLines.TargetGapsRemoved(m) && index < len(t.ThrottleUpPods); index++ {
-					klog.V(6).Infof("For metric %s, there is still gap to waterlines: %f", m, ctx.ThrottoleUpGapToWaterLines[m])
+				for index := 0; !ctx.ThrottoleUpGapToWatermarks.TargetGapsRemoved(m) && index < len(t.ThrottleUpPods); index++ {
+					klog.V(6).Infof("For metric %s, there is still gap to watermarks: %f", m, ctx.ThrottoleUpGapToWatermarks[m])
 
 					errKeys, released = metricMap[m].RestoreFunc(ctx, index, t.ThrottleUpPods, &totalReleased)
 					klog.V(6).Infof("ThrottleUp pods %s, released %f resource", t.ThrottleUpPods[index].Key, released[m])
 					errPodKeys = append(errPodKeys, errKeys...)
 
-					ctx.ThrottoleUpGapToWaterLines[m] -= released[m]
+					ctx.ThrottoleUpGapToWatermarks[m] -= released[m]
 				}
 			}
 		}
@@ -221,7 +221,7 @@ func (t *ThrottleExecutor) Restore(ctx *ExecuteContext) error {
 	return nil
 }
 
-func (t *ThrottleExecutor) restorePods(ctx *ExecuteContext, totalReleasedResource *ReleaseResource, m WaterLineMetric) (errPodKeys []string) {
+func (t *ThrottleExecutor) restorePods(ctx *ExecuteContext, totalReleasedResource *ReleaseResource, m WatermarkMetric) (errPodKeys []string) {
 	for i := range t.ThrottleUpPods {
 		errKeys, _ := metricMap[m].RestoreFunc(ctx, i, t.ThrottleDownPods, totalReleasedResource)
 		errPodKeys = append(errPodKeys, errKeys...)

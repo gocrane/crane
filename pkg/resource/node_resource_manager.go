@@ -130,7 +130,6 @@ func (o *NodeResourceManager) Run(stop <-chan struct{}) {
 			case state := <-o.stateChann:
 				o.state = state
 				o.lastStateTime = time.Now()
-			case <-tspUpdateTicker.C:
 				start := time.Now()
 				metrics.UpdateLastTime(string(known.ModuleNodeResourceManager), metrics.StepUpdateNodeResource, start)
 				o.UpdateNodeResource()
@@ -158,10 +157,10 @@ func (o *NodeResourceManager) UpdateNodeResource() {
 		// Update Node status extend-resource info
 		// TODO fix: strategic merge patch kubernetes
 		if _, err := o.client.CoreV1().Nodes().UpdateStatus(context.TODO(), nodeCopy, metav1.UpdateOptions{}); err != nil {
-			klog.Errorf("Failed to update node %s's status extend-resource, %v", nodeCopy.Name, err)
+			klog.Errorf("Failed to update node %s extended resource, %v", nodeCopy.Name, err)
 			return
 		}
-		klog.V(4).Infof("Update Node %s Extend Resource Success", node.Name)
+		klog.V(2).Infof("Update node %s extended resource successfully", node.Name)
 		o.recorder.Event(node, v1.EventTypeNormal, "UpdateNode", generateUpdateEventMessage(resourcesFrom))
 	}
 }

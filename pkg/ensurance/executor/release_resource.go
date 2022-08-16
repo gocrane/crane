@@ -1,6 +1,6 @@
 package executor
 
-type ReleaseResource map[WaterLineMetric]float64
+type ReleaseResource map[WatermarkMetric]float64
 
 func (r ReleaseResource) Add(new ReleaseResource) {
 	for metric, value := range new {

@@ -20,33 +20,33 @@ import (
 	"github.com/gocrane/crane/pkg/known"
 )
 
-type NepValidationAdmission struct {
+type NodeQOSValidationAdmission struct {
 }
 
 type ActionValidationAdmission struct {
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (p *NepValidationAdmission) ValidateCreate(ctx context.Context, req runtime.Object) error {
+func (p *NodeQOSValidationAdmission) ValidateCreate(ctx context.Context, req runtime.Object) error {
 
-	nep, ok := req.(*ensuranceapi.NodeQOSEnsurancePolicy)
+	nodeQOS, ok := req.(*ensuranceapi.NodeQOS)
 	if !ok {
-		return fmt.Errorf("req can not convert to NodeQOSEnsurancePolicy")
+		return fmt.Errorf("req can not convert to NodeQOS")
 	}
 
-	allErrs := genericvalidation.ValidateObjectMeta(&nep.ObjectMeta, false, genericvalidation.NameIsDNS1035Label, field.NewPath("metadata"))
+	allErrs := genericvalidation.ValidateObjectMeta(&nodeQOS.ObjectMeta, false, genericvalidation.NameIsDNS1035Label, field.NewPath("metadata"))
 
-	if nep.Spec.Selector != nil {
-		allErrs = append(allErrs, metavalidation.ValidateLabelSelector(nep.Spec.Selector, field.NewPath("spec").Child("selector"))...)
+	if nodeQOS.Spec.Selector != nil {
+		allErrs = append(allErrs, metavalidation.ValidateLabelSelector(nodeQOS.Spec.Selector, field.NewPath("spec").Child("selector"))...)
 	}
 
-	allErrs = append(allErrs, validateNodeQualityProbe(nep.Spec.NodeQualityProbe, field.NewPath("nodeQualityProbe"))...)
+	allErrs = append(allErrs, validateNodeQualityProbe(nodeQOS.Spec.NodeQualityProbe, field.NewPath("nodeQualityProbe"))...)
 
 	var httpGetEnable bool
-	if nep.Spec.NodeQualityProbe.HTTPGet != nil {
+	if nodeQOS.Spec.NodeQualityProbe.HTTPGet != nil {
 		httpGetEnable = true
 	}
-	allErrs = append(allErrs, validateObjectiveEnsurances(nep.Spec.ObjectiveEnsurances, field.NewPath("objectiveEnsurances"), httpGetEnable)...)
+	allErrs = append(allErrs, validateObjectiveEnsurances(nodeQOS.Spec.Rules, field.NewPath("objectiveEnsurances"), httpGetEnable)...)
 
 	if len(allErrs) != 0 {
 		return allErrs.ToAggregate()
@@ -98,7 +98,7 @@ func validateHTTPGetAction(http *corev1.HTTPGetAction, fldPath *field.Path) fiel
 	return allErrs
 }
 
-func validateObjectiveEnsurances(objects []ensuranceapi.ObjectiveEnsurance, fldPath *field.Path, httpGetEnable bool) field.ErrorList {
+func validateObjectiveEnsurances(objects []ensuranceapi.Rule, fldPath *field.Path, httpGetEnable bool) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if len(objects) == 0 {
@@ -181,19 +181,19 @@ func validateMetricRule(rule *ensuranceapi.MetricRule, fldPath *field.Path, http
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (p *NepValidationAdmission) ValidateUpdate(ctx context.Context, old, new runtime.Object) error {
+func (p *NodeQOSValidationAdmission) ValidateUpdate(ctx context.Context, old, new runtime.Object) error {
 
-	nepOld, ok := old.(*ensuranceapi.NodeQOSEnsurancePolicy)
+	oldNodeQOS, ok := old.(*ensuranceapi.NodeQOS)
 	if !ok {
-		return fmt.Errorf("old can not convert to NodeQOSEnsurancePolicy")
+		return fmt.Errorf("old can not convert to NodeQOS")
 	}
 
-	nep, ok := old.(*ensuranceapi.NodeQOSEnsurancePolicy)
+	newNodeQOS, ok := old.(*ensuranceapi.NodeQOS)
 	if !ok {
-		return fmt.Errorf("new can not convert to NodeQOSEnsurancePolicy")
+		return fmt.Errorf("new can not convert to NodeQOS")
 	}
 
-	allErrs := genericvalidation.ValidateObjectMetaUpdate(&nep.ObjectMeta, &nepOld.ObjectMeta, field.NewPath("metadata"))
+	allErrs := genericvalidation.ValidateObjectMetaUpdate(&newNodeQOS.ObjectMeta, &oldNodeQOS.ObjectMeta, field.NewPath("metadata"))
 
 	if len(allErrs) != 0 {
 		return allErrs.ToAggregate()
@@ -203,7 +203,7 @@ func (p *NepValidationAdmission) ValidateUpdate(ctx context.Context, old, new ru
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (p *NepValidationAdmission) ValidateDelete(ctx context.Context, req runtime.Object) error {
+func (p *NodeQOSValidationAdmission) ValidateDelete(ctx context.Context, req runtime.Object) error {
 	return nil
 }
 
@@ -275,17 +275,17 @@ func validateEvictionAction(eviction *ensuranceapi.EvictionAction, fldPath *fiel
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (p *ActionValidationAdmission) ValidateUpdate(ctx context.Context, old, new runtime.Object) error {
-	nepOld, ok := old.(*ensuranceapi.AvoidanceAction)
+	oldNodeQOS, ok := old.(*ensuranceapi.AvoidanceAction)
 	if !ok {
 		return fmt.Errorf("old can not convert to AvoidanceAction")
 	}
 
-	nep, ok := old.(*ensuranceapi.AvoidanceAction)
+	newNodeQOS, ok := old.(*ensuranceapi.AvoidanceAction)
 	if !ok {
 		return fmt.Errorf("new can not convert to AvoidanceAction")
 	}
 
-	allErrs := genericvalidation.ValidateObjectMetaUpdate(&nep.ObjectMeta, &nepOld.ObjectMeta, field.NewPath("metadata"))
+	allErrs := genericvalidation.ValidateObjectMetaUpdate(&newNodeQOS.ObjectMeta, &oldNodeQOS.ObjectMeta, field.NewPath("metadata"))
 
 	if len(allErrs) != 0 {
 		return allErrs.ToAggregate()

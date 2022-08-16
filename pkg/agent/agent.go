@@ -58,7 +58,8 @@ func NewAgent(ctx context.Context,
 	craneClient *craneclientset.Clientset,
 	podInformer coreinformers.PodInformer,
 	nodeInformer coreinformers.NodeInformer,
-	nepInformer v1alpha1.NodeQOSEnsurancePolicyInformer,
+	nodeQOSInformer v1alpha1.NodeQOSInformer,
+	podQOSInformer v1alpha1.PodQOSInformer,
 	actionInformer v1alpha1.AvoidanceActionInformer,
 	tspInformer predictionv1.TimeSeriesPredictionInformer,
 	nodeResourceReserved map[string]string,
@@ -85,9 +86,9 @@ func NewAgent(ctx context.Context,
 		exclusiveCPUSet = cpuManager.GetExclusiveCpu
 		managers = appendManagerIfNotNil(managers, cpuManager)
 	}
-	stateCollector := collector.NewStateCollector(nodeName, nepInformer.Lister(), podInformer.Lister(), nodeInformer.Lister(), ifaces, healthCheck, CollectInterval, exclusiveCPUSet, cadvisorManager)
+	stateCollector := collector.NewStateCollector(nodeName, nodeQOSInformer.Lister(), podInformer.Lister(), nodeInformer.Lister(), ifaces, healthCheck, CollectInterval, exclusiveCPUSet, cadvisorManager)
 	managers = appendManagerIfNotNil(managers, stateCollector)
-	analyzerManager := analyzer.NewAnormalyAnalyzer(kubeClient, nodeName, podInformer, nodeInformer, nepInformer, actionInformer, stateCollector.AnalyzerChann, noticeCh)
+	analyzerManager := analyzer.NewAnomalyAnalyzer(kubeClient, nodeName, podInformer, nodeInformer, nodeQOSInformer, podQOSInformer, actionInformer, stateCollector.AnalyzerChann, noticeCh)
 	managers = appendManagerIfNotNil(managers, analyzerManager)
 	avoidanceManager := executor.NewActionExecutor(kubeClient, nodeName, podInformer, nodeInformer, noticeCh, runtimeEndpoint, stateCollector.State, executeExcess)
 	managers = appendManagerIfNotNil(managers, avoidanceManager)

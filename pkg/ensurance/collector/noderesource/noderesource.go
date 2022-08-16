@@ -54,7 +54,7 @@ func (n *NodeResource) Collect() (map[string][]common.TimeSeries, error) {
 			}
 		}
 	}
-	klog.V(4).Infof("allExtCpu: %d, distributeExtCpu: %d", allExtCpu, distributeExtCpu)
+	klog.V(4).Infof("Allocatable Elastic CPU: %d, allocated Elastic CPU: %d", allExtCpu, distributeExtCpu)
 	return map[string][]common.TimeSeries{string(types.MetricNameExtCpuTotalDistribute): {{Samples: []common.Sample{{Value: (float64(distributeExtCpu) / float64(allExtCpu)) * 100, Timestamp: time.Now().Unix()}}}}}, nil
 }
 

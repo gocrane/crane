@@ -8,7 +8,7 @@ import (
 
 type metric struct {
 	// Should be consistent with metrics in collector/types/types.go
-	Name WaterLineMetric
+	Name WatermarkMetric
 
 	// ActionPriority describe the priority of the metric, used to choose the highest priority metric which can be throttlable or evictable
 	// when there is MetricsNotThrottleQuantified in executor process;
@@ -30,13 +30,13 @@ type metric struct {
 	EvictFunc func(wg *sync.WaitGroup, ctx *ExecuteContext, index int, totalReleasedResource *ReleaseResource, EvictPods EvictPods) (errPodKeys []string, released ReleaseResource)
 }
 
-var metricMap = make(map[WaterLineMetric]metric)
+var metricMap = make(map[WatermarkMetric]metric)
 
 func registerMetricMap(m metric) {
 	metricMap[m.Name] = m
 }
 
-func GetThrottleAbleMetricName() (throttleAbleMetricList []WaterLineMetric) {
+func GetThrottleAbleMetricName() (throttleAbleMetricList []WatermarkMetric) {
 	for _, m := range metricMap {
 		if m.Throttleable {
 			throttleAbleMetricList = append(throttleAbleMetricList, m.Name)
@@ -45,7 +45,7 @@ func GetThrottleAbleMetricName() (throttleAbleMetricList []WaterLineMetric) {
 	return
 }
 
-func GetEvictAbleMetricName() (evictAbleMetricList []WaterLineMetric) {
+func GetEvictAbleMetricName() (evictAbleMetricList []WatermarkMetric) {
 	for _, m := range metricMap {
 		if m.Evictable {
 			evictAbleMetricList = append(evictAbleMetricList, m.Name)

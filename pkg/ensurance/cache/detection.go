@@ -12,7 +12,7 @@ import (
 
 type ActionContext struct {
 	// the Objective Ensurance name
-	ObjectiveEnsuranceName string
+	RuleName string
 	// strategy for the action
 	Strategy ensuranceapi.AvoidanceActionStrategy
 	// if the policy triggered action
@@ -22,7 +22,7 @@ type ActionContext struct {
 	// action name
 	ActionName string
 	// node qos ensurance policy
-	Nep *ensuranceapi.NodeQOSEnsurancePolicy
+	NodeQOS *ensuranceapi.NodeQOS
 	// time for detection
 	Time time.Time
 	// the influenced pod list
@@ -85,7 +85,7 @@ func (s *ActionContextCache) ListDetections() []ActionContext {
 }
 
 func GenerateDetectionKey(c ActionContext) string {
-	return strings.Join([]string{"node", c.Nep.Name, c.ObjectiveEnsuranceName}, ".")
+	return strings.Join([]string{"node", c.NodeQOS.Name, c.RuleName}, ".")
 }
 
 type DetectionStatus struct {

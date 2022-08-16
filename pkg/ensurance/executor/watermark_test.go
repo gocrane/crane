@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func (w WaterLine) verify(t *testing.T, i int) {
+func (w Watermark) verify(t *testing.T, i int) {
 	t.Helper()
 	n := w.Len()
 	j1 := 2*i + 1
@@ -33,7 +33,7 @@ func (w WaterLine) verify(t *testing.T, i int) {
 
 // TestPopSmallest make sure that we can get the smallest value
 func TestPopSmallest(t *testing.T) {
-	h := WaterLine{}
+	h := Watermark{}
 
 	for i := 20; i > 0; i-- {
 		heap.Push(&h, resource.MustParse(strconv.Itoa(i)+"m"))
