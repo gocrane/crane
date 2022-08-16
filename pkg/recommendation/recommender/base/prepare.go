@@ -1,4 +1,4 @@
-package replicas
+package base
 
 import (
 	"fmt"
@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/lithammer/fuzzysearch/fuzzy"
-	"k8s.io/klog/v2"
 
 	"github.com/gocrane/crane/pkg/providers"
 	"github.com/gocrane/crane/pkg/providers/prom"
@@ -15,9 +14,9 @@ import (
 )
 
 // CheckDataProviders in PrePrepare phase, will create data source provider via your recommendation config.
-func (rr *ReplicasRecommender) CheckDataProviders(ctx *framework.RecommendationContext) error {
+func (br *BaseRecommender) CheckDataProviders(ctx *framework.RecommendationContext) error {
 	// 1. load data provider from recommendation config, override the default data source
-	configSet := rr.Recommender.Config
+	configSet := br.Recommender.Config
 	// replicas recommender only need history data provider
 	// History data source
 	// metricserver can't collect history data
@@ -172,20 +171,10 @@ func (rr *ReplicasRecommender) CheckDataProviders(ctx *framework.RecommendationC
 	return nil
 }
 
-func (rr *ReplicasRecommender) CollectData(ctx *framework.RecommendationContext) error {
-	klog.V(4).Infof("%s CpuQuery %s RecommendationRule %s", rr.Name(), ctx.MetricNamer.BuildUniqueKey(), klog.KObj(&ctx.RecommendationRule))
-	timeNow := time.Now()
-	tsList, err := ctx.DataProviders[providers.PrometheusDataSource].QueryTimeSeries(ctx.MetricNamer, timeNow.Add(-time.Hour*24*7), timeNow, time.Minute)
-	if err != nil {
-		return fmt.Errorf("%s query historic metrics failed: %v ", rr.Name(), err)
-	}
-	if len(tsList) != 1 {
-		return fmt.Errorf("%s query historic metrics data is unexpected, List length is %d ", rr.Name(), len(tsList))
-	}
-	ctx.InputValues = tsList
+func (br *BaseRecommender) CollectData(ctx *framework.RecommendationContext) error {
 	return nil
 }
 
-func (rr *ReplicasRecommender) PostProcessing(ctx *framework.RecommendationContext) error {
+func (br *BaseRecommender) PostProcessing(ctx *framework.RecommendationContext) error {
 	return nil
 }

@@ -387,6 +387,7 @@ func (c *RecommendationRuleController) executeMission(ctx context.Context, wg *s
 			Kind:       identities[k].Kind,
 			APIVersion: identities[k].APIVersion,
 			Labels:     identities[k].Labels,
+			Object:     identities[k].Object,
 		}
 		recommendationContext := framework.NewRecommendationContext(ctx, identity, p, recommendation, c.Client, c.ScaleClient)
 		err := recommender.Run(&recommendationContext, r)

@@ -6,4 +6,7 @@ const (
 
 	// ResourceRecommender name
 	ResourceRecommender string = "Resource"
+
+	// HPARecommender name
+	HPARecommender string = "HPA"
 )

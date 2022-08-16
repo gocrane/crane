@@ -1,4 +1,4 @@
-package replicas
+package hpa
 
 import (
 	"encoding/json"
@@ -15,7 +15,7 @@ import (
 )
 
 // Observe enhance the observability.
-func (rr *ReplicasRecommender) Observe(ctx *framework.RecommendationContext) error {
+func (rr *HPARecommender) Observe(ctx *framework.RecommendationContext) error {
 	key := client.ObjectKey{
 		Name:      ctx.Identity.Name,
 		Namespace: ctx.Identity.Namespace,

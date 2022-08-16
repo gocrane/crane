@@ -3,18 +3,21 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
+
 	jsonpatch "github.com/evanphx/json-patch"
-	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
-	"github.com/gocrane/crane/pkg/metricnaming"
-	"github.com/gocrane/crane/pkg/prediction/config"
-	"github.com/gocrane/crane/pkg/recommend/types"
-	"github.com/gocrane/crane/pkg/recommendation/framework"
-	"github.com/gocrane/crane/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
+
+	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
+
+	"github.com/gocrane/crane/pkg/metricnaming"
+	"github.com/gocrane/crane/pkg/prediction/config"
+	"github.com/gocrane/crane/pkg/recommend/types"
+	"github.com/gocrane/crane/pkg/recommendation/framework"
+	"github.com/gocrane/crane/pkg/utils"
 )
 
 const callerFormat = "RecommendationCaller-%s-%s"
@@ -23,36 +26,15 @@ func (rr *ResourceRecommender) PreRecommend(ctx *framework.RecommendationContext
 	return nil
 }
 
-func makeCpuConfig(props map[string]string) *config.Config {
-	sampleInterval, exists := props["cpu-sample-interval"]
-	if !exists {
-		sampleInterval = "1m"
-	}
-	percentile, exists := props["cpu-request-percentile"]
-	if !exists {
-		percentile = "0.99"
-	}
-	marginFraction, exists := props["cpu-request-margin-fraction"]
-	if !exists {
-		marginFraction = "0.15"
-	}
-	targetUtilization, exists := props["cpu-target-utilization"]
-	if !exists {
-		targetUtilization = "1.0"
-	}
-	historyLength, exists := props["cpu-model-history-length"]
-	if !exists {
-		historyLength = "168h"
-	}
-
+func (rr *ResourceRecommender) makeCpuConfig() *config.Config {
 	return &config.Config{
 		Percentile: &predictionapi.Percentile{
 			Aggregated:        true,
-			HistoryLength:     historyLength,
-			SampleInterval:    sampleInterval,
-			MarginFraction:    marginFraction,
-			TargetUtilization: targetUtilization,
-			Percentile:        percentile,
+			HistoryLength:     rr.CpuModelHistoryLength,
+			SampleInterval:    rr.CpuSampleInterval,
+			MarginFraction:    rr.CpuRequestMarginFraction,
+			TargetUtilization: rr.CpuTargetUtilization,
+			Percentile:        rr.CpuRequestPercentile,
 			Histogram: predictionapi.HistogramConfig{
 				HalfLife:   "24h",
 				BucketSize: "0.1",
@@ -62,36 +44,15 @@ func makeCpuConfig(props map[string]string) *config.Config {
 	}
 }
 
-func makeMemConfig(props map[string]string) *config.Config {
-	sampleInterval, exists := props["mem-sample-interval"]
-	if !exists {
-		sampleInterval = "1m"
-	}
-	percentile, exists := props["mem-request-percentile"]
-	if !exists {
-		percentile = "0.99"
-	}
-	marginFraction, exists := props["mem-request-margin-fraction"]
-	if !exists {
-		marginFraction = "0.15"
-	}
-	targetUtilization, exists := props["mem-target-utilization"]
-	if !exists {
-		targetUtilization = "1.0"
-	}
-	historyLength, exists := props["mem-model-history-length"]
-	if !exists {
-		historyLength = "168h"
-	}
-
+func (rr *ResourceRecommender) makeMemConfig() *config.Config {
 	return &config.Config{
 		Percentile: &predictionapi.Percentile{
 			Aggregated:        true,
-			HistoryLength:     historyLength,
-			SampleInterval:    sampleInterval,
-			MarginFraction:    marginFraction,
-			Percentile:        percentile,
-			TargetUtilization: targetUtilization,
+			HistoryLength:     rr.MemHistoryLength,
+			SampleInterval:    rr.MemSampleInterval,
+			MarginFraction:    rr.MemMarginFraction,
+			Percentile:        rr.MemPercentile,
+			TargetUtilization: rr.MemTargetUtilization,
 			Histogram: predictionapi.HistogramConfig{
 				HalfLife:   "48h",
 				BucketSize: "104857600",
@@ -102,10 +63,6 @@ func makeMemConfig(props map[string]string) *config.Config {
 }
 
 func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) error {
-	if len(ctx.Pods) == 0 {
-		return fmt.Errorf("pod not found")
-	}
-
 	predictor := ctx.PredictorMgr.GetPredictor(predictionapi.AlgorithmTypePercentile)
 	if predictor == nil {
 		return fmt.Errorf("predictor %v not found", predictionapi.AlgorithmTypePercentile)
@@ -125,7 +82,7 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 		metricNamer := metricnaming.ResourceToContainerMetricNamer(namespace, ctx.Recommendation.Spec.TargetRef.APIVersion,
 			ctx.Recommendation.Spec.TargetRef.Kind, ctx.Recommendation.Spec.TargetRef.Name, c.Name, corev1.ResourceCPU, caller)
 		klog.V(6).Infof("CPU query for resource request recommendation: %s", metricNamer.BuildUniqueKey())
-		cpuConfig := makeCpuConfig(rr.Config)
+		cpuConfig := rr.makeCpuConfig()
 		tsList, err := utils.QueryPredictedValuesOnce(ctx.Recommendation, predictor, caller, cpuConfig, metricNamer)
 		if err != nil {
 			return err
@@ -140,7 +97,7 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 		metricNamer = metricnaming.ResourceToContainerMetricNamer(namespace, ctx.Recommendation.Spec.TargetRef.APIVersion,
 			ctx.Recommendation.Spec.TargetRef.Kind, ctx.Recommendation.Spec.TargetRef.Name, c.Name, corev1.ResourceMemory, caller)
 		klog.V(6).Infof("Memory query for resource request recommendation: %s", metricNamer.BuildUniqueKey())
-		memConfig := makeMemConfig(rr.Config)
+		memConfig := rr.makeMemConfig()
 		tsList, err = utils.QueryPredictedValuesOnce(ctx.Recommendation, predictor, caller, memConfig, metricNamer)
 		if err != nil {
 			return err

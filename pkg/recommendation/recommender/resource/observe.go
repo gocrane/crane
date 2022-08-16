@@ -24,7 +24,7 @@ func (rr *ResourceRecommender) Observe(ctx *framework.RecommendationContext) err
 	}
 
 	var newPodTemplate v1.PodTemplate
-	framework.ToK8SObject(podTemplateObject, &newPodTemplate)
+	framework.ObjectConversion(podTemplateObject, &newPodTemplate)
 
 	for _, container := range newPodTemplate.Template.Spec.Containers {
 		rr.recordResourceRecommendation(ctx, container.Name, v1.ResourceCPU, container.Resources.Requests[v1.ResourceCPU])

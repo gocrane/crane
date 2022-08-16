@@ -4,6 +4,9 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/gocrane/crane/pkg/recommendation/recommender/hpa"
+	"github.com/gocrane/crane/pkg/recommendation/recommender/replicas"
+	"github.com/gocrane/crane/pkg/recommendation/recommender/resource"
 	"os"
 	"strings"
 
@@ -11,9 +14,6 @@ import (
 	"github.com/gocrane/crane/pkg/recommendation"
 	"github.com/gocrane/crane/pkg/recommendation/config"
 	recommender "github.com/gocrane/crane/pkg/recommendation/recommender"
-	"github.com/gocrane/crane/pkg/recommendation/replicas"
-	"github.com/gocrane/crane/pkg/recommendation/resource"
-
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -144,7 +144,17 @@ func initRecommenders(opts *options.Options) (map[string]recommender.Recommender
 	for _, r := range apiRecommenders {
 		switch r.Name {
 		case recommender.ReplicasRecommender:
-			recommenders[recommender.ReplicasRecommender] = replicas.NewReplicasRecommender(r)
+			replicasRecommender, err := replicas.NewReplicasRecommender(r)
+			if err != nil {
+				return nil, err
+			}
+			recommenders[recommender.ResourceRecommender] = replicasRecommender
+		case recommender.HPARecommender:
+			hpaRecommender, err := hpa.NewHPARecommender(r)
+			if err != nil {
+				return nil, err
+			}
+			recommenders[recommender.HPARecommender] = hpaRecommender
 		case recommender.ResourceRecommender:
 			recommenders[recommender.ResourceRecommender] = resource.NewResourceRecommender(r)
 		default:
