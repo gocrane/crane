@@ -22,8 +22,9 @@ var nodeLocalMetric = make(map[string][]types.MetricName, 10)
 var collectFuncMap = make(map[string]collectFunc, 10)
 
 func registerCollector(collectorName string, metricsNames []types.MetricName, collectorFunc collectFunc) {
+	klog.Infof("Registering node local metrics collector %s", collectorName)
 	if _, ok := nodeLocalMetric[collectorName]; ok {
-		klog.Infof("Warning: node local metrics collectorName %s is registered, not to register again", collectorName)
+		klog.Infof("Node local metrics collector %s is registered, not to register again", collectorName)
 		return
 	}
 
