@@ -5,7 +5,7 @@ import { insightAction } from 'modules/insightSlice';
 import React, { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDispatch } from 'react-redux';
-import { Alert, Button, Dialog, Table } from 'tdesign-react';
+import {Alert, Button, Dialog, Space, Table, Switch} from 'tdesign-react';
 import { getErrorMsg } from 'utils/getErrorMsg';
 import { useDeleteClusterMutation, useFetchClusterListQuery } from '../../../services/clusterApi';
 
@@ -107,6 +107,34 @@ export const OverviewTablePanel = memo(() => {
               ellipsis: true,
               colKey: 'craneUrl',
               title: t('CraneURL'),
+            },
+            {
+              align: 'left',
+              width: 200,
+              ellipsis: true,
+              colKey: 'discount',
+              title: t('折扣'),
+              cell({ row }) {
+                const discount = row.discount;
+                return (
+                  <div>{discount? discount : 100}</div>
+                );
+              },
+            },
+            {
+              align: 'left',
+              width: 200,
+              ellipsis: true,
+              colKey: 'preinstallRecommendation',
+              title: t('预安装RecommendationRule'),
+              cell({ row }) {
+                const preinstallRecommendation = row.preinstallRecommendation;
+                return (
+                  <Space direction='vertical'>
+                    <Switch size="large" value={preinstallRecommendation} disabled />
+                  </Space>
+                );
+              },
             },
             {
               align: 'left',

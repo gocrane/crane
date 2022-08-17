@@ -1,10 +1,10 @@
-import { IRouter } from '../index';
-import { lazy } from 'react';
-import { ChartIcon } from 'tdesign-icons-react';
-import { useTranslation } from 'react-i18next';
+import {IRouter} from '../index';
+import {lazy} from 'react';
+import {ChartIcon} from 'tdesign-icons-react';
+import {useTranslation} from 'react-i18next';
 
 export const useCostRouteConfig = (): IRouter[] => {
-  const { t } = useTranslation();
+  const {t} = useTranslation();
   return [
     {
       path: '/cost',
@@ -18,6 +18,13 @@ export const useCostRouteConfig = (): IRouter[] => {
           Component: lazy(() => import('pages/Cost/insight/InsightPanel')),
           meta: {
             title: t('Grafana 图表'),
+          },
+        },
+        {
+          path: 'carbon',
+          Component: lazy(() => import('pages/Cost/CarbonInsight/Index')),
+          meta: {
+            title: t('碳排放分析'),
           },
         },
       ],

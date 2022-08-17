@@ -17,6 +17,10 @@ type Cluster struct {
 	CraneUrl string `json:"craneUrl"`
 	// Grafana url in the cluster
 	GrafanaUrl string `json:"grafanaUrl"`
+	// Discount for the cluster
+	Discount int `json:"discount"`
+	// Preinstall recommendation for the cluster
+	PreinstallRecommendation bool `json:"preinstallRecommendation"`
 }
 
 type ClusterList struct {

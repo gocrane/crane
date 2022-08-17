@@ -5,7 +5,13 @@ export interface EditClusterState {
   mode: 'update' | 'create';
   modalVisible: boolean;
 
-  clusters: Array<{ id: string; clusterName: string; craneUrl: string }>;
+  clusters: Array<{
+    id: string;
+    clusterName: string;
+    craneUrl: string;
+    discount: number;
+    preinstallRecommendation: boolean;
+  }>;
 
   editingClusterId: string | null;
 }
@@ -16,6 +22,8 @@ const defaultCluster = {
   id: v4(),
   clusterName: '',
   craneUrl: '',
+  discount: 100,
+  preinstallRecommendation: true,
 };
 
 const initialEditClusterState: EditClusterState = {
@@ -45,6 +53,8 @@ const slice = createSlice({
           id: v4(),
           clusterName: '',
           craneUrl: '',
+          discount: 100,
+          preinstallRecommendation: true,
         },
       ];
     },

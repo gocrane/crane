@@ -84,4 +84,5 @@ export interface ClusterSimpleInfo {
   name: string;
   craneUrl: string;
   grafanaUrl?: string;
+  discount?: number;
 }

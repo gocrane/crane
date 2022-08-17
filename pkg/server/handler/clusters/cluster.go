@@ -6,11 +6,42 @@ import (
 	"net/url"
 
 	"github.com/gin-gonic/gin"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 
+	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
+
+	"github.com/gocrane/crane/pkg/known"
+	"github.com/gocrane/crane/pkg/server/config"
 	"github.com/gocrane/crane/pkg/server/ginwrapper"
 	"github.com/gocrane/crane/pkg/server/service/cluster"
 	"github.com/gocrane/crane/pkg/server/store"
 )
+
+const RecommendationRuleWorkloadsName = "workloads-rule"
+const RecommendationRuleWorkloadsYAML = `
+apiVersion: analysis.crane.io/v1alpha1
+kind: RecommendationRule
+metadata:
+  name: workloads-rule
+  labels:
+    analysis.crane.io/recommendation-rule-preinstall: true
+spec:
+  runInterval: 24h                            # 每24h运行一次
+  resourceSelectors:                          # 资源的信息
+    - kind: Deployment
+      apiVersion: apps/v1
+    - kind: StatefulSet
+      apiVersion: apps/v1
+  namespaceSelector:
+    any: true                                 # 扫描所有namespace
+  recommenders:                               # 使用 Workload 的副本和资源推荐器
+    - name: Replicas
+    - name: Resource
+`
 
 type AddClustersRequest struct {
 	Clusters []*store.Cluster `json:"clusters"`
@@ -18,12 +49,14 @@ type AddClustersRequest struct {
 
 type ClusterHandler struct {
 	clusterSrv cluster.Service
+	client     client.Client
 }
 
 // Note: cluster service is just used by front end to list clusters which added by user in frontend
-func NewClusterHandler(srv cluster.Service) *ClusterHandler {
+func NewClusterHandler(srv cluster.Service, config *config.Config) *ClusterHandler {
 	return &ClusterHandler{
 		clusterSrv: srv,
+		client:     config.Client,
 	}
 }
 
@@ -94,7 +127,39 @@ func (ch *ClusterHandler) AddClusters(c *gin.Context) {
 			ginwrapper.WriteResponse(c, err, nil)
 			return
 		}
+
+		if cluster.PreinstallRecommendation && err == nil {
+			key := types.NamespacedName{
+				Namespace: known.CraneSystemNamespace,
+				Name:      RecommendationRuleWorkloadsName,
+			}
+			var recommendationRule analysisapi.RecommendationRule
+			err = ch.client.Get(context.TODO(), key, &recommendationRule)
+			if err != nil {
+				if errors.IsNotFound(err) {
+					var workloadRecommendationRule analysisapi.RecommendationRule
+					err = yaml.Unmarshal([]byte(RecommendationRuleWorkloadsYAML), &workloadRecommendationRule)
+					if err != nil {
+						ginwrapper.WriteResponse(c, err, nil)
+						return
+					}
+					err = ch.client.Create(context.TODO(), &workloadRecommendationRule)
+					if err != nil {
+						ginwrapper.WriteResponse(c, err, nil)
+						return
+					}
+				} else {
+					klog.Errorf("get preinstall recommendation failed: %v", err)
+					ginwrapper.WriteResponse(c, err, nil)
+					return
+				}
+			}
+		} else if err != nil {
+			ginwrapper.WriteResponse(c, err, nil)
+			return
+		}
 	}
+
 	ginwrapper.WriteResponse(c, nil, nil)
 }
 
@@ -113,6 +178,7 @@ func (ch *ClusterHandler) UpdateCluster(c *gin.Context) {
 	old.Name = r.Name
 	old.GrafanaUrl = r.GrafanaUrl
 	old.CraneUrl = r.CraneUrl
+	old.Discount = r.Discount
 
 	clustersMap, err := ch.getClusterMap()
 	if err != nil {

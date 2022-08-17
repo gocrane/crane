@@ -5,8 +5,20 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDispatch } from 'react-redux';
 import { clusterApi, useAddClustersMutation, useUpdateClusterMutation } from 'services/clusterApi';
-import { ControlPlatformIcon, LinkIcon } from 'tdesign-icons-react';
-import { Alert, Button, Dialog, Form, Input, MessagePlugin, Tabs } from 'tdesign-react';
+import { ControlPlatformIcon, LinkIcon, RootListIcon } from 'tdesign-icons-react';
+import {
+  Alert,
+  Button,
+  Dialog,
+  Form,
+  Input,
+  InputValue,
+  MessagePlugin,
+  Slider,
+  Switch,
+  SwitchValue,
+  Tabs
+} from "tdesign-react";
 import { getErrorMsg } from 'utils/getErrorMsg';
 
 type Validation = { error: boolean; msg: string };
@@ -167,6 +179,8 @@ export const EditClusterModal = React.memo(() => {
           clusters: (clusters ?? []).map((cluster: any) => ({
             name: cluster.clusterName,
             craneUrl: cluster.craneUrl,
+            discount: cluster.discount,
+            preinstallRecommendation: cluster.preinstallRecommendation,
           })),
         },
       });
@@ -176,6 +190,7 @@ export const EditClusterModal = React.memo(() => {
           id: clusters[0].id,
           name: clusters[0].clusterName,
           craneUrl: clusters[0].craneUrl,
+          discount: clusters[0].discount,
         },
       });
     }
@@ -301,6 +316,78 @@ export const EditClusterModal = React.memo(() => {
                     />
                   </div>
                 </Form.FormItem>
+                <Form.FormItem
+                  className={clsx({ isError: validation[cluster.id]?.clusterName?.error })}
+                  help={
+                    (
+                      <span style={{ color: 'var(--td-error-color)' }}>
+                        {validation[cluster.id]?.clusterName?.error ? validation[cluster.id]?.clusterName?.msg : null}
+                      </span>
+                    ) as any
+                  }
+                  initialData={cluster.discount}
+                  label={t('折扣')}
+                  name={`clusters[${index}].discount`}
+                  requiredMark
+                >
+                  <div style={{ width: '100%' }}>
+                    <Input
+                      placeholder='100'
+                      prefixIcon={<RootListIcon />}
+                      type='number'
+                      value={cluster.discount}
+                      onChange={(value: InputValue) => {
+                        let discount = value;
+                        if (typeof discount === 'string') {
+                          discount = parseInt(discount, 10);
+                        }
+                        dispatch(
+                          editClusterActions.updateCluster({
+                            id: cluster.id,
+                            data: { discount },
+                          }),
+                        );
+                      }}
+                    />
+                  </div>
+                </Form.FormItem>
+                {
+                  mode === 'create'?
+                    <Form.FormItem
+                      className={clsx({ isError: validation[cluster.id]?.clusterName?.error })}
+                      help={
+                        (
+                          <span style={{ color: 'var(--td-error-color)' }}>
+                        {validation[cluster.id]?.clusterName?.error ? validation[cluster.id]?.clusterName?.msg : null}
+                      </span>
+                        ) as any
+                      }
+                      initialData={cluster.preinstallRecommendation}
+                      label={t('安装推荐规则')}
+                      name={`clusters[${index}].preinstallRecommendation`}
+                      requiredMark
+                    >
+                      <div style={{ width: '100%' }}>
+                        <Switch
+                          size='large'
+                          value={cluster.preinstallRecommendation}
+                          onChange={(value: SwitchValue) => {
+                            let preinstallRecommendation = value;
+                            if (typeof preinstallRecommendation !== 'boolean') preinstallRecommendation = true;
+                            dispatch(
+                              editClusterActions.updateCluster({
+                                id: cluster.id,
+                                data: { preinstallRecommendation },
+                              }),
+                            );
+                          }}
+                        />
+                      </div>
+                    </Form.FormItem>
+                    :
+                    <></>
+                }
+
                 <Form.FormItem>
                   <Button
                     block={true}
