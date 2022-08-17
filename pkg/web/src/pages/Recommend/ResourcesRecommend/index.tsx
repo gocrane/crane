@@ -22,7 +22,7 @@ export const SelectTable = () => {
   const [yamlDialogVisible, setYamlDialogVisible] = useState<boolean>(false);
   const [currentSelection, setCurrentSelection] = useState<RecommendationSimpleInfo | null>(null);
   const [commandDialogVisible, setCommandDialogVisible] = useState<boolean>(false);
-  
+
   const navigate = useNavigate();
   const [selectedRowKeys, setSelectedRowKeys] = useState<(string | number)[]>([0, 1]);
   const [visible, setVisible] = useState(false);
@@ -247,6 +247,7 @@ export const SelectTable = () => {
         <p>{t('推荐规则将从API Server中删除,且无法恢复')}</p>
       </Dialog>
       <Dialog
+        top='15vh'
         width={850}
         visible={yamlDialogVisible}
         onClose={() => {
