@@ -190,6 +190,7 @@ export const EditClusterModal = React.memo(() => {
           id: clusters[0].id,
           name: clusters[0].clusterName,
           craneUrl: clusters[0].craneUrl,
+          discount: clusters[0].discount,
         },
       });
     }
@@ -350,37 +351,43 @@ export const EditClusterModal = React.memo(() => {
                     />
                   </div>
                 </Form.FormItem>
-                <Form.FormItem
-                  className={clsx({ isError: validation[cluster.id]?.clusterName?.error })}
-                  help={
-                    (
-                      <span style={{ color: 'var(--td-error-color)' }}>
+                {
+                  mode === 'create'?
+                    <Form.FormItem
+                      className={clsx({ isError: validation[cluster.id]?.clusterName?.error })}
+                      help={
+                        (
+                          <span style={{ color: 'var(--td-error-color)' }}>
                         {validation[cluster.id]?.clusterName?.error ? validation[cluster.id]?.clusterName?.msg : null}
                       </span>
-                    ) as any
-                  }
-                  initialData={cluster.preinstallRecommendation}
-                  label={t('安装推荐规则')}
-                  name={`clusters[${index}].preinstallRecommendation`}
-                  requiredMark
-                >
-                  <div style={{ width: '100%' }}>
-                    <Switch
-                      size='large'
-                      value={cluster.preinstallRecommendation}
-                      onChange={(value: SwitchValue) => {
-                        let preinstallRecommendation = value;
-                        if (typeof preinstallRecommendation !== 'boolean') preinstallRecommendation = true;
-                        dispatch(
-                          editClusterActions.updateCluster({
-                            id: cluster.id,
-                            data: { preinstallRecommendation },
-                          }),
-                        );
-                      }}
-                    />
-                  </div>
-                </Form.FormItem>
+                        ) as any
+                      }
+                      initialData={cluster.preinstallRecommendation}
+                      label={t('安装推荐规则')}
+                      name={`clusters[${index}].preinstallRecommendation`}
+                      requiredMark
+                    >
+                      <div style={{ width: '100%' }}>
+                        <Switch
+                          size='large'
+                          value={cluster.preinstallRecommendation}
+                          onChange={(value: SwitchValue) => {
+                            let preinstallRecommendation = value;
+                            if (typeof preinstallRecommendation !== 'boolean') preinstallRecommendation = true;
+                            dispatch(
+                              editClusterActions.updateCluster({
+                                id: cluster.id,
+                                data: { preinstallRecommendation },
+                              }),
+                            );
+                          }}
+                        />
+                      </div>
+                    </Form.FormItem>
+                    :
+                    <></>
+                }
+
                 <Form.FormItem>
                   <Button
                     block={true}

@@ -6,6 +6,7 @@ import Style from './index.module.less';
 import { useInstantPrometheusQuery, useRangePrometheusQuery } from '../../services/prometheusApi';
 import { useCraneUrl } from '../../hooks';
 import ReactEcharts from 'echarts-for-react';
+import {useTranslation} from "react-i18next";
 
 export enum ETrend {
   up,
@@ -240,6 +241,8 @@ const BoardChart = ({
   tips,
 }: IBoardProps) => {
   const craneUrl: any = useCraneUrl();
+  const {t} = useTranslation();
+
   let fetchDataResult;
   try {
     fetchDataResult = fetchData(craneUrl, { query, timeType, start, end, step });
@@ -282,7 +285,8 @@ const BoardChart = ({
     trendNum = `${(Math.floor(calc * 100) / 100) * -1}%`;
     trend = calc < 0 ? ETrend.up : ETrend.down;
   } else {
-    trendNum = '历史数据不足';
+    console.log('emptyData', fetchDataResult.preResult?.data);
+    trendNum = t('历史数据不足');
     trend = ETrend.error;
   }
 

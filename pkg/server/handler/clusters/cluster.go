@@ -3,19 +3,19 @@ package clusters
 import (
 	"context"
 	"fmt"
-	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
-	"github.com/gocrane/crane/pkg/known"
-	"github.com/gocrane/crane/pkg/server/config"
+	"net/url"
+
+	"github.com/gin-gonic/gin"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
-	"net/url"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
-	"strconv"
 
-	"github.com/gin-gonic/gin"
+	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
 
+	"github.com/gocrane/crane/pkg/known"
+	"github.com/gocrane/crane/pkg/server/config"
 	"github.com/gocrane/crane/pkg/server/ginwrapper"
 	"github.com/gocrane/crane/pkg/server/service/cluster"
 	"github.com/gocrane/crane/pkg/server/store"
@@ -118,12 +118,6 @@ func (ch *ClusterHandler) AddClusters(c *gin.Context) {
 			return
 		}
 
-		if !IsDiscount(cluster.Discount) {
-			err := fmt.Errorf("cluster Discount %v is not valid", cluster.Discount)
-			ginwrapper.WriteResponse(c, err, nil)
-			return
-		}
-
 		clustersMap[cluster.Id] = cluster
 	}
 
@@ -134,7 +128,7 @@ func (ch *ClusterHandler) AddClusters(c *gin.Context) {
 			return
 		}
 
-		if needInstall, err := strconv.ParseBool(cluster.PreinstallRecommendation); needInstall && err == nil {
+		if cluster.PreinstallRecommendation && err == nil {
 			key := types.NamespacedName{
 				Namespace: known.CraneSystemNamespace,
 				Name:      RecommendationRuleWorkloadsName,
@@ -154,10 +148,11 @@ func (ch *ClusterHandler) AddClusters(c *gin.Context) {
 						ginwrapper.WriteResponse(c, err, nil)
 						return
 					}
+				} else {
+					klog.Errorf("get preinstall recommendation failed: %v", err)
+					ginwrapper.WriteResponse(c, err, nil)
+					return
 				}
-				klog.Errorf("get preinstall recommendation failed: %v", err)
-				ginwrapper.WriteResponse(c, err, nil)
-				return
 			}
 		} else if err != nil {
 			ginwrapper.WriteResponse(c, err, nil)
@@ -183,6 +178,7 @@ func (ch *ClusterHandler) UpdateCluster(c *gin.Context) {
 	old.Name = r.Name
 	old.GrafanaUrl = r.GrafanaUrl
 	old.CraneUrl = r.CraneUrl
+	old.Discount = r.Discount
 
 	clustersMap, err := ch.getClusterMap()
 	if err != nil {
@@ -238,11 +234,6 @@ func (ch *ClusterHandler) ListNamespaces(c *gin.Context) {
 func IsUrl(str string) bool {
 	u, err := url.Parse(str)
 	return err == nil && u.Scheme != "" && u.Host != ""
-}
-
-func IsDiscount(str string) bool {
-	_, err := strconv.ParseFloat(str, 64)
-	return err == nil
 }
 
 func (ch *ClusterHandler) getClusterMap() (map[string]*store.Cluster, error) {

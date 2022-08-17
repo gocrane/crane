@@ -92,7 +92,7 @@ export const SelectTable = () => {
             colKey: 'spec.recommenders',
             cell({ row }) {
               return (
-                <div>
+                <Space direction='vertical'>
                   {row.spec.recommenders.map( recommender => {
                     if (recommender.name === 'Replicas')
                     return (
@@ -107,7 +107,7 @@ export const SelectTable = () => {
                       </Tag>
                     );
                   })}
-                </div>
+                </Space>
               )
             },
           },

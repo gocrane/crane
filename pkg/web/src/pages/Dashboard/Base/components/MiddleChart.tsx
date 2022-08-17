@@ -4,11 +4,13 @@ import Style from './MiddleChart.module.less';
 import SeriesLineChart, {LineStyle} from '../../../../components/SeriesLineChart';
 import PieChart from '../../../../components/PieChart';
 import {useTranslation} from 'react-i18next';
-
+import { useCraneDiscount } from 'hooks';
 
 const MiddleChart = () => {
 
   const {t} = useTranslation();
+
+  const craneDiscount: any = useCraneDiscount();
 
   return (
     <Row gutter={[16, 16]} className={Style.middleChartPanel}>
@@ -22,7 +24,8 @@ const MiddleChart = () => {
           lines={[
             {
               name: t('总成本'),
-              query: `sum(sum_over_time(node:node_total_hourly_cost:avg[1h]) * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node))`,
+              query: `(sum(sum_over_time(node:node_total_hourly_cost:avg[1h]) * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)))
+              * (${craneDiscount}/100.0)`,
             },
             {
               name: t('申请资源成本'),
@@ -46,7 +49,7 @@ sum(
   ) by (node)
 
 )
-) * (100.0/100.0)`,
+) * (${craneDiscount}/100.0)`,
             },
           ]}
         ></SeriesLineChart>
@@ -56,7 +59,7 @@ sum(
           title={t('命名空间成本分布')}
           datePicker={true}
           step={'24h'}
-          query={`sum(sum_over_time(namespace:container_cpu_usage_costs_hourly:sum_rate{}[{DURATION}m]) + sum_over_time(namespace:container_memory_usage_costs_hourly:sum_rate{}[{DURATION}m])) by (namespace) * (100.0/100.0)`}
+          query={`sum(sum_over_time(namespace:container_cpu_usage_costs_hourly:sum_rate{}[{DURATION}m]) + sum_over_time(namespace:container_memory_usage_costs_hourly:sum_rate{}[{DURATION}m])) by (namespace) * (${craneDiscount}/100.0)`}
         ></PieChart>
       </Col>
     </Row>

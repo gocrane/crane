@@ -128,11 +128,11 @@
   "总成本": "Total Cost",
   "申请资源成本": "Request Resource Cost",
   "过去一个月集群总成本。从安装Crane时间开始，按小时累加集群成本": "Total cluster cost in the past month. The cluster cost is accumulated by hour from the time Crane is installed",
-  "预估每月成本": "预估每月成本",
+  "预估每月成本": "Estimate Monthly Cost",
   "以最近一小时成本估算未来一个月的成本。每小时成本 * 24 * 30": "Estimate the cost of the next month at the cost of the last hour。Hourly_Cost * 24 * 30",
-  "预估CPU总成本": "预估CPU总成本",
+  "预估CPU总成本": "Estimate Monthly CPU Cost",
   "以最近一小时CPU成本估算未来一个月的CPU成本。每小时CPU成本 * 24 * 30": "Estimate the CPU cost of the next month based on the CPU cost of the last hour。Hourly_CPU_Cost * 24 * 30",
-  "预估Memory总成本": "预估Memory总成本",
+  "预估Memory总成本": "Estimate Monthly Memory Cost",
   "以最近一小时Memory成本估算未来一个月的Memory成本。每小时Memory成本 * 24 * 30": "Estimate the Memory cost of the next month based on the Memory cost of the last hour。Hourly_Memory_Cost * 24 * 30",
   "名称": "Name",
   "推荐目标": "Recommendation Target",
@@ -147,7 +147,8 @@
   "执行以下命令": "Execute following commands",
   "查看命令": "View Commands",
   "折扣": "Discount",
-  "安装推荐规则": "Install RecommendationRule",
+  "安装推荐规则": "Preinstall",
   "预安装RecommendationRule": "Preinstall RecommendationRule",
-  "碳排放分析": "Carbon Emission Analysis"
+  "碳排放分析": "Carbon Emission Analysis",
+  "历史数据不足": "Insufficient historical data"
 }
