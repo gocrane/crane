@@ -87,7 +87,7 @@ export const SelectTable = () => {
   return (
     <>
       <Row>
-        <Button onClick={() => navigate('/recommend/recommendationRule')}>{t('管理推荐规则')}</Button>
+        <Button onClick={() => navigate('/recommend/recommendationRule')}>{t('查看推荐规则')}</Button>
       </Row>
       <Divider></Divider>
       <Row justify='start' style={{ marginBottom: '20px' }}>
@@ -102,22 +102,22 @@ export const SelectTable = () => {
         verticalAlign='middle'
         columns={[
           {
-            title: t('推荐规则名称'),
+            title: t('名称'),
             colKey: 'metadata.name',
             ellipsis: true,
           },
           {
-            title: t('工作负载名称'),
+            title: t('推荐目标名称'),
             colKey: 'spec.targetRef.name',
           },
           {
-            title: t('NameSpace'),
+            title: t('Namespace'),
             ellipsis: true,
             sortType: 'all',
             colKey: 'spec.targetRef.namespace',
           },
           {
-            title: t('工作负载类型'),
+            title: t('目标类型'),
             ellipsis: true,
             colKey: 'spec.targetRef',
             cell({ row }) {
@@ -154,11 +154,6 @@ export const SelectTable = () => {
             },
           },
           {
-            title: t('周期性'),
-            width: 200,
-            colKey: 'spec.completionStrategy.completionStrategyType',
-          },
-          {
             title: t('创建时间'),
             ellipsis: true,
             colKey: 'metadata.creationTimestamp',
@@ -180,31 +175,11 @@ export const SelectTable = () => {
                     theme='primary'
                     variant='text'
                     onClick={() => {
-                      rehandleClickOp(record);
-                    }}
-                    disabled={true}
-                  >
-                    {t('管理')}
-                  </Button>
-                  <Button
-                    theme='primary'
-                    variant='text'
-                    disabled={true}
-                    onClick={() => {
-                      handleClickDelete(record);
-                    }}
-                  >
-                    {t('删除')}
-                  </Button>
-                  <Button
-                    theme='primary'
-                    variant='text'
-                    onClick={() => {
                       setCurrentSelection(record.row as RecommendationSimpleInfo);
                       setCommandDialogVisible(true);
                     }}
                   >
-                    {t('查看命令')}
+                    {t('采纳建议')}
                   </Button>
                   <Button
                     theme='primary'
@@ -279,9 +254,7 @@ export const SelectTable = () => {
         }}
       >
         <Prism withLineNumbers language='tsx'>
-          {` <Prism withLineNumbers language='tsx'>
-          {/* ...code */}
-        </Prism>`}
+          kubectl get pod -n xxxx
         </Prism>
       </Dialog>
     </>

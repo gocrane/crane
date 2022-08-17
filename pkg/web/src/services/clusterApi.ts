@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 interface AddClusterArgs {
   data: {
-    clusters: Array<{ name: string; craneUrl: string }>;
+    clusters: Array<{ name: string; craneUrl: string; discount: string; preinstallRecommendation: string }>;
   };
 }
 

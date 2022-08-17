@@ -1,27 +1,25 @@
 import clsx from 'clsx';
-import { useSelector } from 'hooks';
-import { editClusterActions } from 'modules/editClusterSlice';
+import {useSelector} from 'hooks';
+import {editClusterActions} from 'modules/editClusterSlice';
 import React from 'react';
-import { useTranslation } from 'react-i18next';
-import { useDispatch } from 'react-redux';
-import { clusterApi, useAddClustersMutation, useUpdateClusterMutation } from 'services/clusterApi';
-import { ControlPlatformIcon, LinkIcon } from 'tdesign-icons-react';
-import { Alert, Button, Dialog, Form, Input, MessagePlugin, Tabs } from 'tdesign-react';
-import { getErrorMsg } from 'utils/getErrorMsg';
+import {useTranslation} from 'react-i18next';
+import {useDispatch} from 'react-redux';
+import {clusterApi, useAddClustersMutation, useUpdateClusterMutation} from 'services/clusterApi';
+import {ControlPlatformIcon, LinkIcon, RootListIcon} from 'tdesign-icons-react';
+import {Alert, Button, Dialog, Form, Input, MessagePlugin, Switch, Tabs} from 'tdesign-react';
+import {getErrorMsg} from 'utils/getErrorMsg';
 
 type Validation = { error: boolean; msg: string };
 
 export const EditClusterModal = React.memo(() => {
-  const { t } = useTranslation();
+  const {t} = useTranslation();
   const dispatch = useDispatch();
   const editingClusterId = useSelector((state) => state.editCluster.editingClusterId);
   const mode = useSelector((state) => state.editCluster.mode);
   const visible = useSelector((state) => state.editCluster.modalVisible);
   const clusters = useSelector((state) => state.editCluster.clusters);
 
-  const [validation, setValidation] = React.useState<
-    Record<string, { clusterId: Validation; clusterName: Validation; craneUrl: Validation }>
-  >({});
+  const [validation, setValidation] = React.useState<Record<string, { clusterId: Validation; clusterName: Validation; craneUrl: Validation }>>({});
 
   const handleClose = () => {
     dispatch(editClusterActions.modalVisible(false));
@@ -59,7 +57,7 @@ export const EditClusterModal = React.memo(() => {
   }, [dispatch, mode, updateClusterMutationOptions.isSuccess]);
 
   const validateClusterName = (id: string) => {
-    const res = { error: !clusters.find((cluster: any) => cluster.id === id)?.clusterName, msg: t('集群名称不能为空') };
+    const res = {error: !clusters.find((cluster: any) => cluster.id === id)?.clusterName, msg: t('集群名称不能为空')};
     setValidation((validation) => ({
       ...validation,
       [id]: {
@@ -71,7 +69,7 @@ export const EditClusterModal = React.memo(() => {
   };
 
   const validateCraneUrl = (id: string) => {
-    const res = { error: false, msg: '' };
+    const res = {error: false, msg: ''};
     const cluster = clusters.find((cluster: any) => cluster.id === id);
 
     if (!cluster?.craneUrl) {
@@ -91,14 +89,14 @@ export const EditClusterModal = React.memo(() => {
     }));
 
     if (!res.error) {
-      const result: any = dispatch(clusterApi.endpoints.fetchClusterListMu.initiate({ craneUrl: cluster?.craneUrl }));
+      const result: any = dispatch(clusterApi.endpoints.fetchClusterListMu.initiate({craneUrl: cluster?.craneUrl}));
       result
         .unwrap()
-        .then(() => MessagePlugin.success(t('成功连接: {craneUrl}', { craneUrl: cluster?.craneUrl })))
+        .then(() => MessagePlugin.success(t('成功连接: {craneUrl}', {craneUrl: cluster?.craneUrl})))
         .catch(() =>
           MessagePlugin.error(
             {
-              content: t('无法连接: {craneUrl} , 请检查填写信息以及后端服务', { craneUrl: cluster?.craneUrl }),
+              content: t('无法连接: {craneUrl} , 请检查填写信息以及后端服务', {craneUrl: cluster?.craneUrl}),
               closeBtn: true,
             },
             10000,
@@ -115,7 +113,7 @@ export const EditClusterModal = React.memo(() => {
         addClusterMutationOptions.isError && (
           <Alert
             message={getErrorMsg(addClusterMutationOptions.error)}
-            style={{ marginBottom: 0, marginTop: '1rem' }}
+            style={{marginBottom: 0, marginTop: '1rem'}}
             theme='error'
           />
         )
@@ -126,7 +124,7 @@ export const EditClusterModal = React.memo(() => {
         updateClusterMutationOptions.isError && (
           <Alert
             message={getErrorMsg(updateClusterMutationOptions.error)}
-            style={{ marginBottom: 0, marginTop: '1rem' }}
+            style={{marginBottom: 0, marginTop: '1rem'}}
             theme='error'
           />
         )
@@ -140,8 +138,8 @@ export const EditClusterModal = React.memo(() => {
     mode === 'create'
       ? addClusterMutationOptions.isLoading
       : mode === 'update'
-      ? updateClusterMutationOptions.isLoading
-      : false;
+        ? updateClusterMutationOptions.isLoading
+        : false;
 
   const handleSubmit = () => {
     let error = false;
@@ -167,6 +165,8 @@ export const EditClusterModal = React.memo(() => {
           clusters: (clusters ?? []).map((cluster: any) => ({
             name: cluster.clusterName,
             craneUrl: cluster.craneUrl,
+            discount: cluster.discount,
+            preinstallRecommendation: cluster.preinstallRecommendation,
           })),
         },
       });
@@ -210,11 +210,11 @@ export const EditClusterModal = React.memo(() => {
         handleClose();
       }}
     >
-      <div style={{ marginBottom: 10 }}>{t('请输入一个可访问的CRANE Endpoint，以获得新集群的相关成本数据')}</div>
+      <div style={{marginBottom: 10}}>{t('请输入一个可访问的CRANE Endpoint，以获得新集群的相关成本数据')}</div>
       <Form>
         <Tabs
           addable={mode === 'create'}
-          style={{ border: '1px solid var(--td-component-stroke)' }}
+          style={{border: '1px solid var(--td-component-stroke)'}}
           theme='card'
           value={editingClusterId ?? undefined}
           onAdd={() => {
@@ -224,7 +224,7 @@ export const EditClusterModal = React.memo(() => {
             dispatch(editClusterActions.editingClusterId(tabId));
           }}
           onRemove={(option) => {
-            dispatch(editClusterActions.deleteCluster({ id: `${option.value}` }));
+            dispatch(editClusterActions.deleteCluster({id: `${option.value}`}));
           }}
         >
           {clusters.map((cluster: any, index: number) => (
@@ -235,12 +235,12 @@ export const EditClusterModal = React.memo(() => {
               removable={mode === 'create' ? clusters.length !== 1 : false}
               value={cluster.id}
             >
-              <div style={{ padding: '24px' }}>
+              <div style={{padding: '24px'}}>
                 <Form.FormItem
-                  className={clsx({ isError: validation[cluster.id]?.clusterName?.error })}
+                  className={clsx({isError: validation[cluster.id]?.clusterName?.error})}
                   help={
                     (
-                      <span style={{ color: 'var(--td-error-color)' }}>
+                      <span style={{color: 'var(--td-error-color)'}}>
                         {validation[cluster.id]?.clusterName?.error ? validation[cluster.id]?.clusterName?.msg : null}
                       </span>
                     ) as any
@@ -250,10 +250,10 @@ export const EditClusterModal = React.memo(() => {
                   name={`clusters[${index}].clusterName`}
                   requiredMark
                 >
-                  <div style={{ width: '100%' }}>
+                  <div style={{width: '100%'}}>
                     <Input
                       placeholder={t('测试集群')}
-                      prefixIcon={<ControlPlatformIcon />}
+                      prefixIcon={<ControlPlatformIcon/>}
                       value={cluster.clusterName}
                       onBlur={() => {
                         validateClusterName(cluster.id);
@@ -262,7 +262,7 @@ export const EditClusterModal = React.memo(() => {
                         dispatch(
                           editClusterActions.updateCluster({
                             id: cluster.id,
-                            data: { clusterName },
+                            data: {clusterName},
                           }),
                         );
                       }}
@@ -270,10 +270,10 @@ export const EditClusterModal = React.memo(() => {
                   </div>
                 </Form.FormItem>
                 <Form.FormItem
-                  className={clsx({ isError: validation[cluster.id]?.craneUrl?.error })}
+                  className={clsx({isError: validation[cluster.id]?.craneUrl?.error})}
                   help={
                     (
-                      <span style={{ color: 'var(--td-error-color)' }}>
+                      <span style={{color: 'var(--td-error-color)'}}>
                         {validation[cluster.id]?.craneUrl?.error ? validation[cluster.id]?.craneUrl?.msg : null}
                       </span>
                     ) as any
@@ -282,10 +282,10 @@ export const EditClusterModal = React.memo(() => {
                   label={t('CRANE URL')}
                   name={`clusters[${index}].craneUrl`}
                 >
-                  <div style={{ width: '100%' }}>
+                  <div style={{width: '100%'}}>
                     <Input
                       placeholder={'http(s)://(ip/domain):port e.g. http://192.168.1.1:9090 https://gocrane.io:9090'}
-                      prefixIcon={<LinkIcon />}
+                      prefixIcon={<LinkIcon/>}
                       value={cluster.craneUrl}
                       onBlur={() => {
                         validateCraneUrl(cluster.id);
@@ -294,11 +294,53 @@ export const EditClusterModal = React.memo(() => {
                         dispatch(
                           editClusterActions.updateCluster({
                             id: cluster.id,
-                            data: { craneUrl },
+                            data: {craneUrl},
                           }),
                         );
                       }}
                     />
+                  </div>
+                </Form.FormItem>
+                <Form.FormItem
+                  className={clsx({isError: validation[cluster.id]?.clusterName?.error})}
+                  help={
+                    (
+                      <span style={{color: 'var(--td-error-color)'}}>
+                        {validation[cluster.id]?.clusterName?.error ? validation[cluster.id]?.clusterName?.msg : null}
+                      </span>
+                    ) as any
+                  }
+                  initialData={cluster.discount}
+                  label={t('折扣')}
+                  name={`clusters[${index}].discount`}
+                  requiredMark
+                >
+                  <div style={{width: '100%'}}>
+                    <Input
+                      placeholder='100'
+                      prefixIcon={<RootListIcon/>}
+                      value={mode === 'create' ? 100 : cluster.discount}
+                      onBlur={() => {
+                      }}
+                    />
+                  </div>
+                </Form.FormItem>
+                <Form.FormItem
+                  className={clsx({isError: validation[cluster.id]?.clusterName?.error})}
+                  help={
+                    (
+                      <span style={{color: 'var(--td-error-color)'}}>
+                        {validation[cluster.id]?.clusterName?.error ? validation[cluster.id]?.clusterName?.msg : null}
+                      </span>
+                    ) as any
+                  }
+                  initialData={cluster.preinstallRecommendation}
+                  label={t('安装推荐规则')}
+                  name={`clusters[${index}].preinstallRecommendation`}
+                  requiredMark
+                >
+                  <div style={{width: '100%'}}>
+                    <Switch size="large" value={true} />
                   </div>
                 </Form.FormItem>
                 <Form.FormItem>

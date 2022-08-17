@@ -9,7 +9,7 @@ import (
 )
 
 func (s *apiServer) initRouter() {
-	clusterHandler := clusters.NewClusterHandler(s.clusterSrv)
+	clusterHandler := clusters.NewClusterHandler(s.clusterSrv, s.config)
 	recommendationHandler := recommendation.NewRecommendationHandler(s.config)
 	prometheusHandler := prometheus.NewPrometheusAPIHandler(s.config)
 

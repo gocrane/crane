@@ -86,7 +86,7 @@ export const SelectTable = () => {
   return (
     <>
       <Row>
-        <Button onClick={() => navigate('/recommend/recommendationRule')}>{t('管理推荐规则')}</Button>
+        <Button onClick={() => navigate('/recommend/recommendationRule')}>{t('查看推荐规则')}</Button>
       </Row>
       <Divider></Divider>
       <Row justify='start' style={{ marginBottom: '20px' }}>
@@ -100,21 +100,21 @@ export const SelectTable = () => {
         verticalAlign='middle'
         columns={[
           {
-            title: t('推荐规则名称'),
+            title: t('名称'),
             colKey: 'metadata.name',
             ellipsis: true,
           },
           {
-            title: t('工作负载名称'),
+            title: t('推荐目标名称'),
             colKey: 'spec.targetRef.name',
           },
           {
-            title: t('NameSpace'),
+            title: t('Namespace'),
             ellipsis: true,
             colKey: 'spec.targetRef.namespace',
           },
           {
-            title: t('工作负载类型'),
+            title: t('目标类型'),
             ellipsis: true,
             colKey: 'spec.targetRef',
             cell({ row }) {
@@ -132,10 +132,6 @@ export const SelectTable = () => {
             title: t('副本数推荐'),
             ellipsis: true,
             colKey: 'status.recommendedValue.replicasRecommendation.replicas',
-          },
-          {
-            title: t('周期性'),
-            colKey: 'spec.completionStrategy.completionStrategyType',
           },
           {
             title: t('创建时间'),
@@ -158,32 +154,12 @@ export const SelectTable = () => {
                   <Button
                     theme='primary'
                     variant='text'
-                    disabled={true}
-                    onClick={() => {
-                      rehandleClickOp(record);
-                    }}
-                  >
-                    {t('管理')}
-                  </Button>
-                  <Button
-                    theme='primary'
-                    variant='text'
-                    disabled={true}
-                    onClick={() => {
-                      handleClickDelete(record);
-                    }}
-                  >
-                    {t('删除')}
-                  </Button>
-                  <Button
-                    theme='primary'
-                    variant='text'
                     onClick={() => {
                       setCurrentSelection(record.row as RecommendationSimpleInfo);
                       setCommandDialogVisible(true);
                     }}
                   >
-                    {t('查看命令')}
+                    {t('采纳建议')}
                   </Button>
                   <Button
                     theme='primary'
@@ -206,7 +182,7 @@ export const SelectTable = () => {
         onSelectChange={onSelectChange}
         pagination={{
           defaultCurrent: 1,
-          defaultPageSize: 5,
+          defaultPageSize: 10,
           total: filterResult.length,
           showJumper: true,
           onChange(pageInfo) {
@@ -245,7 +221,7 @@ export const SelectTable = () => {
       </Dialog>
       <Dialog
         width={850}
-        header={t('查看命令')}
+        header={t('执行以下命令')}
         visible={commandDialogVisible}
         cancelBtn={null}
         onConfirm={() => {
@@ -258,9 +234,7 @@ export const SelectTable = () => {
         }}
       >
         <Prism withLineNumbers language='tsx'>
-          {` <Prism withLineNumbers language='tsx'>
-          {/* ...code */}
-        </Prism>`}
+          kubectl get pod -n xxxx
         </Prism>
       </Dialog>
     </>

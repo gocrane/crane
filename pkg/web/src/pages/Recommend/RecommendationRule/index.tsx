@@ -69,10 +69,10 @@ export const SelectTable = () => {
 
   return (
     <>
-      <Row>
+      {/*<Row>
         <Button disabled>{t('新建推荐规则')}</Button>
       </Row>
-      <Divider></Divider>
+      <Divider></Divider>*/}
       <Row justify='start' style={{ marginBottom: '20px' }}>
         <Col>
           <SearchForm filterParams={filterParams} setFilterParams={setFilterParams} />
@@ -83,32 +83,36 @@ export const SelectTable = () => {
         data={filterResult}
         columns={[
           {
-            title: t('推荐规则名称'),
+            title: t('名称'),
             colKey: 'metadata.name',
           },
           {
             title: t('推荐类型'),
             ellipsis: true,
-            colKey: 'spec.recommenders[0].name',
+            colKey: 'spec.recommenders',
             cell({ row }) {
-              const recommender = row.spec.recommenders[0].name;
-              if (recommender === 'Replicas')
-                return (
-                  <Tag theme='warning' variant='light'>
-                    {t('Replicas')}
-                  </Tag>
-                );
-              if (recommender === 'Resource')
-                return (
-                  <Tag theme='primary' variant='light'>
-                    {t('Resource')}
-                  </Tag>
-                );
-              return recommender;
+              return (
+                <div>
+                  {row.spec.recommenders.map( recommender => {
+                    if (recommender.name === 'Replicas')
+                    return (
+                      <Tag theme='warning' variant='light'>
+                        {recommender.name}
+                      </Tag>
+                    );
+                    if (recommender.name === 'Resource')
+                    return (
+                      <Tag theme='primary' variant='light'>
+                        {recommender.name}
+                      </Tag>
+                    );
+                  })}
+                </div>
+              )
             },
           },
           {
-            title: t('资源分析对象'),
+            title: t('推荐目标'),
             width: 300,
             ellipsis: true,
             colKey: 'spec.resourceSelectors',
@@ -128,7 +132,7 @@ export const SelectTable = () => {
             },
           },
           {
-            title: t('NameSpace'),
+            title: t('Namespace 选择器'),
             ellipsis: true,
             colKey: 'spec.namespaceSelector',
             cell({ row }) {
@@ -138,7 +142,7 @@ export const SelectTable = () => {
             },
           },
           {
-            title: t('定时推荐'),
+            title: t('运行间隔'),
             ellipsis: true,
             colKey: 'spec.runInterval',
           },
@@ -160,7 +164,7 @@ export const SelectTable = () => {
             cell(record) {
               return (
                 <>
-                  <Button
+                 {/* <Button
                     theme='primary'
                     variant='text'
                     onClick={() => {
@@ -179,7 +183,7 @@ export const SelectTable = () => {
                     }}
                   >
                     {t('删除')}
-                  </Button>
+                  </Button>*/}
                   <Button
                     theme='primary'
                     variant='text'
@@ -201,7 +205,7 @@ export const SelectTable = () => {
         onSelectChange={onSelectChange}
         pagination={{
           defaultCurrent: 1,
-          defaultPageSize: 5,
+          defaultPageSize: 10,
           total: filterResult.length,
           showJumper: true,
           onChange(pageInfo) {
