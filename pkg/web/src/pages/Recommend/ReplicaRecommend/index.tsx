@@ -226,6 +226,7 @@ export const SelectTable = () => {
         <p>{t('推荐规则将从API Server中删除,且无法恢复')}</p>
       </Dialog>
       <Dialog
+        top='15vh'
         width={850}
         visible={yamlDialogVisible}
         onClose={() => {
