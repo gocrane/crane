@@ -1,7 +1,6 @@
 import React from 'react';
-import { ChevronRightIcon, CloseCircleIcon, UsergroupIcon } from 'tdesign-icons-react';
+import { ChevronRightIcon, CloseCircleIcon, UsergroupIcon, InfoCircleIcon } from 'tdesign-icons-react';
 import { Card, MessagePlugin, Tooltip } from 'tdesign-react';
-import { InfoCircleIcon } from 'tdesign-icons-react';
 import classnames from 'classnames';
 import Style from './index.module.less';
 import { useInstantPrometheusQuery, useRangePrometheusQuery } from '../../services/prometheusApi';
@@ -60,7 +59,7 @@ export interface IBoardProps extends React.HTMLAttributes<HTMLElement> {
   // Prometheus Query End Time, unit: unix timestamp; Trans to sec: Math.floor(Date.now() / 1000)
   end?: number;
   // Tooltips description, unit: string.
-  tips?: string
+  tips?: string;
 }
 
 const fetchData = (craneUrl: string, { query, timeType, start, end, step }: IBoardProps) => {
@@ -81,7 +80,7 @@ const fetchData = (craneUrl: string, { query, timeType, start, end, step }: IBoa
     case TimeType.Range:
       result = useRangePrometheusQuery({ craneUrl, start, end, step, query });
       // 1 week
-      preTime = Math.floor(Date.now() / 1000) - 604800;
+      preTime = (Math.floor(Date.now() / 1000) - 604800) * 1000;
       // Hour
       // preTime = (Math.floor(Date.now() / 1000) - 3600) * 1000;
       preResult = useInstantPrometheusQuery({ craneUrl, query, time: preTime });
@@ -98,7 +97,6 @@ const fetchData = (craneUrl: string, { query, timeType, start, end, step }: IBoa
 };
 
 const buildIcon = ({ data }: any, { title, timeType, lineColor = '#0352d9' }: any): { Icon: any; error: string } => {
-  console.log(title, 'data', data);
   const dynamicChartOption = {
     dataset: {
       dimensions: ['timestamp', title],
@@ -245,7 +243,6 @@ const BoardChart = ({
   let fetchDataResult;
   try {
     fetchDataResult = fetchData(craneUrl, { query, timeType, start, end, step });
-    console.log(title, 'fetchDataResult', fetchDataResult);
   } catch (e) {
     fetchDataResult = {
       error: e,
@@ -260,7 +257,6 @@ const BoardChart = ({
   if (!Icon && result?.isFetching !== true) {
     // Build Icon
     IconResult = buildIcon(result, { title, timeType, lineColor });
-    console.log(IconResult);
   }
 
   let count: React.ReactNode = null;
@@ -286,7 +282,6 @@ const BoardChart = ({
     trendNum = `${(Math.floor(calc * 100) / 100) * -1}%`;
     trend = calc < 0 ? ETrend.up : ETrend.down;
   } else {
-    console.log('emptyData', fetchDataResult.preResult?.data);
     trendNum = '历史数据不足';
     trend = ETrend.error;
   }
@@ -297,14 +292,15 @@ const BoardChart = ({
     <Card
       loading={result?.isFetching}
       header={
-      <div className={Style.boardTitle}>
-        {title}
-        <span style={{ marginLeft: '5px'}}>
-          <Tooltip content={<p style={{ fontWeight: 'normal' }}>{tips}</p>} placement={'top'}>
-            <InfoCircleIcon />
-          </Tooltip>
-        </span>
-      </div>}
+        <div className={Style.boardTitle}>
+          {title}
+          <span style={{ marginLeft: '5px' }}>
+            <Tooltip content={<p style={{ fontWeight: 'normal' }}>{tips}</p>} placement={'top'}>
+              <InfoCircleIcon />
+            </Tooltip>
+          </span>
+        </div>
+      }
       className={classnames({
         [Style.boardPanelDark]: dark,
       })}
