@@ -64,6 +64,33 @@
          
     </url>
     <url>
+         <loc>proposals/20220706-recommendation-definition/</loc>
+         <lastmod>2022-08-18</lastmod>
+         <changefreq>daily</changefreq>
+         <xhtml:link rel="alternate" hreflang="en" href="en/proposals/20220706-recommendation-definition/"/>
+         <xhtml:link rel="alternate" hreflang="zh" href="zh/proposals/20220706-recommendation-definition/"/>
+         <xhtml:link rel="alternate" hreflang="zh_TW" href="zh_TW/proposals/20220706-recommendation-definition/"/>
+         
+    </url>
+    <url>
+         <loc>proposals/20220706-universal-resource-optimization/</loc>
+         <lastmod>2022-08-18</lastmod>
+         <changefreq>daily</changefreq>
+         <xhtml:link rel="alternate" hreflang="en" href="en/proposals/20220706-universal-resource-optimization/"/>
+         <xhtml:link rel="alternate" hreflang="zh" href="zh/proposals/20220706-universal-resource-optimization/"/>
+         <xhtml:link rel="alternate" hreflang="zh_TW" href="zh_TW/proposals/20220706-universal-resource-optimization/"/>
+         
+    </url>
+    <url>
+         <loc>proposals/20220712-recommendation-framework-internal/</loc>
+         <lastmod>2022-08-18</lastmod>
+         <changefreq>daily</changefreq>
+         <xhtml:link rel="alternate" hreflang="en" href="en/proposals/20220712-recommendation-framework-internal/"/>
+         <xhtml:link rel="alternate" hreflang="zh" href="zh/proposals/20220712-recommendation-framework-internal/"/>
+         <xhtml:link rel="alternate" hreflang="zh_TW" href="zh_TW/proposals/20220712-recommendation-framework-internal/"/>
+         
+    </url>
+    <url>
          <loc>proposals/Pod-Sorting-And-Precise-Execution-For-Crane-Agent/</loc>
          <lastmod>2022-08-18</lastmod>
          <changefreq>daily</changefreq>
