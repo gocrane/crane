@@ -2,27 +2,28 @@ package hpa
 
 import (
 	"fmt"
-	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
-	"github.com/gocrane/crane/pkg/metricnaming"
-	"github.com/gocrane/crane/pkg/prediction/config"
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	"math"
 	"strconv"
 	"time"
 
 	"github.com/montanaflynn/stats"
+	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 
+	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
+
 	"github.com/gocrane/crane/pkg/common"
+	"github.com/gocrane/crane/pkg/metricnaming"
+	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/recommend/types"
 	"github.com/gocrane/crane/pkg/recommendation/framework"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
-const callerFormat = "RecommendationCaller-%s-%s"
+const callerFormat = "HPARecommendationCaller-%s-%s"
 
 func (rr *HPARecommender) PreRecommend(ctx *framework.RecommendationContext) error {
 	return rr.ReplicasRecommender.PreRecommend(ctx)
@@ -84,12 +85,12 @@ func (rr *HPARecommender) Policy(ctx *framework.RecommendationContext) error {
 		return fmt.Errorf("%s checkFluctuation failed: %v", rr.Name(), err)
 	}
 
-	targetUtilization, requestTotal, err := rr.proposeTargetUtilization(ctx)
+	targetUtilization, _, err := rr.proposeTargetUtilization(ctx)
 	if err != nil {
 		return fmt.Errorf("ReplicasAdvisor proposeTargetUtilization failed: %v", err)
 	}
 
-	requestTotal, err = utils.CalculatePodTemplateRequests(ctx.PodTemplate, corev1.ResourceCPU)
+	requestTotal, err := utils.CalculatePodTemplateRequests(&ctx.PodTemplate, corev1.ResourceCPU)
 	if err != nil {
 		return fmt.Errorf("%s CalculatePodTemplateRequests failed: %v", rr.Name(), err)
 	}
@@ -99,7 +100,7 @@ func (rr *HPARecommender) Policy(ctx *framework.RecommendationContext) error {
 		return fmt.Errorf("%s proposeMinReplicas failed: %v", rr.Name(), err)
 	}
 
-	maxReplicas, err := rr.proposeMaxReplicas(ctx.PodTemplate, percentileCpu, targetUtilization, minReplicas)
+	maxReplicas, err := rr.proposeMaxReplicas(&ctx.PodTemplate, percentileCpu, targetUtilization, minReplicas)
 	if err != nil {
 		return fmt.Errorf("ReplicasAdvisor proposeMaxReplicas failed: %v", err)
 	}
@@ -271,7 +272,7 @@ func (rr *HPARecommender) proposeTargetUtilization(ctx *framework.Recommendation
 		cpuUsage += tsList[0].Samples[0].Value
 	}
 
-	requestTotal, err := utils.CalculatePodTemplateRequests(ctx.PodTemplate, corev1.ResourceCPU)
+	requestTotal, err := utils.CalculatePodTemplateRequests(&ctx.PodTemplate, corev1.ResourceCPU)
 	if err != nil {
 		return 0, 0, err
 	}

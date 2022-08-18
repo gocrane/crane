@@ -1,19 +1,18 @@
 package replicas
 
 import (
-	"encoding/json"
 	"fmt"
-	jsonpatch "github.com/evanphx/json-patch"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"math"
 	"time"
 
 	"github.com/montanaflynn/stats"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
+
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/recommend/types"
 	"github.com/gocrane/crane/pkg/recommendation/framework"
@@ -71,10 +70,12 @@ func (rr *ReplicasRecommender) Policy(ctx *framework.RecommendationContext) erro
 		}
 	}
 
-	for _, sample := range ctx.ResultValues[0].Samples {
-		cpuUsages = append(cpuUsages, sample.Value)
-		if sample.Value > cpuMax {
-			cpuMax = sample.Value
+	if len(ctx.ResultValues) >= 1 {
+		for _, sample := range ctx.ResultValues[0].Samples {
+			cpuUsages = append(cpuUsages, sample.Value)
+			if sample.Value > cpuMax {
+				cpuMax = sample.Value
+			}
 		}
 	}
 
@@ -84,7 +85,7 @@ func (rr *ReplicasRecommender) Policy(ctx *framework.RecommendationContext) erro
 		return fmt.Errorf("%s get percentileCpu failed: %v", rr.Name(), err)
 	}
 
-	requestTotal, err := utils.CalculatePodTemplateRequests(ctx.PodTemplate, corev1.ResourceCPU)
+	requestTotal, err := utils.CalculatePodTemplateRequests(&ctx.PodTemplate, corev1.ResourceCPU)
 	if err != nil {
 		return fmt.Errorf("%s CalculatePodTemplateRequests failed: %v", rr.Name(), err)
 	}
@@ -111,34 +112,23 @@ func (rr *ReplicasRecommender) Policy(ctx *framework.RecommendationContext) erro
 
 	unstructed := ctx.Object.(*unstructured.Unstructured)
 	newUnstructed := unstructed.DeepCopy()
-	err = unstructured.SetNestedField(newUnstructed.Object, minReplicas, "spec", "replicas")
+	err = unstructured.SetNestedField(newUnstructed.Object, int64(minReplicas), "spec", "replicas")
 	if err != nil {
 		return fmt.Errorf("set replicas to spec failed %s. ", err)
 	}
 
-	oldBytes, err := json.Marshal(unstructed)
+	newPatch, oldPatch, err := framework.ConvertToRecommendationInfos(unstructed.Object, newUnstructed.Object)
 	if err != nil {
-		return fmt.Errorf("encode error %s. ", err)
-	}
-
-	newBytes, err := json.Marshal(newUnstructed)
-	if err != nil {
-		return fmt.Errorf("encode error %s. ", err)
-	}
-
-	newPatch, err := jsonpatch.CreateMergePatch(newBytes, oldBytes)
-	if err != nil {
-		return fmt.Errorf("create merge patch error %s. ", err)
-	}
-	oldPatch, err := jsonpatch.CreateMergePatch(oldBytes, newBytes)
-	if err != nil {
-		return fmt.Errorf("create merge patch error %s. ", err)
+		return fmt.Errorf("convert to recommendation infos failed: %s. ", err)
 	}
 
 	ctx.Recommendation.Status.RecommendedInfo = string(newPatch)
 	ctx.Recommendation.Status.CurrentInfo = string(oldPatch)
-	// TODO(qmhu) Create action type.
-	ctx.Recommendation.Status.Action = "Patch"
+	if ctx.Scale.Spec.Replicas == minReplicas {
+		ctx.Recommendation.Status.Action = "None"
+	} else {
+		ctx.Recommendation.Status.Action = "Patch"
+	}
 
 	return nil
 }

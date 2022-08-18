@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -18,7 +17,6 @@ import (
 	unstructuredv1 "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -30,7 +28,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
+	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
+
 	"github.com/gocrane/crane/pkg/known"
+	predictormgr "github.com/gocrane/crane/pkg/predictor"
 	"github.com/gocrane/crane/pkg/providers"
 	recommender "github.com/gocrane/crane/pkg/recommendation"
 	"github.com/gocrane/crane/pkg/recommendation/framework"
@@ -44,10 +45,10 @@ type RecommendationRuleController struct {
 	RestMapper      meta.RESTMapper
 	ScaleClient     scale.ScalesGetter
 	RecommenderMgr  recommender.RecommenderManager
+	PredictorMgr    predictormgr.Manager
 	kubeClient      kubernetes.Interface
 	dynamicClient   dynamic.Interface
 	discoveryClient discovery.DiscoveryInterface
-	K8SVersion      *version.Version
 	Provider        providers.History
 }
 
@@ -188,7 +189,7 @@ func (c *RecommendationRuleController) doReconcile(ctx context.Context, recommen
 	for index := executionIndex; index < len(currMissions) && index < concurrency+executionIndex; index++ {
 		var existingRecommendation *analysisv1alph1.Recommendation
 		for _, r := range currRecommendations.Items {
-			if reflect.DeepEqual(currMissions[index].TargetRef, r.Spec.TargetRef) {
+			if reflect.DeepEqual(currMissions[index].TargetRef, r.Spec.TargetRef) && string(r.Spec.Type) == currMissions[index].RecommenderRef.Name {
 				existingRecommendation = &r
 				break
 			}
@@ -249,17 +250,17 @@ func (c *RecommendationRuleController) CreateRecommendationObject(recommendation
 		},
 		Spec: analysisv1alph1.RecommendationSpec{
 			TargetRef: target,
+			Type:      analysisv1alph1.AnalysisType(recommenderName),
 		},
 	}
 
 	if recommendation.Labels == nil {
 		recommendation.Labels = map[string]string{}
 	}
-	recommendation.Labels[known.RecommendationRuleNameLabel] = recommendationRule.Name
+	// TODO: enable it
+	/*recommendation.Labels[known.RecommendationRuleNameLabel] = recommendationRule.Name
 	recommendation.Labels[known.RecommendationRuleUidLabel] = string(recommendationRule.UID)
-	recommendation.Labels[known.RecommendationRuleRecommenderLabel] = recommenderName
-
-	// todo: set recommendation.Spec.type
+	recommendation.Labels[known.RecommendationRuleRecommenderLabel] = recommenderName*/
 
 	return recommendation
 }
@@ -268,12 +269,6 @@ func (c *RecommendationRuleController) SetupWithManager(mgr ctrl.Manager) error 
 	c.kubeClient = kubernetes.NewForConfigOrDie(mgr.GetConfig())
 	c.discoveryClient = discovery.NewDiscoveryClientForConfigOrDie(mgr.GetConfig())
 	c.dynamicClient = dynamic.NewForConfigOrDie(mgr.GetConfig())
-
-	serverVersion, err := c.discoveryClient.ServerVersion()
-	if err != nil {
-		return err
-	}
-	c.K8SVersion = version.MustParseGeneric(serverVersion.GitVersion)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&analysisv1alph1.RecommendationRule{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
@@ -379,6 +374,10 @@ func (c *RecommendationRuleController) executeMission(ctx context.Context, wg *s
 		}
 
 		r := c.RecommenderMgr.GetRecommender(mission.RecommenderRef.Name)
+		if r == nil {
+			mission.Message = fmt.Sprintf("recommender %s not registered ", mission.RecommenderRef.Name)
+			return
+		}
 		p := make(map[providers.DataSourceType]providers.History)
 		p[providers.PrometheusDataSource] = c.Provider
 		identity := framework.ObjectIdentity{
@@ -389,7 +388,7 @@ func (c *RecommendationRuleController) executeMission(ctx context.Context, wg *s
 			Labels:     identities[k].Labels,
 			Object:     identities[k].Object,
 		}
-		recommendationContext := framework.NewRecommendationContext(ctx, identity, p, recommendation, c.Client, c.ScaleClient)
+		recommendationContext := framework.NewRecommendationContext(ctx, identity, c.PredictorMgr, p, recommendation, c.Client, c.ScaleClient)
 		err := recommender.Run(&recommendationContext, r)
 		if err != nil {
 			mission.Message = fmt.Sprintf("Failed to run recommendation flow in recommender %s: %s", r.Name(), err.Error())

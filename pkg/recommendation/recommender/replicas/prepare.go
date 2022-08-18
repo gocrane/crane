@@ -2,16 +2,18 @@ package replicas
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/gocrane/crane/pkg/metricnaming"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"time"
-
 	"k8s.io/klog/v2"
 
 	"github.com/gocrane/crane/pkg/providers"
 	"github.com/gocrane/crane/pkg/recommendation/framework"
 )
+
+const callerFormat = "ReplicasRecommendationCaller-%s-%s"
 
 // CheckDataProviders in PrePrepare phase, will create data source provider via your recommendation config.
 func (rr *ReplicasRecommender) CheckDataProviders(ctx *framework.RecommendationContext) error {
@@ -24,10 +26,9 @@ func (rr *ReplicasRecommender) CheckDataProviders(ctx *framework.RecommendationC
 
 func (rr *ReplicasRecommender) CollectData(ctx *framework.RecommendationContext) error {
 	resourceCpu := corev1.ResourceCPU
-	obj := &corev1.ObjectReference{}
 	labelSelector := labels.SelectorFromSet(ctx.Identity.Labels)
-	caller := fmt.Sprintf(rr.Name(), klog.KObj(&ctx.RecommendationRule), ctx.RecommendationRule.UID)
-	metricNamer := metricnaming.ResourceToWorkloadMetricNamer(obj, &resourceCpu, labelSelector, caller)
+	caller := fmt.Sprintf(callerFormat, klog.KObj(ctx.Recommendation), ctx.Recommendation.UID)
+	metricNamer := metricnaming.ResourceToWorkloadMetricNamer(ctx.Recommendation.Spec.TargetRef.DeepCopy(), &resourceCpu, labelSelector, caller)
 	if err := metricNamer.Validate(); err != nil {
 		return err
 	}

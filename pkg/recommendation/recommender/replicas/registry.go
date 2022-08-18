@@ -28,7 +28,7 @@ func (rr *ReplicasRecommender) Name() string {
 func NewReplicasRecommender(recommender apis.Recommender) (*ReplicasRecommender, error) {
 	workloadMinReplicas, exists := recommender.Config["workload-min-replicas"]
 	if !exists {
-		workloadMinReplicas = "168h"
+		workloadMinReplicas = "1"
 	}
 
 	workloadMinReplicasInt, err := strconv.ParseInt(workloadMinReplicas, 10, 32)
@@ -68,7 +68,7 @@ func NewReplicasRecommender(recommender apis.Recommender) (*ReplicasRecommender,
 
 	defaultMinReplicas, exists := recommender.Config["default-min-replicas"]
 	if !exists {
-		defaultMinReplicas = "3"
+		defaultMinReplicas = "1"
 	}
 
 	defaultMinReplicasInt, err := strconv.ParseInt(defaultMinReplicas, 10, 32)
@@ -78,7 +78,7 @@ func NewReplicasRecommender(recommender apis.Recommender) (*ReplicasRecommender,
 
 	targetUtilization, exists := recommender.Config["cpu-target-utilization"]
 	if !exists {
-		defaultMinReplicas = "3"
+		targetUtilization = "50"
 	}
 
 	targetUtilizationInt, err := strconv.ParseInt(targetUtilization, 10, 32)

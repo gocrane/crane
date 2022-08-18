@@ -2,6 +2,7 @@ package replicas
 
 import (
 	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/gocrane/crane/pkg/recommendation/framework"

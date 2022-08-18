@@ -4,48 +4,22 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"strings"
-	"sync"
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/equality"
+	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
+	"github.com/gocrane/crane/pkg/known"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	unstructuredv1 "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/version"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/scale"
-	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/yaml"
-
-	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
-	craneclient "github.com/gocrane/api/pkg/generated/clientset/versioned"
-	analysisinformer "github.com/gocrane/api/pkg/generated/informers/externalversions"
-	analysislister "github.com/gocrane/api/pkg/generated/listers/analysis/v1alpha1"
-
-	"github.com/gocrane/crane/pkg/known"
-	predictormgr "github.com/gocrane/crane/pkg/predictor"
-	"github.com/gocrane/crane/pkg/providers"
-	"github.com/gocrane/crane/pkg/recommend"
 )
 
 type Controller struct {
 	client.Client
-	Scheme          *runtime.Scheme
+	/*Scheme          *runtime.Scheme
 	RestMapper      meta.RESTMapper
 	Recorder        record.EventRecorder
 	kubeClient      kubernetes.Interface
@@ -57,7 +31,7 @@ type Controller struct {
 	PredictorMgr    predictormgr.Manager
 	Provider        providers.History
 	ConfigSetFile   string
-	configSet       *analysisv1alph1.ConfigSet
+	configSet       *analysisv1alph1.ConfigSet*/
 }
 
 func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -85,41 +59,44 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	lastUpdateTime := analytics.Status.LastUpdateTime
-	if analytics.Spec.CompletionStrategy.CompletionStrategyType == analysisv1alph1.CompletionStrategyOnce {
-		if lastUpdateTime != nil {
-			// This is a one-off analytics task which has been completed.
-			return ctrl.Result{}, nil
+	return ctrl.Result{}, nil
+	/*
+		lastUpdateTime := analytics.Status.LastUpdateTime
+		if analytics.Spec.CompletionStrategy.CompletionStrategyType == analysisv1alph1.CompletionStrategyOnce {
+			if lastUpdateTime != nil {
+				// This is a one-off analytics task which has been completed.
+				return ctrl.Result{}, nil
+			}
+		} else {
+			if lastUpdateTime != nil {
+				planingTime := lastUpdateTime.Add(time.Duration(*analytics.Spec.CompletionStrategy.PeriodSeconds) * time.Second)
+				now := time.Now()
+				if now.Before(planingTime) {
+					return ctrl.Result{
+						RequeueAfter: planingTime.Sub(now),
+					}, nil
+				}
+			}
 		}
-	} else {
-		if lastUpdateTime != nil {
-			planingTime := lastUpdateTime.Add(time.Duration(*analytics.Spec.CompletionStrategy.PeriodSeconds) * time.Second)
-			now := time.Now()
-			if now.Before(planingTime) {
+
+		finished := c.analyze(ctx, analytics)
+
+		if finished && analytics.Spec.CompletionStrategy.CompletionStrategyType == analysisv1alph1.CompletionStrategyPeriodical {
+			if analytics.Spec.CompletionStrategy.PeriodSeconds != nil {
+				d := time.Second * time.Duration(*analytics.Spec.CompletionStrategy.PeriodSeconds)
+				klog.V(4).InfoS("Will re-sync", "after", d)
+				// Arrange for next round.
 				return ctrl.Result{
-					RequeueAfter: planingTime.Sub(now),
+					RequeueAfter: d,
 				}, nil
 			}
 		}
-	}
 
-	finished := c.analyze(ctx, analytics)
-
-	if finished && analytics.Spec.CompletionStrategy.CompletionStrategyType == analysisv1alph1.CompletionStrategyPeriodical {
-		if analytics.Spec.CompletionStrategy.PeriodSeconds != nil {
-			d := time.Second * time.Duration(*analytics.Spec.CompletionStrategy.PeriodSeconds)
-			klog.V(4).InfoS("Will re-sync", "after", d)
-			// Arrange for next round.
-			return ctrl.Result{
-				RequeueAfter: d,
-			}, nil
-		}
-	}
-
-	klog.V(6).Infof("Analytics not finished, continue to do it.")
-	return ctrl.Result{RequeueAfter: time.Second * 1}, nil
+		klog.V(6).Infof("Analytics not finished, continue to do it.")
+		return ctrl.Result{RequeueAfter: time.Second * 1}, nil*/
 }
 
+/*
 func (c *Controller) analyze(ctx context.Context, analytics *analysisv1alph1.Analytics) bool {
 	newStatus := analytics.Status.DeepCopy()
 
@@ -273,9 +250,9 @@ func (c *Controller) CreateRecommendationObject(ctx context.Context, analytics *
 
 	return recommendation
 }
-
+*/
 func (c *Controller) SetupWithManager(mgr ctrl.Manager) error {
-	c.kubeClient = kubernetes.NewForConfigOrDie(mgr.GetConfig())
+	/*c.kubeClient = kubernetes.NewForConfigOrDie(mgr.GetConfig())
 
 	c.discoveryClient = discovery.NewDiscoveryClientForConfigOrDie(mgr.GetConfig())
 
@@ -301,12 +278,13 @@ func (c *Controller) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	go c.watchConfigSetFile()
-
+	*/
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&analysisv1alph1.Analytics{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(c)
 }
 
+/*
 func (c *Controller) getIdentities(ctx context.Context, analytics *analysisv1alph1.Analytics) (map[string]ObjectIdentity, error) {
 	identities := map[string]ObjectIdentity{}
 
@@ -562,7 +540,7 @@ func setReadyCondition(status *analysisv1alph1.AnalyticsStatus, conditionStatus 
 		Message:            message,
 		LastTransitionTime: metav1.Now(),
 	})
-}
+}*/
 
 func ConvertToRecommendationRule(analytics *analysisv1alph1.Analytics) *analysisv1alph1.RecommendationRule {
 	recommendationRule := &analysisv1alph1.RecommendationRule{}

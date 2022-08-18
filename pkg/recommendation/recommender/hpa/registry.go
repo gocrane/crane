@@ -1,10 +1,11 @@
 package hpa
 
 import (
+	"strconv"
+
 	"github.com/gocrane/crane/pkg/recommendation/recommender"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/apis"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/replicas"
-	"strconv"
 )
 
 var _ recommender.Recommender = &HPARecommender{}

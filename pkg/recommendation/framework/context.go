@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	jsonpatch "github.com/evanphx/json-patch"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingapiv1 "k8s.io/api/autoscaling/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
@@ -50,7 +51,7 @@ type RecommendationContext struct {
 	// Manager of predict algorithm
 	PredictorMgr predictormgr.Manager
 	// Pod template
-	PodTemplate *corev1.PodTemplateSpec
+	PodTemplate corev1.PodTemplateSpec
 	// Client
 	Client client.Client
 	// RestMapper
@@ -65,11 +66,12 @@ type RecommendationContext struct {
 	HPA *autoscalingv2.HorizontalPodAutoscaler
 }
 
-func NewRecommendationContext(context context.Context, identity ObjectIdentity, dataProviders map[providers.DataSourceType]providers.History, recommendation *v1alpha1.Recommendation, client client.Client, scaleClient scale.ScalesGetter) RecommendationContext {
+func NewRecommendationContext(context context.Context, identity ObjectIdentity, predictorMgr predictormgr.Manager, dataProviders map[providers.DataSourceType]providers.History, recommendation *v1alpha1.Recommendation, client client.Client, scaleClient scale.ScalesGetter) RecommendationContext {
 	return RecommendationContext{
 		Identity:       identity,
 		Object:         &identity.Object,
 		Context:        context,
+		PredictorMgr:   predictorMgr,
 		DataProviders:  dataProviders,
 		Recommendation: recommendation,
 		Client:         client,
@@ -110,27 +112,6 @@ func ObjectConversion(object interface{}, target interface{}) error {
 	return json.Unmarshal(bytes, target)
 }
 
-func GetDaemonSetPods(kubeClient client.Client, namespace string, name string) ([]corev1.Pod, error) {
-	ds := appsv1.DaemonSet{}
-	err := kubeClient.Get(context.TODO(), client.ObjectKey{Namespace: namespace, Name: name}, &ds)
-	if err != nil {
-		return nil, err
-	}
-
-	opts := []client.ListOption{
-		client.InNamespace(namespace),
-		client.MatchingLabels(ds.Spec.Selector.MatchLabels),
-	}
-
-	podList := &corev1.PodList{}
-	err = kubeClient.List(context.TODO(), podList, opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	return podList.Items, nil
-}
-
 func RetrievePodTemplate(ctx *RecommendationContext) error {
 	unstructed := ctx.Object.(*unstructured.Unstructured)
 
@@ -140,7 +121,7 @@ func RetrievePodTemplate(ctx *RecommendationContext) error {
 		return fmt.Errorf("get template from unstructed object %s failed. ", klog.KObj(unstructed))
 	}
 
-	return ObjectConversion(podTemplateObject, ctx.PodTemplate)
+	return ObjectConversion(podTemplateObject, &ctx.PodTemplate)
 }
 
 func RetrieveScale(ctx *RecommendationContext) error {
@@ -171,8 +152,31 @@ func RetrievePods(ctx *RecommendationContext) error {
 		if err != nil {
 			return err
 		}
-		pods, err := GetDaemonSetPods(ctx.Client, ctx.Recommendation.Spec.TargetRef.Namespace, ctx.Recommendation.Spec.TargetRef.Name)
+		pods, err := utils.GetDaemonSetPods(ctx.Client, ctx.Recommendation.Spec.TargetRef.Namespace, ctx.Recommendation.Spec.TargetRef.Name)
 		ctx.Pods = pods
 		return err
 	}
+}
+
+func ConvertToRecommendationInfos(src interface{}, target interface{}) ([]byte, []byte, error) {
+	oldBytes, err := json.Marshal(src)
+	if err != nil {
+		return nil, nil, fmt.Errorf("encode error %s. ", err)
+	}
+
+	newBytes, err := json.Marshal(target)
+	if err != nil {
+		return nil, nil, fmt.Errorf("encode error %s. ", err)
+	}
+
+	newPatch, err := jsonpatch.CreateMergePatch(oldBytes, newBytes)
+	if err != nil {
+		return nil, nil, fmt.Errorf("create merge patch error %s. ", err)
+	}
+	oldPatch, err := jsonpatch.CreateMergePatch(newBytes, oldBytes)
+	if err != nil {
+		return nil, nil, fmt.Errorf("create merge patch error %s. ", err)
+	}
+
+	return newPatch, oldPatch, err
 }

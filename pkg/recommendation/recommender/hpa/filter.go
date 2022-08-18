@@ -2,10 +2,12 @@ package hpa
 
 import (
 	"context"
-	"github.com/gocrane/crane/pkg/known"
-	"github.com/gocrane/crane/pkg/recommendation/framework"
+
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/gocrane/crane/pkg/known"
+	"github.com/gocrane/crane/pkg/recommendation/framework"
 )
 
 // Filter out k8s resources that are not supported by the recommender.

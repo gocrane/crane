@@ -1,10 +1,8 @@
 package hpa
 
 import (
-	"encoding/json"
 	"fmt"
 
-	jsonpatch "github.com/evanphx/json-patch"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -49,28 +47,13 @@ func (rr *HPARecommender) Observe(ctx *framework.RecommendationContext) error {
 		return fmt.Errorf("get spec from unstructed object %s failed. ", klog.KObj(unstructed))
 	}
 
-	oldBytes, err := json.Marshal(oldObject)
+	newPatch, oldPatch, err := framework.ConvertToRecommendationInfos(oldObject, newObject)
 	if err != nil {
-		return fmt.Errorf("encode error %s. ", err)
-	}
-
-	newBytes, err := json.Marshal(newObject)
-	if err != nil {
-		return fmt.Errorf("encode error %s. ", err)
-	}
-
-	newPatch, err := jsonpatch.CreateMergePatch(newBytes, oldBytes)
-	if err != nil {
-		return fmt.Errorf("create merge patch error %s. ", err)
-	}
-	oldPatch, err := jsonpatch.CreateMergePatch(oldBytes, newBytes)
-	if err != nil {
-		return fmt.Errorf("create merge patch error %s. ", err)
+		return fmt.Errorf("convert to recommendation infos failed: %s. ", err)
 	}
 
 	ctx.Recommendation.Status.RecommendedInfo = string(newPatch)
 	ctx.Recommendation.Status.CurrentInfo = string(oldPatch)
-	// TODO(qmhu) Create action type.
 	ctx.Recommendation.Status.Action = "Patch"
 
 	return nil

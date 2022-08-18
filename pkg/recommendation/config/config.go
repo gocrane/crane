@@ -1,11 +1,11 @@
 package config
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 
 	klog "k8s.io/klog/v2"
+	"sigs.k8s.io/yaml"
 
 	"github.com/gocrane/crane/pkg/recommendation/recommender/apis"
 )
@@ -29,7 +29,7 @@ func LoadRecommenderConfigFromFile(filePath string) (*apis.RecommenderConfigurat
 
 func loadConfigFromBytes(buf []byte) (*apis.RecommenderConfiguration, error) {
 	config := &apis.RecommenderConfiguration{}
-	err := json.Unmarshal(buf, config)
+	err := yaml.Unmarshal(buf, config)
 	if err != nil {
 		return nil, fmt.Errorf("failed unmarshal the byte array: %v", err)
 	}
@@ -45,12 +45,7 @@ func GetRecommendersFromConfiguration(file string) ([]apis.Recommender, error) {
 		return nil, err
 	}
 
-	configRecommenders := config.Recommenders
-	recommenders := make([]apis.Recommender, len(configRecommenders))
-	for _, r := range configRecommenders {
-		recommenders = append(recommenders, r)
-	}
-	return recommenders, nil
+	return config.Recommenders, nil
 }
 
 func GetKeysOfMap(m map[string]string) (keys []string) {

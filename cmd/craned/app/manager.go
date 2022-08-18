@@ -4,16 +4,9 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/gocrane/crane/pkg/recommendation/recommender/hpa"
-	"github.com/gocrane/crane/pkg/recommendation/recommender/replicas"
-	"github.com/gocrane/crane/pkg/recommendation/recommender/resource"
 	"os"
 	"strings"
 
-	recommendationctrl "github.com/gocrane/crane/pkg/controller/recommendation"
-	"github.com/gocrane/crane/pkg/recommendation"
-	"github.com/gocrane/crane/pkg/recommendation/config"
-	recommender "github.com/gocrane/crane/pkg/recommendation/recommender"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,6 +30,7 @@ import (
 	"github.com/gocrane/crane/pkg/controller/cnp"
 	"github.com/gocrane/crane/pkg/controller/ehpa"
 	"github.com/gocrane/crane/pkg/controller/evpa"
+	recommendationctrl "github.com/gocrane/crane/pkg/controller/recommendation"
 	"github.com/gocrane/crane/pkg/controller/timeseriesprediction"
 	"github.com/gocrane/crane/pkg/features"
 	"github.com/gocrane/crane/pkg/known"
@@ -51,6 +45,12 @@ import (
 	_ "github.com/gocrane/crane/pkg/querybuilder-providers/grpc"
 	_ "github.com/gocrane/crane/pkg/querybuilder-providers/metricserver"
 	_ "github.com/gocrane/crane/pkg/querybuilder-providers/prometheus"
+	"github.com/gocrane/crane/pkg/recommendation"
+	"github.com/gocrane/crane/pkg/recommendation/config"
+	recommender "github.com/gocrane/crane/pkg/recommendation/recommender"
+	"github.com/gocrane/crane/pkg/recommendation/recommender/hpa"
+	"github.com/gocrane/crane/pkg/recommendation/recommender/replicas"
+	"github.com/gocrane/crane/pkg/recommendation/recommender/resource"
 	"github.com/gocrane/crane/pkg/server"
 	serverconfig "github.com/gocrane/crane/pkg/server/config"
 	"github.com/gocrane/crane/pkg/utils/target"
@@ -148,7 +148,7 @@ func initRecommenders(opts *options.Options) (map[string]recommender.Recommender
 			if err != nil {
 				return nil, err
 			}
-			recommenders[recommender.ResourceRecommender] = replicasRecommender
+			recommenders[recommender.ReplicasRecommender] = replicasRecommender
 		case recommender.HPARecommender:
 			hpaRecommender, err := hpa.NewHPARecommender(r)
 			if err != nil {
@@ -337,14 +337,14 @@ func initControllers(ctx context.Context, mgr ctrl.Manager, opts *options.Option
 	// TODO(qmhu), change feature gate from analysis to recommendation
 	if utilfeature.DefaultMutableFeatureGate.Enabled(features.CraneAnalysis) {
 		if err := (&analytics.Controller{
-			Client:        mgr.GetClient(),
-			Scheme:        mgr.GetScheme(),
+			Client: mgr.GetClient(),
+			/*Scheme:        mgr.GetScheme(),
 			RestMapper:    mgr.GetRESTMapper(),
 			Recorder:      mgr.GetEventRecorderFor("analytics-controller"),
 			ConfigSetFile: opts.RecommendationConfigFile,
 			ScaleClient:   scaleClient,
 			PredictorMgr:  predictorMgr,
-			Provider:      historyDataSource,
+			Provider:      historyDataSource,*/
 		}).SetupWithManager(mgr); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "AnalyticsController")
 		}
@@ -366,6 +366,7 @@ func initControllers(ctx context.Context, mgr ctrl.Manager, opts *options.Option
 			RecommenderMgr: recommenderMgr,
 			ScaleClient:    scaleClient,
 			Provider:       historyDataSource,
+			PredictorMgr:   predictorMgr,
 			Recorder:       mgr.GetEventRecorderFor("recommendationrule-controller"),
 		}).SetupWithManager(mgr); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "RecommendationRuleController")

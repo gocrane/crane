@@ -1,13 +1,12 @@
 package resource
 
 import (
-	"encoding/json"
 	"fmt"
 
-	jsonpatch "github.com/evanphx/json-patch"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 
@@ -20,7 +19,7 @@ import (
 	"github.com/gocrane/crane/pkg/utils"
 )
 
-const callerFormat = "RecommendationCaller-%s-%s"
+const callerFormat = "ResourceRecommendationCaller-%s-%s"
 
 func (rr *ResourceRecommender) PreRecommend(ctx *framework.RecommendationContext) error {
 	return nil
@@ -69,7 +68,10 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 	}
 
 	resourceRecommendation := &types.ResourceRequestRecommendation{}
-	newPodTemplate := ctx.PodTemplate.DeepCopy()
+	newObject := ctx.Object.DeepCopyObject().(*unstructured.Unstructured)
+
+	var newContainers []corev1.Container
+	var oldContainers []corev1.Container
 
 	namespace := ctx.Object.GetNamespace()
 	for _, c := range ctx.PodTemplate.Spec.Containers {
@@ -112,12 +114,28 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 		memQuantity := resource.NewQuantity(v, resource.BinarySI)
 		cr.Target[corev1.ResourceMemory] = memQuantity.String()
 
-		for index := range newPodTemplate.Spec.Containers {
-			if newPodTemplate.Spec.Containers[index].Name == c.Name {
-				newPodTemplate.Spec.Containers[index].Resources.Requests[corev1.ResourceCPU] = *cpuQuantity
-				newPodTemplate.Spec.Containers[index].Resources.Requests[corev1.ResourceMemory] = *cpuQuantity
-			}
+		newContainerSpec := corev1.Container{
+			Name: c.Name,
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceCPU:    *cpuQuantity,
+					corev1.ResourceMemory: *memQuantity,
+				},
+			},
 		}
+
+		oldContainerSpec := corev1.Container{
+			Name: c.Name,
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceCPU:    c.Resources.Requests[corev1.ResourceCPU],
+					corev1.ResourceMemory: c.Resources.Requests[corev1.ResourceMemory],
+				},
+			},
+		}
+
+		newContainers = append(newContainers, newContainerSpec)
+		oldContainers = append(oldContainers, oldContainerSpec)
 
 		resourceRecommendation.Containers = append(resourceRecommendation.Containers, cr)
 	}
@@ -133,42 +151,39 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 
 	ctx.Recommendation.Status.RecommendedValue = string(valueBytes)
 
-	newPodTemplateBytes, err := json.Marshal(newPodTemplate)
-	if err != nil {
-		return err
+	var newContainerItems []interface{}
+	for _, container := range newContainers {
+		out, _ := runtime.DefaultUnstructuredConverter.ToUnstructured(&container)
+		newContainerItems = append(newContainerItems, out)
 	}
 
-	newPodTemplateFields := map[string]interface{}{}
-	if err := json.Unmarshal(newPodTemplateBytes, newPodTemplateFields); err != nil {
-		return err
+	err = unstructured.SetNestedSlice(newObject.Object, newContainerItems, "spec", "template", "spec", "containers")
+	if err != nil {
+		return fmt.Errorf("%s set new patch containers failed: %v", rr.Name(), err)
+	}
+	newPatch, _, err := framework.ConvertToRecommendationInfos(ctx.Object, newObject.Object)
+	if err != nil {
+		return fmt.Errorf("convert to recommendation infos failed: %s. ", err)
 	}
 
-	unstructObject := ctx.Object.(*unstructured.Unstructured)
-	newUnstructObject := unstructObject.DeepCopyObject().(*unstructured.Unstructured)
-	unstructured.SetNestedField(newUnstructObject.Object, newPodTemplateFields, "spec", "template", "spec")
-
-	oldBytes, err := json.Marshal(unstructObject)
-	if err != nil {
-		return fmt.Errorf("encode error %s. ", err)
+	var oldContainerItems []interface{}
+	for _, container := range oldContainers {
+		out, _ := runtime.DefaultUnstructuredConverter.ToUnstructured(&container)
+		oldContainerItems = append(oldContainerItems, out)
 	}
 
-	newBytes, err := json.Marshal(newUnstructObject)
+	originObject := newObject.DeepCopy()
+	err = unstructured.SetNestedSlice(originObject.Object, oldContainerItems, "spec", "template", "spec", "containers")
 	if err != nil {
-		return fmt.Errorf("encode error %s. ", err)
+		return fmt.Errorf("set old container failed: %s. ", err)
 	}
-
-	newPatch, err := jsonpatch.CreateMergePatch(newBytes, oldBytes)
+	oldPatch, _, err := framework.ConvertToRecommendationInfos(newObject.Object, originObject.Object)
 	if err != nil {
-		return fmt.Errorf("create merge patch error %s. ", err)
-	}
-	oldPatch, err := jsonpatch.CreateMergePatch(oldBytes, newBytes)
-	if err != nil {
-		return fmt.Errorf("create merge patch error %s. ", err)
+		return fmt.Errorf("convert to recommendation infos failed: %s. ", err)
 	}
 
 	ctx.Recommendation.Status.RecommendedInfo = string(newPatch)
 	ctx.Recommendation.Status.CurrentInfo = string(oldPatch)
-	// TODO(qmhu) Create action type.
 	ctx.Recommendation.Status.Action = "Patch"
 
 	return nil

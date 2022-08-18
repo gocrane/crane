@@ -2,13 +2,11 @@ package base
 
 import (
 	"fmt"
-	"reflect"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/recommendation/framework"
+	"github.com/gocrane/crane/pkg/utils"
 )
 
 // Filter out k8s resources that are not supported by the recommender.
@@ -28,20 +26,23 @@ func (br *BaseRecommender) Filter(ctx *framework.RecommendationContext) error {
 	return nil
 }
 
-// IsIdentitySupported check weather object identity fit resource selector.
+// IsIdentitySupported check whether object identity fit resource selector.
 func IsIdentitySupported(identity framework.ObjectIdentity, selectors []analysisapi.ResourceSelector) bool {
 	supported := false
 	for _, selector := range selectors {
-		newSelector := analysisapi.ResourceSelector{
-			Name:       identity.Name,
-			APIVersion: identity.APIVersion,
-			Kind:       identity.Kind,
-			LabelSelector: &metav1.LabelSelector{
-				MatchLabels: identity.Labels,
-			},
+		if len(selector.Name) == 0 {
+			if selector.Kind == identity.Kind && selector.APIVersion == identity.APIVersion {
+				labelMatch, _ := utils.LabelSelectorMatched(identity.Labels, selector.LabelSelector)
+				if labelMatch {
+					return true
+				}
+			}
+		} else if selector.Kind == identity.Kind && selector.APIVersion == identity.APIVersion && selector.Name == identity.Name {
+			labelMatch, _ := utils.LabelSelectorMatched(identity.Labels, selector.LabelSelector)
+			if labelMatch {
+				return true
+			}
 		}
-
-		supported = reflect.DeepEqual(newSelector, selector)
 	}
 
 	return supported

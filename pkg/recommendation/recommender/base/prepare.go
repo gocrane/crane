@@ -27,6 +27,9 @@ func (br *BaseRecommender) CheckDataProviders(ctx *framework.RecommendationConte
 	dataSourceKeys := fuzzy.FindFold(providers.DataSourceTypeKey, configKeys)
 	//grpcKeys := fuzzy.FindFold(string(providers.GrpcDataSource), configKeys)
 
+	if len(dataSourceKeys) == 0 {
+		return nil
+	}
 	dataSourceType := dataSourceKeys[0]
 
 	if dataSourceType != string(providers.PrometheusDataSource) {
