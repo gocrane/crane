@@ -128,29 +128,158 @@ prometheus-server               1/1     1            1           43m
 
 可以查看本篇[文档](https://github.com/gocrane/helm-charts/blob/main/charts/crane/README.md)获取更多有关 Crane Helm Chart 的信息。
 
-## 成本展示
+## Access Dashboard
 
-### 打开 Crane 控制台
+You can use the dashboard to view and manage crane manifests.
 
-注意：Crane 的控制台地址就是 Crane 的 URL 地址，可以将其添加到统一的控制台查看多个部署 Crane 的集群的信息。
+![](images/dashboard.png)
 
-利用 [Port forwarding](https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/) 命令，可以在本地计算机的浏览器打开 Crane 控制台：
+### Port Forward
 
+Easy access to the dashboard through `kubectl port-forward`.
+
+```bash
+kubectl -n crane-system port-forward service/craned 9090 9090 
 ```
-kubectl port-forward -n crane-system svc/craned 9090
+
+### NodePort
+
+```bash
+# Change service type
+kubectl patch svc craned -n crane-system -p '{"spec": {"type": "NodePort"}}'
 ```
 
-执行上述命令后，不要关闭命令行工具，在本地计算机的浏览器地址里输入 `localhost:9090`即可打开 Crane 的控制台：
+```bash
+# Get Dashboard link base on your cluster configuration
+PORT=$(kubectl get svc -n crane-system craned -o jsonpath='{.spec.ports[?(@.name == "dashboard-service")].nodePort}')
+NODE_IP=$(kubectl get node -ojsonpath='{.items[].status.addresses[?(@.type == "InternalIP")].address}')
+echo "Dashboard link: http://${NODE_IP}:${PORT}"
+```
 
-![](images/crane-dashboard.png)
+### LoadBalancer
 
-### 添加安装了 Crane 的集群
 
-您可以点击上图中的“添加集群”的蓝色按钮，将 Crane 控制台的地址 `http://localhost:9090` 作为 Crane 的 URL，作为第一个集群添加到 Crane 控制台。
+#### Quick Start
 
-![](images/add_cluster.png)
+```bash
+# Change service type
+kubectl patch svc craned -n crane-system -p '{"spec": {"type": "LoadBalancer"}}'
+```
 
-若您想添加其它集群，实现多集群的资源使用和成本分析。可以在别的集群中也安装完 Crane 之后，将 Crane 的 URL 添加进来。
+#### Example
+
+```log
+$ kubectl patch svc craned -n crane-system -p '{"spec": {"type": "LoadBalancer"}}'
+
+service/craned patched
+
+$ kubectl get svc -n crane-system craned
+NAME     TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)                                                      AGE
+craned   LoadBalancer   10.101.123.74   10.200.0.4    443:30908/TCP,8082:32426/TCP,9090:31331/TCP,8080:31072/TCP   57m
+
+# Access dashboard via 10.200.0.4:9090
+```
+
+### Ingress
+
+#### kubernetes/ingress-nginx
+
+If the cluster version is < 1.19, you can create the ingress resources like this:
+
+```yaml
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-crane-dashboard
+  namespace: crane-system
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: dashboard.gocrane.io # change to your domain
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: craned
+          servicePort: 9090
+```
+
+If the cluster uses Kubernetes version >= 1.19.x, then its suggested to create the second ingress resources, using yaml examples shown below.
+
+These examples are in conformity with the `networking.kubernetes.io/v1` api.
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-crane-dashboard
+  namespace: crane-system
+spec:
+  rules:
+  - host: dashboard.gocrane.io # change to your domain
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: craned
+            port:
+              number: 9090
+  ingressClassName: nginx
+```
+
+Example:
+
+```log
+$ kubectl get svc -n ingress-nginx 
+NAME                                 TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
+ingress-nginx-controller             LoadBalancer   10.102.235.229   10.200.0.5    80:32568/TCP,443:30144/TCP   91m
+ingress-nginx-controller-admission   ClusterIP      10.102.49.240    <none>        443/TCP                      91m
+
+$ curl -H "Host: dashboard.gocrane.io" 10.200.0.5
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crane Dashboard</title>
+    ................................................................
+```
+
+#### Traefik
+
+```yaml
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: dashboard-crane-ingress
+  namespace: crane-system
+spec:
+  entryPoints:
+    - web
+  routes:
+    - kind: Rule
+      match: Host(`dashboard.gocrane.io`)
+      services:
+        - name: craned
+          port: 9090
+```
+
+```log
+$ kubectl get svc -n traefik-v2                     
+NAME      TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)                      AGE
+traefik   LoadBalancer   10.107.109.44   10.200.0.6    80:30102/TCP,443:30139/TCP   16m
+
+$ curl -H "Host: dashboard.gocrane.io" 10.200.0.6 
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crane Dashboard</title>
+    ................................................................
+```
 
 ## 自定义安装
 
