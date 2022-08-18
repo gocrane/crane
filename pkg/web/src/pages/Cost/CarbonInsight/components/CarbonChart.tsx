@@ -1,19 +1,18 @@
 import React from 'react';
-import {Col, Row} from 'tdesign-react';
+import { Col, Row } from 'tdesign-react';
 import Style from './CarbonChart.module.less';
-import SeriesLineChart, {ISeriesLineChart} from '../../../../components/SeriesLineChart';
-import {useTranslation} from "react-i18next";
-
+import SeriesLineChart, { ISeriesLineChart } from '../../../../components/SeriesLineChart';
+import { useTranslation } from 'react-i18next';
 
 const CarbonChart = () => {
-  const {t} = useTranslation();
+  const { t } = useTranslation();
 
   const item: ISeriesLineChart = {
     title: t('碳排放'),
     subTitle: t('(克/小时)'),
     datePicker: true,
     step: '1h',
-    xAxis: {type: 'time'},
+    xAxis: { type: 'time' },
     lines: [
       {
         name: t('carbon emissions'),

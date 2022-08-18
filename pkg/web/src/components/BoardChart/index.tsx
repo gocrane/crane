@@ -6,7 +6,7 @@ import Style from './index.module.less';
 import { useInstantPrometheusQuery, useRangePrometheusQuery } from '../../services/prometheusApi';
 import { useCraneUrl } from '../../hooks';
 import ReactEcharts from 'echarts-for-react';
-import {useTranslation} from "react-i18next";
+import { useTranslation } from 'react-i18next';
 
 export enum ETrend {
   up,
@@ -241,7 +241,7 @@ const BoardChart = ({
   tips,
 }: IBoardProps) => {
   const craneUrl: any = useCraneUrl();
-  const {t} = useTranslation();
+  const { t } = useTranslation();
 
   let fetchDataResult;
   try {
@@ -265,7 +265,11 @@ const BoardChart = ({
   let count: React.ReactNode = null;
   if (error) {
     count = error as any;
-  } else if ((typeof result?.isFetching === 'boolean' && result?.isFetching === true) || result?.data?.emptyData) {
+  } else if (
+    (typeof result?.isFetching === 'boolean' && result?.isFetching === true) ||
+    (typeof result?.isError === 'boolean' && result?.isError === true) ||
+    result?.data?.emptyData
+  ) {
     count = 'No Data';
   } else {
     count = `${countPrefix || ''}${result?.data?.latestValue || ''}`;
@@ -285,12 +289,11 @@ const BoardChart = ({
     trendNum = `${(Math.floor(calc * 100) / 100) * -1}%`;
     trend = calc < 0 ? ETrend.up : ETrend.down;
   } else {
-    console.log('emptyData', fetchDataResult.preResult?.data);
     trendNum = t('历史数据不足');
     trend = ETrend.error;
   }
 
-  if (result?.isError) MessagePlugin.error(`[${title}] Check Your Network Or Query Params !!!`, 10 * 1000);
+  if (result?.isError) MessagePlugin.error(`[${title}] Check Your Network Or Query Params !!!`);
 
   return (
     <Card

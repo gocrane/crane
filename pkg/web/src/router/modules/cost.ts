@@ -1,10 +1,10 @@
-import {IRouter} from '../index';
-import {lazy} from 'react';
-import {ChartIcon} from 'tdesign-icons-react';
-import {useTranslation} from 'react-i18next';
+import { IRouter } from '../index';
+import { lazy } from 'react';
+import { ChartIcon } from 'tdesign-icons-react';
+import { useTranslation } from 'react-i18next';
 
 export const useCostRouteConfig = (): IRouter[] => {
-  const {t} = useTranslation();
+  const { t } = useTranslation();
   return [
     {
       path: '/cost',

@@ -9,7 +9,7 @@ import JsYaml from 'js-yaml';
 import classnames from 'classnames';
 import { useCraneUrl } from 'hooks';
 import React, { memo, useState } from 'react';
-import { Button, Col, Dialog, Divider, Row, Space, Table, Tag } from 'tdesign-react';
+import { Button, Col, Dialog, Divider, MessagePlugin, Row, Space, Table, Tag } from 'tdesign-react';
 import { useTranslation } from 'react-i18next';
 
 const Editor = React.lazy(() => import('components/common/Editor'));
@@ -25,8 +25,14 @@ export const SelectTable = () => {
     name: undefined,
   });
   const craneUrl: any = useCraneUrl();
-  const { data, isFetching } = useFetchRecommendationRuleListQuery({ craneUrl });
-  const recommendationRuleList = data?.data?.items || [];
+  const { data, isFetching, isError, isSuccess, error } = useFetchRecommendationRuleListQuery({ craneUrl });
+  let recommendationRuleList: any[];
+  if (isSuccess) {
+    recommendationRuleList = data?.data?.items || [];
+  } else {
+    recommendationRuleList = [];
+    if (isError) MessagePlugin.error(`${error.status} ${error.error}`);
+  }
   const filterResult = recommendationRuleList
     .filter((recommendationRule) => {
       console.log(recommendationRule);
@@ -69,17 +75,17 @@ export const SelectTable = () => {
 
   return (
     <>
-      {/*<Row>
+      {/* <Row>
         <Button disabled>{t('新建推荐规则')}</Button>
       </Row>
-      <Divider></Divider>*/}
+      <Divider></Divider> */}
       <Row justify='start' style={{ marginBottom: '20px' }}>
         <Col>
           <SearchForm filterParams={filterParams} setFilterParams={setFilterParams} />
         </Col>
       </Row>
       <Table
-        loading={isFetching}
+        loading={isFetching || isError}
         data={filterResult}
         columns={[
           {
@@ -93,22 +99,22 @@ export const SelectTable = () => {
             cell({ row }) {
               return (
                 <Space direction='vertical'>
-                  {row.spec.recommenders.map( recommender => {
+                  {row.spec.recommenders.map((recommender) => {
                     if (recommender.name === 'Replicas')
-                    return (
-                      <Tag theme='warning' variant='light'>
-                        {recommender.name}
-                      </Tag>
-                    );
+                      return (
+                        <Tag theme='warning' variant='light'>
+                          {recommender.name}
+                        </Tag>
+                      );
                     if (recommender.name === 'Resource')
-                    return (
-                      <Tag theme='primary' variant='light'>
-                        {recommender.name}
-                      </Tag>
-                    );
+                      return (
+                        <Tag theme='primary' variant='light'>
+                          {recommender.name}
+                        </Tag>
+                      );
                   })}
                 </Space>
-              )
+              );
             },
           },
           {
@@ -164,7 +170,7 @@ export const SelectTable = () => {
             cell(record) {
               return (
                 <>
-                 {/* <Button
+                  {/* <Button
                     theme='primary'
                     variant='text'
                     onClick={() => {
@@ -183,7 +189,7 @@ export const SelectTable = () => {
                     }}
                   >
                     {t('删除')}
-                  </Button>*/}
+                  </Button> */}
                   <Button
                     theme='primary'
                     variant='text'
