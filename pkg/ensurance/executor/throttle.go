@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 
-	podinfo "github.com/gocrane/crane/pkg/ensurance/executor/pod-info"
+	podinfo "github.com/gocrane/crane/pkg/ensurance/executor/podinfo"
 	execsort "github.com/gocrane/crane/pkg/ensurance/executor/sort"
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/metrics"
@@ -32,7 +32,7 @@ type ThrottlePods []podinfo.PodContext
 
 func (t ThrottlePods) Find(podTypes types.NamespacedName) int {
 	for i, v := range t {
-		if v.PodKey == podTypes {
+		if v.Key == podTypes {
 			return i
 		}
 	}
@@ -99,7 +99,7 @@ func (t *ThrottleExecutor) Avoid(ctx *ExecuteContext) error {
 			var released ReleaseResource
 			for _, m := range metricsThrottleQuantified {
 				klog.V(6).Infof("ThrottleDown precisely on metric %s", m)
-				if metricMap[m].SortAble {
+				if metricMap[m].Sortable {
 					metricMap[m].SortFunc(t.ThrottleDownPods)
 				} else {
 					execsort.GeneralSorter(t.ThrottleDownPods)
@@ -107,14 +107,14 @@ func (t *ThrottleExecutor) Avoid(ctx *ExecuteContext) error {
 
 				klog.V(6).Info("After sort, the sequence to throttle is ")
 				for _, pc := range t.ThrottleDownPods {
-					klog.V(6).Info(pc.PodKey.String(), pc.ContainerCPUUsages)
+					klog.V(6).Info(pc.Key.String(), pc.ContainerCPUUsages)
 				}
 
 				for index := 0; !ctx.ThrottoleDownGapToWaterLines.TargetGapsRemoved(m) && index < len(t.ThrottleDownPods); index++ {
 					klog.V(6).Infof("For metric %s, there is still gap to waterlines: %f", m, ctx.ThrottoleDownGapToWaterLines[m])
 
 					errKeys, released = metricMap[m].ThrottleFunc(ctx, index, t.ThrottleDownPods, &totalReleased)
-					klog.V(6).Infof("ThrottleDown pods %s, released %f resource", t.ThrottleDownPods[index].PodKey, released[m])
+					klog.V(6).Infof("ThrottleDown pods %s, released %f resource", t.ThrottleDownPods[index].Key, released[m])
 					errPodKeys = append(errPodKeys, errKeys...)
 
 					ctx.ThrottoleDownGapToWaterLines[m] -= released[m]
@@ -189,7 +189,7 @@ func (t *ThrottleExecutor) Restore(ctx *ExecuteContext) error {
 			var released ReleaseResource
 			for _, m := range metricsThrottleQuantified {
 				klog.V(6).Infof("ThrottleUp precisely on metric %s", m)
-				if metricMap[m].SortAble {
+				if metricMap[m].Sortable {
 					metricMap[m].SortFunc(t.ThrottleUpPods)
 				} else {
 					execsort.GeneralSorter(t.ThrottleUpPods)
@@ -198,14 +198,14 @@ func (t *ThrottleExecutor) Restore(ctx *ExecuteContext) error {
 
 				klog.V(6).Info("After sort, the sequence to throttle is ")
 				for _, pc := range t.ThrottleUpPods {
-					klog.V(6).Info(pc.PodKey.String())
+					klog.V(6).Info(pc.Key.String())
 				}
 
 				for index := 0; !ctx.ThrottoleUpGapToWaterLines.TargetGapsRemoved(m) && index < len(t.ThrottleUpPods); index++ {
 					klog.V(6).Infof("For metric %s, there is still gap to waterlines: %f", m, ctx.ThrottoleUpGapToWaterLines[m])
 
 					errKeys, released = metricMap[m].RestoreFunc(ctx, index, t.ThrottleUpPods, &totalReleased)
-					klog.V(6).Infof("ThrottleUp pods %s, released %f resource", t.ThrottleUpPods[index].PodKey, released[m])
+					klog.V(6).Infof("ThrottleUp pods %s, released %f resource", t.ThrottleUpPods[index].Key, released[m])
 					errPodKeys = append(errPodKeys, errKeys...)
 
 					ctx.ThrottoleUpGapToWaterLines[m] -= released[m]

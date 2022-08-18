@@ -102,7 +102,7 @@ func (e WaterLines) DivideMetricsByEvictQuantified() (metricsEvictQuantified []W
 func (e WaterLines) GetHighestPriorityThrottleAbleMetric() (highestPrioriyMetric WaterLineMetric) {
 	highestActionPriority := 0
 	for m := range e {
-		if metricMap[m].ThrottleAble == true {
+		if metricMap[m].Throttleable == true {
 			if metricMap[m].ActionPriority >= highestActionPriority {
 				highestPrioriyMetric = m
 				highestActionPriority = metricMap[m].ActionPriority
@@ -112,11 +112,11 @@ func (e WaterLines) GetHighestPriorityThrottleAbleMetric() (highestPrioriyMetric
 	return
 }
 
-// GetHighestPriorityEvictAbleMetric get the highest priority in metrics that can be EvictAble
+// GetHighestPriorityEvictAbleMetric get the highest priority in metrics that can be Evictable
 func (e WaterLines) GetHighestPriorityEvictAbleMetric() (highestPrioriyMetric WaterLineMetric) {
 	highestActionPriority := 0
 	for m := range e {
-		if metricMap[m].EvictAble == true {
+		if metricMap[m].Evictable == true {
 			if metricMap[m].ActionPriority >= highestActionPriority {
 				highestPrioriyMetric = m
 				highestActionPriority = metricMap[m].ActionPriority

@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 
-	podinfo "github.com/gocrane/crane/pkg/ensurance/executor/pod-info"
+	podinfo "github.com/gocrane/crane/pkg/ensurance/executor/podinfo"
 	execsort "github.com/gocrane/crane/pkg/ensurance/executor/sort"
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/metrics"
@@ -25,7 +25,7 @@ type EvictPods []podinfo.PodContext
 
 func (e EvictPods) Find(key types.NamespacedName) int {
 	for i, v := range e {
-		if v.PodKey == key {
+		if v.Key == key {
 			return i
 		}
 	}
@@ -86,7 +86,7 @@ func (e *EvictExecutor) Avoid(ctx *ExecuteContext) error {
 			wg := sync.WaitGroup{}
 			for _, m := range metricsEvictQuantified {
 				klog.V(6).Infof("Evict precisely on metric %s", m)
-				if metricMap[m].SortAble {
+				if metricMap[m].Sortable {
 					metricMap[m].SortFunc(e.EvictPods)
 				} else {
 					execsort.GeneralSorter(e.EvictPods)
@@ -94,7 +94,7 @@ func (e *EvictExecutor) Avoid(ctx *ExecuteContext) error {
 
 				klog.V(6).Info("After sort, the sequence to evict is ")
 				for _, pc := range e.EvictPods {
-					klog.V(6).Info(pc.PodKey.String())
+					klog.V(6).Info(pc.Key.String())
 				}
 
 				for !ctx.EvictGapToWaterLines.TargetGapsRemoved(m) {
@@ -103,9 +103,9 @@ func (e *EvictExecutor) Avoid(ctx *ExecuteContext) error {
 						index := podinfo.GetFirstNoExecutedPod(e.EvictPods)
 						errKeys, released = metricMap[m].EvictFunc(&wg, ctx, index, &totalReleased, e.EvictPods)
 						errPodKeys = append(errPodKeys, errKeys...)
-						klog.V(6).Infof("Evict pods %s, released %f resource", e.EvictPods[index].PodKey, released[m])
+						klog.V(6).Infof("Evict pods %s, released %f resource", e.EvictPods[index].Key, released[m])
 
-						e.EvictPods[index].HasBeenActioned = true
+						e.EvictPods[index].Executed = true
 						ctx.EvictGapToWaterLines[m] -= released[m]
 					} else {
 						klog.V(6).Info("There is no pod that can be evicted")

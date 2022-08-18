@@ -6,7 +6,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 
-	podinfo "github.com/gocrane/crane/pkg/ensurance/executor/pod-info"
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/utils"
@@ -17,8 +16,7 @@ const (
 )
 
 type ScheduleExecutor struct {
-	DisableClassAndPriority *podinfo.ClassAndPriority
-	RestoreClassAndPriority *podinfo.ClassAndPriority
+	ToBeDisable, ToBeRestore bool
 }
 
 func (b *ScheduleExecutor) Avoid(ctx *ExecuteContext) error {
@@ -28,7 +26,7 @@ func (b *ScheduleExecutor) Avoid(ctx *ExecuteContext) error {
 
 	klog.V(6).Info("DisableScheduledExecutor avoid, %v", *b)
 
-	if b.DisableClassAndPriority == nil {
+	if !b.ToBeDisable {
 		metrics.UpdateExecutorStatus(metrics.SubComponentSchedule, metrics.StepAvoid, 0)
 		return nil
 	}
@@ -58,7 +56,7 @@ func (b *ScheduleExecutor) Restore(ctx *ExecuteContext) error {
 
 	klog.V(6).Info("DisableScheduledExecutor restore, %v", *b)
 
-	if b.RestoreClassAndPriority == nil {
+	if !b.ToBeRestore {
 		metrics.UpdateExecutorStatus(metrics.SubComponentSchedule, metrics.StepRestore, 0.0)
 		return nil
 	}

@@ -7,7 +7,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 
-	podinfo "github.com/gocrane/crane/pkg/ensurance/executor/pod-info"
+	podinfo "github.com/gocrane/crane/pkg/ensurance/executor/podinfo"
 	"github.com/gocrane/crane/pkg/ensurance/executor/sort"
 	cruntime "github.com/gocrane/crane/pkg/ensurance/runtime"
 	"github.com/gocrane/crane/pkg/metrics"
@@ -15,29 +15,29 @@ import (
 )
 
 func init() {
-	registerMetricMap(cpu_usage)
+	registerMetricMap(cpuUsage)
 }
 
-var cpu_usage = metric{
+var cpuUsage = metric{
 	Name:           CpuUsage,
 	ActionPriority: 5,
-	SortAble:       true,
-	SortFunc:       sort.CpuUsageSorter,
+	Sortable:       true,
+	SortFunc:       sort.CpuUsageSort,
 
-	ThrottleAble:       true,
+	Throttleable:       true,
 	ThrottleQuantified: true,
 	ThrottleFunc:       throttleOnePodCpu,
 	RestoreFunc:        restoreOnePodCpu,
 
-	EvictAble:       true,
+	Evictable:       true,
 	EvictQuantified: true,
 	EvictFunc:       evictOnePodCpu,
 }
 
 func throttleOnePodCpu(ctx *ExecuteContext, index int, ThrottleDownPods ThrottlePods, totalReleasedResource *ReleaseResource) (errPodKeys []string, released ReleaseResource) {
-	pod, err := ctx.PodLister.Pods(ThrottleDownPods[index].PodKey.Namespace).Get(ThrottleDownPods[index].PodKey.Name)
+	pod, err := ctx.PodLister.Pods(ThrottleDownPods[index].Key.Namespace).Get(ThrottleDownPods[index].Key.Name)
 	if err != nil {
-		errPodKeys = append(errPodKeys, fmt.Sprintf("pod %s not found", ThrottleDownPods[index].PodKey.String()))
+		errPodKeys = append(errPodKeys, fmt.Sprintf("pod %s not found", ThrottleDownPods[index].Key.String()))
 		return
 	}
 
@@ -55,19 +55,19 @@ func throttleOnePodCpu(ctx *ExecuteContext, index int, ThrottleDownPods Throttle
 
 		containerCPUQuota, err := podinfo.GetUsageById(ThrottleDownPods[index].ContainerCPUQuotas, v.ContainerId)
 		if err != nil {
-			errPodKeys = append(errPodKeys, err.Error(), ThrottleDownPods[index].PodKey.String())
+			errPodKeys = append(errPodKeys, err.Error(), ThrottleDownPods[index].Key.String())
 			continue
 		}
 
 		containerCPUPeriod, err := podinfo.GetUsageById(ThrottleDownPods[index].ContainerCPUPeriods, v.ContainerId)
 		if err != nil {
-			errPodKeys = append(errPodKeys, err.Error(), ThrottleDownPods[index].PodKey.String())
+			errPodKeys = append(errPodKeys, err.Error(), ThrottleDownPods[index].Key.String())
 			continue
 		}
 
 		container, err := utils.GetPodContainerByName(pod, v.ContainerName)
 		if err != nil {
-			errPodKeys = append(errPodKeys, err.Error(), ThrottleDownPods[index].PodKey.String())
+			errPodKeys = append(errPodKeys, err.Error(), ThrottleDownPods[index].Key.String())
 			continue
 		}
 
@@ -96,14 +96,14 @@ func throttleOnePodCpu(ctx *ExecuteContext, index int, ThrottleDownPods Throttle
 		if !utils.AlmostEqual(containerCPUQuotaNew*containerCPUPeriod.Value, containerCPUQuota.Value) {
 			err = cruntime.UpdateContainerResources(ctx.RuntimeClient, v.ContainerId, cruntime.UpdateOptions{CPUQuota: int64(containerCPUQuotaNew * containerCPUPeriod.Value)})
 			if err != nil {
-				errPodKeys = append(errPodKeys, fmt.Sprintf("failed to updateResource for %s/%s, error: %v", ThrottleDownPods[index].PodKey.String(), v.ContainerName, err))
+				errPodKeys = append(errPodKeys, fmt.Sprintf("failed to updateResource for %s/%s, error: %v", ThrottleDownPods[index].Key.String(), v.ContainerName, err))
 				continue
 			} else {
 				klog.V(4).Infof("ThrottleExecutor avoid pod %s, container %s, set cpu quota %.2f.",
 					klog.KObj(pod), v.ContainerName, containerCPUQuotaNew*containerCPUPeriod.Value)
 
 				released = ConstructCpuUsageRelease(ThrottleDownPods[index], containerCPUQuotaNew, v.Value)
-				klog.V(6).Infof("For pod %s, container %s, release %f cpu usage", ThrottleDownPods[index].PodKey.String(), container.Name, released[CpuUsage])
+				klog.V(6).Infof("For pod %s, container %s, release %f cpu usage", ThrottleDownPods[index].Key.String(), container.Name, released[CpuUsage])
 
 				totalReleasedResource.Add(released)
 			}
@@ -113,9 +113,9 @@ func throttleOnePodCpu(ctx *ExecuteContext, index int, ThrottleDownPods Throttle
 }
 
 func restoreOnePodCpu(ctx *ExecuteContext, index int, ThrottleUpPods ThrottlePods, totalReleasedResource *ReleaseResource) (errPodKeys []string, released ReleaseResource) {
-	pod, err := ctx.PodLister.Pods(ThrottleUpPods[index].PodKey.Namespace).Get(ThrottleUpPods[index].PodKey.Name)
+	pod, err := ctx.PodLister.Pods(ThrottleUpPods[index].Key.Namespace).Get(ThrottleUpPods[index].Key.Name)
 	if err != nil {
-		errPodKeys = append(errPodKeys, "not found ", ThrottleUpPods[index].PodKey.String())
+		errPodKeys = append(errPodKeys, "not found ", ThrottleUpPods[index].Key.String())
 		return
 	}
 
@@ -130,19 +130,19 @@ func restoreOnePodCpu(ctx *ExecuteContext, index int, ThrottleUpPods ThrottlePod
 
 		containerCPUQuota, err := podinfo.GetUsageById(ThrottleUpPods[index].ContainerCPUQuotas, v.ContainerId)
 		if err != nil {
-			errPodKeys = append(errPodKeys, err.Error(), ThrottleUpPods[index].PodKey.String())
+			errPodKeys = append(errPodKeys, err.Error(), ThrottleUpPods[index].Key.String())
 			continue
 		}
 
 		containerCPUPeriod, err := podinfo.GetUsageById(ThrottleUpPods[index].ContainerCPUPeriods, v.ContainerId)
 		if err != nil {
-			errPodKeys = append(errPodKeys, err.Error(), ThrottleUpPods[index].PodKey.String())
+			errPodKeys = append(errPodKeys, err.Error(), ThrottleUpPods[index].Key.String())
 			continue
 		}
 
 		container, err := utils.GetPodContainerByName(pod, v.ContainerName)
 		if err != nil {
-			errPodKeys = append(errPodKeys, err.Error(), ThrottleUpPods[index].PodKey.String())
+			errPodKeys = append(errPodKeys, err.Error(), ThrottleUpPods[index].Key.String())
 			continue
 		}
 
@@ -175,20 +175,20 @@ func restoreOnePodCpu(ctx *ExecuteContext, index int, ThrottleUpPods ThrottlePod
 			if utils.AlmostEqual(containerCPUQuotaNew, -1) {
 				err = cruntime.UpdateContainerResources(ctx.RuntimeClient, v.ContainerId, cruntime.UpdateOptions{CPUQuota: int64(-1)})
 				if err != nil {
-					errPodKeys = append(errPodKeys, fmt.Sprintf("Failed to updateResource, err %s", err.Error()), ThrottleUpPods[index].PodKey.String())
+					errPodKeys = append(errPodKeys, fmt.Sprintf("Failed to updateResource, err %s", err.Error()), ThrottleUpPods[index].Key.String())
 					continue
 				}
 			} else {
 				err = cruntime.UpdateContainerResources(ctx.RuntimeClient, v.ContainerId, cruntime.UpdateOptions{CPUQuota: int64(containerCPUQuotaNew * containerCPUPeriod.Value)})
 				if err != nil {
 					klog.Errorf("Failed to updateResource, err %s", err.Error())
-					errPodKeys = append(errPodKeys, fmt.Sprintf("Failed to updateResource, err %s", err.Error()), ThrottleUpPods[index].PodKey.String())
+					errPodKeys = append(errPodKeys, fmt.Sprintf("Failed to updateResource, err %s", err.Error()), ThrottleUpPods[index].Key.String())
 					continue
 				}
 				klog.V(4).Infof("ThrottleExecutor restore pod %s, container %s, set cpu quota %.2f, .",
 					klog.KObj(pod), v.ContainerName, containerCPUQuotaNew*containerCPUPeriod.Value)
 				released = ConstructCpuUsageRelease(ThrottleUpPods[index], containerCPUQuotaNew, v.Value)
-				klog.V(6).Infof("For pod %s, container %s, restore %f cpu usage", ThrottleUpPods[index].PodKey, container.Name, released[CpuUsage])
+				klog.V(6).Infof("For pod %s, container %s, restore %f cpu usage", ThrottleUpPods[index].Key, container.Name, released[CpuUsage])
 
 				totalReleasedResource.Add(released)
 			}
@@ -208,16 +208,16 @@ func evictOnePodCpu(wg *sync.WaitGroup, ctx *ExecuteContext, index int, totalRel
 	go func(evictPod podinfo.PodContext) {
 		defer wg.Done()
 
-		pod, err := ctx.PodLister.Pods(evictPod.PodKey.Namespace).Get(evictPod.PodKey.Name)
+		pod, err := ctx.PodLister.Pods(evictPod.Key.Namespace).Get(evictPod.Key.Name)
 		if err != nil {
-			errPodKeys = append(errPodKeys, "not found ", evictPod.PodKey.String())
+			errPodKeys = append(errPodKeys, "not found ", evictPod.Key.String())
 			return
 		}
 
 		err = utils.EvictPodWithGracePeriod(ctx.Client, pod, evictPod.DeletionGracePeriodSeconds)
 		if err != nil {
-			errPodKeys = append(errPodKeys, "evict failed ", evictPod.PodKey.String())
-			klog.Warningf("Failed to evict pod %s: %v", evictPod.PodKey.String(), err)
+			errPodKeys = append(errPodKeys, "evict failed ", evictPod.Key.String())
+			klog.Warningf("Failed to evict pod %s: %v", evictPod.Key.String(), err)
 			return
 		}
 
@@ -229,12 +229,12 @@ func evictOnePodCpu(wg *sync.WaitGroup, ctx *ExecuteContext, index int, totalRel
 }
 
 func ConstructCpuUsageRelease(pod podinfo.PodContext, containerCPUQuotaNew, currentContainerCpuUsage float64) ReleaseResource {
-	if pod.PodType == podinfo.Evict {
+	if pod.ActionType == podinfo.Evict {
 		return ReleaseResource{
 			CpuUsage: pod.PodCPUUsage * CpuQuotaCoefficient,
 		}
 	}
-	if pod.PodType == podinfo.ThrottleDown {
+	if pod.ActionType == podinfo.ThrottleDown {
 		reduction := (currentContainerCpuUsage - containerCPUQuotaNew) * CpuQuotaCoefficient
 		if reduction > 0 {
 			return ReleaseResource{
@@ -243,7 +243,7 @@ func ConstructCpuUsageRelease(pod podinfo.PodContext, containerCPUQuotaNew, curr
 		}
 		return ReleaseResource{}
 	}
-	if pod.PodType == podinfo.ThrottleUp {
+	if pod.ActionType == podinfo.ThrottleUp {
 		reduction := (containerCPUQuotaNew - currentContainerCpuUsage) * CpuQuotaCoefficient
 		if reduction > 0 {
 			return ReleaseResource{

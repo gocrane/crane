@@ -20,7 +20,7 @@ import (
 	"github.com/gocrane/crane/pkg/ensurance/collector/cadvisor"
 	stypes "github.com/gocrane/crane/pkg/ensurance/collector/types"
 	"github.com/gocrane/crane/pkg/ensurance/executor"
-	podinfo "github.com/gocrane/crane/pkg/ensurance/executor/pod-info"
+	podinfo "github.com/gocrane/crane/pkg/ensurance/executor/podinfo"
 	cgrpc "github.com/gocrane/crane/pkg/ensurance/grpc"
 	cruntime "github.com/gocrane/crane/pkg/ensurance/runtime"
 	"github.com/gocrane/crane/pkg/known"
