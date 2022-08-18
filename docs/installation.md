@@ -154,6 +154,159 @@ export CUSTOMIZE_PROMETHEUS=
 if [ $CUSTOMIZE_PROMETHEUS ]; then sed -i '' "s/http:\/\/prometheus-server.crane-system.svc.cluster.local:8080/${CUSTOMIZE_PROMETHEUS}/" deploy/craned/deployment.yaml ; fi
 ```
 
+## Access Dashboard
+
+You can use the dashboard to view and manage crane manifests.
+
+![](images/dashboard.png)
+
+### Port Forward
+
+Easy access to the dashboard through `kubectl port-forward`.
+
+```bash
+kubectl -n crane-system port-forward service/craned 9090 9090 
+```
+
+### NodePort
+
+```bash
+# Change service type
+kubectl patch svc craned -n crane-system -p '{"spec": {"type": "NodePort"}}'
+```
+
+```bash
+# Get Dashboard link base on your cluster configuration
+PORT=$(kubectl get svc -n crane-system craned -o jsonpath='{.spec.ports[?(@.name == "dashboard-service")].nodePort}')
+NODE_IP=$(kubectl get node -ojsonpath='{.items[].status.addresses[?(@.type == "InternalIP")].address}')
+echo "Dashboard link: http://${NODE_IP}:${PORT}"
+```
+
+### LoadBalancer
+
+
+#### Quick Start
+
+```bash
+# Change service type
+kubectl patch svc craned -n crane-system -p '{"spec": {"type": "LoadBalancer"}}'
+```
+
+#### Example
+
+```log
+$ kubectl patch svc craned -n crane-system -p '{"spec": {"type": "LoadBalancer"}}'
+
+service/craned patched
+
+$ kubectl get svc -n crane-system craned
+NAME     TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)                                                      AGE
+craned   LoadBalancer   10.101.123.74   10.200.0.4    443:30908/TCP,8082:32426/TCP,9090:31331/TCP,8080:31072/TCP   57m
+
+# Access dashboard via 10.200.0.4:9090
+```
+
+### Ingress
+
+#### kubernetes/ingress-nginx
+
+If the cluster version is < 1.19, you can create the ingress resources like this:
+
+```yaml
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-crane-dashboard
+  namespace: crane-system
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: dashboard.gocrane.io # change to your domain
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: craned
+          servicePort: 9090
+```
+
+If the cluster uses Kubernetes version >= 1.19.x, then its suggested to create the second ingress resources, using yaml examples shown below. 
+
+These examples are in conformity with the `networking.kubernetes.io/v1` api.
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-crane-dashboard
+  namespace: crane-system
+spec:
+  rules:
+  - host: dashboard.gocrane.io # change to your domain
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: craned
+            port:
+              number: 9090
+  ingressClassName: nginx
+```
+
+Example:
+
+```log
+$ kubectl get svc -n ingress-nginx 
+NAME                                 TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
+ingress-nginx-controller             LoadBalancer   10.102.235.229   10.200.0.5    80:32568/TCP,443:30144/TCP   91m
+ingress-nginx-controller-admission   ClusterIP      10.102.49.240    <none>        443/TCP                      91m
+
+$ curl -H "Host: dashboard.gocrane.io" 10.200.0.5
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crane Dashboard</title>
+    ................................................................
+```
+
+#### Traefik
+
+```yaml
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: dashboard-crane-ingress
+  namespace: crane-system
+spec:
+  entryPoints:
+    - web
+  routes:
+    - kind: Rule
+      match: Host(`dashboard.gocrane.io`)
+      services:
+        - name: craned
+          port: 9090
+```
+
+```log
+$ kubectl get svc -n traefik-v2                     
+NAME      TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)                      AGE
+traefik   LoadBalancer   10.107.109.44   10.200.0.6    80:30102/TCP,443:30139/TCP   16m
+
+$ curl -H "Host: dashboard.gocrane.io" 10.200.0.6 
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crane Dashboard</title>
+    ................................................................
+```
+
 ## Get your Kubernetes Cost Report
 
 Get the Grafana URL to visit by running these commands in the same shell:
