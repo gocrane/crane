@@ -31,6 +31,7 @@ export const clusterApi = createApi({
   baseQuery: fetchBaseQuery({
     cache: 'no-cache',
     baseUrl: `/api/v1/cluster`,
+    mode: 'no-cors',
     prepareHeaders: (headers, api) => {
       headers.set('Content-Type', 'application/json');
       return headers;

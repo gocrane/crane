@@ -13,6 +13,7 @@ export const grafanaApi = createApi({
   reducerPath: 'grafanaApi',
   baseQuery: fetchBaseQuery({
     baseUrl: '',
+    mode: 'no-cors',
     prepareHeaders: (headers, api) => headers,
     fetchFn: (input, init) => fetch(input, { ...init }),
   }),
