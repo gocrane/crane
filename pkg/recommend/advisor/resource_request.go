@@ -3,15 +3,13 @@ package advisor
 import (
 	"fmt"
 
+	"github.com/gocrane/crane/pkg/metricnaming"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog/v2"
 
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
-
-	"github.com/gocrane/crane/pkg/metricnaming"
-	"github.com/gocrane/crane/pkg/metricquery"
 	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/recommend/types"
@@ -128,7 +126,7 @@ func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) 
 		}
 
 		caller := fmt.Sprintf(callerFormat, klog.KObj(a.Recommendation), a.Recommendation.UID)
-		metricNamer := ResourceToContainerMetricNamer(namespace, a.Recommendation.Spec.TargetRef.APIVersion,
+		metricNamer := metricnaming.ResourceToContainerMetricNamer(namespace, a.Recommendation.Spec.TargetRef.APIVersion,
 			a.Recommendation.Spec.TargetRef.Kind, a.Recommendation.Spec.TargetRef.Name, c.Name, corev1.ResourceCPU, caller)
 		klog.V(6).Infof("CPU query for resource request recommendation: %s", metricNamer.BuildUniqueKey())
 		cpuConfig := makeCpuConfig(a.ConfigProperties)
@@ -145,7 +143,7 @@ func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) 
 		// export recommended values as prom metrics
 		a.recordResourceRecommendation(c.Name, corev1.ResourceCPU, q)
 
-		metricNamer = ResourceToContainerMetricNamer(namespace, a.Recommendation.Spec.TargetRef.APIVersion,
+		metricNamer = metricnaming.ResourceToContainerMetricNamer(namespace, a.Recommendation.Spec.TargetRef.APIVersion,
 			a.Recommendation.Spec.TargetRef.Kind, a.Recommendation.Spec.TargetRef.Name, c.Name, corev1.ResourceMemory, caller)
 		klog.V(6).Infof("Memory query for resource request recommendation: %s", metricNamer.BuildUniqueKey())
 		memConfig := makeMemConfig(a.ConfigProperties)
@@ -199,23 +197,4 @@ func (a *ResourceRequestAdvisor) recordResourceRecommendation(containerName stri
 
 func (a *ResourceRequestAdvisor) Name() string {
 	return "ResourceRequestAdvisor"
-}
-
-func ResourceToContainerMetricNamer(namespace, apiVersion, workloadKind, workloadName, containerName string, resourceName corev1.ResourceName, caller string) metricnaming.MetricNamer {
-	// container
-	return &metricnaming.GeneralMetricNamer{
-		CallerName: caller,
-		Metric: &metricquery.Metric{
-			Type:       metricquery.ContainerMetricType,
-			MetricName: resourceName.String(),
-			Container: &metricquery.ContainerNamerInfo{
-				Namespace:    namespace,
-				APIVersion:   apiVersion,
-				WorkloadKind: workloadKind,
-				WorkloadName: workloadName,
-				Name:         containerName,
-				Selector:     labels.Everything(),
-			},
-		},
-	}
 }

@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
 	"strings"
 
@@ -29,7 +30,7 @@ import (
 	"github.com/gocrane/crane/pkg/controller/cnp"
 	"github.com/gocrane/crane/pkg/controller/ehpa"
 	"github.com/gocrane/crane/pkg/controller/evpa"
-	"github.com/gocrane/crane/pkg/controller/recommendation"
+	recommendationctrl "github.com/gocrane/crane/pkg/controller/recommendation"
 	"github.com/gocrane/crane/pkg/controller/timeseriesprediction"
 	"github.com/gocrane/crane/pkg/features"
 	"github.com/gocrane/crane/pkg/known"
@@ -44,6 +45,12 @@ import (
 	_ "github.com/gocrane/crane/pkg/querybuilder-providers/grpc"
 	_ "github.com/gocrane/crane/pkg/querybuilder-providers/metricserver"
 	_ "github.com/gocrane/crane/pkg/querybuilder-providers/prometheus"
+	"github.com/gocrane/crane/pkg/recommendation"
+	"github.com/gocrane/crane/pkg/recommendation/config"
+	recommender "github.com/gocrane/crane/pkg/recommendation/recommender"
+	"github.com/gocrane/crane/pkg/recommendation/recommender/hpa"
+	"github.com/gocrane/crane/pkg/recommendation/recommender/replicas"
+	"github.com/gocrane/crane/pkg/recommendation/recommender/resource"
 	"github.com/gocrane/crane/pkg/server"
 	serverconfig "github.com/gocrane/crane/pkg/server/config"
 	"github.com/gocrane/crane/pkg/utils/target"
@@ -110,14 +117,55 @@ func Run(ctx context.Context, opts *options.Options) error {
 	realtimeDataSources, historyDataSources, dataSourceProviders := initDataSources(mgr, opts)
 	predictorMgr := initPredictorManager(opts, realtimeDataSources, historyDataSources)
 
+	recommenders, err := initRecommenders(opts)
+	if err != nil {
+		klog.Error(err, "failed to init recommenders")
+		return err
+	}
+	recommenderMgr := initRecommenderManager(recommenders, realtimeDataSources, historyDataSources)
+
 	initScheme()
 	initWebhooks(mgr, opts)
-	initControllers(ctx, mgr, opts, predictorMgr, historyDataSources[providers.PrometheusDataSource])
+	initControllers(ctx, mgr, opts, predictorMgr, recommenderMgr, historyDataSources[providers.PrometheusDataSource])
 	// initialize custom collector metrics
 	initMetricCollector(mgr)
 	runAll(ctx, mgr, predictorMgr, dataSourceProviders[providers.PrometheusDataSource], opts)
 
 	return nil
+}
+
+func initRecommenders(opts *options.Options) (map[string]recommender.Recommender, error) {
+	apiRecommenders, err := config.GetRecommendersFromConfiguration(opts.RecommendationConfiguration)
+	if err != nil {
+		return nil, err
+	}
+
+	recommenders := make(map[string]recommender.Recommender, len(apiRecommenders))
+	for _, r := range apiRecommenders {
+		switch r.Name {
+		case recommender.ReplicasRecommender:
+			replicasRecommender, err := replicas.NewReplicasRecommender(r)
+			if err != nil {
+				return nil, err
+			}
+			recommenders[recommender.ReplicasRecommender] = replicasRecommender
+		case recommender.HPARecommender:
+			hpaRecommender, err := hpa.NewHPARecommender(r)
+			if err != nil {
+				return nil, err
+			}
+			recommenders[recommender.HPARecommender] = hpaRecommender
+		case recommender.ResourceRecommender:
+			recommenders[recommender.ResourceRecommender] = resource.NewResourceRecommender(r)
+		default:
+			return nil, fmt.Errorf("unknown recommender name: %s", r.Name)
+		}
+	}
+	return recommenders, nil
+}
+
+func initRecommenderManager(recommenders map[string]recommender.Recommender, realtimeDataSources map[providers.DataSourceType]providers.RealTime, historyDataSources map[providers.DataSourceType]providers.History) recommendation.RecommenderManager {
+	return recommendation.NewRecommenderManager(recommenders, realtimeDataSources, historyDataSources)
 }
 
 func initScheme() {
@@ -202,7 +250,7 @@ func initPredictorManager(opts *options.Options, realtimeDataSources map[provide
 }
 
 // initControllers setup controllers with manager
-func initControllers(ctx context.Context, mgr ctrl.Manager, opts *options.Options, predictorMgr predictor.Manager, historyDataSource providers.History) {
+func initControllers(ctx context.Context, mgr ctrl.Manager, opts *options.Options, predictorMgr predictor.Manager, recommenderMgr recommendation.RecommenderManager, historyDataSource providers.History) {
 	discoveryClientSet, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
 	if err != nil {
 		klog.Exit(err, "Unable to create discover client")
@@ -286,27 +334,42 @@ func initControllers(ctx context.Context, mgr ctrl.Manager, opts *options.Option
 		}
 	}
 
+	// TODO(qmhu), change feature gate from analysis to recommendation
 	if utilfeature.DefaultMutableFeatureGate.Enabled(features.CraneAnalysis) {
 		if err := (&analytics.Controller{
-			Client:        mgr.GetClient(),
-			Scheme:        mgr.GetScheme(),
+			Client: mgr.GetClient(),
+			/*Scheme:        mgr.GetScheme(),
 			RestMapper:    mgr.GetRESTMapper(),
 			Recorder:      mgr.GetEventRecorderFor("analytics-controller"),
 			ConfigSetFile: opts.RecommendationConfigFile,
 			ScaleClient:   scaleClient,
 			PredictorMgr:  predictorMgr,
-			Provider:      historyDataSource,
+			Provider:      historyDataSource,*/
 		}).SetupWithManager(mgr); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "AnalyticsController")
 		}
 
-		if err := (&recommendation.RecommendationController{
-			Client:     mgr.GetClient(),
-			Scheme:     mgr.GetScheme(),
-			RestMapper: mgr.GetRESTMapper(),
-			Recorder:   mgr.GetEventRecorderFor("recommendation-controller"),
+		if err := (&recommendationctrl.RecommendationController{
+			Client:      mgr.GetClient(),
+			Scheme:      mgr.GetScheme(),
+			RestMapper:  mgr.GetRESTMapper(),
+			ScaleClient: scaleClient,
+			Recorder:    mgr.GetEventRecorderFor("recommendation-controller"),
 		}).SetupWithManager(mgr); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "RecommendationController")
+		}
+
+		if err := (&recommendationctrl.RecommendationRuleController{
+			Client:         mgr.GetClient(),
+			Scheme:         mgr.GetScheme(),
+			RestMapper:     mgr.GetRESTMapper(),
+			RecommenderMgr: recommenderMgr,
+			ScaleClient:    scaleClient,
+			Provider:       historyDataSource,
+			PredictorMgr:   predictorMgr,
+			Recorder:       mgr.GetEventRecorderFor("recommendationrule-controller"),
+		}).SetupWithManager(mgr); err != nil {
+			klog.Exit(err, "unable to create controller", "controller", "RecommendationRuleController")
 		}
 	}
 

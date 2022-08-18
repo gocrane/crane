@@ -3,6 +3,8 @@ package metricnaming
 import (
 	"github.com/gocrane/crane/pkg/metricquery"
 	"github.com/gocrane/crane/pkg/querybuilder"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 // MetricNamer is an interface. it is the bridge between predictor and different data sources and other component such as caller.
@@ -53,5 +55,42 @@ func (q queryBuilderFactory) Builder(source metricquery.MetricSource) querybuild
 func NewQueryBuilder(metric *metricquery.Metric) querybuilder.QueryBuilder {
 	return &queryBuilderFactory{
 		metric: metric,
+	}
+}
+
+func ResourceToWorkloadMetricNamer(target *corev1.ObjectReference, resourceName *corev1.ResourceName, workloadLabelSelector labels.Selector, caller string) MetricNamer {
+	// workload
+	return &GeneralMetricNamer{
+		CallerName: caller,
+		Metric: &metricquery.Metric{
+			Type:       metricquery.WorkloadMetricType,
+			MetricName: resourceName.String(),
+			Workload: &metricquery.WorkloadNamerInfo{
+				Namespace:  target.Namespace,
+				Kind:       target.Kind,
+				APIVersion: target.APIVersion,
+				Name:       target.Name,
+				Selector:   workloadLabelSelector,
+			},
+		},
+	}
+}
+
+func ResourceToContainerMetricNamer(namespace, apiVersion, workloadKind, workloadName, containerName string, resourceName corev1.ResourceName, caller string) MetricNamer {
+	// container
+	return &GeneralMetricNamer{
+		CallerName: caller,
+		Metric: &metricquery.Metric{
+			Type:       metricquery.ContainerMetricType,
+			MetricName: resourceName.String(),
+			Container: &metricquery.ContainerNamerInfo{
+				Namespace:    namespace,
+				APIVersion:   apiVersion,
+				WorkloadKind: workloadKind,
+				WorkloadName: workloadName,
+				Name:         containerName,
+				Selector:     labels.Everything(),
+			},
+		},
 	}
 }

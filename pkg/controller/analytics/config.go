@@ -1,5 +1,6 @@
 package analytics
 
+/*
 import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/gocrane/crane/pkg/recommend"
@@ -63,3 +64,4 @@ func (c *Controller) loadConfigSetFile() error {
 	klog.Info("ConfigSet updated.")
 	return nil
 }
+*/

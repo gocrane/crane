@@ -3,8 +3,9 @@ module github.com/gocrane/crane
 go 1.17
 
 require (
+	github.com/evanphx/json-patch v4.11.0+incompatible
 	github.com/go-echarts/go-echarts/v2 v2.2.4
-	github.com/gocrane/api v0.6.1-0.20220721081535-2cf15fc58bf3
+	github.com/gocrane/api v0.6.1-0.20220812033255-887f4b4e7d8b
 	github.com/google/cadvisor v0.39.2
 	github.com/mjibson/go-dsp v0.0.0-20180508042940-11479a337f12
 	github.com/prometheus/client_golang v1.11.0
@@ -72,7 +73,6 @@ require (
 	github.com/emicklei/go-restful v2.15.0+incompatible // indirect
 	github.com/emicklei/go-restful-swagger12 v0.0.0-20201014110547-68ccff494617 // indirect
 	github.com/euank/go-kmsg-parser v2.0.0+incompatible // indirect
-	github.com/evanphx/json-patch v4.11.0+incompatible // indirect
 	github.com/felixge/httpsnoop v1.0.1 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-logr/logr v0.4.0 // indirect
@@ -169,8 +169,9 @@ require (
 require (
 	cloud.google.com/go v0.84.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
-	github.com/fsnotify/fsnotify v1.5.1
+	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/lithammer/fuzzysearch v1.1.5
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/afero v1.6.0 // indirect

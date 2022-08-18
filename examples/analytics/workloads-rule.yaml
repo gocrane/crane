@@ -1,0 +1,18 @@
+apiVersion: analysis.crane.io/v1alpha1
+kind: RecommendationRule
+metadata:
+  name: workloads-rule
+  labels:
+    analysis.crane.io/recommendation-rule-preinstall: "true"
+spec:
+  runInterval: 24h                            # 每24h运行一次
+  resourceSelectors:                          # 资源的信息
+    - kind: Deployment
+      apiVersion: apps/v1
+    - kind: StatefulSet
+      apiVersion: apps/v1
+  namespaceSelector:
+    any: true                                 # 扫描所有namespace
+  recommenders:                               # 使用 Workload 的副本和资源推荐器
+    - name: Replicas
+    - name: Resource

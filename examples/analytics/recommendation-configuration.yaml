@@ -1,0 +1,15 @@
+apiVersion: analysis.crane.io/v1alpha1
+kind: RecommendationConfiguration
+recommenders:
+  - name: Replicas
+    acceptedResources:
+      - kind: Deployment
+        apiVersion: apps/v1
+      - kind: StatefulSet
+        apiVersion: apps/v1
+  - name: Resource
+    acceptedResources:
+      - kind: Deployment
+        apiVersion: apps/v1
+      - kind: StatefulSet
+        apiVersion: apps/v1

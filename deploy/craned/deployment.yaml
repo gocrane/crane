@@ -49,6 +49,7 @@ spec:
             - --prometheus-address=PROMETHEUS_ADDRESS
             - --feature-gates=Analysis=true,TimeSeriesPrediction=true,Autoscaling=true
             - --recommendation-config-file=/tmp/recommendation-config/config_set.yaml
+            - --recommendation-configuration-file=/tmp/recommendation-framework/recommendation_configuration.yaml
             - -v=4
           volumeMounts:
             - mountPath: /tmp/k8s-webhook-server/serving-certs
@@ -56,6 +57,8 @@ spec:
               readOnly: true
             - name: config
               mountPath: /tmp/recommendation-config
+            - name: framework
+              mountPath: /tmp/recommendation-framework
           readinessProbe:
             httpGet:
               path: /api/healthz
@@ -75,6 +78,9 @@ spec:
         - name: config
           configMap:
             name: recommendation-config
+        - name: framework
+            configMap:
+              name: crane-recommendation-framework-config
         - name: nginx-conf
           configMap:
             name: nginx-conf
@@ -90,6 +96,20 @@ metadata:
   namespace: crane-system
 type: kubernetes.io/tls
 
+---
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: crane-recommendation-framework-config
+  namespace: crane-system
+data:
+  recommendation_configuration.yaml: |-
+    apiVersion: analysis.crane.io/v1alpha1
+    kind: RecommendationConfiguration
+    recommenders:
+      - recommenderName: ReplicasRecommender
 ---
 
 apiVersion: v1
