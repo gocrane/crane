@@ -58,7 +58,7 @@ func NewReplicasRecommender(recommender apis.Recommender) (*ReplicasRecommender,
 
 	cpuPercentile, exists := recommender.Config["cpu-percentile"]
 	if !exists {
-		cpuPercentile = "0.95"
+		cpuPercentile = "95"
 	}
 
 	cpuPercentileFloat, err := strconv.ParseFloat(cpuPercentile, 64)
