@@ -1,0 +1,11 @@
+.md-nav__title {
+    display: none;
+}
+
+.arithmatex {
+  font-size: 0.85rem;
+}
+
+foreignObject > div {
+  font-size: 0.85rem;
+}
