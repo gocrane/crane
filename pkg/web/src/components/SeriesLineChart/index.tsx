@@ -49,11 +49,10 @@ const fetchLinesData = (craneUrl: string, timeDateRangePicker: string[], step: s
   return lines.map((line) => {
     const { name, query } = line;
     const { data, isError } = useRangePrometheusQuery({ craneUrl, start, end, step, query });
-    if (isError) MessagePlugin.error(`[${name}] Check Your Network Or Query Params !!!`, 10 * 1000);
-    console.log(name, data?.metricData, data?.emptyData);
+    if (isError) MessagePlugin.error(`[${name}] Check Your Network Or Query Params !!!`);
     return {
       ...line,
-      data: data?.emptyData ? [] : data?.metricData,
+      data: isError || data?.emptyData ? [] : data?.metricData,
     };
   });
 };
@@ -78,16 +77,16 @@ const buildLineChartOption = (lineStyle: LineStyle | undefined, linesData: ISeri
           type: 'line',
           data: series.data,
           showSymbol: false,
-      }));
+        }));
   return {
     tooltip: {
       trigger: 'axis',
       axisPointer: {
         type: 'cross',
         label: {
-          backgroundColor: '#6a7985'
-        }
-      }
+          backgroundColor: '#6a7985',
+        },
+      },
     },
     legend: {
       data: legend,
@@ -148,8 +147,8 @@ const SeriesLineChart = ({
   const [presets] = useState<Record<string, [Date, Date]>>({
     [t('最近7天')]: [dayjs().subtract(6, 'day').toDate(), dayjs().toDate()],
     [t('最近3天')]: [dayjs().subtract(2, 'day').toDate(), dayjs().toDate()],
-    [t('最近2天')]: [dayjs().subtract(24, 'h').toDate(), dayjs().toDate()],
-    [t('最近1天')]: [dayjs().subtract(1, 'h').toDate(), dayjs().toDate()],
+    [t('最近1天')]: [dayjs().subtract(24, 'h').toDate(), dayjs().toDate()],
+    [t('最近1小时')]: [dayjs().subtract(1, 'h').toDate(), dayjs().toDate()],
   });
 
   const onTimeChange = (time: any) => {

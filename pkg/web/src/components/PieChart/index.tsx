@@ -23,10 +23,11 @@ export interface IPieChart {
 const fetchPieData = (craneUrl: string, title: string, timeDateRangePicker: string[], step: string, query: string) => {
   const start = dayjs(timeDateRangePicker[0]).valueOf();
   const end = dayjs(timeDateRangePicker[1]).valueOf();
-  const minutesDuration = Math.round((end - start)/1000/60)
-  query = query.replaceAll("{DURATION}", minutesDuration.toString())
+  const minutesDuration = Math.round((end - start) / 1000 / 60);
+  query = query.replaceAll('{DURATION}', minutesDuration.toString());
   const { data, isError } = useRangePrometheusQuery({ craneUrl, start, end, step, query });
-  if (isError) MessagePlugin.error(`[${title}] Check Your Network Or Query Params !!!`, 10 * 1000);
+  if (isError) MessagePlugin.error(`[${title}] Check Your Network Or Query Params !!!`);
+  if (isError) return {};
   const result: any = {};
   data?.data?.map((namesapce) => {
     const namespaceName = namesapce.metric.namespace;

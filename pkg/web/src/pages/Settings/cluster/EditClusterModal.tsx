@@ -17,8 +17,8 @@ import {
   Slider,
   Switch,
   SwitchValue,
-  Tabs
-} from "tdesign-react";
+  Tabs,
+} from 'tdesign-react';
 import { getErrorMsg } from 'utils/getErrorMsg';
 
 type Validation = { error: boolean; msg: string };
@@ -351,42 +351,41 @@ export const EditClusterModal = React.memo(() => {
                     />
                   </div>
                 </Form.FormItem>
-                {
-                  mode === 'create'?
-                    <Form.FormItem
-                      className={clsx({ isError: validation[cluster.id]?.clusterName?.error })}
-                      help={
-                        (
-                          <span style={{ color: 'var(--td-error-color)' }}>
-                        {validation[cluster.id]?.clusterName?.error ? validation[cluster.id]?.clusterName?.msg : null}
-                      </span>
-                        ) as any
-                      }
-                      initialData={cluster.preinstallRecommendation}
-                      label={t('安装推荐规则')}
-                      name={`clusters[${index}].preinstallRecommendation`}
-                      requiredMark
-                    >
-                      <div style={{ width: '100%' }}>
-                        <Switch
-                          size='large'
-                          value={cluster.preinstallRecommendation}
-                          onChange={(value: SwitchValue) => {
-                            let preinstallRecommendation = value;
-                            if (typeof preinstallRecommendation !== 'boolean') preinstallRecommendation = true;
-                            dispatch(
-                              editClusterActions.updateCluster({
-                                id: cluster.id,
-                                data: { preinstallRecommendation },
-                              }),
-                            );
-                          }}
-                        />
-                      </div>
-                    </Form.FormItem>
-                    :
-                    <></>
-                }
+                {mode === 'create' ? (
+                  <Form.FormItem
+                    className={clsx({ isError: validation[cluster.id]?.clusterName?.error })}
+                    help={
+                      (
+                        <span style={{ color: 'var(--td-error-color)' }}>
+                          {validation[cluster.id]?.clusterName?.error ? validation[cluster.id]?.clusterName?.msg : null}
+                        </span>
+                      ) as any
+                    }
+                    initialData={cluster.preinstallRecommendation}
+                    label={t('安装推荐规则')}
+                    name={`clusters[${index}].preinstallRecommendation`}
+                    requiredMark
+                  >
+                    <div style={{ width: '100%' }}>
+                      <Switch
+                        size='large'
+                        value={cluster.preinstallRecommendation}
+                        onChange={(value: SwitchValue) => {
+                          let preinstallRecommendation = value;
+                          if (typeof preinstallRecommendation !== 'boolean') preinstallRecommendation = true;
+                          dispatch(
+                            editClusterActions.updateCluster({
+                              id: cluster.id,
+                              data: { preinstallRecommendation },
+                            }),
+                          );
+                        }}
+                      />
+                    </div>
+                  </Form.FormItem>
+                ) : (
+                  <></>
+                )}
 
                 <Form.FormItem>
                   <Button

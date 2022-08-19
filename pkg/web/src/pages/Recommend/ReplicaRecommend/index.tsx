@@ -4,7 +4,7 @@ import './index.module.less';
 import classnames from 'classnames';
 import { useCraneUrl } from 'hooks';
 import React, { memo, useState } from 'react';
-import { Button, Col, Dialog, Divider, Row, Space, Table, Tag } from 'tdesign-react';
+import { Button, Col, Dialog, Divider, MessagePlugin, Row, Space, Table, Tag } from 'tdesign-react';
 import {
   RecommendationSimpleInfo,
   RecommendationType,
@@ -33,11 +33,19 @@ export const SelectTable = () => {
   });
   const craneUrl: any = useCraneUrl();
 
-  const { data, isFetching } = useFetchRecommendationListQuery({
+  const { data, isFetching, isError, isSuccess, error } = useFetchRecommendationListQuery({
     craneUrl,
     recommendationType: RecommendationType.Replicas,
   });
-  const recommendation = data?.data?.items || [];
+  // const recommendation = data?.data?.items || [];
+
+  let recommendation: any[];
+  if (isSuccess) {
+    recommendation = data?.data?.items || [];
+  } else {
+    recommendation = [];
+    if (isError) MessagePlugin.error(`${error.status} ${error.error}`);
+  }
 
   const filterResult = recommendation
     .filter((recommendation) => {
@@ -95,7 +103,7 @@ export const SelectTable = () => {
         </Col>
       </Row>
       <Table
-        loading={isFetching}
+        loading={isFetching || isError}
         data={filterResult}
         verticalAlign='middle'
         columns={[

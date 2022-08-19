@@ -48,6 +48,7 @@ export const recommendationRuleApi = createApi({
   tagTypes: ['recommendationRuleList'],
   baseQuery: fetchBaseQuery({
     cache: 'no-cache',
+    mode: 'no-cors',
     baseUrl: ``,
     prepareHeaders: (headers, api) => {
       headers.set('Content-Type', 'application/json');

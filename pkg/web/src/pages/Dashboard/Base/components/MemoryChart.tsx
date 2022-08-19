@@ -1,19 +1,18 @@
 import React from 'react';
-import {Col, Row} from 'tdesign-react';
+import { Col, Row } from 'tdesign-react';
 import Style from './MemoryChart.module.less';
-import SeriesLineChart, {ISeriesLineChart} from '../../../../components/SeriesLineChart';
+import SeriesLineChart, { ISeriesLineChart } from '../../../../components/SeriesLineChart';
 import { useTranslation } from 'react-i18next';
 
-
 const MemoryChart = () => {
-  const {t} = useTranslation();
-  
+  const { t } = useTranslation();
+
   const item: ISeriesLineChart = {
     title: t('Memory 资源使用'),
     subTitle: '( GB )',
     datePicker: true,
     step: '1h',
-    xAxis: {type: 'time'},
+    xAxis: { type: 'time' },
     lines: [
       {
         name: 'capacity',

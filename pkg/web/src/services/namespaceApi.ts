@@ -17,6 +17,7 @@ export const namespaceApi = createApi({
   tagTypes: ['namespaceList'],
   baseQuery: fetchBaseQuery({
     baseUrl: '/api/v1/namespaces',
+    mode: 'no-cors',
     prepareHeaders: (headers, api) => {
       headers.set('Content-Type', 'application/json');
       headers.set('Accept', 'application/json');

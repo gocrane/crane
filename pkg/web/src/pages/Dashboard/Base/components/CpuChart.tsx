@@ -1,20 +1,18 @@
 import React from 'react';
-import {Col, Row} from 'tdesign-react';
+import { Col, Row } from 'tdesign-react';
 import Style from './CpuChart.module.less';
-import SeriesLineChart, {ISeriesLineChart, LineStyle} from '../../../../components/SeriesLineChart';
+import SeriesLineChart, { ISeriesLineChart, LineStyle } from '../../../../components/SeriesLineChart';
 import { useTranslation } from 'react-i18next';
 
-
-
 const CpuChart = () => {
-  const {t} = useTranslation();
-  
+  const { t } = useTranslation();
+
   const item: ISeriesLineChart = {
     title: 'CPU 资源使用',
     subTitle: '(Core)',
     datePicker: true,
     step: '1h',
-    xAxis: {type: 'time'},
+    xAxis: { type: 'time' },
     lines: [
       {
         name: 'capacity',

@@ -1,14 +1,13 @@
 import React from 'react';
-import {Col, Row} from 'tdesign-react';
+import { Col, Row } from 'tdesign-react';
 import Style from './MiddleChart.module.less';
-import SeriesLineChart, {LineStyle} from '../../../../components/SeriesLineChart';
+import SeriesLineChart, { LineStyle } from '../../../../components/SeriesLineChart';
 import PieChart from '../../../../components/PieChart';
-import {useTranslation} from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 import { useCraneDiscount } from 'hooks';
 
 const MiddleChart = () => {
-
-  const {t} = useTranslation();
+  const { t } = useTranslation();
 
   const craneDiscount: any = useCraneDiscount();
 
@@ -64,6 +63,6 @@ sum(
       </Col>
     </Row>
   );
-}
+};
 
 export default React.memo(MiddleChart);
