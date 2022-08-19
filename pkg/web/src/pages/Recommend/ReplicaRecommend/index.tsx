@@ -14,6 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import JsYaml from 'js-yaml';
 import { useTranslation } from 'react-i18next';
 import { Prism } from '@mantine/prism';
+import { copyToClipboard } from "../../../utils/copyToClipboard";
 
 const Editor = React.lazy(() => import('components/common/Editor'));
 
@@ -251,20 +252,32 @@ export const SelectTable = () => {
       </Dialog>
       <Dialog
         width={850}
-        header={t('执行以下命令')}
+        header={t('查看命令')}
         visible={commandDialogVisible}
-        cancelBtn={null}
-        onConfirm={() => {
-          setCommandDialogVisible(false);
-          setCurrentSelection(null);
-        }}
+        cancelBtn={
+          <Button
+            onClick={async () => {
+              try {
+                await copyToClipboard(
+                  `patchData=\`kubectl get recommend ${currentSelection?.metadata?.name} -n ${currentSelection?.spec?.targetRef?.namespace} -o jsonpath='{.status.recommendedInfo}'\`;kubectl patch ${currentSelection?.spec?.targetRef?.kind} ${currentSelection?.spec?.targetRef?.name} -n ${currentSelection?.spec?.targetRef?.namespace} --patch \"\${patchData}\"`,
+                );
+                await MessagePlugin.success('Copy command to clipboard.');
+              } catch (err) {
+                await MessagePlugin.error(`Failed to copy: ${err}`);
+              }
+            }}
+          >
+            Copy Code
+          </Button>
+        }
+        confirmBtn={false}
         onClose={() => {
           setCommandDialogVisible(false);
           setCurrentSelection(null);
         }}
       >
-        <Prism withLineNumbers language='bash'>
-          {`patchData=\`kubectl get recommend ${currentSelection?.metadata?.name} -n ${currentSelection?.spec?.targetRef?.namespace} -o jsonpath='{.status.recommendedInfo}'\`;kubectl patch ${currentSelection?.spec?.targetRef?.kind} ${currentSelection?.spec?.targetRef?.name} -n ${currentSelection?.spec?.targetRef?.namespace} --patch \"\${patchData}\"`}
+        <Prism withLineNumbers language='bash' noCopy={true}>
+          {`patchData=\`kubectl get recommend ${currentSelection?.metadata?.name} -n ${currentSelection?.spec?.targetRef?.namespace} -o jsonpath='{.status.recommendedInfo}'\`\nkubectl patch ${currentSelection?.spec?.targetRef?.kind} ${currentSelection?.spec?.targetRef?.name} -n ${currentSelection?.spec?.targetRef?.namespace} --patch \"\${patchData}\"`}
         </Prism>
       </Dialog>
     </>
