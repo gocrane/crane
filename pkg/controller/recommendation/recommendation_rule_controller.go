@@ -257,10 +257,9 @@ func (c *RecommendationRuleController) CreateRecommendationObject(recommendation
 	if recommendation.Labels == nil {
 		recommendation.Labels = map[string]string{}
 	}
-	// TODO: enable it
-	/*recommendation.Labels[known.RecommendationRuleNameLabel] = recommendationRule.Name
+	recommendation.Labels[known.RecommendationRuleNameLabel] = recommendationRule.Name
 	recommendation.Labels[known.RecommendationRuleUidLabel] = string(recommendationRule.UID)
-	recommendation.Labels[known.RecommendationRuleRecommenderLabel] = recommenderName*/
+	recommendation.Labels[known.RecommendationRuleRecommenderLabel] = recommenderName
 
 	return recommendation
 }
