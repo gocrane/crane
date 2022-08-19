@@ -39,6 +39,8 @@ Full documentation is available on the [Crane website](https://docs.gocrane.io).
 
 ## Community
 
+- Slack(English): [https://gocrane.slack.com](https://gocrane.slack.com)
+
 - Wechat Group (Chinese): Add it and Reply "Crane"，Robot will add you in Wechat group.
 
 <img alt="Wechat" src="docs/images/wechat.jpeg" title="Wechat" width="200"/>
