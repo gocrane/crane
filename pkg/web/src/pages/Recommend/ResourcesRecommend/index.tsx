@@ -292,7 +292,7 @@ export const SelectTable = () => {
           setCurrentSelection(null);
         }}
       >
-        <Prism withLineNumbers language='tsx'>
+        <Prism withLineNumbers language='bash'>
           {`patchData=\`kubectl get recommend ${currentSelection?.metadata?.name} -n ${currentSelection?.spec?.targetRef?.namespace} -o jsonpath='{.status.recommendedInfo}'\`;kubectl patch ${currentSelection?.spec?.targetRef?.kind} ${currentSelection?.spec?.targetRef?.name} -n ${currentSelection?.spec?.targetRef?.namespace} --patch \"\${patchData}\"`}
         </Prism>
       </Dialog>
