@@ -1,12 +1,12 @@
 package resource
 
 import (
+	"encoding/json"
 	"fmt"
+	"reflect"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 
@@ -20,6 +20,24 @@ import (
 )
 
 const callerFormat = "ResourceRecommendationCaller-%s-%s"
+
+type PatchResource struct {
+	Spec PatchResourceSpec `json:"spec,omitempty"`
+}
+
+type PatchResourceSpec struct {
+	Template PatchResourcePodTemplateSpec `json:"template"`
+}
+
+type PatchResourcePodTemplateSpec struct {
+	Spec PatchResourcePodSpec `json:"spec,omitempty"`
+}
+
+type PatchResourcePodSpec struct {
+	// +patchMergeKey=name
+	// +patchStrategy=merge
+	Containers []corev1.Container `json:"containers" patchStrategy:"merge" patchMergeKey:"name"`
+}
 
 func (rr *ResourceRecommender) PreRecommend(ctx *framework.RecommendationContext) error {
 	return nil
@@ -68,7 +86,6 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 	}
 
 	resourceRecommendation := &types.ResourceRequestRecommendation{}
-	newObject := ctx.Object.DeepCopyObject().(*unstructured.Unstructured)
 
 	var newContainers []corev1.Container
 	var oldContainers []corev1.Container
@@ -151,40 +168,59 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 
 	ctx.Recommendation.Status.RecommendedValue = string(valueBytes)
 
-	var newContainerItems []interface{}
-	for _, container := range newContainers {
-		out, _ := runtime.DefaultUnstructuredConverter.ToUnstructured(&container)
-		newContainerItems = append(newContainerItems, out)
+	/*	var newContainerItems []interface{}
+		for _, container := range newContainers {
+			out, _ := runtime.DefaultUnstructuredConverter.ToUnstructured(&container)
+			newContainerItems = append(newContainerItems, out)
+		}
+
+		err = unstructured.SetNestedSlice(newObject.Object, newContainerItems, "spec", "template", "spec", "containers")
+		if err != nil {
+			return fmt.Errorf("%s set new patch containers failed: %v", rr.Name(), err)
+		}
+		newPatch, _, err := framework.ConvertToRecommendationInfos(ctx.Object, newObject.Object)
+		if err != nil {
+			return fmt.Errorf("convert to recommendation infos failed: %s. ", err)
+		}
+
+		var oldContainerItems []interface{}
+		for _, container := range oldContainers {
+			out, _ := runtime.DefaultUnstructuredConverter.ToUnstructured(&container)
+			oldContainerItems = append(oldContainerItems, out)
+		}
+
+		originObject := newObject.DeepCopy()
+		err = unstructured.SetNestedSlice(originObject.Object, oldContainerItems, "spec", "template", "spec", "containers")
+		if err != nil {
+			return fmt.Errorf("set old container failed: %s. ", err)
+		}
+		oldPatch, _, err := framework.ConvertToRecommendationInfos(newObject.Object, originObject.Object)
+		if err != nil {
+			return fmt.Errorf("convert to recommendation infos failed: %s. ", err)
+		}*/
+
+	var newPatch PatchResource
+	newPatch.Spec.Template.Spec.Containers = newContainers
+	newPatchBytes, err := json.Marshal(newPatch)
+	if err != nil {
+		return fmt.Errorf("marshal newPatch failed %s. ", err)
 	}
 
-	err = unstructured.SetNestedSlice(newObject.Object, newContainerItems, "spec", "template", "spec", "containers")
+	var oldPatch PatchResource
+	oldPatch.Spec.Template.Spec.Containers = oldContainers
+	oldPatchBytes, err := json.Marshal(oldPatch)
 	if err != nil {
-		return fmt.Errorf("%s set new patch containers failed: %v", rr.Name(), err)
-	}
-	newPatch, _, err := framework.ConvertToRecommendationInfos(ctx.Object, newObject.Object)
-	if err != nil {
-		return fmt.Errorf("convert to recommendation infos failed: %s. ", err)
+		return fmt.Errorf("marshal oldPatch failed %s. ", err)
 	}
 
-	var oldContainerItems []interface{}
-	for _, container := range oldContainers {
-		out, _ := runtime.DefaultUnstructuredConverter.ToUnstructured(&container)
-		oldContainerItems = append(oldContainerItems, out)
+	if reflect.DeepEqual(&newPatch, &oldPatch) {
+		ctx.Recommendation.Status.Action = "None"
+	} else {
+		ctx.Recommendation.Status.Action = "Patch"
 	}
 
-	originObject := newObject.DeepCopy()
-	err = unstructured.SetNestedSlice(originObject.Object, oldContainerItems, "spec", "template", "spec", "containers")
-	if err != nil {
-		return fmt.Errorf("set old container failed: %s. ", err)
-	}
-	oldPatch, _, err := framework.ConvertToRecommendationInfos(newObject.Object, originObject.Object)
-	if err != nil {
-		return fmt.Errorf("convert to recommendation infos failed: %s. ", err)
-	}
-
-	ctx.Recommendation.Status.RecommendedInfo = string(newPatch)
-	ctx.Recommendation.Status.CurrentInfo = string(oldPatch)
-	ctx.Recommendation.Status.Action = "Patch"
+	ctx.Recommendation.Status.RecommendedInfo = string(newPatchBytes)
+	ctx.Recommendation.Status.CurrentInfo = string(oldPatchBytes)
 
 	return nil
 }
