@@ -46,7 +46,6 @@ export const prometheusApi = createApi({
   baseQuery: fetchBaseQuery({
     cache: 'no-cache',
     baseUrl: ``,
-    mode: 'no-cors',
     prepareHeaders: (headers, api) => {
       headers.set('Content-Type', 'application/json');
       return headers;

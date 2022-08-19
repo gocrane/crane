@@ -35,7 +35,7 @@ spec:
           operator: Exists
       containers:
         - name: craned
-          image: docker.io/gocrane/craned:v0.3.0
+          image: docker.io/gocrane/craned:v0.7.0
           imagePullPolicy: IfNotPresent
           env:
             - name: TZ
@@ -48,8 +48,7 @@ spec:
             - /craned
             - --prometheus-address=PROMETHEUS_ADDRESS
             - --feature-gates=Analysis=true,TimeSeriesPrediction=true,Autoscaling=true
-            - --recommendation-config-file=/tmp/recommendation-config/config_set.yaml
-            - --recommendation-configuration-file=/tmp/recommendation-framework/recommendation_configuration.yaml
+            - --recommendation-configuration-file=/tmp/recommendation-config/config.yaml
             - -v=4
           volumeMounts:
             - mountPath: /tmp/k8s-webhook-server/serving-certs
@@ -57,14 +56,12 @@ spec:
               readOnly: true
             - name: config
               mountPath: /tmp/recommendation-config
-            - name: framework
-              mountPath: /tmp/recommendation-framework
           readinessProbe:
             httpGet:
               path: /api/healthz
               port: 8082
               scheme: HTTP
-        - image: docker.io/gocrane/dashboard:v0.3.0
+        - image: docker.io/gocrane/dashboard:v0.7.0
           imagePullPolicy: IfNotPresent
           name: dashboard
           volumeMounts:
@@ -76,11 +73,8 @@ spec:
             defaultMode: 420
             secretName: webhook-server-tls
         - name: config
-          configMap:
-            name: recommendation-config
-        - name: framework
             configMap:
-              name: crane-recommendation-framework-config
+              name: recommendation-configuration
         - name: nginx-conf
           configMap:
             name: nginx-conf
@@ -102,14 +96,25 @@ type: kubernetes.io/tls
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: crane-recommendation-framework-config
+  name: recommendation-configuration
   namespace: crane-system
 data:
-  recommendation_configuration.yaml: |-
+  config.yaml: |-
     apiVersion: analysis.crane.io/v1alpha1
     kind: RecommendationConfiguration
     recommenders:
-      - recommenderName: ReplicasRecommender
+      - name: Replicas
+        acceptedResources:
+          - kind: Deployment
+            apiVersion: apps/v1
+          - kind: StatefulSet
+            apiVersion: apps/v1
+      - name: Resource
+        acceptedResources:
+          - kind: Deployment
+            apiVersion: apps/v1
+          - kind: StatefulSet
+            apiVersion: apps/v1
 ---
 
 apiVersion: v1
@@ -147,6 +152,8 @@ metadata:
 data:
   nginx.conf: |
     gzip_static  on;
+
+    # Enable gzip encoding for content of the provided types of 50kb and higher.
     gzip on;
     gzip_min_length 50000;
     gzip_proxied expired no-cache no-store private auth;
@@ -179,12 +186,12 @@ data:
         text/xml
         text/x-component
         text/x-cross-domain-policy;
-    
+
     map $http_upgrade $connection_upgrade {
         default upgrade;
         '' close;
     }
-  
+
     upstream cluster {
         server craned.crane-system:8082;
     }
@@ -197,6 +204,7 @@ data:
         add_header Cache-Control "must-revalidate";
         add_header Cache-Control "max-age=300";
         add_header ETag "1.90.0-rc.0";
+        add_header Access-Control-Allow-Origin *;
         listen 9090;
         listen [::]:9090;
         location / {
