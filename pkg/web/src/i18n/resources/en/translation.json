@@ -150,5 +150,12 @@
   "安装推荐规则": "Preinstall",
   "预安装RecommendationRule": "Preinstall RecommendationRule",
   "碳排放分析": "Carbon Emission Analysis",
-  "历史数据不足": "Insufficient historical data"
+  "历史数据不足": "Insufficient historical data",
+  "能耗": "Energy Consumption",
+  "(瓦特/小时)": "(Watts/h)",
+  "energy consumption": "energy consumption",
+  "当前副本数": "Current Replicas",
+  "更新时间": "Update Time",
+  "当前资源(容器/CPU/Memory)": "Current Resource(Container/CPU/Memory)",
+  "成本分布": "Cost by Dimension"
 }

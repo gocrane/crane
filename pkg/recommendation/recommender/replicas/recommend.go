@@ -1,13 +1,13 @@
 package replicas
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"time"
 
 	"github.com/montanaflynn/stats"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 
@@ -18,6 +18,14 @@ import (
 	"github.com/gocrane/crane/pkg/recommendation/framework"
 	"github.com/gocrane/crane/pkg/utils"
 )
+
+type PatchReplicas struct {
+	Spec PatchReplicasSpec `json:"spec,omitempty"`
+}
+
+type PatchReplicasSpec struct {
+	Replicas *int32 `json:"replicas,omitempty"`
+}
 
 func (rr *ReplicasRecommender) PreRecommend(ctx *framework.RecommendationContext) error {
 	// we load algorithm config in this phase
@@ -110,20 +118,22 @@ func (rr *ReplicasRecommender) Policy(ctx *framework.RecommendationContext) erro
 
 	ctx.Recommendation.Status.RecommendedValue = string(resultBytes)
 
-	unstructed := ctx.Object.(*unstructured.Unstructured)
-	newUnstructed := unstructed.DeepCopy()
-	err = unstructured.SetNestedField(newUnstructed.Object, int64(minReplicas), "spec", "replicas")
+	var newPatch PatchReplicas
+	newPatch.Spec.Replicas = &minReplicas
+	newPatchBytes, err := json.Marshal(newPatch)
 	if err != nil {
-		return fmt.Errorf("set replicas to spec failed %s. ", err)
+		return fmt.Errorf("marshal newPatch failed %s. ", err)
 	}
 
-	newPatch, oldPatch, err := framework.ConvertToRecommendationInfos(unstructed.Object, newUnstructed.Object)
+	var oldPatch PatchReplicas
+	oldPatch.Spec.Replicas = &ctx.Scale.Spec.Replicas
+	oldPatchBytes, err := json.Marshal(oldPatch)
 	if err != nil {
-		return fmt.Errorf("convert to recommendation infos failed: %s. ", err)
+		return fmt.Errorf("marshal oldPatch failed %s. ", err)
 	}
 
-	ctx.Recommendation.Status.RecommendedInfo = string(newPatch)
-	ctx.Recommendation.Status.CurrentInfo = string(oldPatch)
+	ctx.Recommendation.Status.RecommendedInfo = string(newPatchBytes)
+	ctx.Recommendation.Status.CurrentInfo = string(oldPatchBytes)
 	if ctx.Scale.Spec.Replicas == minReplicas {
 		ctx.Recommendation.Status.Action = "None"
 	} else {

@@ -137,6 +137,19 @@ export const SelectTable = () => {
             },
           },
           {
+            title: t('当前副本数'),
+            ellipsis: true,
+            colKey: 'status.currentInfo',
+            cell({ row }) {
+              console.log('row', row);
+              if (typeof row.status.currentInfo == 'string') {
+                const replicas = JSON.parse(row?.status?.currentInfo).spec?.replicas;
+                return replicas
+              }
+              return '';
+            },
+          },
+          {
             title: t('副本数推荐'),
             ellipsis: true,
             colKey: 'status.recommendedValue.replicasRecommendation.replicas',
@@ -147,6 +160,15 @@ export const SelectTable = () => {
             colKey: 'metadata.creationTimestamp',
             cell({ row }) {
               const tmp = new Date(row.metadata.creationTimestamp);
+              return `${tmp.toLocaleDateString()} ${tmp.toLocaleTimeString()}`;
+            },
+          },
+          {
+            title: t('更新时间'),
+            ellipsis: true,
+            colKey: 'status.lastUpdateTime',
+            cell({ row }) {
+              const tmp = new Date(row.status.lastUpdateTime);
               return `${tmp.toLocaleDateString()} ${tmp.toLocaleTimeString()}`;
             },
           },
@@ -210,7 +232,7 @@ export const SelectTable = () => {
         <p>{t('推荐规则将从API Server中删除,且无法恢复')}</p>
       </Dialog>
       <Dialog
-        top='15vh'
+        top='5vh'
         width={850}
         visible={yamlDialogVisible}
         onClose={() => {
@@ -242,7 +264,7 @@ export const SelectTable = () => {
         }}
       >
         <Prism withLineNumbers language='tsx'>
-          kubectl get pod -n xxxx
+          {`patchData=\`kubectl get recommend ${currentSelection?.metadata?.name} -n ${currentSelection?.spec?.targetRef?.namespace} -o jsonpath='{.status.recommendedInfo}'\`;kubectl patch ${currentSelection?.spec?.targetRef?.kind} ${currentSelection?.spec?.targetRef?.name} -n ${currentSelection?.spec?.targetRef?.namespace} --patch \"\${patchData}\"`}
         </Prism>
       </Dialog>
     </>

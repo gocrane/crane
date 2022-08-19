@@ -17,7 +17,7 @@ export const useCostRouteConfig = (): IRouter[] => {
           path: 'insight',
           Component: lazy(() => import('pages/Cost/insight/InsightPanel')),
           meta: {
-            title: t('Grafana 图表'),
+            title: t('成本分布'),
           },
         },
         {

@@ -140,8 +140,30 @@ export const SelectTable = () => {
             },
           },
           {
+            title: t('当前资源(容器/CPU/Memory)'),
+            colKey: 'status.currentInfo',
+            cell({ row }) {
+              console.log('row', row);
+              if (typeof row.status.currentInfo == 'string') {
+                const containers = JSON.parse(row?.status?.currentInfo).spec?.template?.spec?.containers || [];
+                if (containers.length > 0) {
+                  return (
+                    <Space direction='vertical'>
+                      {containers.map((o: any, i: number) => (
+                        <Tag key={i} theme='primary' variant='light'>
+                          {o.name} / {o.resources.requests.cpu} / {Math.floor(parseFloat(o.resources.requests.memory) / 1048576)}Mi
+                        </Tag>
+                      ))}
+                    </Space>
+                  );
+                }
+              }
+              return '';
+            },
+          },
+          {
             title: t('推荐资源(容器/CPU/Memory)'),
-            colKey: 'status.resourceRequest.containers',
+            colKey: 'status.recommendedInfo',
             cell({ row }) {
               console.log('row', row);
               if (typeof row.status.recommendedValue !== 'string') {
@@ -167,6 +189,15 @@ export const SelectTable = () => {
             colKey: 'metadata.creationTimestamp',
             cell({ row }) {
               const tmp = new Date(row.metadata.creationTimestamp);
+              return `${tmp.toLocaleDateString()} ${tmp.toLocaleTimeString()}`;
+            },
+          },
+          {
+            title: t('更新时间'),
+            ellipsis: true,
+            colKey: 'status.lastUpdateTime',
+            cell({ row }) {
+              const tmp = new Date(row.status.lastUpdateTime);
               return `${tmp.toLocaleDateString()} ${tmp.toLocaleTimeString()}`;
             },
           },
@@ -230,7 +261,7 @@ export const SelectTable = () => {
         <p>{t('推荐规则将从API Server中删除,且无法恢复')}</p>
       </Dialog>
       <Dialog
-        top='15vh'
+        top='5vh'
         width={850}
         visible={yamlDialogVisible}
         onClose={() => {
@@ -262,7 +293,7 @@ export const SelectTable = () => {
         }}
       >
         <Prism withLineNumbers language='tsx'>
-          kubectl get pod -n xxxx
+          {`patchData=\`kubectl get recommend ${currentSelection?.metadata?.name} -n ${currentSelection?.spec?.targetRef?.namespace} -o jsonpath='{.status.recommendedInfo}'\`;kubectl patch ${currentSelection?.spec?.targetRef?.kind} ${currentSelection?.spec?.targetRef?.name} -n ${currentSelection?.spec?.targetRef?.namespace} --patch \"\${patchData}\"`}
         </Prism>
       </Dialog>
     </>
