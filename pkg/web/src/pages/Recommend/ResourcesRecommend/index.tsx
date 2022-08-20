@@ -14,6 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import JsYaml from 'js-yaml';
 import { useTranslation } from 'react-i18next';
 import { Prism } from '@mantine/prism';
+import { copyToClipboard } from "../../../utils/copyToClipboard";
 
 const Editor = React.lazy(() => import('components/common/Editor'));
 
@@ -144,14 +145,15 @@ export const SelectTable = () => {
             colKey: 'status.currentInfo',
             cell({ row }) {
               console.log('row', row);
-              if (typeof row.status.currentInfo == 'string') {
+              if (typeof row.status.currentInfo === 'string') {
                 const containers = JSON.parse(row?.status?.currentInfo).spec?.template?.spec?.containers || [];
                 if (containers.length > 0) {
                   return (
                     <Space direction='vertical'>
                       {containers.map((o: any, i: number) => (
                         <Tag key={i} theme='primary' variant='light'>
-                          {o.name} / {o.resources.requests.cpu} / {Math.floor(parseFloat(o.resources.requests.memory) / 1048576)}Mi
+                          {o.name} / {o.resources.requests.cpu} /{' '}
+                          {Math.floor(parseFloat(o.resources.requests.memory) / 1048576)}Mi
                         </Tag>
                       ))}
                     </Space>
@@ -282,18 +284,30 @@ export const SelectTable = () => {
         width={850}
         header={t('查看命令')}
         visible={commandDialogVisible}
-        cancelBtn={null}
-        onConfirm={() => {
-          setCommandDialogVisible(false);
-          setCurrentSelection(null);
-        }}
+        cancelBtn={
+          <Button
+            onClick={async () => {
+              try {
+                await copyToClipboard(
+                  `patchData=\`kubectl get recommend ${currentSelection?.metadata?.name} -n ${currentSelection?.spec?.targetRef?.namespace} -o jsonpath='{.status.recommendedInfo}'\`;kubectl patch ${currentSelection?.spec?.targetRef?.kind} ${currentSelection?.spec?.targetRef?.name} -n ${currentSelection?.spec?.targetRef?.namespace} --patch \"\${patchData}\"`,
+                );
+                await MessagePlugin.success('Copy command to clipboard.');
+              } catch (err) {
+                await MessagePlugin.error(`Failed to copy: ${err}`);
+              }
+            }}
+          >
+            Copy Code
+          </Button>
+        }
+        confirmBtn={false}
         onClose={() => {
           setCommandDialogVisible(false);
           setCurrentSelection(null);
         }}
       >
-        <Prism withLineNumbers language='tsx'>
-          {`patchData=\`kubectl get recommend ${currentSelection?.metadata?.name} -n ${currentSelection?.spec?.targetRef?.namespace} -o jsonpath='{.status.recommendedInfo}'\`;kubectl patch ${currentSelection?.spec?.targetRef?.kind} ${currentSelection?.spec?.targetRef?.name} -n ${currentSelection?.spec?.targetRef?.namespace} --patch \"\${patchData}\"`}
+        <Prism withLineNumbers language='bash' noCopy={true}>
+          {`patchData=\`kubectl get recommend ${currentSelection?.metadata?.name} -n ${currentSelection?.spec?.targetRef?.namespace} -o jsonpath='{.status.recommendedInfo}'\`\nkubectl patch ${currentSelection?.spec?.targetRef?.kind} ${currentSelection?.spec?.targetRef?.name} -n ${currentSelection?.spec?.targetRef?.namespace} --patch \"\${patchData}\"`}
         </Prism>
       </Dialog>
     </>

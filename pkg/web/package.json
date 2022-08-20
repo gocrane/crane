@@ -51,9 +51,9 @@
   },
   "dependencies": {
     "@emotion/react": "^11.10.0",
-    "@mantine/core": "5.1.4",
-    "@mantine/hooks": "5.1.4",
-    "@mantine/prism": "^5.1.4",
+    "@mantine/core": "^5.2.0",
+    "@mantine/hooks": "^5.2.0",
+    "@mantine/prism": "^5.2.0",
     "@reduxjs/toolkit": "^1.6.0",
     "axios": "^0.26.1",
     "axios-jsonp": "^1.0.4",
