@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/evanphx/json-patch v4.11.0+incompatible
 	github.com/go-echarts/go-echarts/v2 v2.2.4
-	github.com/gocrane/api v0.7.0
+	github.com/gocrane/api v0.7.1-0.20220819080332-e4c0d60e812d
 	github.com/google/cadvisor v0.39.2
 	github.com/mjibson/go-dsp v0.0.0-20180508042940-11479a337f12
 	github.com/prometheus/client_golang v1.11.0
@@ -185,7 +185,6 @@ require (
 )
 
 replace (
-	github.com/gocrane/api => github.com/chenkaiyue/api v0.9.1-0.20220816093454-5331b34c05f2
 	github.com/grafana-tools/sdk => github.com/csmarchbanks/sdk v0.0.0-20220120205302-870d00a83f4e
 	golang.org/x/net => github.com/golang/net v0.0.0-20210825183410-e898025ed96a
 	k8s.io/api => k8s.io/api v0.22.3

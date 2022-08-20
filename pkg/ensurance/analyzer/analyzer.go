@@ -137,6 +137,7 @@ func (s *AnomalyAnalyzer) Run(stop <-chan struct{}) {
 }
 
 func (s *AnomalyAnalyzer) Analyze(state map[string][]common.TimeSeries) {
+	klog.V(4).Infof("Starting anomaly analyze")
 	node, err := s.nodeLister.Get(s.nodeName)
 	if err != nil {
 		klog.Errorf("Failed to get node: %v", err)
@@ -154,10 +155,11 @@ func (s *AnomalyAnalyzer) Analyze(state map[string][]common.TimeSeries) {
 		if matched, err := utils.LabelSelectorMatched(node.Labels, nodeQOS.Spec.Selector); err != nil || !matched {
 			continue
 		}
+		klog.V(6).Infof("NodeQOS %s matches the node", nodeQOS.Name)
 		nodeQOSs = append(nodeQOSs, nodeQOS.DeepCopy())
 	}
 
-	var avoidanceMaps = make(map[string]*ensuranceapi.AvoidanceAction)
+	var actionMap = make(map[string]*ensuranceapi.AvoidanceAction)
 	allAvoidance, err := s.avoidanceActionLister.List(labels.Everything())
 	if err != nil {
 		klog.Errorf("Failed to list AvoidanceActions, %v", err)
@@ -165,15 +167,18 @@ func (s *AnomalyAnalyzer) Analyze(state map[string][]common.TimeSeries) {
 	}
 
 	for _, a := range allAvoidance {
-		avoidanceMaps[a.Name] = a
+		actionMap[a.Name] = a
 	}
 
 	// step 2: do analyze for nodeQOSs
 	var actionContexts []ecache.ActionContext
 	for _, n := range nodeQOSs {
-		for _, v := range n.Spec.Rules {
-			var key = strings.Join([]string{n.Name, v.Name}, ".")
-			actionContext, err := s.analyze(key, v, state)
+		klog.V(6).Infof("Processing NodeQOS %s", n.Name)
+
+		for _, r := range n.Spec.Rules {
+			var key = strings.Join([]string{n.Name, r.Name}, ".")
+			klog.V(6).Infof("Processing Rule %s", key)
+			actionContext, err := s.analyze(key, r, state)
 			if err != nil {
 				metrics.UpdateAnalyzerWithKeyStatus(metrics.AnalyzeTypeAnalyzeError, key, 1.0)
 				klog.Errorf("Failed to analyze, %v.", err)
@@ -189,9 +194,9 @@ func (s *AnomalyAnalyzer) Analyze(state map[string][]common.TimeSeries) {
 	klog.V(6).Infof("Analyze actionContexts: %#v", actionContexts)
 
 	//step 3 : merge
-	avoidanceAction := s.merge(state, avoidanceMaps, actionContexts)
+	avoidanceAction := s.merge(state, actionMap, actionContexts)
 	if err != nil {
-		klog.Errorf("Failed to merge, %v.", err)
+		klog.Errorf("Failed to merge actions, error: %v", err)
 		return
 	}
 
@@ -210,30 +215,33 @@ func (s *AnomalyAnalyzer) getSeries(state []common.TimeSeries, selector *metav1.
 }
 
 func (s *AnomalyAnalyzer) trigger(series []common.TimeSeries, object ensuranceapi.Rule) bool {
-	var triggered, threshold bool
+	var aboveThreshold bool
 	for _, ts := range series {
-		triggered = s.evaluator.EvalWithMetric(object.MetricRule.Name, float64(object.MetricRule.Value.Value()), ts.Samples[0].Value)
+		triggered := s.evaluator.EvalWithMetric(object.MetricRule.Name, float64(object.MetricRule.Value.Value()), ts.Samples[0].Value)
 
-		klog.V(4).Infof("Anomaly detection result %v, Name: %s, Value: %.2f, %s/%s", triggered,
-			object.MetricRule.Name,
+		klog.V(4).Infof("Evaluation result is %v, rule: %s, watermark: %f, current metrics: %f, metrics labels: %s/%s",
+			triggered,
+			object.Name+"."+object.MetricRule.Name,
+			float64(object.MetricRule.Value.Value()),
 			ts.Samples[0].Value,
 			common.GetValueByName(ts.Labels, common.LabelNamePodNamespace),
 			common.GetValueByName(ts.Labels, common.LabelNamePodName))
 
 		if triggered {
-			klog.Warningf("Watermark %s defined in NodeQOS %s is triggered, threshold is %f and current value is %f",
-				object.MetricRule.Name,
-				object.Name,
+			klog.Warningf("Rule %s is triggered, watermark: %f, current metrics: %f, metrics labels: %s/%s",
+				object.Name+"."+object.MetricRule.Name,
+				float64(object.MetricRule.Value.Value()),
 				ts.Samples[0].Value,
 				common.GetValueByName(ts.Labels, common.LabelNamePodNamespace),
 				common.GetValueByName(ts.Labels, common.LabelNamePodName))
-			threshold = true
+			aboveThreshold = true
 		}
 	}
-	return threshold
+	return aboveThreshold
 }
 
 func (s *AnomalyAnalyzer) analyze(key string, rule ensuranceapi.Rule, stateMap map[string][]common.TimeSeries) (ecache.ActionContext, error) {
+	klog.V(4).Infof("Starting analyze")
 	var actionContext = ecache.ActionContext{Strategy: rule.Strategy, RuleName: rule.Name, ActionName: rule.AvoidanceActionName}
 
 	state, ok := stateMap[rule.MetricRule.Name]
@@ -248,31 +256,46 @@ func (s *AnomalyAnalyzer) analyze(key string, rule ensuranceapi.Rule, stateMap m
 	}
 
 	//step2: check if triggered for NodeQOSEnsurance
-	threshold := s.trigger(series, rule)
-	klog.Warningf("Watermark for %s defined in NodeQOS %s is triggerred, ", key, threshold)
+	aboveThreshold := s.trigger(series, rule)
 
 	//step3: check is triggered action or restored, set the detection
-	s.computeActionContext(threshold, key, rule, &actionContext)
+	s.computeActionContext(aboveThreshold, key, rule, &actionContext)
 
 	return actionContext, nil
 }
 
-func (s *AnomalyAnalyzer) computeActionContext(threshold bool, key string, object ensuranceapi.Rule, ac *ecache.ActionContext) {
-	if threshold {
+func (s *AnomalyAnalyzer) computeActionContext(aboveThreshold bool, key string, object ensuranceapi.Rule, ac *ecache.ActionContext) {
+	if aboveThreshold {
+		// reset restore count
 		s.restored[key] = 0
 		triggered := utils.GetUint64FromMaps(key, s.triggered)
 		triggered++
 		s.triggered[key] = triggered
 		if triggered >= uint64(object.AvoidanceThreshold) {
+			// log how many times the threshold is reached
+			s.triggered[key] = uint64(object.AvoidanceThreshold)
+			klog.Warningf("AvoidanceThreshold %d of %s is triggered, will take avoidance actions", object.AvoidanceThreshold, key)
 			ac.Triggered = true
 		}
 	} else {
 		s.triggered[key] = 0
 		restored := utils.GetUint64FromMaps(key, s.restored)
 		restored++
+		// log how many times the actual usage below threshold
 		s.restored[key] = restored
 		if restored >= uint64(object.RestoreThreshold) {
+			s.restored[key] = uint64(object.RestoreThreshold)
+		}
+		// only do restore action after trigger x times and restore y times
+		if s.triggered[key] == uint64(object.AvoidanceThreshold) &&
+			s.restored[key] >= uint64(object.RestoreThreshold) {
+			// reset trigger count when restored
+			s.triggered[key] = 0
+			klog.Warningf("RestoreThreshold %d of %s is triggered, will take restore actions", object.RestoreThreshold, key)
 			ac.Restored = true
+		} else {
+			// nothing happened
+			klog.V(2).Infof("The actual usage is below of watermark of rule %s, nothing happens", ac.RuleName)
 		}
 	}
 }
@@ -290,6 +313,8 @@ func (s *AnomalyAnalyzer) filterDryRun(acs []ecache.ActionContext) []ecache.Acti
 }
 
 func (s *AnomalyAnalyzer) merge(stateMap map[string][]common.TimeSeries, actionMap map[string]*ensuranceapi.AvoidanceAction, actionContexts []ecache.ActionContext) executor.AvoidanceExecutor {
+	klog.V(6).Infof("Starting merge")
+
 	var executor executor.AvoidanceExecutor
 
 	//step1 filter dry run ActionContext
@@ -301,7 +326,7 @@ func (s *AnomalyAnalyzer) merge(stateMap map[string][]common.TimeSeries, actionM
 	for _, actionCtx := range filteredActionContext {
 		action, ok := actionMap[actionCtx.ActionName]
 		if !ok {
-			klog.Warningf("The action %s not found.", actionCtx.ActionName)
+			klog.Warningf("Action %s is triggered, but the AvoidanceAction is not defined.", actionCtx.ActionName)
 			continue
 		}
 
@@ -413,7 +438,7 @@ func (s *AnomalyAnalyzer) getThrottlePods(actionCtx ecache.ActionContext, action
 		return throttlePods, throttleUpPods
 	}
 
-	filteredPods, err := s.filterPodQOSMatches(allPods)
+	filteredPods, err := s.filterPodQOSMatches(allPods, action.Name)
 	if err != nil {
 		klog.Errorf("Failed to filter all pods: %v.", err)
 		return throttlePods, throttleUpPods
@@ -439,7 +464,7 @@ func (s *AnomalyAnalyzer) getEvictPods(triggered bool, action *ensuranceapi.Avoi
 			klog.Errorf("Failed to list all pods: %v.", err)
 			return evictPods
 		}
-		filteredPods, err := s.filterPodQOSMatches(allPods)
+		filteredPods, err := s.filterPodQOSMatches(allPods, action.Name)
 		if err != nil {
 			klog.Errorf("Failed to filter all pods: %v.", err)
 			return evictPods
@@ -452,7 +477,7 @@ func (s *AnomalyAnalyzer) getEvictPods(triggered bool, action *ensuranceapi.Avoi
 	return evictPods
 }
 
-func (s *AnomalyAnalyzer) filterPodQOSMatches(pods []*v1.Pod) ([]*v1.Pod, error) {
+func (s *AnomalyAnalyzer) filterPodQOSMatches(pods []*v1.Pod, actionName string) ([]*v1.Pod, error) {
 	filteredPods := []*v1.Pod{}
 	podQOSList, err := s.podQOSLister.List(labels.Everything())
 	// todo: not found error should be ignored
@@ -462,15 +487,32 @@ func (s *AnomalyAnalyzer) filterPodQOSMatches(pods []*v1.Pod) ([]*v1.Pod, error)
 	}
 	for _, qos := range podQOSList {
 		for _, pod := range pods {
-			if match(pod, qos) {
-				filteredPods = append(filteredPods, pod)
+			if !match(pod, qos) {
+				klog.V(4).Infof("Pod %s/%s does not match PodQOS %s", pod.Namespace, pod.Name, qos.Name)
+				continue
+
 			}
+			klog.V(4).Infof("Pod %s/%s matches PodQOS %s", pod.Namespace, pod.Name, qos.Name)
+			if !contains(qos.Spec.AllowedActions, actionName) {
+				klog.V(4).Infof("Action %s is not allowed for Pod %s/%s, PodQOS %s", actionName, pod.Namespace, pod.Name, qos.Name)
+				continue
+			}
+			filteredPods = append(filteredPods, pod)
 		}
 	}
 	return filteredPods, nil
 }
 
-func (s *AnomalyAnalyzer) mergeSchedulingActions(actionContexts []ecache.ActionContext, avoidanceMaps map[string]*ensuranceapi.AvoidanceAction, ae *executor.AvoidanceExecutor) {
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *AnomalyAnalyzer) mergeSchedulingActions(actionContexts []ecache.ActionContext, actionMap map[string]*ensuranceapi.AvoidanceAction, ae *executor.AvoidanceExecutor) {
 	var now = time.Now()
 
 	// If the ensurance rules are empty, it must be recovered soon.
@@ -479,7 +521,9 @@ func (s *AnomalyAnalyzer) mergeSchedulingActions(actionContexts []ecache.ActionC
 		s.ToggleScheduleSetting(ae, false)
 	} else {
 		for _, ac := range actionContexts {
-			action, ok := avoidanceMaps[ac.ActionName]
+			klog.V(4).Infof("actionContext %+v", ac)
+			klog.V(4).Infof("trigger times %+v, restore times %+v", s.triggered, s.restored)
+			action, ok := actionMap[ac.ActionName]
 			if !ok {
 				klog.Warningf("Action %s defined in nodeQOS %s is not found", ac.ActionName, ac.NodeQOS.Name)
 				continue
@@ -508,6 +552,7 @@ func (s *AnomalyAnalyzer) ToggleScheduleSetting(ae *executor.AvoidanceExecutor, 
 	ae.ScheduleExecutor.ToBeRestore = !ae.ScheduleExecutor.ToBeDisable
 }
 
+// todo to be refactered to deduplicate of two pod lists
 func combineThrottleDuplicate(e *executor.ThrottleExecutor, throttlePods, throttleUpPods executor.ThrottlePods) {
 	for _, t := range throttlePods {
 		if i := e.ThrottleDownPods.Find(t.Key); i == -1 {

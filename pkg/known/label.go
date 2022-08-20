@@ -6,8 +6,8 @@ const (
 )
 
 const (
-	EnsuranceAnalyzedPressureTaintKey     = "ensurance.crane.io/analyzed-pressure"
-	EnsuranceAnalyzedPressureConditionKey = "analyzed-pressure"
+	EnsuranceAnalyzedPressureTaintKey     = "interference.crane.io"
+	EnsuranceAnalyzedPressureConditionKey = "interference-identified"
 )
 
 const (

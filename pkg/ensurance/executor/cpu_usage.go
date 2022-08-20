@@ -213,17 +213,16 @@ func evictOnePodCpu(wg *sync.WaitGroup, ctx *ExecuteContext, index int, totalRel
 			errPodKeys = append(errPodKeys, "not found ", evictPod.Key.String())
 			return
 		}
-
+		klog.Warningf("Evicting pod %v", evictPod.Key)
 		err = utils.EvictPodWithGracePeriod(ctx.Client, pod, evictPod.DeletionGracePeriodSeconds)
 		if err != nil {
 			errPodKeys = append(errPodKeys, "evict failed ", evictPod.Key.String())
 			klog.Warningf("Failed to evict pod %s: %v", evictPod.Key.String(), err)
 			return
 		}
-
 		metrics.ExecutorEvictCountsInc()
 
-		klog.V(4).Infof("Pod %s is evicted", klog.KObj(pod))
+		klog.Warningf("Pod %s is evicted", klog.KObj(pod))
 	}(EvictPods[index])
 	return
 }

@@ -90,6 +90,7 @@ func (t *ThrottleExecutor) Avoid(ctx *ExecuteContext) error {
 
 		if ctx.ThrottoleDownGapToWatermarks.HasUsageMissedMetric() {
 			klog.V(6).Info("There is a metric usage missed")
+			// todo remove highest priority
 			highestPriorityMetric := t.ThrottleDownWatermark.GetHighestPriorityThrottleAbleMetric()
 			if highestPriorityMetric != "" {
 				errPodKeys = t.throttlePods(ctx, &totalReleased, highestPriorityMetric)

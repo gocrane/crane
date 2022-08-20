@@ -5,8 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/apimachinery/pkg/types"
-
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 )
 
@@ -25,9 +23,6 @@ type ActionContext struct {
 	NodeQOS *ensuranceapi.NodeQOS
 	// time for detection
 	Time time.Time
-	// the influenced pod list
-	// node detection the pod list is empty
-	BeInfluencedPods []types.NamespacedName
 }
 
 type ActionContextCache struct {
