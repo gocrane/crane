@@ -29,7 +29,7 @@ make all
 
 to build binaries `craned`, `crane-agent` and `metric-adapter` for `linux/amd64`.
 
-![make_all_finish](/docs/images/developer-guide/make_all_finish.jpg)
+![make_all_finish](images/developer-guide/make_all_finish.jpg)
 
 Also you could specify other platforms when building, such as,
 
@@ -43,7 +43,7 @@ PLATFORMS=linux/arm64,darwin/amd64 make crane-agent
 
 All the built binaries will be placed at `$GOPATH/src/github.com/gocrane/crane/bin` folder.
 
-![make_all_binaries_result](/docs/images/developer-guide/make_all_binaries_result.jpg)
+![make_all_binaries_result](images/developer-guide/make_all_binaries_result.jpg)
 
 ## Building Docker Images
 
@@ -61,28 +61,27 @@ default * docker
 If you're running Linux, please refer to [docker buildx docs](https://docs.docker.com/buildx/working-with-buildx/)
 on the installation.
 
-> Note:
->
-> For better `docker buildx` support, it is recommended to use Ubuntu Focal 20.04 (LTS), Debian Bullseye 11 and CentOS 8.
->
-> And install deb/rpm package `qemu-user-static` as well, such as
-> ```bash
-> apt-get install qemu-user-static
-> ```
-> or
-> ```bash
-> yum install qemu-user-static
-> ```
+!!! Note:
+    For better `docker buildx` support, it is recommended to use Ubuntu Focal 20.04 (LTS), Debian Bullseye 11 and CentOS 8.
 
-```bash
-# build for linux/amd64 by default
-# container images for craned, crane-agent, metric-adapter and dashboard
-make images
-```
+    And install deb/rpm package `qemu-user-static` as well, such as
+    ```bash
+    apt-get install qemu-user-static
+    ```
+    or
+    ```bash
+    yum install qemu-user-static
+    ```
 
-![make_image_start](/docs/images/developer-guide/make_image_start.jpg)
+    ```bash
+    # build for linux/amd64 by default
+    # container images for craned, crane-agent, metric-adapter and dashboard
+    make images
+    ```
 
-![make_image_finish](/docs/images/developer-guide/make_image_finish.jpg)
+![make_image_start](images/developer-guide/make_image_start.jpg)
+
+![make_image_finish](images/developer-guide/make_image_finish.jpg)
 
 Also you could build container images for other platforms, such as `arm64`,
 
@@ -92,9 +91,9 @@ PLATFORMS=linux/amd64,linux/arm64,linux/ppc64le make images
 # PLATFORMS=linux/amd64,linux/arm64,linux/ppc64le,linux/s390x,linux/386,linux/arm
 ```
 
-> Note:
-> For the first make image, It takes a bit of a long time, Please be patient.
+!!! Note:
+     For the first make image, It takes a bit of a long time, Please be patient.
 
 When we finish the make image, in the docker desktop, we can see the image we built, and the Tag is the hash value at the time of the git commit.
 
-![make_image_docker_images](/docs/images/developer-guide/make_image_docker_images.jpg)
+![make_image_docker_images](images/developer-guide/make_image_docker_images.jpg)
