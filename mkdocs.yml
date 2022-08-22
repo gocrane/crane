@@ -53,6 +53,7 @@ plugins:
           Contributing: 贡献
           Mirror Resource: 镜像资源
           Code Standard: 代码标准
+          Developer Guide: 开发者指南
           Roadmap: 路线图
           Overview: 概述
           Load-aware Scheduling: 负载感知调度
@@ -71,6 +72,7 @@ plugins:
           Contributing: 貢獻
           Mirror Resource: 鏡像資源
           Code Standard: 代碼標準
+          Developer Guide: 開發者指南
           Roadmap: 技術路線
           Overview: 概述
           Load-aware Scheduling: 負載感知調度
@@ -119,6 +121,7 @@ nav:
       - Pod Sorting And Precise Execution For Crane Agent: proposals/Pod-Sorting-And-Precise-Execution-For-Crane-Agent.md
   - Contributing: CONTRIBUTING.md
   - Code Standard: code-standards.md
+  - Developer Guide: developer-guide.md
   - Roadmap:
     - 2022: roadmaps/roadmap-2022.md
   - Mirror Resource: mirror.md
