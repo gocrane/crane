@@ -1,0 +1,39 @@
+documentation:
+  - docs/*
+  - docs/**/*
+
+workflows:
+  - .github/workflows/*
+  - .github/workflows/**/*
+
+deploy:
+  - deploy/*
+  - deploy/**/*
+
+examples:
+  - examples/*
+  - examples/**/*
+
+api-server:
+  - pkg/server/*
+  - pkg/server/**/*
+
+"area:dashboard":
+  - pkg/web/*
+  - pkg/web/**/*
+
+"area:algorithm":
+  - pkg/prediction/*
+  - pkg/prediction/**/*
+  - pkg/predictor/*
+  - pkg/predictor/**/*
+
+provider:
+  - pkg/providers/*
+  - pkg/providers/**/*
+
+recommend:
+  - pkg/recommend/*
+  - pkg/recommend/**/*
+  - pkg/recommendation/*
+  - pkg/recommendation/**/*
