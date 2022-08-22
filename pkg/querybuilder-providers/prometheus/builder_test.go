@@ -1,13 +1,13 @@
 package prometheus
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/gocrane/crane/pkg/metricquery"
+	"github.com/gocrane/crane/pkg/utils"
 )
 
 func TestNewPromQueryBuilder(t *testing.T) {
@@ -46,7 +46,7 @@ func TestBuildQuery(t *testing.T) {
 					APIVersion: "v1",
 				},
 			},
-			want: fmt.Sprintf(WorkloadCpuUsageExprTemplate, "default", "test", "3m"),
+			want: utils.GetWorkloadCpuUsageExpression("default", "test"),
 		},
 		{
 			desc: "tc2-workload-mem",
@@ -60,7 +60,7 @@ func TestBuildQuery(t *testing.T) {
 					APIVersion: "v1",
 				},
 			},
-			want: fmt.Sprintf(WorkloadMemUsageExprTemplate, "default", "test"),
+			want: utils.GetWorkloadMemUsageExpression("default", "test"),
 		},
 		{
 			desc: "tc3-container-cpu",
@@ -73,7 +73,7 @@ func TestBuildQuery(t *testing.T) {
 					Name:         "container",
 				},
 			},
-			want: fmt.Sprintf(ContainerCpuUsageExprTemplate, "default", "workload", "container", "3m"),
+			want: utils.GetContainerCpuUsageExpression("default", "workload", "container"),
 		},
 		{
 			desc: "tc4-container-mem",
@@ -86,7 +86,7 @@ func TestBuildQuery(t *testing.T) {
 					Name:         "container",
 				},
 			},
-			want: fmt.Sprintf(ContainerMemUsageExprTemplate, "default", "workload", "container"),
+			want: utils.GetContainerMemUsageExpression("default", "workload", "container"),
 		},
 		{
 			desc: "tc5-node-cpu",
@@ -97,7 +97,7 @@ func TestBuildQuery(t *testing.T) {
 					Name: "test",
 				},
 			},
-			want: fmt.Sprintf(NodeCpuUsageExprTemplate, "test", "test", "3m"),
+			want: utils.GetNodeCpuUsageExpression("test"),
 		},
 		{
 			desc: "tc6-node-mem",
@@ -108,7 +108,7 @@ func TestBuildQuery(t *testing.T) {
 					Name: "test",
 				},
 			},
-			want: fmt.Sprintf(NodeMemUsageExprTemplate, "test", "test"),
+			want: utils.GetNodeMemUsageExpression("test"),
 		},
 		{
 			desc: "tc7-pod-cpu",
@@ -120,7 +120,7 @@ func TestBuildQuery(t *testing.T) {
 					Name:      "test",
 				},
 			},
-			want: fmt.Sprintf(PodCpuUsageExprTemplate, "default", "test", "3m"),
+			want: utils.GetPodCpuUsageExpression("default", "test"),
 		},
 		{
 			desc: "tc8-pod-mem",
@@ -132,7 +132,7 @@ func TestBuildQuery(t *testing.T) {
 					Name:      "test",
 				},
 			},
-			want: fmt.Sprintf(PodMemUsageExprTemplate, "default", "test"),
+			want: utils.GetPodMemUsageExpression("default", "test"),
 		},
 		{
 			desc: "tc9-prom",

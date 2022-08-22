@@ -18,7 +18,7 @@ func LabelSelectorMatched(maps map[string]string, selector *metav1.LabelSelector
 	return ls.Matches(labels.Set(maps)), nil
 }
 
-//ContainMaps to judge the maps b is contained by maps a
+// ContainMaps to judge the maps b is contained by maps a
 func ContainMaps(a map[string]string, b map[string]string) bool {
 	for k, v := range b {
 		if vv, ok := a[k]; !ok {

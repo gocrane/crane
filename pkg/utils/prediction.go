@@ -45,25 +45,26 @@ func QueryPredictedValuesOnce(recommendation *v1alpha1.Recommendation, predictor
 	return predictor.QueryRealtimePredictedValuesOnce(context.TODO(), namer, *pConfig)
 }
 
-func GetReadyPredictionMetric(metric string, prediction *predictionapi.TimeSeriesPrediction) (*predictionapi.MetricTimeSeries, error) {
-	var targetMetricStatus *predictionapi.PredictionMetricStatus
+func GetReadyPredictionMetric(metric string, resourceIdentifier string, prediction *predictionapi.TimeSeriesPrediction) (*predictionapi.MetricTimeSeries, error) {
 	for _, metricStatus := range prediction.Status.PredictionMetrics {
-		if metricStatus.ResourceIdentifier == metric && len(metricStatus.Prediction) == 1 {
+		if metricStatus.ResourceIdentifier == resourceIdentifier && len(metricStatus.Prediction) == 1 {
+			var targetMetricStatus *predictionapi.PredictionMetricStatus
 			targetMetricStatus = &metricStatus
+			if targetMetricStatus == nil {
+				return nil, fmt.Errorf("TimeSeries is empty, metric name %s resourceIdentifier %s", metric, resourceIdentifier)
+			}
+
+			if !targetMetricStatus.Ready {
+				return nil, fmt.Errorf("TimeSeries is not ready, metric name %s resourceIdentifier %s", metric, resourceIdentifier)
+			}
+
+			if len(targetMetricStatus.Prediction) != 1 {
+				return nil, fmt.Errorf("TimeSeries data length is unexpected: %d, metric name %s resourceIdentifier %s", len(targetMetricStatus.Prediction), metric, resourceIdentifier)
+			}
+
+			return targetMetricStatus.Prediction[0], nil
 		}
 	}
 
-	if targetMetricStatus == nil {
-		return nil, fmt.Errorf("TimeSeries is empty, metric name %s", metric)
-	}
-
-	if !targetMetricStatus.Ready {
-		return nil, fmt.Errorf("TimeSeries is not ready, metric name %s", metric)
-	}
-
-	if len(targetMetricStatus.Prediction) != 1 {
-		return nil, fmt.Errorf("TimeSeries data length is unexpected: %d", len(targetMetricStatus.Prediction))
-	}
-
-	return targetMetricStatus.Prediction[0], nil
+	return nil, fmt.Errorf("TimeSeries not matched, metric name %s resourceIdentifier %s", metric, resourceIdentifier)
 }

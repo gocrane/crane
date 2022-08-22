@@ -57,25 +57,21 @@ const (
 func (p *ExternalMetricProvider) GetExternalMetric(ctx context.Context, namespace string, metricSelector labels.Selector, info provider.ExternalMetricInfo) (*external_metrics.ExternalMetricValueList, error) {
 	klog.Info(fmt.Sprintf("Get metric by selector for external metric, Info %v namespace %s metricSelector %s", info, namespace, metricSelector.String()))
 
-	if !IsLocalExternalMetric(info, p.client) {
-		if p.remoteAdapter != nil {
-			return p.remoteAdapter.GetExternalMetric(ctx, namespace, metricSelector, info)
-		} else {
-			return nil, apiErrors.NewServiceUnavailable("not supported")
-		}
-	}
-
-	if strings.HasPrefix(info.Metric, "crane_cron") {
+	switch info.Metric {
+	case known.MetricNameCron:
 		return p.GetCronExternalMetrics(ctx, namespace, metricSelector, info)
-	}
-
-	if strings.HasPrefix(info.Metric, "crane") {
+	case known.MetricNamePrediction:
 		prediction, err := GetPrediction(ctx, p.client, namespace, metricSelector)
 		if err != nil {
 			return nil, err
 		}
 
-		timeSeries, err := utils.GetReadyPredictionMetric(info.Metric, prediction)
+		resourceIdentifier, bl := metricSelector.RequiresExactMatch("resourceIdentifier")
+		if !bl {
+			return nil, fmt.Errorf("failed get resourceIdentifier from metricSelector: [%v]", metricSelector)
+		}
+
+		timeSeries, err := utils.GetReadyPredictionMetric(info.Metric, resourceIdentifier, prediction)
 		if err != nil {
 			return nil, err
 		}
@@ -116,6 +112,12 @@ func (p *ExternalMetricProvider) GetExternalMetric(ctx context.Context, namespac
 				Value:      *resource.NewQuantity(int64(largestMetricValue.value), resource.DecimalSI),
 			},
 		}}, nil
+	default:
+		if p.remoteAdapter != nil {
+			return p.remoteAdapter.GetExternalMetric(ctx, namespace, metricSelector, info)
+		} else {
+			return nil, apiErrors.NewServiceUnavailable("not supported")
+		}
 	}
 
 	return nil, apiErrors.NewServiceUnavailable("metric not found")
@@ -125,14 +127,33 @@ func (p *ExternalMetricProvider) GetExternalMetric(ctx context.Context, namespac
 func (p *ExternalMetricProvider) GetCronExternalMetrics(ctx context.Context, namespace string, metricSelector labels.Selector, info provider.ExternalMetricInfo) (*external_metrics.ExternalMetricValueList, error) {
 	klog.Infof("Get cron metric %s by selector", info.Metric)
 
-	var ehpa autoscalingapi.EffectiveHorizontalPodAutoscaler
-
-	ehpaName := strings.TrimPrefix(info.Metric, "crane_cron_")
-
-	err := p.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: ehpaName}, &ehpa)
+	var ehpaList autoscalingapi.EffectiveHorizontalPodAutoscalerList
+	err := p.client.List(context.TODO(), &ehpaList)
 	if err != nil {
+		klog.Errorf("Failed to list ehpa: %v", err)
 		return &external_metrics.ExternalMetricValueList{}, err
 	}
+
+	targetKind, bl := metricSelector.RequiresExactMatch("targetKind")
+	if !bl {
+		return &external_metrics.ExternalMetricValueList{}, fmt.Errorf("get cron external metrics, metricSelector: [%v] target [%s] not matched", metricSelector, "targetKind")
+	}
+	targetName, bl := metricSelector.RequiresExactMatch("targetName")
+	if !bl {
+		return &external_metrics.ExternalMetricValueList{}, fmt.Errorf("get cron external metrics, metricSelector: [%v] target [%s] not matched", metricSelector, "targetName")
+	}
+	targetNamespace, bl := metricSelector.RequiresExactMatch("targetNamespace")
+	if !bl {
+		return &external_metrics.ExternalMetricValueList{}, fmt.Errorf("get cron external metrics, metricSelector: [%v] target [%s] not matched", metricSelector, "targetNamespace")
+	}
+
+	var ehpa autoscalingapi.EffectiveHorizontalPodAutoscaler
+	for _, item := range ehpaList.Items {
+		if utils.IsEHPACronEnabled(&item) && item.Spec.ScaleTargetRef.Kind == targetKind && item.Spec.ScaleTargetRef.Name == targetName && item.Namespace == targetNamespace {
+			ehpa = item
+		}
+	}
+
 	// Find the cron metric scaler
 	cronScalers := GetCronScalersForEHPA(&ehpa)
 	var activeScalers []*CronScaler
@@ -208,7 +229,11 @@ func (p *ExternalMetricProvider) GetCronExternalMetrics(ctx context.Context, nam
 func (p *ExternalMetricProvider) ListAllExternalMetrics() []provider.ExternalMetricInfo {
 	klog.Info("List all external metrics")
 
-	metricInfos := ListAllLocalExternalMetrics(p.client)
+	var metricInfos []provider.ExternalMetricInfo
+	//add cron metric
+	metricInfos = append(metricInfos, provider.ExternalMetricInfo{Metric: known.MetricNameCron})
+	//add prediction metric
+	metricInfos = append(metricInfos, provider.ExternalMetricInfo{Metric: known.MetricNamePrediction})
 
 	if p.remoteAdapter != nil {
 		metricInfos = append(metricInfos, p.remoteAdapter.ListAllExternalMetrics()...)
@@ -216,54 +241,11 @@ func (p *ExternalMetricProvider) ListAllExternalMetrics() []provider.ExternalMet
 	return metricInfos
 }
 
-func ListAllLocalExternalMetrics(client client.Client) []provider.ExternalMetricInfo {
-	var metricInfos []provider.ExternalMetricInfo
-	var ehpaList autoscalingapi.EffectiveHorizontalPodAutoscalerList
-	err := client.List(context.TODO(), &ehpaList)
-	if err != nil {
-		klog.Errorf("Failed to list ehpa: %v", err)
-		return metricInfos
-	}
-	for _, ehpa := range ehpaList.Items {
-		if CronEnabled(&ehpa) {
-			metricName := utils.GetGeneralPredictionMetricName(autoscalingv2.PodsMetricSourceType, true, ehpa.Name)
-			metricInfos = append(metricInfos, provider.ExternalMetricInfo{Metric: metricName})
-		}
-	}
-
-	var hpaList autoscalingv2.HorizontalPodAutoscalerList
-	err = client.List(context.TODO(), &hpaList)
-	if err != nil {
-		klog.Errorf("Failed to list hpa: %v", err)
-		return metricInfos
-	}
-	for _, hpa := range hpaList.Items {
-		if !strings.HasPrefix(hpa.Name, "ehpa-") {
-			// filter hpa that not created by ehpa
-			continue
-		}
-		for _, metric := range hpa.Spec.Metrics {
-			if metric.Type == autoscalingv2.ExternalMetricSourceType &&
-				metric.External != nil &&
-				metric.External.Metric.Selector != nil &&
-				metric.External.Metric.Selector.MatchLabels != nil {
-				if _, exist := metric.External.Metric.Selector.MatchLabels[known.EffectiveHorizontalPodAutoscalerUidLabel]; exist {
-					metricInfos = append(metricInfos, provider.ExternalMetricInfo{Metric: metric.External.Metric.Name})
-				}
-			}
-		}
-	}
-
-	return metricInfos
-}
-
 func IsLocalExternalMetric(metricInfo provider.ExternalMetricInfo, client client.Client) bool {
-	for _, info := range ListAllLocalExternalMetrics(client) {
-		if info.Metric == metricInfo.Metric {
-			return true
-		}
+	switch metricInfo.Metric {
+	case known.MetricNameCron, known.MetricNamePrediction:
+		return true
 	}
-
 	return false
 }
 

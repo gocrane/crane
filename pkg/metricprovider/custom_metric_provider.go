@@ -78,7 +78,7 @@ func (p *CustomMetricProvider) GetMetricBySelector(ctx context.Context, namespac
 		}
 	}
 
-	if strings.HasPrefix(info.Metric, "crane") {
+	if strings.HasPrefix(info.Metric, "crane_autoscaling") {
 		var matchingMetrics []custom_metrics.MetricValue
 		prediction, err := GetPrediction(ctx, p.client, namespace, metricSelector)
 		if err != nil {
@@ -95,7 +95,12 @@ func (p *CustomMetricProvider) GetMetricBySelector(ctx context.Context, namespac
 			return nil, fmt.Errorf("failed to get available pods. ")
 		}
 
-		timeSeries, err := utils.GetReadyPredictionMetric(info.Metric, prediction)
+		resourceIdentifier, bl := metricSelector.RequiresExactMatch("resourceIdentifier")
+		if !bl {
+			return nil, fmt.Errorf("failed get resourceIdentifier from metricSelector: [%v]", metricSelector)
+		}
+
+		timeSeries, err := utils.GetReadyPredictionMetric(info.Metric, resourceIdentifier, prediction)
 		if err != nil {
 			return nil, err
 		}
@@ -229,7 +234,9 @@ func GetPrediction(ctx context.Context, kubeclient client.Client, namespace stri
 	matchingLabels := client.MatchingLabels(map[string]string{"app.kubernetes.io/managed-by": known.EffectiveHorizontalPodAutoscalerManagedBy})
 	// merge metric selectors
 	for key, value := range labelSelector {
-		matchingLabels[key] = value
+		if key == "targetName" {
+			matchingLabels["app.kubernetes.io/part-of"] = value
+		}
 	}
 
 	predictionList := &predictionapi.TimeSeriesPredictionList{}
@@ -240,8 +247,10 @@ func GetPrediction(ctx context.Context, kubeclient client.Client, namespace stri
 	err = kubeclient.List(ctx, predictionList, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get TimeSeriesPrediction when get custom metric ")
-	} else if len(predictionList.Items) != 1 {
+	} else if len(predictionList.Items) > 1 {
 		return nil, fmt.Errorf("only one TimeSeriesPrediction should match the selector %s ", metricSelector.String())
+	} else if len(predictionList.Items) == 0 {
+		return nil, fmt.Errorf("there is no TimeSeriesPrediction match the selector %s ", metricSelector.String())
 	}
 
 	return &predictionList.Items[0], nil
