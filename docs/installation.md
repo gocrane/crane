@@ -165,7 +165,7 @@ You can use the dashboard to view and manage crane manifests.
 Easy access to the dashboard through `kubectl port-forward`.
 
 ```bash
-kubectl -n crane-system port-forward service/craned 9090 9090 
+kubectl -n crane-system port-forward service/craned 9090:9090 
 ```
 
 ### NodePort
