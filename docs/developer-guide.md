@@ -76,7 +76,7 @@ on the installation.
 
 ```bash
 # build for linux/amd64 by default
-# container images for clusternet-agent, clusternet-hub and clusternet-scheduler
+# container images for craned, crane-agent, metric-adapter and dashboard
 make images
 ```
 
