@@ -61,14 +61,16 @@ default * docker
 If you're running Linux, please refer to [docker buildx docs](https://docs.docker.com/buildx/working-with-buildx/)
 on the installation.
 
-!!! Note:
+!!! note
     For better `docker buildx` support, it is recommended to use Ubuntu Focal 20.04 (LTS), Debian Bullseye 11 and CentOS 8.
-
     And install deb/rpm package `qemu-user-static` as well, such as
+
     ```bash
     apt-get install qemu-user-static
     ```
+    
     or
+
     ```bash
     yum install qemu-user-static
     ```
@@ -91,8 +93,8 @@ PLATFORMS=linux/amd64,linux/arm64,linux/ppc64le make images
 # PLATFORMS=linux/amd64,linux/arm64,linux/ppc64le,linux/s390x,linux/386,linux/arm
 ```
 
-!!! Note:
-     For the first make image, It takes a bit of a long time, Please be patient.
+!!! note
+    For the first make image, It takes a bit of a long time, Please be patient.
 
 When we finish the make image, in the docker desktop, we can see the image we built, and the Tag is the hash value at the time of the git commit.
 
