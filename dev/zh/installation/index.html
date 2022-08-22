@@ -9,7 +9,7 @@
       
       
       <link rel="icon" href="../../images/crane.svg">
-      <meta name="generator" content="mkdocs-1.3.1, mkdocs-material-8.4.0">
+      <meta name="generator" content="mkdocs-1.3.1, mkdocs-material-8.4.1">
     
     
       
@@ -1287,7 +1287,7 @@
 <p><img alt="" src="../images/dashboard.png" /></p>
 <h3 id="port-forward">Port Forward<a class="headerlink" href="#port-forward" title="Permanent link">&para;</a></h3>
 <p>Easy access to the dashboard through <code>kubectl port-forward</code>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1"></a><a href="#__codelineno-9-1"><span class="linenos" data-linenos="1 "></span></a>kubectl -n crane-system port-forward service/craned <span class="m">9090</span> <span class="m">9090</span> 
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1"></a><a href="#__codelineno-9-1"><span class="linenos" data-linenos="1 "></span></a>kubectl -n crane-system port-forward service/craned <span class="m">9090</span>:9090 
 </code></pre></div>
 <h3 id="nodeport">NodePort<a class="headerlink" href="#nodeport" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1"></a><a href="#__codelineno-10-1"><span class="linenos" data-linenos="1 "></span></a><span class="c1"># Change service type</span>
