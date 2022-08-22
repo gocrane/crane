@@ -28,6 +28,15 @@
          
     </url>
     <url>
+         <loc>developer-guide/</loc>
+         <lastmod>2022-08-22</lastmod>
+         <changefreq>daily</changefreq>
+         <xhtml:link rel="alternate" hreflang="en" href="en/developer-guide/"/>
+         <xhtml:link rel="alternate" hreflang="zh" href="zh/developer-guide/"/>
+         <xhtml:link rel="alternate" hreflang="zh_TW" href="zh_TW/developer-guide/"/>
+         
+    </url>
+    <url>
          <loc>installation/</loc>
          <lastmod>2022-08-22</lastmod>
          <changefreq>daily</changefreq>
