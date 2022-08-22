@@ -14,26 +14,30 @@ examples:
   - examples/*
   - examples/**/*
 
-api-server:
+"area:dashboard":
   - pkg/server/*
   - pkg/server/**/*
-
-"area:dashboard":
   - pkg/web/*
   - pkg/web/**/*
 
+"area:autoscaling":
+  - pkg/prediction/*
+  - pkg/prediction/**/*
+  - pkg/metricprovider/*
+  - pkg/controller/evpa/*
+  - pkg/controller/ehpa/*
+  
 "area:algorithm":
   - pkg/prediction/*
   - pkg/prediction/**/*
   - pkg/predictor/*
   - pkg/predictor/**/*
+  - pkg/controller/timeseriesprediction/*  
 
-provider:
-  - pkg/providers/*
-  - pkg/providers/**/*
-
-recommend:
+"area:recommendation":
   - pkg/recommend/*
   - pkg/recommend/**/*
   - pkg/recommendation/*
   - pkg/recommendation/**/*
+  - pkg/controller/analytics/*
+  - pkg/controller/recommendation/*
