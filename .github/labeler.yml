@@ -24,15 +24,19 @@ examples:
   - pkg/prediction/*
   - pkg/prediction/**/*
   - pkg/metricprovider/*
+  - pkg/metricprovider/**/*
   - pkg/controller/evpa/*
+  - pkg/controller/evpa/**/*
   - pkg/controller/ehpa/*
+  - pkg/controller/ehpa/**/*
   
 "area:algorithm":
   - pkg/prediction/*
   - pkg/prediction/**/*
   - pkg/predictor/*
   - pkg/predictor/**/*
-  - pkg/controller/timeseriesprediction/*  
+  - pkg/controller/timeseriesprediction/*
+  - pkg/controller/timeseriesprediction/**/*
 
 "area:recommendation":
   - pkg/recommend/*
@@ -40,4 +44,6 @@ examples:
   - pkg/recommendation/*
   - pkg/recommendation/**/*
   - pkg/controller/analytics/*
+  - pkg/controller/analytics/**/*
   - pkg/controller/recommendation/*
+  - pkg/controller/recommendation/**/*
