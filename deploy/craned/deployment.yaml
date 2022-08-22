@@ -73,8 +73,8 @@ spec:
             defaultMode: 420
             secretName: webhook-server-tls
         - name: config
-            configMap:
-              name: recommendation-configuration
+          configMap:
+            name: recommendation-configuration
         - name: nginx-conf
           configMap:
             name: nginx-conf
