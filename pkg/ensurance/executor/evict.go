@@ -98,7 +98,7 @@ func (e *EvictExecutor) Avoid(ctx *ExecuteContext) error {
 				}
 				for !ctx.ToBeEvict.TargetGapsRemoved(m) {
 					klog.V(2).Infof("For metric %s, there is more gap to watermarks: %f of %s", m, ctx.ToBeEvict[m], m)
-					if podinfo.ContainsPendingPod(e.EvictPods) {
+					if podinfo.ContainsNoExecutedPod(e.EvictPods) {
 						index := podinfo.GetFirstPendingPod(e.EvictPods)
 						errKeys, released = metricMap[m].EvictFunc(&wg, ctx, index, &totalReleased, e.EvictPods)
 						errPodKeys = append(errPodKeys, errKeys...)

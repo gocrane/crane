@@ -129,37 +129,37 @@ func TestValidateMetricRule(t *testing.T) {
 	}
 }
 
-func TestValidateObjectiveEnsurances(t *testing.T) {
+func TestValidateRules(t *testing.T) {
 	cases := map[string]struct {
-		objects       []ensuranceapi.ObjectiveEnsurance
+		objects       []ensuranceapi.Rule
 		httpGetEnable bool
 		expectErr     bool
 		errorType     field.ErrorType
 		errorDetail   string
 	}{
 		"object is required": {
-			objects:       []ensuranceapi.ObjectiveEnsurance{},
+			objects:       []ensuranceapi.Rule{},
 			httpGetEnable: false,
 			errorType:     field.ErrorTypeRequired,
 			errorDetail:   "",
 			expectErr:     true,
 		},
 		"object name is  required": {
-			objects:       []ensuranceapi.ObjectiveEnsurance{{Name: ""}},
+			objects:       []ensuranceapi.Rule{{Name: ""}},
 			httpGetEnable: false,
 			errorType:     field.ErrorTypeRequired,
 			errorDetail:   "",
 			expectErr:     true,
 		},
 		"object name is invalid": {
-			objects:       []ensuranceapi.ObjectiveEnsurance{{Name: "aaa.bbb"}},
+			objects:       []ensuranceapi.Rule{{Name: "aaa.bbb"}},
 			httpGetEnable: false,
 			errorType:     field.ErrorTypeInvalid,
 			errorDetail:   "",
 			expectErr:     true,
 		},
 		"object name is duplicate": {
-			objects: []ensuranceapi.ObjectiveEnsurance{{Name: "aaa",
+			objects: []ensuranceapi.Rule{{Name: "aaa",
 				AvoidanceActionName: "eviction",
 				AvoidanceThreshold:  known.DefaultAvoidedThreshold,
 				RestoreThreshold:    known.DefaultRestoredThreshold,
@@ -173,21 +173,21 @@ func TestValidateObjectiveEnsurances(t *testing.T) {
 			expectErr:     true,
 		},
 		"object action name is  required": {
-			objects:       []ensuranceapi.ObjectiveEnsurance{{Name: "aaa"}},
+			objects:       []ensuranceapi.Rule{{Name: "aaa"}},
 			httpGetEnable: false,
 			errorType:     field.ErrorTypeRequired,
 			errorDetail:   "",
 			expectErr:     true,
 		},
 		"object action name is invalid": {
-			objects:       []ensuranceapi.ObjectiveEnsurance{{Name: "aaa", AvoidanceActionName: "eviction.aa"}},
+			objects:       []ensuranceapi.Rule{{Name: "aaa", AvoidanceActionName: "eviction.aa"}},
 			httpGetEnable: false,
 			errorType:     field.ErrorTypeInvalid,
 			errorDetail:   "",
 			expectErr:     true,
 		},
 		"object metric rule is required": {
-			objects: []ensuranceapi.ObjectiveEnsurance{{Name: "aaa", AvoidanceActionName: "eviction",
+			objects: []ensuranceapi.Rule{{Name: "aaa", AvoidanceActionName: "eviction",
 				AvoidanceThreshold: known.DefaultAvoidedThreshold, RestoreThreshold: known.DefaultRestoredThreshold}},
 			httpGetEnable: false,
 			errorType:     field.ErrorTypeRequired,
@@ -195,7 +195,7 @@ func TestValidateObjectiveEnsurances(t *testing.T) {
 			expectErr:     true,
 		},
 		"object valid": {
-			objects: []ensuranceapi.ObjectiveEnsurance{{Name: "aaa",
+			objects: []ensuranceapi.Rule{{Name: "aaa",
 				AvoidanceActionName: "eviction",
 				AvoidanceThreshold:  known.DefaultAvoidedThreshold,
 				RestoreThreshold:    known.DefaultRestoredThreshold,
@@ -209,7 +209,7 @@ func TestValidateObjectiveEnsurances(t *testing.T) {
 
 	for k, v := range cases {
 		t.Run(k, func(t *testing.T) {
-			errs := validateObjectiveEnsurances(v.objects, field.NewPath("objectiveEnsurances"), v.httpGetEnable)
+			errs := validateRules(v.objects, field.NewPath("objectiveEnsurances"), v.httpGetEnable)
 			t.Logf("%s: len %d", k, len(errs))
 			if v.expectErr && len(errs) > 0 {
 				if errs[0].Type != v.errorType || !strings.Contains(errs[0].Detail, v.errorDetail) {

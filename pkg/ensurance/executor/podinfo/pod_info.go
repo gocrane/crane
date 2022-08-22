@@ -94,7 +94,7 @@ type PodContext struct {
 	Executed    bool
 }
 
-func ContainsPendingPod(pods []PodContext) bool {
+func ContainsNoExecutedPod(pods []PodContext) bool {
 	for _, p := range pods {
 		if p.Executed == false {
 			return true

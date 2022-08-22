@@ -2,7 +2,6 @@ package utils
 
 import (
 	"fmt"
-	"k8s.io/klog/v2"
 
 	"golang.org/x/net/context"
 	v1 "k8s.io/api/core/v1"
@@ -10,6 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	corelisters "k8s.io/client-go/listers/core/v1"
+	"k8s.io/klog/v2"
 )
 
 const defaultRetryTimes = 3

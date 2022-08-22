@@ -5,12 +5,12 @@ import (
 	"strconv"
 	"strings"
 
-	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/klog/v2"
+
+	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 )
 
 type ObjectIdentity struct {
@@ -19,56 +19,6 @@ type ObjectIdentity struct {
 	Kind       string
 	Name       string
 	Labels     map[string]string
-}
-
-func objRefKey(kind, apiVersion, namespace, name string) string {
-	return fmt.Sprintf("%s#%s#%s#%s", kind, apiVersion, namespace, name)
-}
-
-func labelMatch(labelSelector metav1.LabelSelector, matchLabels map[string]string) bool {
-	for k, v := range labelSelector.MatchLabels {
-		if matchLabels[k] != v {
-			return false
-		}
-	}
-
-	for _, expr := range labelSelector.MatchExpressions {
-		switch expr.Operator {
-		case metav1.LabelSelectorOpExists:
-			if _, exists := matchLabels[expr.Key]; !exists {
-				return false
-			}
-		case metav1.LabelSelectorOpDoesNotExist:
-			if _, exists := matchLabels[expr.Key]; exists {
-				return false
-			}
-		case metav1.LabelSelectorOpIn:
-			if v, exists := matchLabels[expr.Key]; !exists {
-				return false
-			} else {
-				var found bool
-				for i := range expr.Values {
-					if expr.Values[i] == v {
-						found = true
-						break
-					}
-				}
-				if !found {
-					return false
-				}
-			}
-		case metav1.LabelSelectorOpNotIn:
-			if v, exists := matchLabels[expr.Key]; exists {
-				for i := range expr.Values {
-					if expr.Values[i] == v {
-						return false
-					}
-				}
-			}
-		}
-	}
-
-	return true
 }
 
 func match(pod *v1.Pod, podQOS *ensuranceapi.PodQOS) bool {

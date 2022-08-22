@@ -46,7 +46,7 @@ func (p *NodeQOSValidationAdmission) ValidateCreate(ctx context.Context, req run
 	if nodeQOS.Spec.NodeQualityProbe.HTTPGet != nil {
 		httpGetEnable = true
 	}
-	allErrs = append(allErrs, validateObjectiveEnsurances(nodeQOS.Spec.Rules, field.NewPath("objectiveEnsurances"), httpGetEnable)...)
+	allErrs = append(allErrs, validateRules(nodeQOS.Spec.Rules, field.NewPath("objectiveEnsurances"), httpGetEnable)...)
 
 	if len(allErrs) != 0 {
 		return allErrs.ToAggregate()
@@ -98,7 +98,7 @@ func validateHTTPGetAction(http *corev1.HTTPGetAction, fldPath *field.Path) fiel
 	return allErrs
 }
 
-func validateObjectiveEnsurances(objects []ensuranceapi.Rule, fldPath *field.Path, httpGetEnable bool) field.ErrorList {
+func validateRules(objects []ensuranceapi.Rule, fldPath *field.Path, httpGetEnable bool) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if len(objects) == 0 {
