@@ -287,7 +287,7 @@ func (s *AnomalyAnalyzer) computeActionContext(aboveThreshold bool, key string, 
 			s.restored[key] = uint64(object.RestoreThreshold)
 		}
 		// only do restore action after trigger x times and restore y times
-		if s.triggered[key] == uint64(object.AvoidanceThreshold) &&
+		if s.triggered[key] >= uint64(object.AvoidanceThreshold) &&
 			s.restored[key] >= uint64(object.RestoreThreshold) {
 			// reset trigger count when restored
 			s.triggered[key] = 0
@@ -300,13 +300,13 @@ func (s *AnomalyAnalyzer) computeActionContext(aboveThreshold bool, key string, 
 	}
 }
 
-func (s *AnomalyAnalyzer) filterDryRun(acs []ecache.ActionContext) []ecache.ActionContext {
+func (s *AnomalyAnalyzer) filterDryRun(actionContexts []ecache.ActionContext) []ecache.ActionContext {
 	var dcsFiltered []ecache.ActionContext
 	now := time.Now()
-	for _, ac := range acs {
-		s.logEvent(ac, now)
-		if !(ac.Strategy == ensuranceapi.AvoidanceActionStrategyPreview) {
-			dcsFiltered = append(dcsFiltered, ac)
+	for _, actionContext := range actionContexts {
+		s.logEvent(actionContext, now)
+		if !(actionContext.Strategy == ensuranceapi.AvoidanceActionStrategyPreview) {
+			dcsFiltered = append(dcsFiltered, actionContext)
 		}
 	}
 	return dcsFiltered
@@ -323,29 +323,29 @@ func (s *AnomalyAnalyzer) merge(stateMap map[string][]common.TimeSeries, actionM
 	//step2 do DisableScheduled merge
 	s.mergeSchedulingActions(filteredActionContext, actionMap, &executor)
 
-	for _, actionCtx := range filteredActionContext {
-		action, ok := actionMap[actionCtx.ActionName]
+	for _, context := range filteredActionContext {
+		action, ok := actionMap[context.ActionName]
 		if !ok {
-			klog.Warningf("Action %s is triggered, but the AvoidanceAction is not defined.", actionCtx.ActionName)
+			klog.Warningf("Action %s is triggered, but the AvoidanceAction is not defined.", context.ActionName)
 			continue
 		}
 
 		//step3 get and deduplicate throttlePods, throttleUpPods
 		if action.Spec.Throttle != nil {
-			throttlePods, throttleUpPods := s.getThrottlePods(actionCtx, action, stateMap)
+			throttlePods, throttleUpPods := s.getThrottlePods(context, action, stateMap)
 
 			// combine the throttle watermark
-			combineThrottleWatermark(&executor.ThrottleExecutor, actionCtx)
+			combineThrottleWatermark(&executor.ThrottleExecutor, context)
 			// combine the replicated pod
 			combineThrottleDuplicate(&executor.ThrottleExecutor, throttlePods, throttleUpPods)
 		}
 
 		//step4 get and deduplicate evictPods
 		if action.Spec.Eviction != nil {
-			evictPods := s.getEvictPods(actionCtx.Triggered, action, stateMap)
+			evictPods := s.getEvictPods(context.Triggered, action, stateMap)
 
 			// combine the evict watermark
-			combineEvictWatermark(&executor.EvictExecutor, actionCtx)
+			combineEvictWatermark(&executor.EvictExecutor, context)
 			// combine the replicated pod
 			combineEvictDuplicate(&executor.EvictExecutor, evictPods)
 		}
@@ -512,13 +512,13 @@ func contains(s []string, e string) bool {
 	return false
 }
 
-func (s *AnomalyAnalyzer) mergeSchedulingActions(actionContexts []ecache.ActionContext, actionMap map[string]*ensuranceapi.AvoidanceAction, ae *executor.AvoidanceExecutor) {
+func (s *AnomalyAnalyzer) mergeSchedulingActions(actionContexts []ecache.ActionContext, actionMap map[string]*ensuranceapi.AvoidanceAction, avoidanceExecutor *executor.AvoidanceExecutor) {
 	var now = time.Now()
 
 	// If the ensurance rules are empty, it must be recovered soon.
 	// So we set enableScheduling true
 	if len(actionContexts) == 0 {
-		s.ToggleScheduleSetting(ae, false)
+		s.ToggleScheduleSetting(avoidanceExecutor, false)
 	} else {
 		for _, ac := range actionContexts {
 			klog.V(4).Infof("actionContext %+v", ac)
@@ -531,13 +531,13 @@ func (s *AnomalyAnalyzer) mergeSchedulingActions(actionContexts []ecache.ActionC
 
 			if ac.Triggered {
 				metrics.UpdateAnalyzerStatus(metrics.AnalyzeTypeEnableScheduling, float64(0))
-				s.ToggleScheduleSetting(ae, true)
+				s.ToggleScheduleSetting(avoidanceExecutor, true)
 			}
 
 			if ac.Restored {
 				if now.After(s.lastTriggeredTime.Add(time.Duration(action.Spec.CoolDownSeconds) * time.Second)) {
 					metrics.UpdateAnalyzerStatus(metrics.AnalyzeTypeEnableScheduling, float64(1))
-					s.ToggleScheduleSetting(ae, false)
+					s.ToggleScheduleSetting(avoidanceExecutor, false)
 				}
 			}
 		}

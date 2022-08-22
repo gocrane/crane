@@ -35,21 +35,3 @@ var metricMap = make(map[WatermarkMetric]metric)
 func registerMetricMap(m metric) {
 	metricMap[m.Name] = m
 }
-
-func GetThrottleAbleMetricName() (throttleAbleMetricList []WatermarkMetric) {
-	for _, m := range metricMap {
-		if m.Throttleable {
-			throttleAbleMetricList = append(throttleAbleMetricList, m.Name)
-		}
-	}
-	return
-}
-
-func GetEvictAbleMetricName() (evictAbleMetricList []WatermarkMetric) {
-	for _, m := range metricMap {
-		if m.Evictable {
-			evictAbleMetricList = append(evictAbleMetricList, m.Name)
-		}
-	}
-	return
-}

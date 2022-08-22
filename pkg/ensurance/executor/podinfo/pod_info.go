@@ -94,7 +94,7 @@ type PodContext struct {
 	Executed    bool
 }
 
-func HasNoExecutedPod(pods []PodContext) bool {
+func ContainsPendingPod(pods []PodContext) bool {
 	for _, p := range pods {
 		if p.Executed == false {
 			return true
@@ -103,7 +103,7 @@ func HasNoExecutedPod(pods []PodContext) bool {
 	return false
 }
 
-func GetFirstNoExecutedPod(pods []PodContext) int {
+func GetFirstPendingPod(pods []PodContext) int {
 	for index, p := range pods {
 		if p.Executed == false {
 			return index

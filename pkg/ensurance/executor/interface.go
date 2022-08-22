@@ -31,11 +31,11 @@ type ExecuteContext struct {
 
 	// Gap for metrics Evictable/ThrottleAble
 	// Key is the metric name, value is (actual used)-(the lowest watermark for NodeQOSEnsurancePolicies which use throttleDown action)
-	ThrottoleDownGapToWatermarks GapToWatermarks
+	ToBeThrottleDown Gaps
 	// Key is the metric name, value is (actual used)-(the lowest watermark for NodeQOSEnsurancePolicies which use throttleUp action)
-	ThrottoleUpGapToWatermarks GapToWatermarks
+	TOBEThrottleUp Gaps
 	// key is the metric name, value is (actual used)-(the lowest watermark for NodeQOSEnsurancePolicies which use evict action)
-	EvictGapToWatermarks GapToWatermarks
+	ToBeEvict Gaps
 
 	stateMap map[string][]common.TimeSeries
 

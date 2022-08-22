@@ -101,7 +101,7 @@ func match(pod *v1.Pod, podQOS *ensuranceapi.PodQOS) bool {
 			return false
 		}
 		if !match {
-			klog.V(6).Infof("SvcQOS %s namespace selector not match pod %s/%s", podQOS.Name, pod.Namespace, pod.Name)
+			klog.V(6).Infof("PodQOS %s namespace selector not match pod %s/%s", podQOS.Name, pod.Namespace, pod.Name)
 			return false
 		}
 	}
@@ -173,7 +173,7 @@ func match(pod *v1.Pod, podQOS *ensuranceapi.PodQOS) bool {
 			qosClassMatch = false
 		}
 		if !match {
-			klog.V(6).Infof("SvcQOS %s qosclass selector not match pod %s/%s", podQOS.Name, pod.Namespace, pod.Name)
+			klog.V(6).Infof("PodQOS %s qosclass selector not match pod %s/%s", podQOS.Name, pod.Namespace, pod.Name)
 			qosClassMatch = false
 		}
 	}

@@ -330,7 +330,7 @@ func (o *NodeResourceManager) GetCpuCoreCanNotBeReclaimedFromLocal() float64 {
 		klog.V(4).Infof("Can't get %s from NodeResourceManager local state", types.MetricNameExclusiveCPUIdle)
 	}
 
-	klog.V(6).Infof("nodeCpuUsageTotal: %s, exclusiveCPUIdle: %s, extResContainerCpuUsageTotal: %s", nodeCpuUsageTotal, exclusiveCPUIdle, extResContainerCpuUsageTotal)
+	klog.V(6).Infof("nodeCpuUsageTotal: %f, exclusiveCPUIdle: %f, extResContainerCpuUsageTotal: %f", nodeCpuUsageTotal, exclusiveCPUIdle, extResContainerCpuUsageTotal)
 
 	// 1. Exclusive tethered CPU cannot be reclaimed even if the free part is free, so add the exclusive CPUIdle to the CanNotBeReclaimed CPU
 	// 2. The CPU used by extRes-container needs to be reclaimed, otherwise it will be double-counted due to the allotted mechanism of k8s, so the extResContainerCpuUsageTotal is subtracted from the CanNotBeReclaimedCpu
