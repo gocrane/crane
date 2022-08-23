@@ -74,7 +74,7 @@ func (c *CraneMetricCollector) Collect(ch chan<- prometheus.Metric) {
 	if err != nil {
 		klog.Errorf("Failed to list ehpa: %v", err)
 	}
-
+	var uniqPredictionMetrics []string
 	for _, ehpa := range ehpaList.Items {
 		namespace := ehpa.Namespace
 		if ehpa.Spec.Prediction != nil {
@@ -86,8 +86,8 @@ func (c *CraneMetricCollector) Collect(ch chan<- prometheus.Metric) {
 				klog.Error("Failed to get tsp: %v", err)
 				return
 			}
-
-			metricListTsp := c.getMetricsTsp(&tsp)
+			var metricListTsp []prometheus.Metric
+			metricListTsp, uniqPredictionMetrics = c.getMetricsTsp(&tsp, uniqPredictionMetrics)
 			for _, metric := range metricListTsp {
 				ch <- metric
 			}
@@ -106,7 +106,7 @@ func (c *CraneMetricCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 }
 
-func (c *CraneMetricCollector) getMetricsTsp(tsp *predictionapi.TimeSeriesPrediction) []prometheus.Metric {
+func (c *CraneMetricCollector) getMetricsTsp(tsp *predictionapi.TimeSeriesPrediction, uniqPredictionMetrics []string) ([]prometheus.Metric, []string) {
 	var ms []prometheus.Metric
 	pmMap := map[string]predictionapi.PredictionMetric{}
 	for _, pm := range tsp.Spec.PredictionMetrics {
@@ -114,12 +114,13 @@ func (c *CraneMetricCollector) getMetricsTsp(tsp *predictionapi.TimeSeriesPredic
 	}
 
 	//* collected metric "crane_prediction_time_series_prediction_metric" { label:<name:"aggregateKey" value:"nodes-mem#instance=192.168.56.166:9100" > label:<name:"algorithm" value:"percentile" > label:<name:"expressionQuery" value:"" > label:<name:"rawQuery" value:"sum(node_memory_MemTotal_bytes{} - node_memory_MemAvailable_bytes{}) by (instance)" > label:<name:"resourceIdentifier" value:"nodes-mem" > label:<name:"resourceQuery" value:"" > label:<name:"targetKind" value:"Node" > label:<name:"targetName" value:"192.168.56.166" > label:<name:"targetNamespace" value:"" > label:<name:"type" value:"RawQuery" > gauge:<value:1.82784510645e+06 > timestamp_ms:1639466220000 } was collected before with the same name and label values
-
 	for _, metricStatus := range tsp.Status.PredictionMetrics {
-		outputMetrics := c.computePredictionMetric(tsp, pmMap, metricStatus)
+		var outputMetrics []prometheus.Metric
+		outputMetrics, uniqPredictionMetrics = c.computePredictionMetric(tsp, pmMap, metricStatus, uniqPredictionMetrics)
 		ms = append(ms, outputMetrics...)
 	}
-	return ms
+
+	return ms, uniqPredictionMetrics
 }
 
 func (c *CraneMetricCollector) getMetricsCron(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) (prometheus.Metric, error) {
@@ -193,7 +194,7 @@ func (c *CraneMetricCollector) getMetricsCron(ehpa *autoscalingapi.EffectiveHori
 	return prometheus.NewMetricWithTimestamp(time.Now(), prometheus.MustNewConstMetric(c.metricAutoScalingCron, prometheus.GaugeValue, float64(replicas), labelValues...)), nil
 }
 
-func (c *CraneMetricCollector) computePredictionMetric(tsp *predictionapi.TimeSeriesPrediction, pmMap map[string]predictionapi.PredictionMetric, status predictionapi.PredictionMetricStatus) []prometheus.Metric {
+func (c *CraneMetricCollector) computePredictionMetric(tsp *predictionapi.TimeSeriesPrediction, pmMap map[string]predictionapi.PredictionMetric, status predictionapi.PredictionMetricStatus, uniqPredictionMetrics []string) ([]prometheus.Metric, []string) {
 	var ms []prometheus.Metric
 	now := time.Now().Unix()
 	metricConf := pmMap[status.ResourceIdentifier]
@@ -205,6 +206,19 @@ func (c *CraneMetricCollector) computePredictionMetric(tsp *predictionapi.TimeSe
 			tsp.Spec.TargetRef.Namespace,
 			status.ResourceIdentifier,
 			string(metricConf.Algorithm.AlgorithmType),
+		}
+		var currPredictionMetric = strings.Join(labelValues, ".")
+		var duplicateMetric bool
+		for _, uniqPredictionMetric := range uniqPredictionMetrics {
+			if uniqPredictionMetric == currPredictionMetric {
+				duplicateMetric = true
+			}
+		}
+
+		if duplicateMetric {
+			continue
+		} else {
+			uniqPredictionMetrics = append(uniqPredictionMetrics, currPredictionMetric)
 		}
 
 		samples := data.Samples
@@ -255,14 +269,14 @@ func (c *CraneMetricCollector) computePredictionMetric(tsp *predictionapi.TimeSe
 
 		if !hasValidSample {
 			klog.Error("TimeSeries is outdated, ResourceIdentifier name %s", status.ResourceIdentifier)
-			return ms
+			return ms, uniqPredictionMetrics
 		}
 
 		//collect external metric of prediction for HorizontalPodAutoscaler
 		s := prometheus.NewMetricWithTimestamp(timestampStart, prometheus.MustNewConstMetric(c.metricAutoScalingPrediction, prometheus.GaugeValue, metricValue, labelValues...))
 		ms = append(ms, s)
 	}
-	return ms
+	return ms, uniqPredictionMetrics
 }
 
 func AggregateSignalKey(id string, labels []predictionapi.Label) string {

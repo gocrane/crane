@@ -61,57 +61,59 @@ func (p *ExternalMetricProvider) GetExternalMetric(ctx context.Context, namespac
 	case known.MetricNameCron:
 		return p.GetCronExternalMetrics(ctx, namespace, metricSelector, info)
 	case known.MetricNamePrediction:
-		prediction, err := GetPrediction(ctx, p.client, namespace, metricSelector)
+		predictions, err := GetPredictions(ctx, p.client, namespace, metricSelector)
 		if err != nil {
 			return nil, err
 		}
 
-		resourceIdentifier, bl := metricSelector.RequiresExactMatch("resourceIdentifier")
-		if !bl {
-			return nil, fmt.Errorf("failed get resourceIdentifier from metricSelector: [%v]", metricSelector)
-		}
-
-		timeSeries, err := utils.GetReadyPredictionMetric(info.Metric, resourceIdentifier, prediction)
-		if err != nil {
-			return nil, err
-		}
-
-		// get the largest value from timeSeries
-		// use the largest value will bring up the scaling up and defer the scaling down
-		timestampStart := time.Now()
-		timestampEnd := timestampStart.Add(time.Duration(prediction.Spec.PredictionWindowSeconds) * time.Second)
-		largestMetricValue := &metricValue{}
-		hasValidSample := false
-		for _, v := range timeSeries.Samples {
-			// exclude values that not in time range
-			if v.Timestamp < timestampStart.Unix() || v.Timestamp > timestampEnd.Unix() {
-				continue
+		for _, prediction := range predictions {
+			resourceIdentifier, bl := metricSelector.RequiresExactMatch("resourceIdentifier")
+			if !bl {
+				return nil, fmt.Errorf("failed get resourceIdentifier from metricSelector: [%v]", metricSelector)
 			}
 
-			valueFloat, err := strconv.ParseFloat(v.Value, 32)
+			timeSeries, err := utils.GetReadyPredictionMetric(info.Metric, resourceIdentifier, &prediction)
 			if err != nil {
-				return nil, fmt.Errorf("failed to parse value to float: %v ", err)
+				return nil, err
 			}
-			if valueFloat > largestMetricValue.value {
-				hasValidSample = true
-				largestMetricValue.value = valueFloat
-				largestMetricValue.timestamp = v.Timestamp
+
+			// get the largest value from timeSeries
+			// use the largest value will bring up the scaling up and defer the scaling down
+			timestampStart := time.Now()
+			timestampEnd := timestampStart.Add(time.Duration(prediction.Spec.PredictionWindowSeconds) * time.Second)
+			largestMetricValue := &metricValue{}
+			hasValidSample := false
+			for _, v := range timeSeries.Samples {
+				// exclude values that not in time range
+				if v.Timestamp < timestampStart.Unix() || v.Timestamp > timestampEnd.Unix() {
+					continue
+				}
+
+				valueFloat, err := strconv.ParseFloat(v.Value, 32)
+				if err != nil {
+					return nil, fmt.Errorf("failed to parse value to float: %v ", err)
+				}
+				if valueFloat > largestMetricValue.value {
+					hasValidSample = true
+					largestMetricValue.value = valueFloat
+					largestMetricValue.timestamp = v.Timestamp
+				}
 			}
+
+			if !hasValidSample {
+				return nil, fmt.Errorf("TimeSeries is outdated, metric name %s", info.Metric)
+			}
+
+			klog.Infof("Provide external metric %s average value %f.", info.Metric, largestMetricValue.value)
+
+			return &external_metrics.ExternalMetricValueList{Items: []external_metrics.ExternalMetricValue{
+				{
+					MetricName: info.Metric,
+					Timestamp:  metav1.Now(),
+					Value:      *resource.NewQuantity(int64(largestMetricValue.value), resource.DecimalSI),
+				},
+			}}, nil
 		}
-
-		if !hasValidSample {
-			return nil, fmt.Errorf("TimeSeries is outdated, metric name %s", info.Metric)
-		}
-
-		klog.Infof("Provide external metric %s average value %f.", info.Metric, largestMetricValue.value)
-
-		return &external_metrics.ExternalMetricValueList{Items: []external_metrics.ExternalMetricValue{
-			{
-				MetricName: info.Metric,
-				Timestamp:  metav1.Now(),
-				Value:      *resource.NewQuantity(int64(largestMetricValue.value), resource.DecimalSI),
-			},
-		}}, nil
 	default:
 		if p.remoteAdapter != nil {
 			return p.remoteAdapter.GetExternalMetric(ctx, namespace, metricSelector, info)
