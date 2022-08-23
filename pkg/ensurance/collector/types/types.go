@@ -60,7 +60,7 @@ const (
 func GetCgroupPath(p *v1.Pod, cgroupDriver string) string {
 	cgroupName := GetCgroupName(p)
 	switch cgroupDriver {
-	case "stytemd":
+	case "systemd":
 		return cgroupName.ToSystemd()
 	case "cgroupfs":
 		return cgroupName.ToCgroupfs()
