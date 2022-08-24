@@ -10,14 +10,12 @@ func ContainsString(slice []string, str string) bool {
 }
 
 func RemoveString(slice []string, str string) []string {
-	if len(slice) == 0 {
-		return slice
-	}
-	var newSlice []string
-	for _, item := range slice {
-		if item != str {
-			newSlice = append(newSlice, item)
+	for index, item := range slice {
+		if item == str {
+			newSlice := make([]string, 0, len(slice)-1)
+			newSlice = append(newSlice, slice[:index]...)
+			return append(newSlice, slice[index+1:]...)
 		}
 	}
-	return newSlice
+	return slice
 }
