@@ -173,13 +173,13 @@ func (p *ExternalMetricProvider) GetCronExternalMetrics(ctx context.Context, nam
 	}
 
 	// Set default replicas same with minReplicas of ehpa
-        replicas := *ehpa.Spec.MinReplicas
-        // we use the largest targetReplicas specified in cron spec.
-        for _, activeScaler := range activeScalers {
-                if activeScaler.TargetSize() >= replicas {
-                        replicas = activeScaler.TargetSize()
-                }
-        }
+	replicas := *ehpa.Spec.MinReplicas
+	// we use the largest targetReplicas specified in cron spec.
+	for _, activeScaler := range activeScalers {
+		if activeScaler.TargetSize() >= replicas {
+			replicas = activeScaler.TargetSize()
+		}
+	}
 
 	return &external_metrics.ExternalMetricValueList{Items: []external_metrics.ExternalMetricValue{
 		{
