@@ -22,7 +22,6 @@ import (
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/utils"
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 )
 
 var _ provider.ExternalMetricsProvider = &ExternalMetricProvider{}
@@ -172,50 +171,15 @@ func (p *ExternalMetricProvider) GetCronExternalMetrics(ctx context.Context, nam
 	if len(errs) > 0 {
 		return nil, fmt.Errorf("%v", errs)
 	}
-	replicas := DefaultCronTargetMetricValue
-	if len(activeScalers) == 0 {
-		// No active cron now, there are two cases:
-		// 1. no other hpa metrics work with cron together, then return current workload replicas to keep the original desired replicas
-		// 2. other hpa metrics work with cron together, then return min value to remove the cron impact for other metrics.
-		// when cron is working with other metrics together, it should not return workload's original desired replicas,
-		// because there maybe other metrics want to trigger the workload to scale in.
-		// hpa controller select max replicas computed by all metrics(this is hpa default policy in hard code), cron will impact the hpa.
-		// so we should remove the cron effect when cron is not active, it should return min value.
-		scale, _, err := utils.GetScale(ctx, p.restMapper, p.scaler, namespace, ehpa.Spec.ScaleTargetRef)
-		if err != nil {
-			klog.Errorf("Failed to get scale: %v", err)
-			return nil, err
-		}
-		// no other hpa metrics work with cron together, keep the workload desired replicas
-		replicas = scale.Spec.Replicas
 
-		if !utils.IsEHPAPredictionEnabled(&ehpa) {
-			hpaList := &autoscalingv2.HorizontalPodAutoscalerList{}
-			opts := []client.ListOption{
-				client.MatchingLabels(map[string]string{known.EffectiveHorizontalPodAutoscalerUidLabel: string(ehpa.UID)}),
-			}
-			err := p.client.List(ctx, hpaList, opts...)
-			if err != nil {
-				return nil, err
-			}
-			// other hpa metrics work with cron together
-			// excludes the cron metric itself
-			if len(hpaList.Items) >= 0 && len(hpaList.Items[0].Spec.Metrics) > 1 {
-				replicas = DefaultCronTargetMetricValue
-			}
-		} else {
-			// other hpa metrics work with cron together
-			replicas = DefaultCronTargetMetricValue
-		}
-	} else {
-		// Has active ones. Basically, there should not be more then one active cron at the same time period, it is not a best practice.
-		// we use the largest targetReplicas specified in cron spec.
-		for _, activeScaler := range activeScalers {
-			if activeScaler.TargetSize() >= replicas {
-				replicas = activeScaler.TargetSize()
-			}
-		}
-	}
+	// Set default replicas same with minReplicas of ehpa
+        replicas := *ehpa.Spec.MinReplicas
+        // we use the largest targetReplicas specified in cron spec.
+        for _, activeScaler := range activeScalers {
+                if activeScaler.TargetSize() >= replicas {
+                        replicas = activeScaler.TargetSize()
+                }
+        }
 
 	return &external_metrics.ExternalMetricValueList{Items: []external_metrics.ExternalMetricValue{
 		{
@@ -267,15 +231,12 @@ func EHPACronMetricName(namespace, name string, cronScale autoscalingapi.CronSpe
 
 // GetCronScaleLocation return the cronScale location, default is UTC when it is not specified in spec
 func GetCronScaleLocation(cronScale autoscalingapi.CronSpec) *time.Location {
-	t := time.Now().UTC()
-	timezone := t.Location()
+	timezone := time.Local
 	var err error
 	if cronScale.TimeZone != nil {
 		timezone, err = time.LoadLocation(*cronScale.TimeZone)
 		if err != nil {
 			klog.Errorf("Failed to parse timezone %v, use default %+v, err: %v", *cronScale.TimeZone, timezone, err)
-			timezone = t.Location()
-			return timezone
 		}
 	}
 	return timezone
