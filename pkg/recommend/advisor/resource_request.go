@@ -139,6 +139,8 @@ func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) 
 		if len(tsList) < 1 || len(tsList[0].Samples) < 1 {
 			return fmt.Errorf("no value retured for queryExpr: %s", metricNamer.BuildUniqueKey())
 		}
+		klog.InfoS("cpu_recommend_debug, workload name %s", a.Recommendation.Spec.TargetRef.Name, "ts", tsList[0].Samples[0].String())
+
 		v := int64(tsList[0].Samples[0].Value * 1000)
 		q := resource.NewMilliQuantity(v, resource.DecimalSI)
 		cr.Target[corev1.ResourceCPU] = q.String()

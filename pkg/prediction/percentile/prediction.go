@@ -486,7 +486,7 @@ func (p *percentilePrediction) Name() string {
 func IsMassiveCpu(namer metricnaming.MetricNamer, sample common.Sample) bool {
 	metricNamer := namer.(*metricnaming.GeneralMetricNamer)
 	if metricNamer.Metric.Type == metricquery.ContainerMetricType && metricNamer.Metric.MetricName == corev1.ResourceCPU.String() {
-		if sample.Value > 10000 {
+		if sample.Value > 100 {
 			klog.V(4).Infof("Massive cpu metric %f, just ignore.", sample.Value)
 			return true
 		}
