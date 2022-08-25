@@ -6,10 +6,12 @@ import (
 	"sync"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/metricnaming"
+	"github.com/gocrane/crane/pkg/metricquery"
 	"github.com/gocrane/crane/pkg/prediction"
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/providers"
@@ -177,6 +179,9 @@ func (p *percentilePrediction) process(namer metricnaming.MetricNamer, cfg *inte
 		for _, ts := range historyTimeSeriesList {
 			for _, s := range ts.Samples {
 				t := time.Unix(s.Timestamp, 0)
+				if IsMassiveCpu(namer, s) {
+					continue
+				}
 				signal.addSample(t, s.Value)
 			}
 		}
@@ -190,6 +195,9 @@ func (p *percentilePrediction) process(namer metricnaming.MetricNamer, cfg *inte
 			signal := newAggregateSignal(cfg)
 			for _, s := range ts.Samples {
 				t := time.Unix(s.Timestamp, 0)
+				if IsMassiveCpu(namer, s) {
+					continue
+				}
 				signal.addSample(t, s.Value)
 			}
 			signal.labels = ts.Labels
@@ -362,6 +370,9 @@ func (p *percentilePrediction) initFromHistory(namer metricnaming.MetricNamer) e
 		for _, ts := range historyTimeSeriesList {
 			for _, s := range ts.Samples {
 				t := time.Unix(s.Timestamp, 0)
+				if IsMassiveCpu(namer, s) {
+					continue
+				}
 				signal.addSample(t, s.Value)
 			}
 		}
@@ -376,6 +387,9 @@ func (p *percentilePrediction) initFromHistory(namer metricnaming.MetricNamer) e
 			signal := newAggregateSignal(cfg)
 			for _, s := range ts.Samples {
 				t := time.Unix(s.Timestamp, 0)
+				if IsMassiveCpu(namer, s) {
+					continue
+				}
 				signal.addSample(t, s.Value)
 			}
 			signal.labels = ts.Labels
@@ -414,6 +428,9 @@ func (p *percentilePrediction) addSamples(namer metricnaming.MetricNamer) {
 			}
 			sample := ts.Samples[len(ts.Samples)-1]
 			sampleTime := time.Unix(sample.Timestamp, 0)
+			if IsMassiveCpu(namer, sample) {
+				continue
+			}
 			signal.addSample(sampleTime, sample.Value)
 
 			// current time is reach the window length of percentile need to accumulating data, the model is ready to do predict
@@ -464,4 +481,16 @@ func (p *percentilePrediction) addSamples(namer metricnaming.MetricNamer) {
 
 func (p *percentilePrediction) Name() string {
 	return "Percentile"
+}
+
+func IsMassiveCpu(namer metricnaming.MetricNamer, sample common.Sample) bool {
+	metricNamer := namer.(*metricnaming.GeneralMetricNamer)
+	if metricNamer.Metric.Type == metricquery.ContainerMetricType && metricNamer.Metric.MetricName == corev1.ResourceCPU.String() {
+		if sample.Value > 10000 {
+			klog.V(4).Infof("Massive cpu metric %f, just ignore.", sample.Value)
+			return true
+		}
+	}
+
+	return false
 }

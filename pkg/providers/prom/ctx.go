@@ -99,6 +99,7 @@ func (c *context) queryByShards(ctx gocontext.Context, queryShards *QueryShards)
 			if len(warnings) != 0 {
 				klog.V(4).InfoS("Prom query range warnings", "warnings", warnings, "window", window, "query", queryShards.query)
 			}
+			klog.V(8).InfoS("Prom query range by shards", "warnings", warnings, "window", window, "value", value.String(), "query", queryShards.query)
 			if err != nil {
 				resultsCh <- &QueryShardResult{
 					window:    window,
