@@ -21,6 +21,8 @@ Crane 是一个基于 FinOps 的云资源分析与成本优化平台。它的愿
 2. **成本分析**: 周期性的分析集群资源的状态并提供优化建议。
 3. **成本优化**: 通过丰富的优化工具更新配置达成降本的目标。
 
+https://user-images.githubusercontent.com/35299017/186680122-d7756b47-06be-44cb-8553-1957eaa3ed45.mp4
+
 ## Main Features
 
 <img alt="Crane Overview" height="330" src="docs/images/crane-overview.png" width="900"/>
