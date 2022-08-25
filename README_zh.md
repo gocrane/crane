@@ -78,7 +78,6 @@ Crane Agent 通过 `DaemonSet` 部署在集群的节点上。
 ## 文档
 
 完整的文档请[查看](https://docs.gocrane.io)。
-Full documentation is available on the [Crane website](https://docs.gocrane.io).
 
 ## 社区
 

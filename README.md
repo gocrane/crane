@@ -22,7 +22,7 @@ Crane is a full lifecycle FinOps Platform for Cloud Resource Analytics and Econo
 3. **Optimization**: Rich set of functionalities to operate and reduce your cost.
 
 <p align="left">
-<a href="/"><img src="docs/images/crane-journey.gif" alt="banner" width="500px"></a>
+<a href="/"><img src="docs/images/crane-journey.gif" alt="banner" width="1000px"></a>
 </p>
 
 **Live Demo** for Crane Dashboard: http://dashboard.gocrane.io/
