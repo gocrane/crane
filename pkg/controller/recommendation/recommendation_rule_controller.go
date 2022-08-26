@@ -337,15 +337,15 @@ func (c *RecommendationRuleController) getIdentities(ctx context.Context, recomm
 		}
 
 		for i := range filterdUnstructureds {
-			k := objRefKey(rs.Kind, rs.APIVersion, unstructureds[i].GetNamespace(), unstructureds[i].GetName())
+			k := objRefKey(rs.Kind, rs.APIVersion, filterdUnstructureds[i].GetNamespace(), filterdUnstructureds[i].GetName())
 			if _, exists := identities[k]; !exists {
 				identities[k] = ObjectIdentity{
-					Namespace:  unstructureds[i].GetNamespace(),
-					Name:       unstructureds[i].GetName(),
+					Namespace:  filterdUnstructureds[i].GetNamespace(),
+					Name:       filterdUnstructureds[i].GetName(),
 					Kind:       rs.Kind,
 					APIVersion: rs.APIVersion,
-					Labels:     unstructureds[i].GetLabels(),
-					Object:     unstructureds[i],
+					Labels:     filterdUnstructureds[i].GetLabels(),
+					Object:     filterdUnstructureds[i],
 				}
 			}
 		}
