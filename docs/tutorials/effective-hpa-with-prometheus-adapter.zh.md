@@ -128,6 +128,11 @@ spec:
       containers:
       - image: luxas/autoscale-demo:v0.1.2
         name: metrics-provider
+        resources:
+          limits:
+            cpu: 500m
+          requests:
+            cpu: 200m
         ports:
         - name: http
           containerPort: 8080
