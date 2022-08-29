@@ -216,21 +216,15 @@ func GetContainerIdFromPod(pod *v1.Pod, containerName string) string {
 	return ""
 }
 
-// Whether pod uses ext resource ext-resource.node.gocrane.io, and value it uses
-func ExtResourceAllocated(pod *v1.Pod, resName v1.ResourceName) (hasExtResource bool, extCpuLimit, extCpuRequest int64) {
+// GetElasticResourceLimit sum all containers resources limit for gocrane.io/resource
+// As extended resource is not over committable resource, so request = limit
+func GetElasticResourceLimit(pod *v1.Pod, resName v1.ResourceName) (amount int64) {
 	resPrefix := fmt.Sprintf(ExtResourcePrefixFormat, resName)
 	for i := range pod.Spec.Containers {
 		container := pod.Spec.Containers[i]
 		for res, val := range container.Resources.Limits {
 			if strings.HasPrefix(res.String(), resPrefix) {
-				hasExtResource = true
-				extCpuLimit += val.MilliValue()
-			}
-		}
-		for res, val := range container.Resources.Requests {
-			if strings.HasPrefix(res.String(), resPrefix) {
-				hasExtResource = true
-				extCpuRequest += val.MilliValue()
+				amount += val.MilliValue()
 			}
 		}
 	}

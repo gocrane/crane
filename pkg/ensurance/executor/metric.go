@@ -3,7 +3,7 @@ package executor
 import (
 	"sync"
 
-	podinfo "github.com/gocrane/crane/pkg/ensurance/executor/pod-info"
+	podinfo "github.com/gocrane/crane/pkg/ensurance/executor/podinfo"
 )
 
 type metric struct {
@@ -16,15 +16,15 @@ type metric struct {
 	// Some incompressible metric such as memory usage can be given a higher priority
 	ActionPriority int
 
-	SortAble bool
+	Sortable bool
 	SortFunc func(pods []podinfo.PodContext)
 
-	ThrottleAble       bool
+	Throttleable       bool
 	ThrottleQuantified bool
 	ThrottleFunc       func(ctx *ExecuteContext, index int, ThrottleDownPods ThrottlePods, totalReleasedResource *ReleaseResource) (errPodKeys []string, released ReleaseResource)
 	RestoreFunc        func(ctx *ExecuteContext, index int, ThrottleUpPods ThrottlePods, totalReleasedResource *ReleaseResource) (errPodKeys []string, released ReleaseResource)
 
-	EvictAble       bool
+	Evictable       bool
 	EvictQuantified bool
 	// If use goroutine to evcit, make sure to calculate release resources outside the goroutine
 	EvictFunc func(wg *sync.WaitGroup, ctx *ExecuteContext, index int, totalReleasedResource *ReleaseResource, EvictPods EvictPods) (errPodKeys []string, released ReleaseResource)
@@ -38,7 +38,7 @@ func registerMetricMap(m metric) {
 
 func GetThrottleAbleMetricName() (throttleAbleMetricList []WaterLineMetric) {
 	for _, m := range metricMap {
-		if m.ThrottleAble {
+		if m.Throttleable {
 			throttleAbleMetricList = append(throttleAbleMetricList, m.Name)
 		}
 	}
@@ -47,7 +47,7 @@ func GetThrottleAbleMetricName() (throttleAbleMetricList []WaterLineMetric) {
 
 func GetEvictAbleMetricName() (evictAbleMetricList []WaterLineMetric) {
 	for _, m := range metricMap {
-		if m.EvictAble {
+		if m.Evictable {
 			evictAbleMetricList = append(evictAbleMetricList, m.Name)
 		}
 	}
