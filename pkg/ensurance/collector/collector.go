@@ -91,7 +91,7 @@ func (s *StateCollector) Run(stop <-chan struct{}) {
 
 	// do collect periodically
 	go func() {
-		updateTicker := time.NewTicker(10 * time.Second)
+		updateTicker := time.NewTicker(s.collectInterval)
 		defer updateTicker.Stop()
 		for {
 			select {
