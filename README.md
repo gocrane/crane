@@ -13,11 +13,11 @@
 
 > English | [中文](README_zh.md)
 
-Crane is a full lifecycle FinOps Platform for Cloud Resource Analytics and Economics in Kubernetes clusters.The goal is not only help user to manage cloud cost easier but also ensure the quality of applications.
+Crane is a FinOps Platform for Cloud Resource Analytics and Economics in Kubernetes clusters. The goal is not only help user to manage cloud cost easier but also ensure the quality of applications.
 
 **How to start a Cost-Saving journey on Crane?**
 
-1. **Visualization**: Cost insight for cloud assets and kubernetes resources(Deployments, StatefulSets).
+1. **Understanding**: Cost insight for cloud assets and kubernetes resources(Deployments, StatefulSets).
 2. **Analytics**: Periodically analytics the states in cluster and provide optimization recommendations.
 3. **Optimization**: Rich set of functionalities to operate and reduce your cost.
 
