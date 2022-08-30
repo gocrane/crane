@@ -520,27 +520,29 @@ func (s *AnomalyAnalyzer) mergeSchedulingActions(actionContexts []ecache.ActionC
 	if len(actionContexts) == 0 {
 		s.ToggleScheduleSetting(avoidanceExecutor, false)
 	} else {
+		// If there is any actionContext is Triggered , or is Restored but in the CoolDownSeconds period, schedule should be disable;
+		// Otherwise, schedule shoule be able.
 		for _, ac := range actionContexts {
-			klog.V(4).Infof("actionContext %+v", ac)
-			klog.V(4).Infof("trigger times %+v, restore times %+v", s.triggered, s.restored)
+			if ac.Triggered {
+				metrics.UpdateAnalyzerStatus(metrics.AnalyzeTypeEnableScheduling, float64(0))
+				s.ToggleScheduleSetting(avoidanceExecutor, true)
+				break
+			}
+
 			action, ok := actionMap[ac.ActionName]
 			if !ok {
 				klog.Warningf("Action %s defined in nodeQOS %s is not found", ac.ActionName, ac.NodeQOS.Name)
 				continue
 			}
-
-			if ac.Triggered {
+			if ac.Restored && !now.After(s.lastTriggeredTime.Add(time.Duration(action.Spec.CoolDownSeconds)*time.Second)) {
 				metrics.UpdateAnalyzerStatus(metrics.AnalyzeTypeEnableScheduling, float64(0))
 				s.ToggleScheduleSetting(avoidanceExecutor, true)
-			}
-
-			if ac.Restored {
-				if now.After(s.lastTriggeredTime.Add(time.Duration(action.Spec.CoolDownSeconds) * time.Second)) {
-					metrics.UpdateAnalyzerStatus(metrics.AnalyzeTypeEnableScheduling, float64(1))
-					s.ToggleScheduleSetting(avoidanceExecutor, false)
-				}
+				break
 			}
 		}
+
+		metrics.UpdateAnalyzerStatus(metrics.AnalyzeTypeEnableScheduling, float64(1))
+		s.ToggleScheduleSetting(avoidanceExecutor, false)
 	}
 }
 
