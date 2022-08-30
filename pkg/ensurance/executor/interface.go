@@ -29,13 +29,13 @@ type ExecuteContext struct {
 	RuntimeClient pb.RuntimeServiceClient
 	RuntimeConn   *grpc.ClientConn
 
-	// Gap for metrics Evictable/Throttleable
-	// Key is the metric name, value is (actual used)-(the lowest waterline for NodeQOSEnsurancePolicies which use throttleDown action)
-	ThrottoleDownGapToWaterLines GapToWaterLines
-	// Key is the metric name, value is (actual used)-(the lowest waterline for NodeQOSEnsurancePolicies which use throttleUp action)
-	ThrottoleUpGapToWaterLines GapToWaterLines
-	// key is the metric name, value is (actual used)-(the lowest waterline for NodeQOSEnsurancePolicies which use evict action)
-	EvictGapToWaterLines GapToWaterLines
+	// Gap for metrics Evictable/ThrottleAble
+	// Key is the metric name, value is (actual used)-(the lowest watermark for NodeQOSEnsurancePolicies which use throttleDown action)
+	ToBeThrottleDown Gaps
+	// Key is the metric name, value is (actual used)-(the lowest watermark for NodeQOSEnsurancePolicies which use throttleUp action)
+	TOBEThrottleUp Gaps
+	// key is the metric name, value is (actual used)-(the lowest watermark for NodeQOSEnsurancePolicies which use evict action)
+	ToBeEvict Gaps
 
 	stateMap map[string][]common.TimeSeries
 

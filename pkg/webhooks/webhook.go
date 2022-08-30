@@ -66,13 +66,13 @@ func SetupWebhookWithManager(mgr ctrl.Manager, autoscalingEnabled, nodeResourceE
 	}
 
 	if nodeResourceEnabled || clusterNodePredictionEnabled {
-		nepValidationAdmission := ensurance.NepValidationAdmission{}
+		nodeQOSValidationAdmission := ensurance.NodeQOSValidationAdmission{}
 		err := ctrl.NewWebhookManagedBy(mgr).
-			For(&ensuranceapi.NodeQOSEnsurancePolicy{}).
-			WithValidator(&nepValidationAdmission).
+			For(&ensuranceapi.NodeQOS{}).
+			WithValidator(&nodeQOSValidationAdmission).
 			Complete()
 		if err != nil {
-			klog.Errorf("Failed to setup NodeQOSEnsurancePolicy webhook: %v", err)
+			klog.Errorf("Failed to setup NodeQOS webhook: %v", err)
 			return err
 		}
 

@@ -6,17 +6,23 @@ rules:
   - apiGroups:
       - ""
     resources:
-      - pods/eviction
-      - pods/status
       - pods
+      - pods/status
+      - nodes
+      - nodes/status
+      - nodes/finalizers
     verbs:
-      - create
       - get
       - list
       - watch
       - update
       - patch
-      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - pods/eviction
+    verbs:
+      - create
   - apiGroups:
       - ""
     resources:
@@ -32,47 +38,16 @@ rules:
     verbs:
       - "*"
   - apiGroups:
-      - ""
-    resources:
-      - nodes
-      - nodes/status
-      - nodes/finalizers
-    verbs:
-      - get
-      - list
-      - watch
-      - update
-      - patch
-  - apiGroups:
       - "ensurance.crane.io"
     resources:
-      - nodeqosensurancepolicies
-    verbs:
-      - get
-      - list
-      - watch
-      - update
-      - patch
-  - apiGroups:
-      - "ensurance.crane.io"
-    resources:
-      - podqosensurancepolicies
-    verbs:
-      - get
-      - list
-      - watch
-      - update
-      - patch
-  - apiGroups:
-      - "ensurance.crane.io"
-    resources:
+      - podqoss
+      - nodeqoss
       - avoidanceactions
     verbs:
       - get
       - list
       - watch
       - update
-      - patch
   - apiGroups:
       - "prediction.crane.io"
     resources:
@@ -83,8 +58,8 @@ rules:
       - list
       - watch
       - create
-      - delete
       - update
+      - patch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

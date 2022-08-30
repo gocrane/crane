@@ -17,8 +17,8 @@ import (
 
 type EvictExecutor struct {
 	EvictPods EvictPods
-	// All metrics(not only can be quantified metrics) metioned in triggerd NodeQOSEnsurancePolicy and their corresponding waterlines
-	EvictWaterLine WaterLines
+	// All metrics(not only can be quantified metrics) metioned in triggerd NodeQOS and their corresponding watermarks
+	EvictWatermark Watermarks
 }
 
 type EvictPods []podinfo.PodContext
@@ -53,39 +53,39 @@ func (e *EvictExecutor) Avoid(ctx *ExecuteContext) error {
 	totalReleased := ReleaseResource{}
 
 	/* The step to evict:
-	1. If EvictWaterLine has metrics that can't be quantified, select a evictable metric which has the highest action priority, use its EvictFunc to evict all selected pods, then return
-	2. Get the gaps between current usage and waterlines
+	1. If EvictWatermark has metrics that can't be quantified, select a evictable metric which has the highest action priority, use its EvictFunc to evict all selected pods, then return
+	2. Get the gaps between current usage and watermarks
 		2.1 If there is a metric that can't get current usage, select a evictable metric which has the highest action priority, use its EvictFunc to evict all selected pods, then return
 		2.2 Traverse metrics that can be quantified, if there is gap for the metric, then sort candidate pods by its SortFunc if exists, otherwise use GeneralSorter by default.
-	       Then evict sorted pods one by one util there is no gap to waterline
+	       Then evict sorted pods one by one util there is no gap to watermark
 	*/
 
-	metricsEvictQuantified, MetricsNotEvcitQuantified := e.EvictWaterLine.DivideMetricsByEvictQuantified()
+	quantified, notQuantified := e.EvictWatermark.DivideMetricsByEvictQuantified()
 
 	// There is a metric that can't be EvictQuantified, so evict all selected pods
-	if len(MetricsNotEvcitQuantified) != 0 {
+	if len(notQuantified) != 0 {
 		klog.V(6).Info("There is a metric that can't be EvcitQuantified")
 
-		highestPriorityMetric := e.EvictWaterLine.GetHighestPriorityEvictAbleMetric()
+		highestPriorityMetric := e.EvictWatermark.GetHighestPriorityEvictableMetric()
 		if highestPriorityMetric != "" {
 			klog.V(6).Infof("The highestPriorityMetric is %s", highestPriorityMetric)
 			errPodKeys = e.evictPods(ctx, &totalReleased, highestPriorityMetric)
 		}
 	} else {
-		_, _, ctx.EvictGapToWaterLines = buildGapToWaterLine(ctx.stateMap, ThrottleExecutor{}, *e, ctx.executeExcessPercent)
+		ctx.ToBeEvict = calculateGaps(ctx.stateMap, nil, e, ctx.executeExcessPercent)
 
-		if ctx.EvictGapToWaterLines.HasUsageMissedMetric() {
+		if ctx.ToBeEvict.HasUsageMissedMetric() {
 			klog.V(6).Infof("There is a metric usage missed")
-			highestPriorityMetric := e.EvictWaterLine.GetHighestPriorityEvictAbleMetric()
+			highestPriorityMetric := e.EvictWatermark.GetHighestPriorityEvictableMetric()
 			if highestPriorityMetric != "" {
 				errPodKeys = e.evictPods(ctx, &totalReleased, highestPriorityMetric)
 			}
 		} else {
-			// The metrics in EvictGapToWaterLines are can be EvictQuantified and has current usage, then evict precisely
+			// The metrics in ToBeEvict are can be EvictQuantified and has current usage, then evict precisely
 			var released ReleaseResource
 			wg := sync.WaitGroup{}
-			for _, m := range metricsEvictQuantified {
-				klog.V(6).Infof("Evict precisely on metric %s", m)
+			for _, m := range quantified {
+				klog.V(6).Infof("Evict precisely on metric %s, and current gaps are %+v", m, ctx.ToBeEvict)
 				if metricMap[m].Sortable {
 					metricMap[m].SortFunc(e.EvictPods)
 				} else {
@@ -96,17 +96,15 @@ func (e *EvictExecutor) Avoid(ctx *ExecuteContext) error {
 				for _, pc := range e.EvictPods {
 					klog.V(6).Info(pc.Key.String())
 				}
-
-				for !ctx.EvictGapToWaterLines.TargetGapsRemoved(m) {
-					klog.V(6).Infof("For metric %s, there is still gap to waterlines: %f", m, ctx.EvictGapToWaterLines[m])
-					if podinfo.HasNoExecutedPod(e.EvictPods) {
-						index := podinfo.GetFirstNoExecutedPod(e.EvictPods)
+				for !ctx.ToBeEvict.TargetGapsRemoved(m) {
+					klog.V(2).Infof("For metric %s, there is more gap to watermarks: %f of %s", m, ctx.ToBeEvict[m], m)
+					if podinfo.ContainsNoExecutedPod(e.EvictPods) {
+						index := podinfo.GetFirstPendingPod(e.EvictPods)
 						errKeys, released = metricMap[m].EvictFunc(&wg, ctx, index, &totalReleased, e.EvictPods)
 						errPodKeys = append(errPodKeys, errKeys...)
-						klog.V(6).Infof("Evict pods %s, released %f resource", e.EvictPods[index].Key, released[m])
-
+						klog.Warningf("Evicted pods %s, released %f of %s", e.EvictPods[index].Key, released[m], m)
 						e.EvictPods[index].Executed = true
-						ctx.EvictGapToWaterLines[m] -= released[m]
+						ctx.ToBeEvict[m] -= released[m]
 					} else {
 						klog.V(6).Info("There is no pod that can be evicted")
 						break
@@ -128,7 +126,7 @@ func (e *EvictExecutor) Restore(ctx *ExecuteContext) error {
 	return nil
 }
 
-func (e *EvictExecutor) evictPods(ctx *ExecuteContext, totalReleasedResource *ReleaseResource, m WaterLineMetric) (errPodKeys []string) {
+func (e *EvictExecutor) evictPods(ctx *ExecuteContext, totalReleasedResource *ReleaseResource, m WatermarkMetric) (errPodKeys []string) {
 	wg := sync.WaitGroup{}
 	for i := range e.EvictPods {
 		errKeys, _ := metricMap[m].EvictFunc(&wg, ctx, i, totalReleasedResource, e.EvictPods)

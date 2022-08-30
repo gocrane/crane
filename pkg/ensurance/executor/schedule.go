@@ -24,7 +24,7 @@ func (b *ScheduleExecutor) Avoid(ctx *ExecuteContext) error {
 	metrics.UpdateLastTimeWithSubComponent(string(known.ModuleActionExecutor), string(metrics.SubComponentSchedule), metrics.StepAvoid, start)
 	defer metrics.UpdateDurationFromStartWithSubComponent(string(known.ModuleActionExecutor), string(metrics.SubComponentSchedule), metrics.StepAvoid, start)
 
-	klog.V(6).Info("DisableScheduledExecutor avoid, %v", *b)
+	klog.V(4).Infof("ScheduleExecutor, ToBeDisable: %v, ToBeRestore: %v", b.ToBeDisable, b.ToBeRestore)
 
 	if !b.ToBeDisable {
 		metrics.UpdateExecutorStatus(metrics.SubComponentSchedule, metrics.StepAvoid, 0)
@@ -54,7 +54,7 @@ func (b *ScheduleExecutor) Restore(ctx *ExecuteContext) error {
 	metrics.UpdateLastTimeWithSubComponent(string(known.ModuleActionExecutor), string(metrics.SubComponentSchedule), metrics.StepRestore, start)
 	defer metrics.UpdateDurationFromStartWithSubComponent(string(known.ModuleActionExecutor), string(metrics.SubComponentSchedule), metrics.StepRestore, start)
 
-	klog.V(6).Info("DisableScheduledExecutor restore, %v", *b)
+	klog.V(4).Infof("ScheduleExecutor, ToBeDisable: %v, ToBeRestore: %v", b.ToBeDisable, b.ToBeRestore)
 
 	if !b.ToBeRestore {
 		metrics.UpdateExecutorStatus(metrics.SubComponentSchedule, metrics.StepRestore, 0.0)

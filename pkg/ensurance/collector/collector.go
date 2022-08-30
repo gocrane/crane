@@ -24,7 +24,7 @@ import (
 
 type StateCollector struct {
 	nodeName          string
-	nepLister         ensuranceListers.NodeQOSEnsurancePolicyLister
+	nodeQOSLister     ensuranceListers.NodeQOSLister
 	podLister         corelisters.PodLister
 	nodeLister        corelisters.NodeLister
 	healthCheck       *metrics.HealthCheck
@@ -40,7 +40,7 @@ type StateCollector struct {
 	rw                sync.RWMutex
 }
 
-func NewStateCollector(nodeName string, nepLister ensuranceListers.NodeQOSEnsurancePolicyLister, podLister corelisters.PodLister,
+func NewStateCollector(nodeName string, nodeQOSLister ensuranceListers.NodeQOSLister, podLister corelisters.PodLister,
 	nodeLister corelisters.NodeLister, ifaces []string, healthCheck *metrics.HealthCheck, collectInterval time.Duration, exclusiveCPUSet func() cpuset.CPUSet, manager cadvisor.Manager) *StateCollector {
 	analyzerChann := make(chan map[string][]common.TimeSeries)
 	nodeResourceChann := make(chan map[string][]common.TimeSeries)
@@ -48,7 +48,7 @@ func NewStateCollector(nodeName string, nepLister ensuranceListers.NodeQOSEnsura
 	State := make(map[string][]common.TimeSeries)
 	return &StateCollector{
 		nodeName:          nodeName,
-		nepLister:         nepLister,
+		nodeQOSLister:     nodeQOSLister,
 		podLister:         podLister,
 		nodeLister:        nodeLister,
 		healthCheck:       healthCheck,
@@ -69,6 +69,7 @@ func (s *StateCollector) Name() string {
 }
 
 func (s *StateCollector) Run(stop <-chan struct{}) {
+	klog.Infof("Starting state collector.")
 	s.UpdateCollectors()
 	go func() {
 		updateTicker := time.NewTicker(s.collectInterval)
@@ -151,9 +152,9 @@ func (s *StateCollector) Collect() {
 }
 
 func (s *StateCollector) UpdateCollectors() {
-	allNeps, err := s.nepLister.List(labels.Everything())
+	allNodeQOSs, err := s.nodeQOSLister.List(labels.Everything())
 	if err != nil {
-		klog.Warningf("Failed to list NodeQOSEnsurancePolicy, err %v", err)
+		klog.Warningf("Failed to list NodeQOS, err %v", err)
 	}
 	node, err := s.nodeLister.Get(s.nodeName)
 	if err != nil {
@@ -161,13 +162,13 @@ func (s *StateCollector) UpdateCollectors() {
 		return
 	}
 	var nodeLocal bool
-	for _, n := range allNeps {
+	for _, n := range allNodeQOSs {
 		if matched, err := utils.LabelSelectorMatched(node.Labels, n.Spec.Selector); err != nil || !matched {
 			continue
 		}
 
 		if n.Spec.NodeQualityProbe.NodeLocalGet == nil {
-			klog.V(4).Infof("Probe type of NEP %s/%s is not node local, continue", n.Namespace, n.Name)
+			klog.V(4).Infof("Probe type of NodeQOS %s/%s is not node local, continue", n.Namespace, n.Name)
 			continue
 		}
 

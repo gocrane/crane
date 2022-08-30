@@ -1,0 +1,47 @@
+apiVersion: ensurance.crane.io/v1alpha1
+kind: PodQOS
+metadata:
+  name: all-be-pods
+spec:
+  allowedActions:
+    - eviction
+  resourceQOS:
+    cpuQOS:
+      cpuPriority: 7
+      htIsolation:
+        enable: false
+  scopeSelector:
+    matchExpressions:
+      - operator: In
+        scopeName: QOSClass
+        values:
+          - BestEffort
+---
+apiVersion: ensurance.crane.io/v1alpha1
+kind: NodeQOS
+metadata:
+  name: eviction-on-high-usage
+spec:
+  nodeQualityProbe:
+    nodeLocalGet:
+      localCacheTTLSeconds: 60
+    timeoutSeconds: 10
+  rules:
+    - actionName: eviction
+      avoidanceThreshold: 2
+      metricRule:
+        name: cpu_total_usage
+        value: 5000
+      name: cpu-usage
+      restoreThreshold: 2
+      strategy: None
+---
+apiVersion: ensurance.crane.io/v1alpha1
+kind: AvoidanceAction
+metadata:
+  name: eviction
+spec:
+  coolDownSeconds: 300
+  description: evict low priority pods
+  eviction:
+    terminationGracePeriodSeconds: 30

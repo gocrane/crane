@@ -26,7 +26,7 @@ type Options struct {
 	// Ifaces is the network devices to collect metric
 	Ifaces               []string
 	NodeResourceReserved map[string]string
-	// ExecuteExcess is the percentage of executions that exceed the gap between current usage and waterlines
+	// ExecuteExcess is the percentage of executions that exceed the gap between current usage and watermarks
 	ExecuteExcess string
 }
 
@@ -56,5 +56,5 @@ func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.StringArrayVar(&o.Ifaces, "ifaces", []string{"eth0"}, "The network devices to collect metric, use comma to separated, default: eth0")
 	flags.Var(cliflag.NewMapStringString(&o.NodeResourceReserved), "node-resource-reserved", "A set of ResourceName=Percent (e.g. cpu=40%,memory=40%)")
 	flags.DurationVar(&o.MaxInactivity, "max-inactivity", 5*time.Minute, "Maximum time from last recorded activity before automatic restart, default: 5min")
-	flags.StringVar(&o.ExecuteExcess, "execute-excess", "10%", "The percentage of executions that exceed the gap between current usage and waterlines, default: 10%.")
+	flags.StringVar(&o.ExecuteExcess, "execute-excess", "10%", "The percentage of executions that exceed the gap between current usage and watermarks, default: 10%.")
 }

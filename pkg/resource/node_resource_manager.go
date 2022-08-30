@@ -130,7 +130,6 @@ func (o *NodeResourceManager) Run(stop <-chan struct{}) {
 			case state := <-o.stateChann:
 				o.state = state
 				o.lastStateTime = time.Now()
-			case <-tspUpdateTicker.C:
 				start := time.Now()
 				metrics.UpdateLastTime(string(known.ModuleNodeResourceManager), metrics.StepUpdateNodeResource, start)
 				o.UpdateNodeResource()
@@ -158,10 +157,10 @@ func (o *NodeResourceManager) UpdateNodeResource() {
 		// Update Node status extend-resource info
 		// TODO fix: strategic merge patch kubernetes
 		if _, err := o.client.CoreV1().Nodes().UpdateStatus(context.TODO(), nodeCopy, metav1.UpdateOptions{}); err != nil {
-			klog.Errorf("Failed to update node %s's status extend-resource, %v", nodeCopy.Name, err)
+			klog.Errorf("Failed to update node %s extended resource, %v", nodeCopy.Name, err)
 			return
 		}
-		klog.V(4).Infof("Update Node %s Extend Resource Success", node.Name)
+		klog.V(2).Infof("Update node %s extended resource successfully", node.Name)
 		o.recorder.Event(node, v1.EventTypeNormal, "UpdateNode", generateUpdateEventMessage(resourcesFrom))
 	}
 }
@@ -331,7 +330,7 @@ func (o *NodeResourceManager) GetCpuCoreCanNotBeReclaimedFromLocal() float64 {
 		klog.V(4).Infof("Can't get %s from NodeResourceManager local state", types.MetricNameExclusiveCPUIdle)
 	}
 
-	klog.V(6).Infof("nodeCpuUsageTotal: %s, exclusiveCPUIdle: %s, extResContainerCpuUsageTotal: %s", nodeCpuUsageTotal, exclusiveCPUIdle, extResContainerCpuUsageTotal)
+	klog.V(6).Infof("nodeCpuUsageTotal: %f, exclusiveCPUIdle: %f, extResContainerCpuUsageTotal: %f", nodeCpuUsageTotal, exclusiveCPUIdle, extResContainerCpuUsageTotal)
 
 	// 1. Exclusive tethered CPU cannot be reclaimed even if the free part is free, so add the exclusive CPUIdle to the CanNotBeReclaimed CPU
 	// 2. The CPU used by extRes-container needs to be reclaimed, otherwise it will be double-counted due to the allotted mechanism of k8s, so the extResContainerCpuUsageTotal is subtracted from the CanNotBeReclaimedCpu
