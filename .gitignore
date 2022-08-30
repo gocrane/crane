@@ -18,3 +18,9 @@ vendor/
 pkg/web/build
 pkg/web/.env
 pkg/web/node_modules
+
+site/resources
+site/public
+site/.hugo_build.lock
+site/node_modules
+site/package-lock.json
