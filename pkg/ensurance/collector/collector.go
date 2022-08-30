@@ -185,7 +185,7 @@ func (s *StateCollector) UpdateCollectors() {
 
 		break
 	}
-	// if node resource controller is enabled, it indicates local metrics need to be collected no matter nep is defined or not
+	// if node resource controller is enabled, it indicates local metrics need to be collected no matter nodeqos is defined or not
 	if nodeResourceGate := utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResource); nodeResourceGate {
 		if _, exists := s.collectors.Load(types.NodeLocalCollectorType); !exists {
 			nc := nodelocal.NewNodeLocal(s.ifaces, s.exclusiveCPUSet)

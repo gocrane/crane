@@ -177,16 +177,16 @@ func (t *ThrottleExecutor) Restore(ctx *ExecuteContext) error {
 			errPodKeys = t.restorePods(ctx, &totalReleased, highestPrioriyMetric)
 		}
 	} else {
-		ctx.TOBEThrottleUp = calculateGaps(ctx.stateMap, t, nil, ctx.executeExcessPercent)
+		ctx.ToBeThrottleUp = calculateGaps(ctx.stateMap, t, nil, ctx.executeExcessPercent)
 
-		if ctx.TOBEThrottleUp.HasUsageMissedMetric() {
+		if ctx.ToBeThrottleUp.HasUsageMissedMetric() {
 			klog.V(6).Info("There is a metric usage missed")
 			highestPrioriyMetric := t.ThrottleUpWatermark.GetHighestPriorityThrottleAbleMetric()
 			if highestPrioriyMetric != "" {
 				errPodKeys = t.restorePods(ctx, &totalReleased, highestPrioriyMetric)
 			}
 		} else {
-			// The metrics in TOBEThrottleUp are all in WatermarkMetricsCanBeQuantified and has current usage, then throttle precisely
+			// The metrics in ToBeThrottleUp are all in WatermarkMetricsCanBeQuantified and has current usage, then throttle precisely
 			var released ReleaseResource
 			for _, m := range metricsThrottleQuantified {
 				klog.V(6).Infof("ThrottleUp precisely on metric %s", m)
@@ -202,14 +202,14 @@ func (t *ThrottleExecutor) Restore(ctx *ExecuteContext) error {
 					klog.V(6).Info(pc.Key.String())
 				}
 
-				for index := 0; !ctx.TOBEThrottleUp.TargetGapsRemoved(m) && index < len(t.ThrottleUpPods); index++ {
-					klog.V(6).Infof("For metric %s, there is still gap to watermarks: %f", m, ctx.TOBEThrottleUp[m])
+				for index := 0; !ctx.ToBeThrottleUp.TargetGapsRemoved(m) && index < len(t.ThrottleUpPods); index++ {
+					klog.V(6).Infof("For metric %s, there is still gap to watermarks: %f", m, ctx.ToBeThrottleUp[m])
 
 					errKeys, released = metricMap[m].RestoreFunc(ctx, index, t.ThrottleUpPods, &totalReleased)
 					klog.V(6).Infof("ThrottleUp pods %s, released %f resource", t.ThrottleUpPods[index].Key, released[m])
 					errPodKeys = append(errPodKeys, errKeys...)
 
-					ctx.TOBEThrottleUp[m] -= released[m]
+					ctx.ToBeThrottleUp[m] -= released[m]
 				}
 			}
 		}

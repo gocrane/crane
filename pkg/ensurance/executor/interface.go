@@ -33,7 +33,7 @@ type ExecuteContext struct {
 	// Key is the metric name, value is (actual used)-(the lowest watermark for NodeQOSEnsurancePolicies which use throttleDown action)
 	ToBeThrottleDown Gaps
 	// Key is the metric name, value is (actual used)-(the lowest watermark for NodeQOSEnsurancePolicies which use throttleUp action)
-	TOBEThrottleUp Gaps
+	ToBeThrottleUp Gaps
 	// key is the metric name, value is (actual used)-(the lowest watermark for NodeQOSEnsurancePolicies which use evict action)
 	ToBeEvict Gaps
 
