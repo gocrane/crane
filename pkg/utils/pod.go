@@ -157,6 +157,30 @@ func GetExtCpuRes(container v1.Container) (resource.Quantity, bool) {
 			return val, true
 		}
 	}
+
+	for res, val := range container.Resources.Requests {
+		if strings.HasPrefix(res.String(), fmt.Sprintf(ExtResourcePrefixFormat, v1.ResourceCPU)) && val.Value() != 0 {
+			return val, true
+		}
+	}
+
+	return resource.Quantity{}, false
+}
+
+// GetExtMemRes get container's gocrane.io/memory usage
+func GetExtMemRes(container v1.Container) (resource.Quantity, bool) {
+	for res, val := range container.Resources.Limits {
+		if strings.HasPrefix(res.String(), fmt.Sprintf(ExtResourcePrefixFormat, v1.ResourceMemory)) && val.Value() != 0 {
+			return val, true
+		}
+	}
+
+	for res, val := range container.Resources.Requests {
+		if strings.HasPrefix(res.String(), fmt.Sprintf(ExtResourcePrefixFormat, v1.ResourceMemory)) && val.Value() != 0 {
+			return val, true
+		}
+	}
+
 	return resource.Quantity{}, false
 }
 
@@ -165,6 +189,7 @@ func GetContainerNameFromPod(pod *v1.Pod, containerId string) string {
 		return ""
 	}
 
+	// for docker
 	for _, v := range pod.Status.ContainerStatuses {
 		strList := strings.Split(v.ContainerID, "//")
 		if len(strList) > 0 {
@@ -174,6 +199,18 @@ func GetContainerNameFromPod(pod *v1.Pod, containerId string) string {
 		}
 	}
 
+	// for containerd
+	for _, v := range pod.Status.ContainerStatuses {
+		strList := strings.Split(v.ContainerID, "//")
+		if len(strList) > 0 {
+			klog.V(6).Infof("cri-containerd is %s ", "cri-containerd-"+strList[len(strList)-1]+".scope")
+			klog.V(6).Infof("containerid is %s", containerId)
+			if "cri-containerd-"+strList[len(strList)-1]+".scope" == containerId {
+				klog.V(6).Infof("111111111")
+				return v.Name
+			}
+		}
+	}
 	return ""
 }
 
@@ -189,13 +226,22 @@ func GetContainerFromPod(pod *v1.Pod, containerName string) *v1.Container {
 	return nil
 }
 
-// GetExtCpuRes get container's gocrane.io/cpu usage
+// GetContainerExtCpuResFromPod get container's gocrane.io/cpu usage
 func GetContainerExtCpuResFromPod(pod *v1.Pod, containerName string) (resource.Quantity, bool) {
 	c := GetContainerFromPod(pod, containerName)
 	if c == nil {
 		return resource.Quantity{}, false
 	}
 	return GetExtCpuRes(*c)
+}
+
+// GetContainerExtMemResFromPod get container's gocrane.io/memory usage
+func GetContainerExtMemResFromPod(pod *v1.Pod, containerName string) (resource.Quantity, bool) {
+	c := GetContainerFromPod(pod, containerName)
+	if c == nil {
+		return resource.Quantity{}, false
+	}
+	return GetExtMemRes(*c)
 }
 
 func GetContainerStatus(pod *v1.Pod, container v1.Container) v1.ContainerState {

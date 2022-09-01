@@ -194,14 +194,21 @@ func (o *NodeResourceManager) FindTargetNode(tsp *predictionapi.TimeSeriesPredic
 func (o *NodeResourceManager) BuildNodeStatus(node *v1.Node) map[string]int64 {
 	tspCanNotBeReclaimedResource := o.GetCanNotBeReclaimedResourceFromTsp(node)
 	localCanNotBeReclaimedResource := o.GetCanNotBeReclaimedResourceFromLocal()
+
 	reserveCpuPercent := o.reserveResource.CpuPercent
 	if nodeReserveCpuPercent, ok := getReserveResourcePercentFromNodeAnnotations(node.GetAnnotations(), v1.ResourceCPU.String()); ok {
 		reserveCpuPercent = &nodeReserveCpuPercent
 	}
 
+	reserveMemPercent := o.reserveResource.MemPercent
+	if nodeReserveMemPercent, ok := getReserveResourcePercentFromNodeAnnotations(node.GetAnnotations(), v1.ResourceMemory.String()); ok {
+		reserveMemPercent = &nodeReserveMemPercent
+	}
+
 	extResourceFrom := map[string]int64{}
 
 	for resourceName, value := range tspCanNotBeReclaimedResource {
+		klog.V(6).Infof("resourcename is %s", resourceName)
 		resourceFrom := "tsp"
 		maxUsage := value
 		if localCanNotBeReclaimedResource[resourceName] > maxUsage {
@@ -212,14 +219,19 @@ func (o *NodeResourceManager) BuildNodeStatus(node *v1.Node) map[string]int64 {
 		var nextRecommendation float64
 		switch resourceName {
 		case v1.ResourceCPU:
-			if reserveCpuPercent != nil {
+			if *reserveCpuPercent != 0 {
 				nextRecommendation = float64(node.Status.Allocatable.Cpu().Value()) - float64(node.Status.Allocatable.Cpu().Value())*(*reserveCpuPercent) - maxUsage/1000
 			} else {
 				nextRecommendation = float64(node.Status.Allocatable.Cpu().Value()) - maxUsage/1000
 			}
 		case v1.ResourceMemory:
 			// unit of memory in prometheus is in Ki, need to be converted to byte
-			nextRecommendation = float64(node.Status.Allocatable.Memory().Value()) - (maxUsage * 1000)
+			if *reserveMemPercent != 0 {
+				nextRecommendation = float64(node.Status.Allocatable.Memory().Value()) - float64(node.Status.Allocatable.Memory().Value())*(*reserveMemPercent) - maxUsage/1000
+			} else {
+				klog.V(6).Infof("allocatable mem is %d, maxusage is %f", node.Status.Allocatable.Memory().Value(), maxUsage)
+				nextRecommendation = float64(node.Status.Allocatable.Memory().Value()) - maxUsage
+			}
 		default:
 			continue
 		}
@@ -234,10 +246,18 @@ func (o *NodeResourceManager) BuildNodeStatus(node *v1.Node) map[string]int64 {
 				nextRecommendation)/float64(resValue.Value()) <= MinDeltaRatio {
 			continue
 		}
-		node.Status.Capacity[v1.ResourceName(extResourceName)] =
-			*resource.NewQuantity(int64(nextRecommendation), resource.DecimalSI)
-		node.Status.Allocatable[v1.ResourceName(extResourceName)] =
-			*resource.NewQuantity(int64(nextRecommendation), resource.DecimalSI)
+		switch resourceName {
+		case v1.ResourceCPU:
+			node.Status.Capacity[v1.ResourceName(extResourceName)] =
+				*resource.NewQuantity(int64(nextRecommendation), resource.DecimalSI)
+			node.Status.Allocatable[v1.ResourceName(extResourceName)] =
+				*resource.NewQuantity(int64(nextRecommendation), resource.DecimalSI)
+		case v1.ResourceMemory:
+			node.Status.Capacity[v1.ResourceName(extResourceName)] =
+				*resource.NewQuantity(int64(nextRecommendation), resource.BinarySI)
+			node.Status.Allocatable[v1.ResourceName(extResourceName)] =
+				*resource.NewQuantity(int64(nextRecommendation), resource.BinarySI)
+		}
 
 		extResourceFrom[resourceFrom+"-"+resourceName.String()] = int64(nextRecommendation)
 	}
@@ -297,8 +317,37 @@ func (o *NodeResourceManager) GetCanNotBeReclaimedResourceFromTsp(node *v1.Node)
 func (o *NodeResourceManager) GetCanNotBeReclaimedResourceFromLocal() map[v1.ResourceName]float64 {
 	return map[v1.ResourceName]float64{
 		v1.ResourceCPU:    o.GetCpuCoreCanNotBeReclaimedFromLocal(),
-		v1.ResourceMemory: 0,
+		v1.ResourceMemory: o.GetMemCanNotBeReclaimedFromLocal(),
 	}
+}
+
+func (o *NodeResourceManager) GetMemCanNotBeReclaimedFromLocal() float64 {
+	var memUsageTotal float64
+	memUsage, ok := o.state[string(types.MetricNameMemoryTotalUsage)]
+	if ok {
+		memUsageTotal = memUsage[0].Samples[0].Value
+		klog.V(4).Infof("%s: %f", types.MetricNameMemoryTotalUsage, memUsageTotal)
+
+	} else {
+		klog.V(4).Infof("Can't get %s from NodeResourceManager local state", types.MetricNameMemoryTotalUsage)
+	}
+
+	var extResContainerMemUsageTotal float64 = 0
+	extResContainerCpuUsageTotalTimeSeries, ok := o.state[string(types.MetricNameExtResContainerMemTotalUsage)]
+	if ok {
+		extResContainerMemUsageTotal = extResContainerCpuUsageTotalTimeSeries[0].Samples[0].Value
+	} else {
+		klog.V(4).Infof("Can't get %s from NodeResourceManager local state", types.MetricNameExtResContainerCpuTotalUsage)
+	}
+
+	klog.V(6).Infof("nodeMemUsageTotal: %f, extResContainerMemUsageTotal: %f", memUsageTotal, extResContainerMemUsageTotal)
+
+	// 1. Exclusive tethered CPU cannot be reclaimed even if the free part is free, so add the exclusive CPUIdle to the CanNotBeReclaimed CPU
+	// 2. The CPU used by extRes-container needs to be reclaimed, otherwise it will be double-counted due to the allotted mechanism of k8s, so the extResContainerCpuUsageTotal is subtracted from the CanNotBeReclaimedCpu
+	nodeMemCannotBeReclaimedSeconds := memUsageTotal - extResContainerMemUsageTotal
+
+	metrics.UpdateNodeMemCannotBeReclaimedSeconds(nodeMemCannotBeReclaimedSeconds)
+	return nodeMemCannotBeReclaimedSeconds
 }
 
 func (o *NodeResourceManager) GetCpuCoreCanNotBeReclaimedFromLocal() float64 {

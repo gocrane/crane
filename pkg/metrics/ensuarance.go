@@ -28,6 +28,7 @@ const (
 	PodResourceErrorTotal = "pod_resource_error_total"
 
 	NodeCpuCannotBeReclaimedSeconds = "node_cpu_cannot_be_reclaimed_seconds"
+	NodeMemCannotBeReclaimedSeconds = "node_mem_cannot_be_reclaimed_seconds"
 	NodeResourceRecommended         = "node_resource_recommended"
 	NodeResourceRecommendedFrom     = "node_resource_recommended_from"
 )
@@ -199,6 +200,17 @@ var (
 		}, []string{},
 	)
 
+	// LastActivity records the last activity time of each steps
+	nodeMemCannotBeReclaimedSeconds = k8smetrics.NewGaugeVec(
+		&k8smetrics.GaugeOpts{
+			Namespace:      CraneNamespace,
+			Subsystem:      CraneAgentSubsystem,
+			Name:           NodeMemCannotBeReclaimedSeconds,
+			Help:           "The mem seconds that cannot be reclaimed.",
+			StabilityLevel: k8smetrics.ALPHA,
+		}, []string{},
+	)
+
 	//NodeResourceRecommended
 	nodeResourceRecommended = k8smetrics.NewGaugeVec(
 		&k8smetrics.GaugeOpts{
@@ -304,6 +316,10 @@ func ExecutorEvictCountsInc() {
 
 func UpdateNodeCpuCannotBeReclaimedSeconds(value float64) {
 	nodeCpuCannotBeReclaimedSeconds.With(prometheus.Labels{}).Set(value)
+}
+
+func UpdateNodeMemCannotBeReclaimedSeconds(value float64) {
+	nodeMemCannotBeReclaimedSeconds.With(prometheus.Labels{}).Set(value)
 }
 
 func UpdateNodeResourceRecommendedValue(subComponent SubComponent, stepName StepLabel, resourceName string, from string, value float64) {

@@ -113,11 +113,12 @@ func (c *CadvisorCollector) Collect() (map[string][]common.TimeSeries, error) {
 		return nil, err
 	}
 	var extResCpuUse float64 = 0
+	var extResMemUse float64 = 0
 
 	var stateMap = make(map[string][]common.TimeSeries)
 	for _, pod := range allPods {
 		var now = time.Now()
-		containers, err := c.Manager.GetContainerInfoV2(types.GetCgroupPath(pod, c.Manager.GetCgroupDriver()), cadvisorapiv2.RequestOptions{
+		containers, err := c.Manager.GetContainerInfoV2(utils.GetCgroupPath(pod, c.Manager.GetCgroupDriver()), cadvisorapiv2.RequestOptions{
 			IdType:    cadvisorapiv2.TypeName,
 			Count:     1,
 			Recursive: true,
@@ -144,7 +145,8 @@ func (c *CadvisorCollector) Collect() (map[string][]common.TimeSeries, error) {
 				continue
 			}
 
-			_, hasExtRes := utils.GetContainerExtCpuResFromPod(pod, containerName)
+			_, hasExtCpuRes := utils.GetContainerExtCpuResFromPod(pod, containerName)
+			_, hasExtMemRes := utils.GetContainerExtMemResFromPod(pod, containerName)
 
 			// In the GetContainerInfoV2 not collect the cpu quota and period
 			// We used GetContainerInfo instead
@@ -156,15 +158,22 @@ func (c *CadvisorCollector) Collect() (map[string][]common.TimeSeries, error) {
 				continue
 			}
 
+			if hasExtMemRes {
+				extResMemUse += float64(v.Stats[0].Memory.Usage)
+			}
+
+			var containerLabels = GetContainerLabels(pod, containerId, containerName, hasExtCpuRes)
+			addSampleToStateMap(types.MetricNameContainerMemTotalUsage, composeSample(containerLabels, float64(v.Stats[0].Memory.Usage), now), stateMap)
+
 			if state, ok := c.latestContainersStates[key]; ok {
-				klog.V(8).Infof("For key %s, LatestContainersStates exist", key)
-				var containerLabels = GetContainerLabels(pod, containerId, containerName, hasExtRes)
+				klog.V(6).Infof("For key %s, LatestContainersStates exist", key)
 
 				cpuUsageSample, schedRunqueueTime := caculateCPUUsage(&v, &state)
+
 				if cpuUsageSample == 0 && schedRunqueueTime == 0 || math.IsNaN(cpuUsageSample) {
 					continue
 				}
-				if hasExtRes {
+				if hasExtCpuRes {
 					extResCpuUse += cpuUsageSample
 				}
 				addSampleToStateMap(types.MetricNameContainerCpuTotalUsage, composeSample(containerLabels, cpuUsageSample, now), stateMap)
@@ -173,24 +182,26 @@ func (c *CadvisorCollector) Collect() (map[string][]common.TimeSeries, error) {
 				addSampleToStateMap(types.MetricNameContainerCpuQuota, composeSample(containerLabels, float64(containerInfoV1.Spec.Cpu.Quota), now), stateMap)
 				addSampleToStateMap(types.MetricNameContainerCpuPeriod, composeSample(containerLabels, float64(containerInfoV1.Spec.Cpu.Period), now), stateMap)
 
-				klog.V(8).Infof("Pod: %s, containerName: %s, key %s, scheduler run queue time %.2f, container_cpu_total_usage %#v", klog.KObj(pod), containerName, key, schedRunqueueTime, cpuUsageSample)
+				klog.V(6).Infof("Pod: %s, containerName: %s, key %s, scheduler run queue time %.2f, container_cpu_total_usage %#v", klog.KObj(pod), containerName, key, schedRunqueueTime, cpuUsageSample)
 			}
 			containerStates[key] = ContainerState{stat: v, timestamp: now}
 		}
 	}
 	addSampleToStateMap(types.MetricNameExtResContainerCpuTotalUsage, composeSample(make([]common.Label, 0), extResCpuUse, time.Now()), stateMap)
+	addSampleToStateMap(types.MetricNameExtResContainerMemTotalUsage, composeSample(make([]common.Label, 0), extResMemUse, time.Now()), stateMap)
+	klog.V(6).Infof("ext_res_container_mem_total_usage is %f, ext_res_container_cpu_total_usage is %f", extResMemUse, extResCpuUse)
 
 	c.latestContainersStates = containerStates
 
 	return stateMap, nil
 }
 
-func composeSample(labels []common.Label, cpuUsageSample float64, sampleTime time.Time) common.TimeSeries {
+func composeSample(labels []common.Label, UsageSample float64, sampleTime time.Time) common.TimeSeries {
 	return common.TimeSeries{
 		Labels: labels,
 		Samples: []common.Sample{
 			{
-				Value:     cpuUsageSample,
+				Value:     UsageSample,
 				Timestamp: sampleTime.Unix(),
 			},
 		},
