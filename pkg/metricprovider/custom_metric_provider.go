@@ -222,7 +222,7 @@ func IsLocalCustomMetric(metricInfo provider.CustomMetricInfo, client client.Cli
 func GetPrediction(ctx context.Context, kubeclient client.Client, namespace string, metricSelector labels.Selector) (*predictionapi.TimeSeriesPrediction, error) {
 	labelSelector, err := labels.ConvertSelectorToLabelsMap(metricSelector.String())
 	if err != nil {
-		klog.Error(err, "Failed to convert metric selectors to labels")
+		klog.ErrorS(err, "Failed to convert metric selectors to labels")
 		return nil, err
 	}
 
@@ -250,7 +250,7 @@ func GetPrediction(ctx context.Context, kubeclient client.Client, namespace stri
 func (p *CustomMetricProvider) GetPods(ctx context.Context, namespace string, selector labels.Selector) ([]v1.Pod, error) {
 	labelSelector, err := labels.ConvertSelectorToLabelsMap(selector.String())
 	if err != nil {
-		klog.Error(err, "Failed to convert selectors to labels")
+		klog.ErrorS(err, "Failed to convert selectors to labels")
 		return nil, err
 	}
 

@@ -34,7 +34,7 @@ func (c *EffectiveHPAController) ReconcileHPA(ctx context.Context, ehpa *autosca
 			return c.CreateHPA(ctx, ehpa, substitute, tsp)
 		} else {
 			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedGetHPA", err.Error())
-			klog.Error("Failed to get HPA, ehpa %s error %v", klog.KObj(ehpa), err)
+			klog.Errorf("Failed to get HPA, ehpa %s error %v", klog.KObj(ehpa), err)
 			return nil, err
 		}
 	} else if len(hpaList.Items) == 0 {

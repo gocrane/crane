@@ -150,7 +150,7 @@ func main() {
 
 	klog.Infof(cmd.Message)
 	if err := cmd.Run(ctx.Done()); err != nil {
-		klog.Error(err, "Failed to run metrics adapter")
+		klog.ErrorS(err, "Failed to run metrics adapter")
 		os.Exit(1)
 	}
 }

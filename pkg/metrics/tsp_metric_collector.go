@@ -66,7 +66,7 @@ func (c *TspMetricCollector) Collect(ch chan<- prometheus.Metric) {
 	tspList := &predictionapi.TimeSeriesPredictionList{}
 	err := c.List(context.TODO(), tspList)
 	if err != nil {
-		klog.Error(err, "Collect metrics failed")
+		klog.ErrorS(err, "Collect metrics failed")
 		return
 	}
 	for _, tsp := range tspList.Items {
@@ -123,7 +123,7 @@ func (c *TspMetricCollector) computePredictionMetric(tsp *predictionapi.TimeSeri
 				ts := time.Unix(v.Timestamp, 0)
 				value, err := strconv.ParseFloat(v.Value, 64)
 				if err != nil {
-					klog.Error(err, "Failed to parse sample value", "value", value)
+					klog.ErrorS(err, "Failed to parse sample value", "value", value)
 					continue
 				}
 				//collect resource metric cpu or memory.
@@ -155,7 +155,7 @@ func (c *TspMetricCollector) computePredictionMetric(tsp *predictionapi.TimeSeri
 
 			valueFloat, err := strconv.ParseFloat(v.Value, 32)
 			if err != nil {
-				klog.Error(err, "Failed to parse sample value", "value", v.Value)
+				klog.ErrorS(err, "Failed to parse sample value", "value", v.Value)
 				continue
 			}
 
@@ -166,7 +166,7 @@ func (c *TspMetricCollector) computePredictionMetric(tsp *predictionapi.TimeSeri
 		}
 
 		if !hasValidSample {
-			klog.Error("TimeSeries is outdated, ResourceIdentifier name %s", status.ResourceIdentifier)
+			klog.Errorf("TimeSeries is outdated, ResourceIdentifier name %s", status.ResourceIdentifier)
 			return ms
 		}
 
