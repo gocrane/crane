@@ -2,7 +2,9 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
+	"fmt"
 	"os"
 	"time"
 
@@ -17,11 +19,15 @@ import (
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
+	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
+	kubeletconfiginternal "k8s.io/kubernetes/pkg/kubelet/apis/config"
+	kubeletscheme "k8s.io/kubernetes/pkg/kubelet/apis/config/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 	craneclientset "github.com/gocrane/api/pkg/generated/clientset/versioned"
 	craneinformers "github.com/gocrane/api/pkg/generated/informers/externalversions"
+
 	"github.com/gocrane/crane/cmd/crane-agent/app/options"
 	"github.com/gocrane/crane/pkg/agent"
 	"github.com/gocrane/crane/pkg/metrics"
@@ -84,6 +90,10 @@ func Run(ctx context.Context, opts *options.Options) error {
 	if err != nil {
 		return err
 	}
+	kubeletConfig, err := getKubeletConfig(ctx, kubeClient, hostname)
+	if err != nil {
+		return err
+	}
 
 	podInformerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, informerSyncPeriod,
 		informers.WithTweakListOptions(func(options *metav1.ListOptions) {
@@ -105,7 +115,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 	actionInformer := craneInformerFactory.Ensurance().V1alpha1().AvoidanceActions()
 	tspInformer := craneInformerFactory.Prediction().V1alpha1().TimeSeriesPredictions()
 
-	newAgent, err := agent.NewAgent(ctx, hostname, opts.RuntimeEndpoint, opts.CgroupDriver, kubeClient, craneClient, podInformer, nodeInformer,
+	newAgent, err := agent.NewAgent(ctx, hostname, opts.RuntimeEndpoint, opts.CgroupDriver, opts.SysPath, kubeClient, craneClient, kubeletConfig, podInformer, nodeInformer,
 		nodeQOSInformer, podQOSInformer, actionInformer, tspInformer, opts.NodeResourceReserved, opts.Ifaces, healthCheck, opts.CollectInterval, opts.ExecuteExcess)
 
 	if err != nil {
@@ -124,7 +134,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 	return nil
 }
 
-func buildClient() (*kubernetes.Clientset, *craneclientset.Clientset, error) {
+func buildClient() (kubernetes.Interface, craneclientset.Interface, error) {
 	config, err := ctrl.GetConfig()
 	if err != nil {
 		klog.Errorf("Failed to get GetConfig, %v.", err)
@@ -152,4 +162,39 @@ func getHostName(override string) string {
 		nodeName = override
 	}
 	return nodeName
+}
+
+func getKubeletConfig(ctx context.Context, c kubernetes.Interface, hostname string) (*kubeletconfiginternal.KubeletConfiguration, error) {
+	result, err := c.CoreV1().RESTClient().Get().
+		Resource("nodes").
+		SubResource("proxy").
+		Name(hostname).
+		Suffix("configz").
+		Do(ctx).
+		Raw()
+	if err != nil {
+		return nil, err
+	}
+
+	// This hack because /configz reports the following structure:
+	// {"kubeletconfig": {the JSON representation of kubeletconfigv1beta1.KubeletConfiguration}}
+	type configzWrapper struct {
+		ComponentConfig kubeletconfigv1beta1.KubeletConfiguration `json:"kubeletconfig"`
+	}
+	configz := configzWrapper{}
+
+	if err = json.Unmarshal(result, &configz); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal json for kubelet config: %v", err)
+	}
+
+	scheme, _, err := kubeletscheme.NewSchemeAndCodecs()
+	if err != nil {
+		return nil, err
+	}
+	cfg := kubeletconfiginternal.KubeletConfiguration{}
+	if err = scheme.Convert(&configz.ComponentConfig, &cfg, nil); err != nil {
+		return nil, err
+	}
+
+	return &cfg, nil
 }

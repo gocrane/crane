@@ -2,7 +2,9 @@ package utils
 
 import (
 	"fmt"
+	"strconv"
 
+	topologyapi "github.com/gocrane/api/topology/v1alpha1"
 	"golang.org/x/net/context"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -154,4 +156,19 @@ func removeNodeTaints(node *v1.Node, taint v1.Taint) (*v1.Node, bool) {
 	}
 
 	return updatedNode, false
+}
+
+// IsNodeAwareOfTopology returns default topology awareness policy.
+func IsNodeAwareOfTopology(attr map[string]string) *bool {
+	if val, exist := attr[topologyapi.LabelNodeTopologyAwarenessKey]; exist {
+		if awareness, err := strconv.ParseBool(val); err == nil {
+			return &awareness
+		}
+	}
+	return nil
+}
+
+// BuildZoneName returns the canonical name of a NUMA zone from its ID.
+func BuildZoneName(nodeID int) string {
+	return fmt.Sprintf("node%d", nodeID)
 }
