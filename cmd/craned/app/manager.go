@@ -105,12 +105,12 @@ func Run(ctx context.Context, opts *options.Options) error {
 		LeaderElectionNamespace: known.CraneSystemNamespace,
 	})
 	if err != nil {
-		klog.Error(err, "unable to start crane manager")
+		klog.ErrorS(err, "unable to start crane manager")
 		return err
 	}
 
 	if err := mgr.AddHealthzCheck("ping", healthz.Ping); err != nil {
-		klog.Error(err, "failed to add health check endpoint")
+		klog.ErrorS(err, "failed to add health check endpoint")
 		return err
 	}
 	// initialize data sources and predictor
@@ -119,7 +119,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 
 	recommenders, err := initRecommenders(opts)
 	if err != nil {
-		klog.Error(err, "failed to init recommenders")
+		klog.ErrorS(err, "failed to init recommenders")
 		return err
 	}
 	recommenderMgr := initRecommenderManager(recommenders, realtimeDataSources, historyDataSources)
@@ -396,7 +396,7 @@ func runAll(ctx context.Context, mgr ctrl.Manager, predictorMgr predictor.Manage
 
 	eg.Go(func() error {
 		if err := mgr.Start(ctx); err != nil {
-			klog.Error(err, "problem running crane manager")
+			klog.ErrorS(err, "problem running crane manager")
 			klog.Exit(err)
 		}
 		return nil
