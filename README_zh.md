@@ -23,6 +23,8 @@ Crane 是一个基于 FinOps 的云资源分析与成本优化平台。它的愿
 
 https://user-images.githubusercontent.com/35299017/186680122-d7756b47-06be-44cb-8553-1957eaa3ed45.mp4
 
+Crane Dashboard **在线 Demo**: http://dashboard.gocrane.io/
+
 ## Main Features
 
 <img alt="Crane Overview" height="330" src="docs/images/crane-overview.png" width="900"/>

@@ -1,6 +1,8 @@
 documentation:
   - docs/*
   - docs/**/*
+  - site/*
+  - site/**/*
 
 workflows:
   - .github/workflows/*

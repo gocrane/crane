@@ -1,0 +1,30 @@
+/*
+
+Add styles or override variables from the theme here.
+
+*/
+
+$primary: #3371e3  !default;
+$secondary: #2D70DE !default;
+$light: rgb(255, 255,255) !default;
+$grey:  #888 !default;
+$orange: $secondary;
+$td-sidebar-tree-root-color: #222 !default;
+
+
+// Nav bar colors
+$white: #fff;
+$navbar-dark-color: rgba($white, 1);
+$navbar-dark-hover-color: rgba($white, 0.75);
+$navbar-dark-active-color: $navbar-dark-color;
+
+svg {
+    display: inline-block;
+    margin: 0 10px;
+    height: 30px;
+    width: 50px;
+}
+
+strong {
+    font-weight: bold;
+}

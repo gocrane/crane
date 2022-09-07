@@ -1,6 +1,9 @@
-# Dynamic Scheduler：负载感知调度器插件
+---
+title: "动态调度器：一个基于负载感知的调度插件"
+description: "动态调度器插件功能介绍"
+weight: 12
+---
 
-## 介绍
 kubernetes 的原生调度器只能通过资源请求来调度 pod，这很容易造成一系列负载不均的问题：
 
 - 对于某些节点，实际负载与资源请求相差不大，这会导致很大概率出现稳定性问题。
@@ -10,14 +13,14 @@ kubernetes 的原生调度器只能通过资源请求来调度 pod，这很容�
 
 ## 设计细节
 
-### 架构 
+### 架构
 ![](/images/dynamic-scheduler-plugin.png)
 
 
 如上图，动态调度器依赖于`Prometheus`和`Node-exporter`收集和汇总指标数据，它由两个组件组成：
 
 !!! note "Note"
-    `Node-annotator` 目前是 `Crane-scheduler-controller`的一个模块.
+`Node-annotator` 目前是 `Crane-scheduler-controller`的一个模块.
 
 - `Node-annotator`定期从 Prometheus 拉取数据，并以注释的形式在节点上用时间戳标记它们。
 - `Dynamic plugin`直接从节点的注释中读取负载数据，过滤并基于简单的算法对候选节点进行评分。
@@ -31,7 +34,7 @@ kubernetes 的原生调度器只能通过资源请求来调度 pod，这很容�
 - `mem_usage_avg_5m`
 - `mem_usage_max_avg_1h`
 - `mem_usage_max_avg_1d`
-  
+
 在调度的`Filter`阶段，如果该节点的实际使用率大于上述任一指标的阈值，则该节点将被过滤。而在`Score`阶段，最终得分是这些指标值的加权和。
 
 ### Hot Value
