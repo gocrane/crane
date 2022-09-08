@@ -6,10 +6,10 @@ import (
 
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
-
 	"github.com/gocrane/crane/pkg/known"
 )
 
@@ -58,4 +58,17 @@ func GetEHPAFromScaleTarget(context context.Context, kubeClient client.Client, n
 	}
 
 	return nil, nil
+}
+
+func IsHPAControlledByEHPA(hpa *autoscalingv2.HorizontalPodAutoscaler) bool {
+	for _, ownerReference := range hpa.OwnerReferences {
+		gv, err := schema.ParseGroupVersion(ownerReference.APIVersion)
+		if err != nil {
+			return false
+		}
+		if gv.Group == autoscalingapi.GroupName && ownerReference.Kind == "EffectiveHorizontalPodAutoscaler" {
+			return true
+		}
+	}
+	return false
 }

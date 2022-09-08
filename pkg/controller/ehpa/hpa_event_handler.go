@@ -1,8 +1,6 @@
 package ehpa
 
 import (
-	"strings"
-
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
@@ -10,6 +8,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
 	"github.com/gocrane/crane/pkg/metrics"
+	"github.com/gocrane/crane/pkg/utils"
 )
 
 type hpaEventHandler struct {
@@ -38,7 +37,7 @@ func (h *hpaEventHandler) Update(evt event.UpdateEvent, q workqueue.RateLimiting
 		for _, cond := range newHpa.Status.Conditions {
 			if cond.Reason == "SucceededRescale" || cond.Reason == "SucceededOverloadRescale" {
 				scaleType := "hpa"
-				if strings.HasPrefix("ehpa-", newHpa.Name) {
+				if utils.IsHPAControlledByEHPA(newHpa) {
 					scaleType = "ehpa"
 				}
 
