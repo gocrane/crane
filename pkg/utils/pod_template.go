@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -20,17 +20,20 @@ func GetPodTemplate(context context.Context, namespace string, name string, kind
 		Name:      name,
 		Namespace: namespace,
 	}
-
-	if kind == "Deployment" && strings.HasPrefix(apiVersion, "apps") {
+	gv, err := schema.ParseGroupVersion(apiVersion)
+	if err != nil {
+		return nil, err
+	}
+	if kind == "Deployment" && gv.Group == appsv1.GroupName {
 		deployment := &appsv1.Deployment{}
-		err := kubeClient.Get(context, key, deployment)
+		err = kubeClient.Get(context, key, deployment)
 		if err != nil {
 			return nil, err
 		}
 		templateSpec = &deployment.Spec.Template
-	} else if kind == "StatefulSet" && strings.HasPrefix(apiVersion, "apps") {
+	} else if kind == "StatefulSet" && gv.Group == appsv1.GroupName {
 		statefulSet := &appsv1.StatefulSet{}
-		err := kubeClient.Get(context, key, statefulSet)
+		err = kubeClient.Get(context, key, statefulSet)
 		if err != nil {
 			return nil, err
 		}
@@ -39,7 +42,7 @@ func GetPodTemplate(context context.Context, namespace string, name string, kind
 		unstructed := &unstructured.Unstructured{}
 		unstructed.SetAPIVersion(apiVersion)
 		unstructed.SetKind(kind)
-		err := kubeClient.Get(context, key, unstructed)
+		err = kubeClient.Get(context, key, unstructed)
 		if err != nil {
 			return nil, err
 		}
