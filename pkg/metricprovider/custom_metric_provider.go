@@ -235,8 +235,13 @@ func GetPredictions(ctx context.Context, kubeclient client.Client, namespace str
 	matchingLabels := client.MatchingLabels(map[string]string{"app.kubernetes.io/managed-by": known.EffectiveHorizontalPodAutoscalerManagedBy})
 	// merge metric selectors
 	for key, value := range labelSelector {
-		if key == "targetName" {
-			matchingLabels["app.kubernetes.io/part-of"] = value
+		switch key {
+		case "targetKind":
+			matchingLabels["app.kubernetes.io/target-kind"] = value
+		case "targetNamespace":
+			matchingLabels["app.kubernetes.io/target-namespace"] = value
+		case "targetName":
+			matchingLabels["app.kubernetes.io/target-name"] = value
 		}
 	}
 
