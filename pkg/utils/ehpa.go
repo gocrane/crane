@@ -67,8 +67,8 @@ func GetMetricIdentifier(metric autoscalingv2.MetricSpec, name string) string {
 	return fmt.Sprintf("%s.%s", prefix, name)
 }
 
-// GetExpressionQueryAnnocation return metric query from annotation by metricName
-func GetExpressionQueryAnnocation(metricIdentifier string, annotations map[string]string) string {
+// GetExpressionQueryAnnotation return metric query from annotation by metricName
+func GetExpressionQueryAnnotation(metricIdentifier string, annotations map[string]string) string {
 	for k, v := range annotations {
 		if strings.HasPrefix(k, known.EffectiveHorizontalPodAutoscalerExternalMetricsAnnotationPrefix) {
 			compileRegex := regexp.MustCompile(fmt.Sprintf("%s(.*)", known.EffectiveHorizontalPodAutoscalerExternalMetricsAnnotationPrefix))

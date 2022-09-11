@@ -130,12 +130,7 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 		var metricIdentifier string
 		switch metric.Type {
 		case autoscalingv2.ResourceMetricSourceType:
-			switch metric.Resource.Name {
-			case "cpu":
-				metricIdentifier = utils.GetMetricIdentifier(metric, v1.ResourceCPU.String())
-			case "memory":
-				metricIdentifier = utils.GetMetricIdentifier(metric, v1.ResourceMemory.String())
-			}
+			metricIdentifier = utils.GetMetricIdentifier(metric, metric.Resource.Name.String())
 		case autoscalingv2.ExternalMetricSourceType:
 			metricIdentifier = utils.GetMetricIdentifier(metric, metric.External.Metric.Name)
 		case autoscalingv2.PodsMetricSourceType:
@@ -149,7 +144,7 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 		//get expressionQuery
 		var expressionQuery string
 		//first get annocation expressionQuery
-		expressionQuery = utils.GetExpressionQueryAnnocation(metricIdentifier, ehpa.Annotations)
+		expressionQuery = utils.GetExpressionQueryAnnotation(metricIdentifier, ehpa.Annotations)
 		if expressionQuery == "" {
 			// second get default expressionQuery
 			//if annocation not matched, build expressionQuerydefault by metric and ehpa.TargetName

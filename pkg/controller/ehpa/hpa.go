@@ -189,12 +189,7 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 			var averageValue *resource.Quantity
 			switch metric.Type {
 			case autoscalingv2.ResourceMetricSourceType:
-				switch metric.Resource.Name {
-				case "cpu":
-					metricIdentifier = utils.GetMetricIdentifier(metric, v1.ResourceCPU.String())
-				case "memory":
-					metricIdentifier = utils.GetMetricIdentifier(metric, v1.ResourceMemory.String())
-				}
+				metricIdentifier = utils.GetMetricIdentifier(metric, metric.Resource.Name.String())
 				// When use AverageUtilization in EffectiveHorizontalPodAutoscaler's metricSpec, convert to AverageValue
 				if metric.Resource.Target.AverageUtilization != nil {
 					scale, _, err := utils.GetScale(ctx, c.RestMapper, c.ScaleClient, ehpa.Namespace, ehpa.Spec.ScaleTargetRef)
@@ -242,7 +237,7 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 			var expressionQuery string
 
 			//first get annocation
-			expressionQuery = utils.GetExpressionQueryAnnocation(metricIdentifier, ehpa.Annotations)
+			expressionQuery = utils.GetExpressionQueryAnnotation(metricIdentifier, ehpa.Annotations)
 			//if annocation not matched, build expressionQuery by metric and ehpa.TargetName
 			if expressionQuery == "" {
 				expressionQuery = utils.GetExpressionQueryDefault(metric, ehpa.Namespace, ehpa.Spec.ScaleTargetRef.Name)
