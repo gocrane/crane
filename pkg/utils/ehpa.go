@@ -114,7 +114,7 @@ func GetExpressionQueryDefault(metric autoscalingv2.MetricSpec, namespace string
 				labels = append(labels, k+"="+`"`+v+`"`)
 			}
 		}
-		expressionQuery = GetCustumerExpr(metric.Pods.Metric.Name, strings.Join(labels, ","))
+		expressionQuery = GetCustumerExpression(metric.Pods.Metric.Name, strings.Join(labels, ","))
 	case autoscalingv2.ExternalMetricSourceType:
 		var labels []string
 		if metric.External.Metric.Selector != nil {
@@ -122,7 +122,7 @@ func GetExpressionQueryDefault(metric autoscalingv2.MetricSpec, namespace string
 				labels = append(labels, k+"="+`"`+v+`"`)
 			}
 		}
-		expressionQuery = GetCustumerExpr(metric.External.Metric.Name, strings.Join(labels, ","))
+		expressionQuery = GetCustumerExpression(metric.External.Metric.Name, strings.Join(labels, ","))
 	}
 
 	return expressionQuery
