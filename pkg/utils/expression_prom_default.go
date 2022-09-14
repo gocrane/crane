@@ -7,9 +7,9 @@ import (
 // todo: later we change these templates to configurable like prometheus-adapter
 const (
 	// WorkloadCpuUsageExprTemplate is used to query workload cpu usage by promql,  param is namespace,workload-name,duration str
-	WorkloadCpuUsageExprTemplate = `sum(irate(container_cpu_usage_seconds_total{container!="",image!="",container!="POD",namespace="%s",pod=~"^%s-.*$"}[%s]))`
+	WorkloadCpuUsageExprTemplate = `sum(irate(container_cpu_usage_seconds_total{namespace="%s",pod=~"^%s-%s"}[%s]))`
 	// WorkloadMemUsageExprTemplate is used to query workload mem usage by promql, param is namespace, workload-name
-	WorkloadMemUsageExprTemplate = `sum(container_memory_working_set_bytes{container!="",image!="",container!="POD",namespace="%s",pod=~"^%s-.*$"})`
+	WorkloadMemUsageExprTemplate = `sum(container_memory_working_set_bytes{namespace="%s",pod=~"^%s-%s"})`
 
 	// following is node exporter metric for node cpu/memory usage
 	// NodeCpuUsageExprTemplate is used to query node cpu usage by promql,  param is node name which prometheus scrape, duration str
@@ -23,31 +23,35 @@ const (
 	PodMemUsageExprTemplate = `sum(container_memory_working_set_bytes{container!="POD",namespace="%s",pod="%s"})`
 
 	// ContainerCpuUsageExprTemplate is used to query container cpu usage by promql,  param is namespace,pod,container duration str
-	ContainerCpuUsageExprTemplate = `irate(container_cpu_usage_seconds_total{container!="POD",namespace="%s",pod=~"^%s.*$",container="%s"}[%s])`
+	ContainerCpuUsageExprTemplate = `irate(container_cpu_usage_seconds_total{container!="POD",namespace="%s",pod=~"^%s-%s",container="%s"}[%s])`
 	// ContainerMemUsageExprTemplate is used to query container cpu usage by promql,  param is namespace,pod,container
-	ContainerMemUsageExprTemplate = `container_memory_working_set_bytes{container!="POD",namespace="%s",pod=~"^%s.*$",container="%s"}`
+	ContainerMemUsageExprTemplate = `container_memory_working_set_bytes{container!="POD",namespace="%s",pod=~"^%s-%s",container="%s"}`
 
 	CustumerExprTemplate = `sum(%s{%s})`
 )
 
-func GetCustumerExpr(metricName string, labels string) string {
+const (
+	RegMatchesPodName = `[a-z0-9]+-[a-z0-9]{5}$`
+)
+
+func GetCustumerExpression(metricName string, labels string) string {
 	return fmt.Sprintf(CustumerExprTemplate, metricName, labels)
 }
 
 func GetWorkloadCpuUsageExpression(namespace string, name string) string {
-	return fmt.Sprintf(WorkloadCpuUsageExprTemplate, namespace, name, "3m")
+	return fmt.Sprintf(WorkloadCpuUsageExprTemplate, namespace, name, RegMatchesPodName, "3m")
 }
 
 func GetWorkloadMemUsageExpression(namespace string, name string) string {
-	return fmt.Sprintf(WorkloadMemUsageExprTemplate, namespace, name)
+	return fmt.Sprintf(WorkloadMemUsageExprTemplate, namespace, name, RegMatchesPodName)
 }
 
 func GetContainerCpuUsageExpression(namespace string, workloadName string, containerName string) string {
-	return fmt.Sprintf(ContainerCpuUsageExprTemplate, namespace, workloadName, containerName, "3m")
+	return fmt.Sprintf(ContainerCpuUsageExprTemplate, namespace, workloadName, RegMatchesPodName, containerName, "3m")
 }
 
 func GetContainerMemUsageExpression(namespace string, workloadName string, containerName string) string {
-	return fmt.Sprintf(ContainerMemUsageExprTemplate, namespace, workloadName, containerName)
+	return fmt.Sprintf(ContainerMemUsageExprTemplate, namespace, workloadName, RegMatchesPodName, containerName)
 }
 
 func GetPodCpuUsageExpression(namespace string, name string) string {
