@@ -19,8 +19,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/custom-metrics-apiserver/pkg/provider"
 
-	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
+	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/utils"
 )

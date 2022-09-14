@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/klog/v2"
-	"k8s.io/client-go/scale"
-	"k8s.io/apimachinery/pkg/api/meta"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/client-go/scale"
+	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
@@ -119,7 +119,7 @@ func (c *CraneMetricCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 }
 
-func (c *CraneMetricCollector) getMetricsTsp(tsp *predictionapi.TimeSeriesPrediction) ([]PredictionMetric) {
+func (c *CraneMetricCollector) getMetricsTsp(tsp *predictionapi.TimeSeriesPrediction) []PredictionMetric {
 	var ms []PredictionMetric
 	pmMap := map[string]predictionapi.PredictionMetric{}
 	for _, pm := range tsp.Spec.PredictionMetrics {
@@ -169,7 +169,7 @@ func (c *CraneMetricCollector) getMetricsCron(ehpa *autoscalingapi.EffectiveHori
 	return prometheus.NewMetricWithTimestamp(time.Now(), prometheus.MustNewConstMetric(c.metricAutoScalingCron, prometheus.GaugeValue, float64(replicas), labelValues...)), nil
 }
 
-func (c *CraneMetricCollector) computePredictionMetric(tsp *predictionapi.TimeSeriesPrediction, pmMap map[string]predictionapi.PredictionMetric, status predictionapi.PredictionMetricStatus) ([]PredictionMetric) {
+func (c *CraneMetricCollector) computePredictionMetric(tsp *predictionapi.TimeSeriesPrediction, pmMap map[string]predictionapi.PredictionMetric, status predictionapi.PredictionMetricStatus) []PredictionMetric {
 	var predictionMetrics []PredictionMetric
 	now := time.Now().Unix()
 	metricConf := pmMap[status.ResourceIdentifier]
@@ -198,9 +198,9 @@ func (c *CraneMetricCollector) computePredictionMetric(tsp *predictionapi.TimeSe
 					continue
 				}
 				//collect model metric of tsp for Prediction
-				predictionMetric.Desc        = c.metricPredictionTsp
+				predictionMetric.Desc = c.metricPredictionTsp
 				predictionMetric.MetricValue = value
-				predictionMetric.Timestamp   = ts
+				predictionMetric.Timestamp = ts
 				predictionMetrics = append(predictionMetrics, predictionMetric)
 				break
 			}
@@ -237,9 +237,9 @@ func (c *CraneMetricCollector) computePredictionMetric(tsp *predictionapi.TimeSe
 		}
 
 		//collect external metric of prediction for HorizontalPodAutoscaler
-		predictionMetric.Desc        = c.metricAutoScalingPrediction
+		predictionMetric.Desc = c.metricAutoScalingPrediction
 		predictionMetric.MetricValue = metricValue
-		predictionMetric.Timestamp   = timestampStart
+		predictionMetric.Timestamp = timestampStart
 		predictionMetrics = append(predictionMetrics, predictionMetric)
 	}
 	return predictionMetrics
