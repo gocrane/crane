@@ -5,11 +5,11 @@ import (
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/gocrane/crane/pkg/metricquery"
 	"github.com/gocrane/crane/pkg/querybuilder"
 	"github.com/gocrane/crane/pkg/utils"
-	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 var supportedResources = sets.NewString(v1.ResourceCPU.String(), v1.ResourceMemory.String())

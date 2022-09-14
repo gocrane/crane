@@ -19,6 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/custom-metrics-apiserver/pkg/provider"
 
+	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/utils"
@@ -296,4 +297,39 @@ func (cs *CronScaler) Name() string {
 
 func (cs *CronScaler) TargetSize() int32 {
 	return cs.targetReplicas
+}
+
+func GetPredictions(ctx context.Context, kubeclient client.Client, namespace string, metricSelector labels.Selector) ([]predictionapi.TimeSeriesPrediction, error) {
+	labelSelector, err := labels.ConvertSelectorToLabelsMap(metricSelector.String())
+	if err != nil {
+		klog.Error(err, "Failed to convert metric selectors to labels")
+		return nil, err
+	}
+
+	matchingLabels := client.MatchingLabels(map[string]string{"app.kubernetes.io/managed-by": known.EffectiveHorizontalPodAutoscalerManagedBy})
+	// merge metric selectors
+	for key, value := range labelSelector {
+		switch key {
+		case "targetKind":
+			matchingLabels["app.kubernetes.io/target-kind"] = value
+		case "targetNamespace":
+			matchingLabels["app.kubernetes.io/target-namespace"] = value
+		case "targetName":
+			matchingLabels["app.kubernetes.io/target-name"] = value
+		}
+	}
+
+	predictionList := &predictionapi.TimeSeriesPredictionList{}
+	opts := []client.ListOption{
+		matchingLabels,
+		client.InNamespace(namespace),
+	}
+	err = kubeclient.List(ctx, predictionList, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get TimeSeriesPrediction when get custom metric ")
+	} else if len(predictionList.Items) == 0 {
+		return nil, fmt.Errorf("there is no TimeSeriesPrediction match the selector %s ", metricSelector.String())
+	}
+
+	return predictionList.Items, nil
 }

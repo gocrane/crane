@@ -109,14 +109,18 @@ func GetExpressionQueryDefault(metric autoscalingv2.MetricSpec, namespace string
 		}
 	case autoscalingv2.PodsMetricSourceType:
 		var labels []string
-		for k, v := range metric.Pods.Metric.Selector.MatchLabels {
-			labels = append(labels, k+"="+`"`+v+`"`)
+		if metric.Pods.Metric.Selector != nil {
+			for k, v := range metric.Pods.Metric.Selector.MatchLabels {
+				labels = append(labels, k+"="+`"`+v+`"`)
+			}
 		}
 		expressionQuery = GetCustumerExpr(metric.Pods.Metric.Name, strings.Join(labels, ","))
 	case autoscalingv2.ExternalMetricSourceType:
 		var labels []string
-		for k, v := range metric.External.Metric.Selector.MatchLabels {
-			labels = append(labels, k+"="+`"`+v+`"`)
+		if metric.External.Metric.Selector != nil {
+			for k, v := range metric.External.Metric.Selector.MatchLabels {
+				labels = append(labels, k+"="+`"`+v+`"`)
+			}
 		}
 		expressionQuery = GetCustumerExpr(metric.External.Metric.Name, strings.Join(labels, ","))
 	}
