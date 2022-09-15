@@ -28,7 +28,6 @@ func (br *BaseRecommender) Filter(ctx *framework.RecommendationContext) error {
 
 // IsIdentitySupported check whether object identity fit resource selector.
 func IsIdentitySupported(identity framework.ObjectIdentity, selectors []analysisapi.ResourceSelector) bool {
-	supported := false
 	for _, selector := range selectors {
 		if len(selector.Name) == 0 {
 			if selector.Kind == identity.Kind && selector.APIVersion == identity.APIVersion {
@@ -45,5 +44,5 @@ func IsIdentitySupported(identity framework.ObjectIdentity, selectors []analysis
 		}
 	}
 
-	return supported
+	return false
 }

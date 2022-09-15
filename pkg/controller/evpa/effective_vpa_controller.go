@@ -320,7 +320,7 @@ func defaultingEVPA(evpa *autoscalingapi.EffectiveVerticalPodAutoscaler) error {
 		}
 
 		// scale down
-		defaultScaleDownpMode := vpatypes.ContainerScalingModeAuto
+		defaultScaleDownMode := vpatypes.ContainerScalingModeAuto
 		defaultComponentScaleDownStabWindowSeconds := DefaultComponentScaleDownStabWindowSeconds
 		defaultScaleDownCPUUtilPercentageThreshold := DefaultScaleDownCPUUtilPercentageThreshold
 		defaultScaleDownMemoryUtilPercentageThreshold := DefaultScaleDownMemoryUtilPercentageThreshold
@@ -333,7 +333,7 @@ func defaultingEVPA(evpa *autoscalingapi.EffectiveVerticalPodAutoscaler) error {
 			},
 		}
 		defaultScaleDownPolicy := autoscalingapi.ContainerScalingPolicy{
-			ScaleMode:                  &defaultScaleDownpMode,
+			ScaleMode:                  &defaultScaleDownMode,
 			StabilizationWindowSeconds: &defaultComponentScaleDownStabWindowSeconds,
 			MetricThresholds:           defaultScaleDownThresholds,
 		}
@@ -341,7 +341,7 @@ func defaultingEVPA(evpa *autoscalingapi.EffectiveVerticalPodAutoscaler) error {
 			containerPolicy.ScaleDownPolicy = &defaultScaleDownPolicy
 		} else {
 			if containerPolicy.ScaleDownPolicy.ScaleMode == nil {
-				containerPolicy.ScaleDownPolicy.ScaleMode = &defaultScaleUpMode
+				containerPolicy.ScaleDownPolicy.ScaleMode = &defaultScaleDownMode
 			}
 			if containerPolicy.ScaleDownPolicy.StabilizationWindowSeconds == nil {
 				containerPolicy.ScaleDownPolicy.StabilizationWindowSeconds = &defaultComponentScaleDownStabWindowSeconds
