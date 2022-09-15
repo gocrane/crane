@@ -194,6 +194,10 @@ func (s *AnomalyAnalyzer) Analyze(state map[string][]common.TimeSeries) {
 	klog.V(6).Infof("Analyze actionContexts: %#v", actionContexts)
 
 	//step 3 : merge
+	if len(actionContexts) == 0 {
+		return
+	}
+
 	avoidanceAction := s.merge(state, actionMap, actionContexts)
 	if err != nil {
 		klog.Errorf("Failed to merge actions, error: %v", err)

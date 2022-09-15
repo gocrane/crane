@@ -94,10 +94,7 @@ func NewAgent(ctx context.Context,
 	managers = appendManagerIfNotNil(managers, avoidanceManager)
 
 	if nodeResource := utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResource); nodeResource {
-		tspName, err := agent.CreateNodeResourceTsp()
-		if err != nil {
-			return agent, err
-		}
+		tspName := agent.CreateNodeResourceTsp()
 		nodeResourceManager, err := resource.NewNodeResourceManager(kubeClient, nodeName, nodeResourceReserved, tspName, nodeInformer, tspInformer, stateCollector.NodeResourceChann)
 		if err != nil {
 			return agent, err
@@ -146,13 +143,13 @@ func getAgentName(nodeName string) string {
 	return nodeName + "." + string(uuid.NewUUID())
 }
 
-func (a *Agent) CreateNodeResourceTsp() (string, error) {
+func (a *Agent) CreateNodeResourceTsp() string {
 	foundTsp := true
 	tsp, err := a.craneClient.PredictionV1alpha1().TimeSeriesPredictions(resource.TspNamespace).Get(context.TODO(), a.GenerateNodeResourceTspName(), metav1.GetOptions{})
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			klog.Errorf("Failed to get noderesource tsp : %v", err)
-			return "", err
+			return ""
 		}
 		foundTsp = false
 	}
@@ -169,14 +166,14 @@ func (a *Agent) CreateNodeResourceTsp() (string, error) {
 	n, err := a.kubeClient.CoreV1().Nodes().Get(context.TODO(), a.nodeName, metav1.GetOptions{})
 	if err != nil {
 		klog.Errorf("Failed to get node : %v", err)
-		return "", err
+		return ""
 	}
 
 	spec := v1alpha12.TimeSeriesPredictionSpec{}
 	tpl, err := template.New("").Parse(config.Data["spec"])
 	if err != nil {
 		klog.Errorf("Failed to convert spec template : %v", err)
-		return "", err
+		return ""
 	}
 	var buf bytes.Buffer
 	//The k8s object is converted here to a json object in order to use lowercase letters in the template to take the node field,
@@ -188,12 +185,12 @@ func (a *Agent) CreateNodeResourceTsp() (string, error) {
 	err = tpl.Execute(&buf, data)
 	if err != nil {
 		klog.Errorf("Failed to convert spec template : %v", err)
-		return "", err
+		return ""
 	}
 	err = yaml.Unmarshal(buf.Bytes(), &spec)
 	if err != nil {
 		klog.Errorf("Failed to convert spec template : %v", err)
-		return "", err
+		return ""
 	}
 
 	gvk, _ := apiutil.GVKForObject(n, scheme.Scheme)
@@ -206,14 +203,14 @@ func (a *Agent) CreateNodeResourceTsp() (string, error) {
 	if foundTsp {
 		klog.V(4).Infof("Discover the presence of old noderesource tsp and try to contrast the changes: %s", a.GenerateNodeResourceTspName())
 		if reflect.DeepEqual(tsp.Spec, spec) {
-			return a.GenerateNodeResourceTspName(), nil
+			return a.GenerateNodeResourceTspName()
 		}
 		klog.V(4).Infof("Discover the presence of old noderesource tsp and the Tsp rules have been changed: %s", a.GenerateNodeResourceTspName())
 		tsp.Spec = spec
 		_, err := a.craneClient.PredictionV1alpha1().TimeSeriesPredictions(tsp.Namespace).Update(context.TODO(), tsp, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Errorf("Failed to update noderesource tsp %s : %v", a.GenerateNodeResourceTspName(), err)
-			return "", err
+			return ""
 		}
 		klog.V(4).Infof("The noderesource tsp is updated successfully: %s", a.GenerateNodeResourceTspName())
 	} else {
@@ -226,12 +223,12 @@ func (a *Agent) CreateNodeResourceTsp() (string, error) {
 		_, err = a.craneClient.PredictionV1alpha1().TimeSeriesPredictions(tsp.Namespace).Create(context.TODO(), tsp, metav1.CreateOptions{})
 		if err != nil {
 			klog.Errorf("Failed to create noderesource tsp %s : %v", a.GenerateNodeResourceTspName(), err)
-			return "", err
+			return ""
 		}
 		klog.V(4).Infof("The noderesource tsp is created successfully: %s", a.GenerateNodeResourceTspName())
 	}
 
-	return a.GenerateNodeResourceTspName(), nil
+	return a.GenerateNodeResourceTspName()
 }
 
 func (a *Agent) DeleteNodeResourceTsp() error {

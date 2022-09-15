@@ -1,14 +1,5 @@
 package types
 
-import (
-	"strings"
-
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/kubernetes/pkg/kubelet/cm"
-
-	"github.com/gocrane/crane/pkg/utils"
-)
-
 type CollectType string
 
 const (
@@ -55,29 +46,7 @@ const (
 
 	MetricNameExtResContainerCpuTotalUsage MetricName = "ext_res_container_cpu_total_usage"
 	MetricNameExtCpuTotalDistribute        MetricName = "ext_cpu_total_distribute"
+
+	MetricNameContainerMemTotalUsage       MetricName = "container_mem_total_usage"
+	MetricNameExtResContainerMemTotalUsage MetricName = "ext_res_container_mem_total_usage"
 )
-
-func GetCgroupPath(p *v1.Pod, cgroupDriver string) string {
-	cgroupName := GetCgroupName(p)
-	switch cgroupDriver {
-	case "systemd":
-		return cgroupName.ToSystemd()
-	case "cgroupfs":
-		return cgroupName.ToCgroupfs()
-	default:
-		return ""
-	}
-}
-
-func GetCgroupName(p *v1.Pod) cm.CgroupName {
-	switch p.Status.QOSClass {
-	case v1.PodQOSGuaranteed:
-		return cm.NewCgroupName(cm.RootCgroupName, utils.CgroupKubePods, cm.GetPodCgroupNameSuffix(p.UID))
-	case v1.PodQOSBurstable:
-		return cm.NewCgroupName(cm.RootCgroupName, utils.CgroupKubePods, strings.ToLower(string(v1.PodQOSBurstable)), cm.GetPodCgroupNameSuffix(p.UID))
-	case v1.PodQOSBestEffort:
-		return cm.NewCgroupName(cm.RootCgroupName, utils.CgroupKubePods, strings.ToLower(string(v1.PodQOSBestEffort)), cm.GetPodCgroupNameSuffix(p.UID))
-	default:
-		return cm.RootCgroupName
-	}
-}
