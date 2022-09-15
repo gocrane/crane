@@ -66,12 +66,12 @@ func (p *ExternalMetricProvider) GetExternalMetric(ctx context.Context, namespac
 			return nil, err
 		}
 
-		for _, prediction := range predictions {
-			resourceIdentifier, bl := metricSelector.RequiresExactMatch("resourceIdentifier")
-			if !bl {
-				return nil, fmt.Errorf("failed get resourceIdentifier from metricSelector: [%v]", metricSelector)
-			}
+		resourceIdentifier, found := metricSelector.RequiresExactMatch("resourceIdentifier")
+		if !found {
+			return nil, fmt.Errorf("failed get resourceIdentifier from metricSelector: [%v]", metricSelector)
+		}
 
+		for _, prediction := range predictions {
 			timeSeries, err := utils.GetReadyPredictionMetric(info.Metric, resourceIdentifier, &prediction)
 			if err != nil {
 				return nil, err

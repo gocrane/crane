@@ -254,9 +254,9 @@ func AggregateSignalKey(id string, labels []predictionapi.Label) string {
 	return id + "#" + strings.Join(labelSet, ",")
 }
 
-func MetricContains(predictionMetrics []PredictionMetric, c PredictionMetric) bool {
+func MetricContains(predictionMetrics []PredictionMetric, pm PredictionMetric) bool {
 	for _, m := range predictionMetrics {
-		if m.Desc == c.Desc && m.TargetKind == c.TargetName && m.TargetNamespace == c.TargetNamespace && m.ResourceIdentifier == c.ResourceIdentifier && m.Algorithm == c.Algorithm {
+		if m.Desc == pm.Desc && m.TargetKind == pm.TargetName && m.TargetNamespace == pm.TargetNamespace && m.ResourceIdentifier == pm.ResourceIdentifier && m.Algorithm == pm.Algorithm {
 			return true
 		}
 	}
