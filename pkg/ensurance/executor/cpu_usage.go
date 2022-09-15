@@ -31,7 +31,7 @@ var cpuUsage = metric{
 
 	Evictable:       true,
 	EvictQuantified: true,
-	EvictFunc:       evictPod,
+	EvictFunc:       cpuUsageEvictPod,
 }
 
 func throttleOnePodCpu(ctx *ExecuteContext, index int, ThrottleDownPods ThrottlePods, totalReleasedResource *ReleaseResource) (errPodKeys []string, released ReleaseResource) {
@@ -198,7 +198,7 @@ func restoreOnePodCpu(ctx *ExecuteContext, index int, ThrottleUpPods ThrottlePod
 	return
 }
 
-func evictPod(wg *sync.WaitGroup, ctx *ExecuteContext, index int, totalReleasedResource *ReleaseResource, EvictPods EvictPods) (errPodKeys []string, released ReleaseResource) {
+func cpuUsageEvictPod(wg *sync.WaitGroup, ctx *ExecuteContext, index int, totalReleasedResource *ReleaseResource, EvictPods EvictPods) (errPodKeys []string, released ReleaseResource) {
 	wg.Add(1)
 
 	// Calculate release resources
