@@ -1,7 +1,7 @@
 apiVersion: ensurance.crane.io/v1alpha1
 kind: NodeQOS
 metadata:
-  name: eviction-on-high-cpu-usage-percent
+  name: eviction-on-high-mem-usage
 spec:
   nodeQualityProbe:
     nodeLocalGet:

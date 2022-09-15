@@ -1,0 +1,18 @@
+apiVersion: ensurance.crane.io/v1alpha1
+kind: NodeQOS
+metadata:
+  name: eviction-on-high-mem-usage-percent
+spec:
+  nodeQualityProbe:
+    nodeLocalGet:
+      localCacheTTLSeconds: 60
+    timeoutSeconds: 10
+  rules:
+    - actionName: eviction
+      avoidanceThreshold: 2
+      metricRule:
+        name: memory_total_utilization
+        value: 50
+      name: cpu-usage-percent
+      restoreThreshold: 2
+      strategy: None
