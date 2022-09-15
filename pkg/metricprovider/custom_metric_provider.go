@@ -43,8 +43,6 @@ func (p *CustomMetricProvider) GetMetricByName(ctx context.Context, name types.N
 
 	if p.remoteAdapter != nil {
 		return p.remoteAdapter.GetMetricByName(ctx, name, info, metricSelector)
-	} else {
-		return nil, apiErrors.NewServiceUnavailable("not supported")
 	}
 
 	return nil, apiErrors.NewServiceUnavailable("not supported")
@@ -56,11 +54,8 @@ func (p *CustomMetricProvider) GetMetricBySelector(ctx context.Context, namespac
 
 	if p.remoteAdapter != nil {
 		return p.remoteAdapter.GetMetricBySelector(ctx, namespace, selector, info, metricSelector)
-	} else {
-		return nil, apiErrors.NewServiceUnavailable("not supported")
 	}
-
-	return nil, apiErrors.NewServiceUnavailable("metric not found")
+	return nil, apiErrors.NewServiceUnavailable("not supported")
 }
 
 // ListAllMetrics returns all available custom metrics.
