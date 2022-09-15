@@ -13,12 +13,12 @@ func CpuUsageSort(pods []podinfo.PodContext) {
 // CompareElasticCPU compares the partition of extcpu usage to extcpu limit
 func CompareElasticCPU(p1, p2 podinfo.PodContext) int32 {
 	// if both pod don't use ext resource, then return
-	if p1.ElasticCPU == 0 && p2.ElasticCPU == 0 {
+	if p1.ElasticCPULimit == 0 && p2.ElasticCPULimit == 0 {
 		return 0
 	}
 
-	p1Ratio := p1.PodCPUUsage / float64(p1.ElasticCPU)
-	p2Ratio := p2.PodCPUUsage / float64(p2.ElasticCPU)
+	p1Ratio := p1.PodCPUUsage / float64(p1.ElasticCPULimit)
+	p2Ratio := p2.PodCPUUsage / float64(p2.ElasticCPULimit)
 
 	return utils.CmpFloat(p1Ratio, p2Ratio)
 }
@@ -30,8 +30,8 @@ func CompareCPUUsage(p1, p2 podinfo.PodContext) int32 {
 
 // UseElasticCPU compares pod by using ext resource whether
 func UseElasticCPU(p1, p2 podinfo.PodContext) int32 {
-	use1 := utils.Bool2Uint(p1.ElasticCPU != 0)
-	use2 := utils.Bool2Uint(p2.ElasticCPU != 0)
+	use1 := utils.Bool2Uint(p1.ElasticCPULimit != 0)
+	use2 := utils.Bool2Uint(p2.ElasticCPULimit != 0)
 
 	return int32(use2 - use1)
 }
