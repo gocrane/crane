@@ -317,14 +317,14 @@ export const EditClusterModal = React.memo(() => {
                   </div>
                 </Form.FormItem>
                 <Form.FormItem
-                  className={clsx({ isError: validation[cluster.id]?.clusterName?.error })}
-                  help={
-                    (
-                      <span style={{ color: 'var(--td-error-color)' }}>
-                        {validation[cluster.id]?.clusterName?.error ? validation[cluster.id]?.clusterName?.msg : null}
-                      </span>
-                    ) as any
-                  }
+                  // className={clsx({ isError: validation[cluster.id]?.clusterName?.error })}
+                  // help={
+                  //   (
+                  //     <span style={{ color: 'var(--td-error-color)' }}>
+                  //       {validation[cluster.id]?.clusterName?.error ? validation[cluster.id]?.clusterName?.msg : null}
+                  //     </span>
+                  //   ) as any
+                  // }
                   initialData={cluster.discount}
                   label={t('折扣')}
                   name={`clusters[${index}].discount`}
@@ -353,14 +353,14 @@ export const EditClusterModal = React.memo(() => {
                 </Form.FormItem>
                 {mode === 'create' ? (
                   <Form.FormItem
-                    className={clsx({ isError: validation[cluster.id]?.clusterName?.error })}
-                    help={
-                      (
-                        <span style={{ color: 'var(--td-error-color)' }}>
-                          {validation[cluster.id]?.clusterName?.error ? validation[cluster.id]?.clusterName?.msg : null}
-                        </span>
-                      ) as any
-                    }
+                    // className={clsx({ isError: validation[cluster.id]?.clusterName?.error })}
+                    // help={
+                    //   (
+                    //     <span style={{ color: 'var(--td-error-color)' }}>
+                    //       {validation[cluster.id]?.clusterName?.error ? validation[cluster.id]?.clusterName?.msg : null}
+                    //     </span>
+                    //   ) as any
+                    // }
                     initialData={cluster.preinstallRecommendation}
                     label={t('安装推荐规则')}
                     name={`clusters[${index}].preinstallRecommendation`}
