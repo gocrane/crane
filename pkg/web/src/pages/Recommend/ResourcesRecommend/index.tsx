@@ -14,7 +14,8 @@ import { useNavigate } from 'react-router-dom';
 import JsYaml from 'js-yaml';
 import { useTranslation } from 'react-i18next';
 import { Prism } from '@mantine/prism';
-import { copyToClipboard } from "../../../utils/copyToClipboard";
+import { copyToClipboard } from '../../../utils/copyToClipboard';
+import { K8SUNIT, transformK8sUnit } from 'utils/transformK8sUnit';
 
 const Editor = React.lazy(() => import('components/common/Editor'));
 
@@ -51,7 +52,6 @@ export const SelectTable = () => {
 
   const filterResult = recommendation
     .filter((recommendation) => {
-      console.log(recommendation);
       if (filterParams?.name) {
         return new RegExp(`${filterParams.name}.*`).test(recommendation.name);
       }
@@ -144,7 +144,6 @@ export const SelectTable = () => {
             title: t('当前资源(容器/CPU/Memory)'),
             colKey: 'status.currentInfo',
             cell({ row }) {
-              console.log('row', row);
               if (typeof row.status.currentInfo === 'string') {
                 const containers = JSON.parse(row?.status?.currentInfo).spec?.template?.spec?.containers || [];
                 if (containers.length > 0) {
@@ -167,7 +166,6 @@ export const SelectTable = () => {
             title: t('推荐资源(容器/CPU/Memory)'),
             colKey: 'status.recommendedInfo',
             cell({ row }) {
-              console.log('row', row);
               if (typeof row.status.recommendedValue !== 'string') {
                 const containers = row?.status?.recommendedValue?.resourceRequest?.containers || [];
                 if (containers.length > 0) {
@@ -175,7 +173,7 @@ export const SelectTable = () => {
                     <Space direction='vertical'>
                       {containers.map((o: any, i: number) => (
                         <Tag key={i} theme='primary' variant='light'>
-                          {o.containerName} / {o.target.cpu} / {Math.floor(parseFloat(o.target.memory) / 1048576)}Mi
+                          {o.containerName} / {o.target.cpu} / {transformK8sUnit(o.target.memory, K8SUNIT.Mi)}Mi
                         </Tag>
                       ))}
                     </Space>
@@ -289,7 +287,7 @@ export const SelectTable = () => {
             onClick={async () => {
               try {
                 await copyToClipboard(
-                  `patchData=\`kubectl get recommend ${currentSelection?.metadata?.name} -n ${currentSelection?.spec?.targetRef?.namespace} -o jsonpath='{.status.recommendedInfo}'\`;kubectl patch ${currentSelection?.spec?.targetRef?.kind} ${currentSelection?.spec?.targetRef?.name} -n ${currentSelection?.spec?.targetRef?.namespace} --patch \"\${patchData}\"`,
+                  `patchData=\`kubectl get recommend ${currentSelection?.metadata?.name} -n ${currentSelection?.spec?.targetRef?.namespace} -o jsonpath='{.status.recommendedInfo}'\`;kubectl patch ${currentSelection?.spec?.targetRef?.kind} ${currentSelection?.spec?.targetRef?.name} -n ${currentSelection?.spec?.targetRef?.namespace} --patch "\${patchData}"`,
                 );
                 await MessagePlugin.success('Copy command to clipboard.');
               } catch (err) {
@@ -307,7 +305,7 @@ export const SelectTable = () => {
         }}
       >
         <Prism withLineNumbers language='bash' noCopy={true}>
-          {`patchData=\`kubectl get recommend ${currentSelection?.metadata?.name} -n ${currentSelection?.spec?.targetRef?.namespace} -o jsonpath='{.status.recommendedInfo}'\`\nkubectl patch ${currentSelection?.spec?.targetRef?.kind} ${currentSelection?.spec?.targetRef?.name} -n ${currentSelection?.spec?.targetRef?.namespace} --patch \"\${patchData}\"`}
+          {`patchData=\`kubectl get recommend ${currentSelection?.metadata?.name} -n ${currentSelection?.spec?.targetRef?.namespace} -o jsonpath='{.status.recommendedInfo}'\`\nkubectl patch ${currentSelection?.spec?.targetRef?.kind} ${currentSelection?.spec?.targetRef?.name} -n ${currentSelection?.spec?.targetRef?.namespace} --patch "\${patchData}"`}
         </Prism>
       </Dialog>
     </>
