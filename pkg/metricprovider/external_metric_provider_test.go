@@ -28,9 +28,9 @@ func TestGetCronScaleLocation(t *testing.T) {
 			want: time.Local,
 		},
 		{
-			desc:      "tc2. null timezone is UTC",
+			desc:      "tc2. null timezone is Local",
 			cronScale: autoscalingapi.CronSpec{},
-			want:      time.UTC,
+			want:      time.Local,
 		},
 		{
 			desc: "tc3.",
@@ -92,7 +92,7 @@ func TestEHPACronMetricName(t *testing.T) {
 				Start: "15 10 ? * *",
 				End:   "15 14 ? * *",
 			},
-			wantName: "cron-default-ehpa--utc-1510qmxx-1514qmxx",
+			wantName: "cron-default-ehpa--local-1510qmxx-1514qmxx",
 		},
 		{
 			desc:      "tc3.",
