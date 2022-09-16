@@ -2,6 +2,7 @@ package base
 
 import (
 	"fmt"
+	"time"
 
 	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
 
@@ -21,6 +22,12 @@ func (br *BaseRecommender) Filter(ctx *framework.RecommendationContext) error {
 	supported := IsIdentitySupported(identity, accepted)
 	if !supported {
 		return fmt.Errorf("recommender %s is failed at fliter, your kubernetes resource is not supported for recommender %s.", br.Name(), br.Name())
+	}
+
+	// 4. skip the objects that just created
+	creationCheckingTime := ctx.Object.GetCreationTimestamp().Add(CoolDownForCreation)
+	if time.Now().Before(creationCheckingTime) {
+
 	}
 
 	return nil

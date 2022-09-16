@@ -9,4 +9,7 @@ const (
 
 	// HPARecommender name
 	HPARecommender string = "HPA"
+
+	// IdleNodeRecommender name
+	IdleNodeRecommender string = "IdleNode"
 )

@@ -17,7 +17,7 @@ type ReplicasRecommender struct {
 	PodAvailableRatio   float64
 	CpuPercentile       float64
 	DefaultMinReplicas  int64
-	TargetUtilization   int64
+	TargetUtilization   float64
 }
 
 func (rr *ReplicasRecommender) Name() string {
@@ -78,10 +78,10 @@ func NewReplicasRecommender(recommender apis.Recommender) (*ReplicasRecommender,
 
 	targetUtilization, exists := recommender.Config["cpu-target-utilization"]
 	if !exists {
-		targetUtilization = "50"
+		targetUtilization = "0.5"
 	}
 
-	targetUtilizationInt, err := strconv.ParseInt(targetUtilization, 10, 32)
+	targetUtilizationFloat, err := strconv.ParseFloat(targetUtilization, 64)
 	if err != nil {
 		return nil, err
 	}
@@ -93,6 +93,6 @@ func NewReplicasRecommender(recommender apis.Recommender) (*ReplicasRecommender,
 		podAvailableRatio,
 		cpuPercentileFloat,
 		defaultMinReplicasInt,
-		targetUtilizationInt,
+		targetUtilizationFloat,
 	}, nil
 }
