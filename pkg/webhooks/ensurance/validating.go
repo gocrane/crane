@@ -299,7 +299,7 @@ func (p *ActionValidationAdmission) ValidateDelete(ctx context.Context, req runt
 	return nil
 }
 
-//Copied from k8s.io/kubernetes/pkg/apis/core/validation/validation.go
+// Copied from k8s.io/kubernetes/pkg/apis/core/validation/validation.go
 func validatePortNumOrName(port intstr.IntOrString, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 

@@ -185,34 +185,11 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 		var metricsForPrediction []autoscalingv2.MetricSpec
 
 		for _, metric := range metrics {
-			// generate a custom metric for resource metric
-			if metric.Type == autoscalingv2.ResourceMetricSourceType {
-				name := utils.GetPredictionMetricName(metric.Resource.Name)
-				if len(name) == 0 {
-					continue
-				}
-
-				if _, err := utils.GetReadyPredictionMetric(name, tsp); err != nil {
-					// metric is not predictable
-					continue
-				}
-
-				customMetric := &autoscalingv2.PodsMetricSource{
-					Metric: autoscalingv2.MetricIdentifier{
-						Name: name,
-						// add known.EffectiveHorizontalPodAutoscalerUidLabel=uid in metric.selector
-						// MetricAdapter use label selector to match the matching TimeSeriesPrediction to return metrics
-						Selector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								known.EffectiveHorizontalPodAutoscalerUidLabel: string(ehpa.UID),
-							},
-						},
-					},
-					Target: autoscalingv2.MetricTarget{
-						Type: autoscalingv2.AverageValueMetricType,
-					},
-				}
-
+			var metricIdentifier string
+			var averageValue *resource.Quantity
+			switch metric.Type {
+			case autoscalingv2.ResourceMetricSourceType:
+				metricIdentifier = utils.GetMetricIdentifier(metric, metric.Resource.Name.String())
 				// When use AverageUtilization in EffectiveHorizontalPodAutoscaler's metricSpec, convert to AverageValue
 				if metric.Resource.Target.AverageUtilization != nil {
 					scale, _, err := utils.GetScale(ctx, c.RestMapper, c.ScaleClient, ehpa.Namespace, ehpa.Spec.ScaleTargetRef)
@@ -239,83 +216,68 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 						return nil, err
 					}
 
-					averageValue := int64((float64(requests) * float64(*metric.Resource.Target.AverageUtilization) / 100) / float64(len(availablePods)))
-					customMetric.Target.AverageValue = resource.NewMilliQuantity(averageValue, resource.DecimalSI)
+					value := int64((float64(requests) * float64(*metric.Resource.Target.AverageUtilization) / 100) / float64(len(availablePods)))
+					averageValue = resource.NewMilliQuantity(value, resource.DecimalSI)
 				} else {
-					customMetric.Target.AverageValue = metric.Resource.Target.AverageValue
+					averageValue = metric.Resource.Target.AverageValue
 				}
-
-				metricSpec := autoscalingv2.MetricSpec{Pods: customMetric, Type: autoscalingv2.PodsMetricSourceType}
-				metricsForPrediction = append(metricsForPrediction, metricSpec)
+			case autoscalingv2.ExternalMetricSourceType:
+				metricIdentifier = utils.GetMetricIdentifier(metric, metric.External.Metric.Name)
+				averageValue = metric.External.Target.AverageValue
+			case autoscalingv2.PodsMetricSourceType:
+				metricIdentifier = utils.GetMetricIdentifier(metric, metric.Pods.Metric.Name)
+				averageValue = metric.Pods.Target.AverageValue
 			}
 
-			// generate a external metric for external metric
-			if metric.Type == autoscalingv2.ExternalMetricSourceType {
-				name := utils.GetGeneralPredictionMetricName(metric.Type, false, metric.External.Metric.Name)
-				expressionQuery := utils.GetExpressionQuery(metric.External.Metric.Name, ehpa.Annotations)
-				if len(expressionQuery) == 0 {
-					continue
-				}
+			if metricIdentifier == "" {
+				continue
+			}
 
-				if _, err := utils.GetReadyPredictionMetric(name, tsp); err != nil {
-					// metric is not predictable
-					continue
-				}
+			//get expressionQuery
+			var expressionQuery string
 
-				external := &autoscalingv2.ExternalMetricSource{
-					Metric: autoscalingv2.MetricIdentifier{
-						Name: name,
-						// add known.EffectiveHorizontalPodAutoscalerUidLabel=uid in metric.selector
-						// MetricAdapter use label selector to match the matching TimeSeriesPrediction to return metrics
-						Selector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								known.EffectiveHorizontalPodAutoscalerUidLabel: string(ehpa.UID),
-							},
+			//first get annocation
+			expressionQuery = utils.GetExpressionQueryAnnotation(metricIdentifier, ehpa.Annotations)
+			//if annocation not matched, build expressionQuery by metric and ehpa.TargetName
+			if expressionQuery == "" {
+				expressionQuery = utils.GetExpressionQueryDefault(metric, ehpa.Namespace, ehpa.Spec.ScaleTargetRef.Name)
+			}
+
+			if len(expressionQuery) == 0 {
+				continue
+			}
+
+			name := utils.GetPredictionMetricName(metric.Type, false)
+			if len(name) == 0 {
+				continue
+			}
+			if _, err := utils.GetReadyPredictionMetric(name, metricIdentifier, tsp); err != nil {
+				// metric is not predictable
+				continue
+			}
+
+			// generate a external metric for Prediction metric
+			external := &autoscalingv2.ExternalMetricSource{
+				Metric: autoscalingv2.MetricIdentifier{
+					Name: name,
+					// add known.EffectiveHorizontalPodAutoscalerUidLabel=uid in metric.selector
+					// MetricAdapter use label selector to match the matching TimeSeriesPrediction to return metrics
+					Selector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"targetKind":         ehpa.Spec.ScaleTargetRef.Kind,
+							"targetName":         ehpa.Spec.ScaleTargetRef.Name,
+							"targetNamespace":    ehpa.Namespace,
+							"resourceIdentifier": metricIdentifier,
 						},
 					},
-					Target: autoscalingv2.MetricTarget{
-						Type:         autoscalingv2.AverageValueMetricType,
-						AverageValue: metric.External.Target.AverageValue,
-					},
-				}
-
-				metricSpec := autoscalingv2.MetricSpec{External: external, Type: autoscalingv2.ExternalMetricSourceType}
-				metricsForPrediction = append(metricsForPrediction, metricSpec)
+				},
+				Target: autoscalingv2.MetricTarget{
+					Type:         autoscalingv2.AverageValueMetricType,
+					AverageValue: averageValue,
+				},
 			}
-
-			// generate a custom metric for pods metric
-			if metric.Type == autoscalingv2.PodsMetricSourceType {
-				name := utils.GetGeneralPredictionMetricName(metric.Type, false, metric.Pods.Metric.Name)
-				expressionQuery := utils.GetExpressionQuery(metric.Pods.Metric.Name, ehpa.Annotations)
-				if len(expressionQuery) == 0 {
-					continue
-				}
-
-				if _, err := utils.GetReadyPredictionMetric(name, tsp); err != nil {
-					// metric is not predictable
-					continue
-				}
-
-				podsMetric := &autoscalingv2.PodsMetricSource{
-					Metric: autoscalingv2.MetricIdentifier{
-						Name: name,
-						// add known.EffectiveHorizontalPodAutoscalerUidLabel=uid in metric.selector
-						// MetricAdapter use label selector to match the matching TimeSeriesPrediction to return metrics
-						Selector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								known.EffectiveHorizontalPodAutoscalerUidLabel: string(ehpa.UID),
-							},
-						},
-					},
-					Target: autoscalingv2.MetricTarget{
-						Type:         autoscalingv2.AverageValueMetricType,
-						AverageValue: metric.Pods.Target.AverageValue,
-					},
-				}
-
-				metricSpec := autoscalingv2.MetricSpec{Pods: podsMetric, Type: autoscalingv2.PodsMetricSourceType}
-				metricsForPrediction = append(metricsForPrediction, metricSpec)
-			}
+			metricSpec := autoscalingv2.MetricSpec{External: external, Type: autoscalingv2.ExternalMetricSourceType}
+			metricsForPrediction = append(metricsForPrediction, metricSpec)
 		}
 
 		metrics = append(metrics, metricsForPrediction...)
@@ -337,10 +299,13 @@ func GetCronMetricSpecsForHPA(ehpa *autoscalingapi.EffectiveHorizontalPodAutosca
 		Type: autoscalingv2.ExternalMetricSourceType,
 		External: &autoscalingv2.ExternalMetricSource{
 			Metric: autoscalingv2.MetricIdentifier{
-				Name: utils.GetGeneralPredictionMetricName(autoscalingv2.PodsMetricSourceType, true, ehpa.Name),
+				Name: utils.GetPredictionMetricName(autoscalingv2.PodsMetricSourceType, true),
 				Selector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{
-						known.EffectiveHorizontalPodAutoscalerUidLabel: string(ehpa.UID),
+						"targetKind":         ehpa.Spec.ScaleTargetRef.Kind,
+						"targetName":         ehpa.Spec.ScaleTargetRef.Name,
+						"targetNamespace":    ehpa.Namespace,
+						"resourceIdentifier": "cron",
 					},
 				},
 			},

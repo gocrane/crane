@@ -1,6 +1,8 @@
 package known
 
 const (
+	MetricNamePrediction  = "crane_autoscaling_prediction"
+	MetricNameCron        = "crane_autoscaling_cron"
 	MetricNamePodCpuUsage = "crane_pod_cpu_usage"
 )
 

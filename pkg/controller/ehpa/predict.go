@@ -110,6 +110,9 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 				"app.kubernetes.io/name":                       name,
 				"app.kubernetes.io/part-of":                    ehpa.Name,
 				"app.kubernetes.io/managed-by":                 known.EffectiveHorizontalPodAutoscalerManagedBy,
+				"app.kubernetes.io/target-kind":                ehpa.Spec.ScaleTargetRef.Kind,
+				"app.kubernetes.io/target-namespace":           ehpa.Namespace,
+				"app.kubernetes.io/target-name":                ehpa.Spec.ScaleTargetRef.Name,
 				known.EffectiveHorizontalPodAutoscalerUidLabel: string(ehpa.UID),
 			},
 		},
@@ -126,41 +129,35 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 
 	var predictionMetrics []predictionapi.PredictionMetric
 	for _, metric := range ehpa.Spec.Metrics {
-		// Convert resource metric into prediction metric
-		if metric.Type == autoscalingv2.ResourceMetricSourceType {
-			metricName := utils.GetPredictionMetricName(metric.Resource.Name)
-			if len(metricName) == 0 {
-				continue
-			}
-
-			predictionMetrics = append(predictionMetrics, predictionapi.PredictionMetric{
-				ResourceIdentifier: metricName,
-				Type:               predictionapi.ResourceQueryMetricType,
-				ResourceQuery:      &metric.Resource.Name,
-				Algorithm: predictionapi.Algorithm{
-					AlgorithmType: ehpa.Spec.Prediction.PredictionAlgorithm.AlgorithmType,
-					DSP:           ehpa.Spec.Prediction.PredictionAlgorithm.DSP,
-					Percentile:    ehpa.Spec.Prediction.PredictionAlgorithm.Percentile,
-				},
-			})
-		}
-		// get expressionQuery according to metric.Type
-		var expressionQuery string
-		var metricName string
+		//get metricIdentifier by metric.Type and metricName
+		var metricIdentifier string
 		switch metric.Type {
+		case autoscalingv2.ResourceMetricSourceType:
+			metricIdentifier = utils.GetMetricIdentifier(metric, metric.Resource.Name.String())
 		case autoscalingv2.ExternalMetricSourceType:
-			expressionQuery = utils.GetExpressionQuery(metric.External.Metric.Name, ehpa.Annotations)
-			metricName = metric.External.Metric.Name
+			metricIdentifier = utils.GetMetricIdentifier(metric, metric.External.Metric.Name)
 		case autoscalingv2.PodsMetricSourceType:
-			expressionQuery = utils.GetExpressionQuery(metric.Pods.Metric.Name, ehpa.Annotations)
-			metricName = metric.Pods.Metric.Name
+			metricIdentifier = utils.GetMetricIdentifier(metric, metric.Pods.Metric.Name)
 		}
 
-		if len(expressionQuery) == 0 {
+		if metricIdentifier == "" {
 			continue
 		}
 
-		metricIdentifier := utils.GetGeneralPredictionMetricName(metric.Type, false, metricName)
+		//get expressionQuery
+		var expressionQuery string
+		//first get annocation expressionQuery
+		expressionQuery = utils.GetExpressionQueryAnnotation(metricIdentifier, ehpa.Annotations)
+		if expressionQuery == "" {
+			// second get default expressionQuery
+			//if annocation not matched, build expressionQuerydefault by metric and ehpa.TargetName
+			expressionQuery = utils.GetExpressionQueryDefault(metric, ehpa.Namespace, ehpa.Spec.ScaleTargetRef.Name)
+		}
+
+		if expressionQuery == "" {
+			continue
+		}
+
 		predictionMetrics = append(predictionMetrics, predictionapi.PredictionMetric{
 			ResourceIdentifier: metricIdentifier,
 			Type:               predictionapi.ExpressionQueryMetricType,

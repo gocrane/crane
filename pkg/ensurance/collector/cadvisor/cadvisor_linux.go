@@ -39,7 +39,7 @@ type ContainerState struct {
 	timestamp time.Time
 }
 
-//CadvisorCollector is the collector to collect container state
+// CadvisorCollector is the collector to collect container state
 type CadvisorCollector struct {
 	Manager   Manager
 	podLister corelisters.PodLister

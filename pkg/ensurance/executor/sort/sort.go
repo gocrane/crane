@@ -108,10 +108,9 @@ func ComparePodQosClass(a v1.PodQOSClass, b v1.PodQOSClass) int32 {
 
 // Cmp compares p1 and p2 and returns:
 //
-//   -1 if p1 <  p2
-//    0 if p1 == p2
-//   +1 if p1 >  p2
-//
+//	-1 if p1 <  p2
+//	 0 if p1 == p2
+//	+1 if p1 >  p2
 type cmpFunc func(p1, p2 podinfo.PodContext) int32
 
 // podSorter implements the Sort interface, sorting changes within.

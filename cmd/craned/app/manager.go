@@ -185,8 +185,19 @@ func initScheme() {
 }
 
 func initMetricCollector(mgr ctrl.Manager) {
+	discoveryClientSet, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
+	if err != nil {
+		klog.Exit(err, "Unable to create discover client")
+	}
+
+	scaleKindResolver := scale.NewDiscoveryScaleKindResolver(discoveryClientSet)
+	scaleClient := scale.New(
+		discoveryClientSet.RESTClient(), mgr.GetRESTMapper(),
+		dynamic.LegacyAPIPathResolverFunc,
+		scaleKindResolver,
+	)
 	// register as prometheus metric collector
-	metrics.CustomCollectorRegister(metrics.NewTspMetricCollector(mgr.GetClient()))
+	metrics.CustomCollectorRegister(metrics.NewCraneMetricCollector(mgr.GetClient(), scaleClient, mgr.GetRESTMapper()))
 }
 
 func initWebhooks(mgr ctrl.Manager, opts *options.Options) {

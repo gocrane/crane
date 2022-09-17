@@ -18,7 +18,7 @@ import (
 
 var _ providers.RealTime = &metricsServer{}
 
-//??? do we need to cache all resource metrics to avoid traffic to apiserver. because vpa to apiserver call is triggered by time tick to list all metrics periodically,
+// ??? do we need to cache all resource metrics to avoid traffic to apiserver. because vpa to apiserver call is triggered by time tick to list all metrics periodically,
 // it can be controlled by a unified loop. but crane to apiserver call is triggered by each metric prediction query, the traffic can not be controlled universally.
 // maybe we can use clients rate limiter.
 type metricsServer struct {
