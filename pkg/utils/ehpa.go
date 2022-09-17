@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"encoding/json"
 
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
@@ -81,7 +82,7 @@ func GetExpressionQueryAnnotation(metricIdentifier string, annotations map[strin
 	return ""
 }
 
-func IsExpressionQueryAnnocationEnabled(metricIdentifier string, annotations map[string]string) bool {
+func IsExpressionQueryAnnotationEnabled(metricIdentifier string, annotations map[string]string) bool {
 	for k := range annotations {
 		if strings.HasPrefix(k, known.EffectiveHorizontalPodAutoscalerExternalMetricsAnnotationPrefix) {
 			compileRegex := regexp.MustCompile(fmt.Sprintf("%s(.*)", known.EffectiveHorizontalPodAutoscalerExternalMetricsAnnotationPrefix))
@@ -96,15 +97,15 @@ func IsExpressionQueryAnnocationEnabled(metricIdentifier string, annotations map
 }
 
 // GetExpressionQuery return metric query
-func GetExpressionQueryDefault(metric autoscalingv2.MetricSpec, namespace string, name string) string {
+func GetExpressionQueryDefault(metric autoscalingv2.MetricSpec, namespace string, name string, kind string) string {
 	var expressionQuery string
 	switch metric.Type {
 	case autoscalingv2.ResourceMetricSourceType:
 		switch metric.Resource.Name {
 		case "cpu":
-			expressionQuery = GetWorkloadCpuUsageExpression(namespace, name)
+			expressionQuery = GetWorkloadCpuUsageExpression(namespace, name, kind)
 		case "memory":
-			expressionQuery = GetWorkloadMemUsageExpression(namespace, name)
+			expressionQuery = GetWorkloadMemUsageExpression(namespace, name, kind)
 		}
 	case autoscalingv2.PodsMetricSourceType:
 		var labels []string
@@ -125,4 +126,43 @@ func GetExpressionQueryDefault(metric autoscalingv2.MetricSpec, namespace string
 	}
 
 	return expressionQuery
+}
+
+// GetAnnotationPromAdapter return value from annotation by suffix
+func GetAnnotationPromAdapter(identifier string, annotations map[string]string) string {
+	for k, v := range annotations {
+		if strings.HasPrefix(k, known.EffectiveHorizontalPodAutoscalerAnnotationPromAdapter) {
+			compileRegex := regexp.MustCompile(fmt.Sprintf("%s(.*)", known.EffectiveHorizontalPodAutoscalerAnnotationPromAdapter))
+			matchArr := compileRegex.FindStringSubmatch(k)
+			if len(matchArr) == 2 && matchArr[1][1:] == identifier {
+				return v
+			}
+		}
+	}
+
+	return ""
+}
+
+// GetExtensionLabelsAnnotationPromAdapter return match labels for prometheus adapter
+func GetExtensionLabelsAnnotationPromAdapter(annotations map[string]string) (map[string]string, error) {
+	var extensionLabels = make(map[string]string)
+	var err error
+
+	value := GetAnnotationPromAdapter(known.PromAdapterExtensionLabels, annotations)
+	if value == "" {
+		return extensionLabels, err
+	}
+
+	var labels = []map[string]interface{}{}
+	err = json.Unmarshal([]byte(value), &labels)
+	if err != nil {
+		return extensionLabels, err
+	}
+
+	for _, label := range labels {
+		for k := range label {
+			extensionLabels[k] = fmt.Sprintf("%v", label[k])
+		}
+	}
+	return extensionLabels, err
 }

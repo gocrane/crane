@@ -5,10 +5,12 @@ import (
 	"flag"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
@@ -20,6 +22,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	paConfig "sigs.k8s.io/prometheus-adapter/pkg/config"
 
 	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
@@ -49,6 +52,7 @@ import (
 	"github.com/gocrane/crane/pkg/recommendation"
 	"github.com/gocrane/crane/pkg/server"
 	serverconfig "github.com/gocrane/crane/pkg/server/config"
+	"github.com/gocrane/crane/pkg/utils"
 	"github.com/gocrane/crane/pkg/utils/target"
 	"github.com/gocrane/crane/pkg/webhooks"
 )
@@ -269,15 +273,47 @@ func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.O
 	targetSelectorFetcher := target.NewSelectorFetcher(mgr.GetScheme(), mgr.GetRESTMapper(), scaleClient, mgr.GetClient())
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.CraneAutoscaling) {
-		if err := (&ehpa.EffectiveHPAController{
+		var ehpaController = &ehpa.EffectiveHPAController{
 			Client:      mgr.GetClient(),
 			Scheme:      mgr.GetScheme(),
 			RestMapper:  mgr.GetRESTMapper(),
 			Recorder:    mgr.GetEventRecorderFor("effective-hpa-controller"),
 			ScaleClient: scaleClient,
 			Config:      opts.EhpaControllerConfig,
-		}).SetupWithManager(mgr); err != nil {
+		}
+
+		if opts.DataSourcePromConfig.AdapterConfigMap != "" {
+			// PrometheusAdapterConfigController
+			if err := (&ehpa.PromAdapterConfigMapController{
+				Client:         mgr.GetClient(),
+				Scheme:         mgr.GetScheme(),
+				RestMapper:     mgr.GetRESTMapper(),
+				Recorder:       mgr.GetEventRecorderFor("prometheus-adapter-configmap-controller"),
+				ConfigMap:      opts.DataSourcePromConfig.AdapterConfigMap,
+				EhpaController: ehpaController,
+			}).SetupWithManager(mgr); err != nil {
+				klog.Exit(err, "unable to create controller", "controller", "PromAdapterConfigMapController")
+			}
+		} else if opts.DataSourcePromConfig.AdapterConfig != "" {
+			go promAdapterConfigDaemonReload(ehpaController, opts.DataSourcePromConfig.AdapterConfig, mgr.GetRESTMapper())
+		}
+
+		if err := (ehpaController).SetupWithManager(mgr); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "EffectiveHPAController")
+		}
+
+		if opts.DataSourcePromConfig.AdapterConfigMap != "" {
+			// PrometheusAdapterConfigController
+			if err := (&ehpa.PromAdapterConfigMapController{
+				Client:         mgr.GetClient(),
+				Scheme:         mgr.GetScheme(),
+				RestMapper:     mgr.GetRESTMapper(),
+				Recorder:       mgr.GetEventRecorderFor("prometheus-adapter-configmap-controller"),
+				ConfigMap:      opts.DataSourcePromConfig.AdapterConfigMap,
+				EhpaController: ehpaController,
+			}).SetupWithManager(mgr); err != nil {
+				klog.Exit(err, "unable to create controller", "controller", "PromAdapterConfigMapController")
+			}
 		}
 
 		if err := (&ehpa.SubstituteController{
@@ -420,5 +456,30 @@ func runAll(ctx context.Context, mgr ctrl.Manager, predictorMgr predictor.Manage
 	// wait for all components exit
 	if err := eg.Wait(); err != nil {
 		klog.Fatal(err)
+	}
+}
+
+// if set promAdapterConfig, daemon reload by config's md5
+func promAdapterConfigDaemonReload(ehpaController *ehpa.EffectiveHPAController, filePath string, restMapper meta.RESTMapper) () {
+	var md5Cache string
+	for {
+		md5Now, err := utils.GetFileMd5(filePath)
+		if err != nil {
+			klog.Errorf("Got Md5 failed[%s] %v", filePath, err)
+		}
+
+		if md5Cache != md5Now {
+			md5Cache = md5Now
+			metricsDiscoveryConfig, err := paConfig.FromFile(filePath)
+			if err != nil {
+				klog.Errorf("Got metricsDiscoveryConfig failed[%s] %v", filePath, err)
+			} else {
+				ehpaController.MetricRulesResource, ehpaController.MetricRulesResource, ehpaController.MetricRulesExternal, err = utils.GetMetricRules(*metricsDiscoveryConfig, restMapper)
+				if err != nil {
+					klog.Errorf("Got metricRules failed[%s] %v", filePath, err)
+				}
+			}
+		}
+		time.Sleep(time.Duration(30) * time.Second)
 	}
 }

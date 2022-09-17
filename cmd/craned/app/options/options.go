@@ -101,6 +101,8 @@ func (o *Options) AddFlags(flags *pflag.FlagSet) {
 		"Specifies the update frequency of the prediction.")
 	flags.StringSliceVar(&o.DataSource, "datasource", []string{"prom"}, "data source of the predictor, prom, mock is available")
 	flags.StringVar(&o.DataSourcePromConfig.Address, "prometheus-address", "", "prometheus address")
+	flags.StringVar(&o.DataSourcePromConfig.AdapterConfigMap, "prometheus-adapter-configmap", "", "prometheus adapter-configmap name")
+	flags.StringVar(&o.DataSourcePromConfig.AdapterConfig, "prometheus-adapter-config", "", "prometheus adapter-config path")
 	flags.StringVar(&o.DataSourcePromConfig.Auth.Username, "prometheus-auth-username", "", "prometheus auth username")
 	flags.StringVar(&o.DataSourcePromConfig.Auth.Password, "prometheus-auth-password", "", "prometheus auth password")
 	flags.StringVar(&o.DataSourcePromConfig.Auth.BearerToken, "prometheus-auth-bearertoken", "", "prometheus auth bearertoken")

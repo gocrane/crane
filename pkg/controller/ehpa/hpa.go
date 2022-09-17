@@ -3,6 +3,7 @@ package ehpa
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
@@ -11,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -182,13 +184,19 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 	}
 
 	if utils.IsEHPAPredictionEnabled(ehpa) {
-		var metricsForPrediction []autoscalingv2.MetricSpec
+		extensionLabels, err := utils.GetExtensionLabelsAnnotationPromAdapter(ehpa.Annotations)
+		if err != nil {
+			klog.Errorf("Got extensionLabels by prometheus-adapter annotation ehpa[%s] %v", ehpa.Name, err)
+		}
 
+		var metricsForPrediction []autoscalingv2.MetricSpec
 		for _, metric := range metrics {
+			var metricName string
 			var metricIdentifier string
 			var averageValue *resource.Quantity
 			switch metric.Type {
 			case autoscalingv2.ResourceMetricSourceType:
+				metricName = metric.Resource.Name.String()
 				metricIdentifier = utils.GetMetricIdentifier(metric, metric.Resource.Name.String())
 				// When use AverageUtilization in EffectiveHorizontalPodAutoscaler's metricSpec, convert to AverageValue
 				if metric.Resource.Target.AverageUtilization != nil {
@@ -222,9 +230,11 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 					averageValue = metric.Resource.Target.AverageValue
 				}
 			case autoscalingv2.ExternalMetricSourceType:
+				metricName = metric.External.Metric.Name
 				metricIdentifier = utils.GetMetricIdentifier(metric, metric.External.Metric.Name)
 				averageValue = metric.External.Target.AverageValue
 			case autoscalingv2.PodsMetricSourceType:
+				metricName = metric.Pods.Metric.Name
 				metricIdentifier = utils.GetMetricIdentifier(metric, metric.Pods.Metric.Name)
 				averageValue = metric.Pods.Target.AverageValue
 			}
@@ -240,7 +250,72 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 			expressionQuery = utils.GetExpressionQueryAnnotation(metricIdentifier, ehpa.Annotations)
 			//if annocation not matched, build expressionQuery by metric and ehpa.TargetName
 			if expressionQuery == "" {
-				expressionQuery = utils.GetExpressionQueryDefault(metric, ehpa.Namespace, ehpa.Spec.ScaleTargetRef.Name)
+				// second get prometheus-adapter expressionQuery
+				switch metric.Type {
+				case autoscalingv2.ResourceMetricSourceType:
+					if len(c.MetricRulesResource) > 0 {
+						for _, metricRule := range c.MetricRulesResource {
+							if match, _ := (regexp.Match(metricRule.MetricMatches, []byte(metricName))); match {
+								klog.V(4).Infof("Got MetricRulesResource prometheus-adapter-resource MetricMatches[%s] SeriesName[%s]", metricRule.MetricMatches, metricRule.SeriesName)
+
+								expressionQuery, err = metricRule.QueryForSeriesResource(ehpa.Namespace, labels.SelectorFromSet(extensionLabels), ehpa.Spec.ScaleTargetRef.Name, utils.GetPodNameReg(ehpa.Spec.ScaleTargetRef.Name, ehpa.Spec.ScaleTargetRef.Kind))
+								if err != nil {
+									klog.Errorf("Got promSelector prometheus-adapter-resource %v", err)
+								} else {
+									klog.V(4).Infof("Got expressionQuery prometheus-adapter-resource [%s]", expressionQuery)
+								}
+							}
+						}
+					}
+				case autoscalingv2.PodsMetricSourceType:
+					if len(c.MetricRulesCustomer) > 0 {
+						for _, metricRule := range c.MetricRulesCustomer {
+							if match, _ := (regexp.Match(metricRule.MetricMatches, []byte(metricName))); match {
+								klog.V(4).Infof("Got MetricRulesCustomer prometheus-adapter-customer MetricMatches[%s] SeriesName[%s]", metricRule.MetricMatches, metricRule.SeriesName)
+								var matchLabels map[string]string
+								if metric.Pods.Metric.Selector != nil {
+									matchLabels = GetMatchLabels(extensionLabels, metric.Pods.Metric.Selector.MatchLabels)
+								} else {
+									matchLabels = extensionLabels
+								}
+
+								expressionQuery, err = metricRule.QueryForSeriesCustomer(metricRule.SeriesName, ehpa.Namespace, labels.SelectorFromSet(matchLabels))
+								if err != nil {
+									klog.Errorf("Got promSelector prometheus-adapter-customer %v", err)
+								} else {
+									klog.V(4).Infof("Got expressionQuery prometheus-adapter-customer [%s]", expressionQuery)
+								}
+							}
+						}
+					}
+				case autoscalingv2.ExternalMetricSourceType:
+					if len(c.MetricRulesExternal) > 0 {
+						for _, metricRule := range c.MetricRulesExternal {
+							if match, _ := (regexp.Match(metricRule.MetricMatches, []byte(metricName))); match {
+								klog.V(4).Infof("Got MetricRulesExternal prometheus-adapter-external MetricMatches[%s] SeriesName[%s]", metricRule.MetricMatches, metricRule.SeriesName)
+								var matchLabels map[string]string
+								if metric.External.Metric.Selector != nil {
+									matchLabels = GetMatchLabels(extensionLabels, metric.External.Metric.Selector.MatchLabels)
+								} else {
+									matchLabels = extensionLabels
+								}
+
+								expressionQuery, err = metricRule.QueryForSeriesExternal(metricRule.SeriesName, ehpa.Namespace, labels.SelectorFromSet(matchLabels))
+								if err != nil {
+									klog.Errorf("Got promSelector prometheus-adapter-external %v", err)
+								} else {
+									klog.V(4).Infof("Got expressionQuery prometheus-adapter-external [%s]", expressionQuery)
+								}
+							}
+						}
+					}
+				}
+				// third get default expressionQuery
+				if expressionQuery == "" {
+					//if annotation not matched, and configmap is not set, build expressionQuerydefault by metric and ehpa.TargetName
+					expressionQuery = utils.GetExpressionQueryDefault(metric, ehpa.Namespace, ehpa.Spec.ScaleTargetRef.Name, ehpa.Spec.ScaleTargetRef.Kind)
+					klog.V(4).Infof("Got expressionQuery default [%s]", expressionQuery)
+				}
 			}
 
 			if len(expressionQuery) == 0 {
@@ -251,6 +326,11 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 			if len(name) == 0 {
 				continue
 			}
+
+			if !utils.IsEHPAHasPredictionMetric(ehpa) {
+				continue
+			}
+
 			if _, err := utils.GetReadyPredictionMetric(name, metricIdentifier, tsp); err != nil {
 				// metric is not predictable
 				continue

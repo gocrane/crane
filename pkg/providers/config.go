@@ -8,6 +8,8 @@ import (
 // PromConfig represents the config of prometheus
 type PromConfig struct {
 	Address            string
+	AdapterConfigMap   string
+	AdapterConfig      string
 	Timeout            time.Duration
 	KeepAlive          time.Duration
 	InsecureSkipVerify bool

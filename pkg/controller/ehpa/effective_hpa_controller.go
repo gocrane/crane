@@ -38,6 +38,9 @@ type EffectiveHPAController struct {
 	ScaleClient scale.ScalesGetter
 	K8SVersion  *version.Version
 	Config      EhpaControllerConfig
+	MetricRulesResource []utils.MetricRule
+	MetricRulesCustomer []utils.MetricRule
+	MetricRulesExternal []utils.MetricRule
 }
 
 func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {

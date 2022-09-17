@@ -7,9 +7,10 @@ import (
 // todo: later we change these templates to configurable like prometheus-adapter
 const (
 	// WorkloadCpuUsageExprTemplate is used to query workload cpu usage by promql,  param is namespace,workload-name,duration str
-	WorkloadCpuUsageExprTemplate = `sum(irate(container_cpu_usage_seconds_total{namespace="%s",pod=~"^%s-.*$",container!=""}[%s]))`
+
+	WorkloadCpuUsageExprTemplate = `sum(irate(container_cpu_usage_seconds_total{namespace="%s",pod=~"^%s"}[%s]))`
 	// WorkloadMemUsageExprTemplate is used to query workload mem usage by promql, param is namespace, workload-name
-	WorkloadMemUsageExprTemplate = `sum(container_memory_working_set_bytes{namespace="%s",pod=~"^%s-.*$",container!=""})`
+	WorkloadMemUsageExprTemplate = `sum(container_memory_working_set_bytes{namespace="%s",pod=~"^%s"})`
 
 	// following is node exporter metric for node cpu/memory usage
 	// NodeCpuUsageExprTemplate is used to query node cpu usage by promql,  param is node name which prometheus scrape, duration str
@@ -23,31 +24,49 @@ const (
 	PodMemUsageExprTemplate = `sum(container_memory_working_set_bytes{container!="POD",namespace="%s",pod="%s"})`
 
 	// ContainerCpuUsageExprTemplate is used to query container cpu usage by promql,  param is namespace,pod,container duration str
-	ContainerCpuUsageExprTemplate = `irate(container_cpu_usage_seconds_total{container!="POD",namespace="%s",pod=~"^%s.*$",container="%s"}[%s])`
+	ContainerCpuUsageExprTemplate = `irate(container_cpu_usage_seconds_total{container!="POD",namespace="%s",pod=~"^%s",container="%s"}[%s])`
 	// ContainerMemUsageExprTemplate is used to query container cpu usage by promql,  param is namespace,pod,container
-	ContainerMemUsageExprTemplate = `container_memory_working_set_bytes{container!="POD",namespace="%s",pod=~"^%s.*$",container="%s"}`
+	ContainerMemUsageExprTemplate = `container_memory_working_set_bytes{container!="POD",namespace="%s",pod=~"^%s",container="%s"}`
 
 	CustomerExprTemplate = `sum(%s{%s})`
 )
+
+const (
+	PostRegMatchesPodDeployment  = `[a-z0-9]+-[a-z0-9]{5}$`
+	PostRegMatchesPodReplicaset  = `[a-z0-9]+$`
+	PostRegMatchesPodStatefulset = `[0-9]+$`
+)
+
+func GetPodNameReg(resourceName string, resourceType string) string {
+	switch resourceType {
+	case "ReplicaSet":
+		return fmt.Sprintf("^%s-%s", resourceName, PostRegMatchesPodReplicaset)
+	case "Deployment":
+		return fmt.Sprintf("^%s-%s", resourceName, PostRegMatchesPodDeployment)
+	case "StatefulSet":
+		return fmt.Sprintf("^%s-%s", resourceName, PostRegMatchesPodStatefulset)
+	}
+	return fmt.Sprintf("^%s-%s", resourceName, `.*`)
+}
 
 func GetCustomerExpression(metricName string, labels string) string {
 	return fmt.Sprintf(CustomerExprTemplate, metricName, labels)
 }
 
-func GetWorkloadCpuUsageExpression(namespace string, name string) string {
-	return fmt.Sprintf(WorkloadCpuUsageExprTemplate, namespace, name, "3m")
+func GetWorkloadCpuUsageExpression(namespace string, name string, kind string) string {
+	return fmt.Sprintf(WorkloadCpuUsageExprTemplate, namespace, GetPodNameReg(name, kind), "3m")
 }
 
-func GetWorkloadMemUsageExpression(namespace string, name string) string {
-	return fmt.Sprintf(WorkloadMemUsageExprTemplate, namespace, name)
+func GetWorkloadMemUsageExpression(namespace string, name string, kind string) string {
+	return fmt.Sprintf(WorkloadMemUsageExprTemplate, namespace, GetPodNameReg(name, kind))
 }
 
-func GetContainerCpuUsageExpression(namespace string, workloadName string, containerName string) string {
-	return fmt.Sprintf(ContainerCpuUsageExprTemplate, namespace, workloadName, containerName, "3m")
+func GetContainerCpuUsageExpression(namespace string, workloadName string, kind string, containerName string) string {
+	return fmt.Sprintf(ContainerCpuUsageExprTemplate, namespace, GetPodNameReg(workloadName, kind), containerName, "3m")
 }
 
-func GetContainerMemUsageExpression(namespace string, workloadName string, containerName string) string {
-	return fmt.Sprintf(ContainerMemUsageExprTemplate, namespace, workloadName, containerName)
+func GetContainerMemUsageExpression(namespace string, workloadName string, kind string, containerName string) string {
+	return fmt.Sprintf(ContainerMemUsageExprTemplate, namespace, GetPodNameReg(workloadName, kind), containerName)
 }
 
 func GetPodCpuUsageExpression(namespace string, name string) string {

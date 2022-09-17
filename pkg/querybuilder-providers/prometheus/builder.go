@@ -50,11 +50,11 @@ func (b *builder) workloadQuery(metric *metricquery.Metric) (*metricquery.Query,
 	switch strings.ToLower(metric.MetricName) {
 	case v1.ResourceCPU.String():
 		return promQuery(&metricquery.PrometheusQuery{
-			Query: utils.GetWorkloadCpuUsageExpression(metric.Workload.Namespace, metric.Workload.Name),
+			Query: utils.GetWorkloadCpuUsageExpression(metric.Workload.Namespace, metric.Workload.Name, ""),
 		}), nil
 	case v1.ResourceMemory.String():
 		return promQuery(&metricquery.PrometheusQuery{
-			Query: utils.GetWorkloadMemUsageExpression(metric.Workload.Namespace, metric.Workload.Name),
+			Query: utils.GetWorkloadMemUsageExpression(metric.Workload.Namespace, metric.Workload.Name, ""),
 		}), nil
 	default:
 		return nil, fmt.Errorf("metric type %v do not support resource metric %v. only support %v now", metric.Type, metric.MetricName, supportedResources.List())
@@ -68,11 +68,11 @@ func (b *builder) containerQuery(metric *metricquery.Metric) (*metricquery.Query
 	switch strings.ToLower(metric.MetricName) {
 	case v1.ResourceCPU.String():
 		return promQuery(&metricquery.PrometheusQuery{
-			Query: utils.GetContainerCpuUsageExpression(metric.Container.Namespace, metric.Container.WorkloadName, metric.Container.Name),
+			Query: utils.GetContainerCpuUsageExpression(metric.Container.Namespace, metric.Container.WorkloadName, "", metric.Container.Name),
 		}), nil
 	case v1.ResourceMemory.String():
 		return promQuery(&metricquery.PrometheusQuery{
-			Query: utils.GetContainerMemUsageExpression(metric.Container.Namespace, metric.Container.WorkloadName, metric.Container.Name),
+			Query: utils.GetContainerMemUsageExpression(metric.Container.Namespace, metric.Container.WorkloadName, "", metric.Container.Name),
 		}), nil
 	default:
 		return nil, fmt.Errorf("metric type %v do not support resource metric %v. only support %v now", metric.Type, metric.MetricName, supportedResources.List())

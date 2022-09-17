@@ -46,7 +46,7 @@ func TestBuildQuery(t *testing.T) {
 					APIVersion: "v1",
 				},
 			},
-			want: utils.GetWorkloadCpuUsageExpression("default", "test"),
+			want: utils.GetWorkloadCpuUsageExpression("default", "test", ""),
 		},
 		{
 			desc: "tc2-workload-mem",
@@ -60,7 +60,7 @@ func TestBuildQuery(t *testing.T) {
 					APIVersion: "v1",
 				},
 			},
-			want: utils.GetWorkloadMemUsageExpression("default", "test"),
+			want: utils.GetWorkloadMemUsageExpression("default", "test", ""),
 		},
 		{
 			desc: "tc3-container-cpu",
@@ -73,7 +73,7 @@ func TestBuildQuery(t *testing.T) {
 					Name:         "container",
 				},
 			},
-			want: utils.GetContainerCpuUsageExpression("default", "workload", "container"),
+			want: utils.GetContainerCpuUsageExpression("default", "workload", "", "container"),
 		},
 		{
 			desc: "tc4-container-mem",
@@ -86,7 +86,7 @@ func TestBuildQuery(t *testing.T) {
 					Name:         "container",
 				},
 			},
-			want: utils.GetContainerMemUsageExpression("default", "workload", "container"),
+			want: utils.GetContainerMemUsageExpression("default", "workload", "", "container"),
 		},
 		{
 			desc: "tc5-node-cpu",
