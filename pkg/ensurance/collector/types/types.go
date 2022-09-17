@@ -3,11 +3,12 @@ package types
 type CollectType string
 
 const (
-	NodeLocalCollectorType     CollectType = "node-local"
-	CadvisorCollectorType      CollectType = "cadvisor"
-	EbpfCollectorType          CollectType = "ebpf"
-	MetricsServerCollectorType CollectType = "metrics-server"
-	NodeResourceCollectorType  CollectType = "node-resource"
+	NodeLocalCollectorType            CollectType = "node-local"
+	CadvisorCollectorType             CollectType = "cadvisor"
+	EbpfCollectorType                 CollectType = "ebpf"
+	MetricsServerCollectorType        CollectType = "metrics-server"
+	NodeResourceCollectorType         CollectType = "node-resource"
+	NodeResourceTopologyCollectorType CollectType = "node-resource-topology"
 )
 
 type MetricName string
