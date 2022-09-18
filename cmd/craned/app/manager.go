@@ -452,9 +452,7 @@ func promAdapterConfigDaemonReload(ehpaController *ehpa.EffectiveHPAController, 
 		md5Now, err := utils.GetFileMd5(filePath)
 		if err != nil {
 			klog.Errorf("Got Md5 failed[%s] %v", filePath, err)
-		}
-
-		if md5Cache != md5Now {
+		} else if md5Now != "" && md5Cache != md5Now {
 			md5Cache = md5Now
 			metricsDiscoveryConfig, err := paConfig.FromFile(filePath)
 			if err != nil {
