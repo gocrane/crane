@@ -1,10 +1,10 @@
 package utils
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
-	"encoding/json"
 
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"

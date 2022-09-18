@@ -1,11 +1,11 @@
 package utils
 
 import (
-	"math"
-	"io"
-	"os"
-	"fmt"
 	"crypto/md5"
+	"fmt"
+	"io"
+	"math"
+	"os"
 )
 
 func GetUint64withDefault(i *uint64, value uint64) uint64 {

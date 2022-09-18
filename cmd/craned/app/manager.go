@@ -302,20 +302,6 @@ func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.O
 			klog.Exit(err, "unable to create controller", "controller", "EffectiveHPAController")
 		}
 
-		if opts.DataSourcePromConfig.AdapterConfigMap != "" {
-			// PrometheusAdapterConfigController
-			if err := (&ehpa.PromAdapterConfigMapController{
-				Client:         mgr.GetClient(),
-				Scheme:         mgr.GetScheme(),
-				RestMapper:     mgr.GetRESTMapper(),
-				Recorder:       mgr.GetEventRecorderFor("prometheus-adapter-configmap-controller"),
-				ConfigMap:      opts.DataSourcePromConfig.AdapterConfigMap,
-				EhpaController: ehpaController,
-			}).SetupWithManager(mgr); err != nil {
-				klog.Exit(err, "unable to create controller", "controller", "PromAdapterConfigMapController")
-			}
-		}
-
 		if err := (&ehpa.SubstituteController{
 			Client:      mgr.GetClient(),
 			Scheme:      mgr.GetScheme(),
@@ -460,7 +446,7 @@ func runAll(ctx context.Context, mgr ctrl.Manager, predictorMgr predictor.Manage
 }
 
 // if set promAdapterConfig, daemon reload by config's md5
-func promAdapterConfigDaemonReload(ehpaController *ehpa.EffectiveHPAController, filePath string, restMapper meta.RESTMapper) () {
+func promAdapterConfigDaemonReload(ehpaController *ehpa.EffectiveHPAController, filePath string, restMapper meta.RESTMapper) {
 	var md5Cache string
 	for {
 		md5Now, err := utils.GetFileMd5(filePath)
@@ -474,9 +460,13 @@ func promAdapterConfigDaemonReload(ehpaController *ehpa.EffectiveHPAController, 
 			if err != nil {
 				klog.Errorf("Got metricsDiscoveryConfig failed[%s] %v", filePath, err)
 			} else {
-				ehpaController.MetricRulesResource, ehpaController.MetricRulesResource, ehpaController.MetricRulesExternal, err = utils.GetMetricRules(*metricsDiscoveryConfig, restMapper)
+				metricRulesResource, metricRulesCustomer, metricRulesExternal, err := utils.GetMetricRules(*metricsDiscoveryConfig, restMapper)
 				if err != nil {
 					klog.Errorf("Got metricRules failed[%s] %v", filePath, err)
+				} else {
+					ehpaController.MetricRulesResource = metricRulesResource
+					ehpaController.MetricRulesCustomer = metricRulesCustomer
+					ehpaController.MetricRulesExternal = metricRulesExternal
 				}
 			}
 		}

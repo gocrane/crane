@@ -32,12 +32,12 @@ import (
 // EffectiveHPAController is responsible for scaling workload's replica based on EffectiveHorizontalPodAutoscaler spec
 type EffectiveHPAController struct {
 	client.Client
-	Scheme      *runtime.Scheme
-	RestMapper  meta.RESTMapper
-	Recorder    record.EventRecorder
-	ScaleClient scale.ScalesGetter
-	K8SVersion  *version.Version
-	Config      EhpaControllerConfig
+	Scheme              *runtime.Scheme
+	RestMapper          meta.RESTMapper
+	Recorder            record.EventRecorder
+	ScaleClient         scale.ScalesGetter
+	K8SVersion          *version.Version
+	Config              EhpaControllerConfig
 	MetricRulesResource []utils.MetricRule
 	MetricRulesCustomer []utils.MetricRule
 	MetricRulesExternal []utils.MetricRule
