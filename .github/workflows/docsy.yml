@@ -1,0 +1,49 @@
+name: 🔂 Crane PR Docs Preview - Docsy
+
+on:
+  push:
+    paths:
+      - "site/**"
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+      contents: write
+    env:
+      HUGO_VERSION: 0.102.3
+      HUGO_ENVIRONMENT: production
+      HUGO_ENV: production
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{github.event.pull_request.head.ref}}
+          repository: ${{github.event.pull_request.head.repo.full_name}}
+      - id: git-branch
+        run: |
+          echo "::set-output name=git-branch::$(echo ${GITHUB_REF##*/} | tr '[A-Z]' '[a-z]')"
+      - name: Install Hugo CLI
+        run: |
+          wget -O ${{ runner.temp }}/hugo.deb https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_Linux-64bit.deb \
+          && sudo dpkg -i ${{ runner.temp }}/hugo.deb
+
+      - name: Use Node.js 16
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - name: Build Docs
+        run: |
+          echo ${{steps.git-branch.outputs.git-branch}}
+          cd site
+          npm i
+          hugo --minify --baseURL https://docs.gocrane.io/${{steps.git-branch.outputs.git-branch}}-docsy
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: site/public
+          destination_dir: ${{steps.git-branch.outputs.git-branch}}-docsy

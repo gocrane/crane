@@ -133,6 +133,18 @@ archived_version = false
 # current doc set.
 version = "0.8.0"
 
+[[params.versions]]
+  version = "main"
+  url = "https://docs.gocrane.io/main-docsy"
+
+[[params.versions]]
+  version = "release-0.7"
+  url = "https://docs.gocrane.io/release-0.7"
+
+[[params.versions]]
+  version = "release-0.4"
+  url = "https://docs.gocrane.io/release-0.4/"
+
 # Repository configuration (URLs for in-page links to opening issues and suggesting changes)
 github_repo = "https://github.com/gocrane/crane"
 # An optional link to a related project repo. For example, the sibling repository where your product code lives.
@@ -152,7 +164,7 @@ algolia_docsearch = false
 offlineSearch = false
 
 # Enable syntax highlighting and copy buttons on code blocks with Prism
-prism_syntax_highlighting = false
+prism_syntax_highlighting = true
 
 # User interface configuration
 [params.ui]
