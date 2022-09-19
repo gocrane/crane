@@ -135,7 +135,7 @@ version = "0.8.0"
 
 [[params.versions]]
   version = "main"
-  url = "https://docs.gocrane.io/main-docsy"
+  url = "https://gocrane.io/"
 
 [[params.versions]]
   version = "release-0.7"
