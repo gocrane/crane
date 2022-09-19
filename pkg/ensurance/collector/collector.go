@@ -6,15 +6,20 @@ import (
 
 	"k8s.io/apimachinery/pkg/labels"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	"k8s.io/client-go/kubernetes"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 
+	craneclientset "github.com/gocrane/api/pkg/generated/clientset/versioned"
 	ensuranceListers "github.com/gocrane/api/pkg/generated/listers/ensurance/v1alpha1"
+	topologylisters "github.com/gocrane/api/pkg/generated/listers/topology/v1alpha1"
+
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/ensurance/collector/cadvisor"
 	"github.com/gocrane/crane/pkg/ensurance/collector/nodelocal"
 	"github.com/gocrane/crane/pkg/ensurance/collector/noderesource"
+	"github.com/gocrane/crane/pkg/ensurance/collector/noderesourcetopology"
 	"github.com/gocrane/crane/pkg/ensurance/collector/types"
 	"github.com/gocrane/crane/pkg/features"
 	"github.com/gocrane/crane/pkg/known"
@@ -24,7 +29,11 @@ import (
 
 type StateCollector struct {
 	nodeName          string
+	sysPath           string
+	kubeClient        kubernetes.Interface
+	craneClient       craneclientset.Interface
 	nodeQOSLister     ensuranceListers.NodeQOSLister
+	nrtLister         topologylisters.NodeResourceTopologyLister
 	podLister         corelisters.PodLister
 	nodeLister        corelisters.NodeLister
 	healthCheck       *metrics.HealthCheck
@@ -40,15 +49,23 @@ type StateCollector struct {
 	rw                sync.RWMutex
 }
 
-func NewStateCollector(nodeName string, nodeQOSLister ensuranceListers.NodeQOSLister, podLister corelisters.PodLister,
-	nodeLister corelisters.NodeLister, ifaces []string, healthCheck *metrics.HealthCheck, collectInterval time.Duration, exclusiveCPUSet func() cpuset.CPUSet, manager cadvisor.Manager) *StateCollector {
+func NewStateCollector(nodeName, sysPath string, kubeClient kubernetes.Interface, craneClient craneclientset.Interface,
+	nodeQOSLister ensuranceListers.NodeQOSLister, nrtLister topologylisters.NodeResourceTopologyLister,
+	podLister corelisters.PodLister, nodeLister corelisters.NodeLister, ifaces []string,
+	healthCheck *metrics.HealthCheck, collectInterval time.Duration, exclusiveCPUSet func() cpuset.CPUSet,
+	manager cadvisor.Manager,
+) *StateCollector {
 	analyzerChann := make(chan map[string][]common.TimeSeries)
 	nodeResourceChann := make(chan map[string][]common.TimeSeries)
 	podResourceChann := make(chan map[string][]common.TimeSeries)
 	State := make(map[string][]common.TimeSeries)
 	return &StateCollector{
 		nodeName:          nodeName,
+		sysPath:           sysPath,
+		kubeClient:        kubeClient,
+		craneClient:       craneClient,
 		nodeQOSLister:     nodeQOSLister,
+		nrtLister:         nrtLister,
 		podLister:         podLister,
 		nodeLister:        nodeLister,
 		healthCheck:       healthCheck,
@@ -70,7 +87,15 @@ func (s *StateCollector) Name() string {
 
 func (s *StateCollector) Run(stop <-chan struct{}) {
 	klog.Infof("Starting state collector.")
+
 	s.UpdateCollectors()
+	if utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResourceTopology) {
+		if _, exists := s.collectors.Load(types.NodeResourceTopologyCollectorType); !exists {
+			s.collectors.Store(types.NodeResourceTopologyCollectorType,
+				noderesourcetopology.NewNodeResourceTopology(s.nodeName, s.sysPath, s.nrtLister, s.nodeLister, s.kubeClient, s.craneClient))
+		}
+	}
+
 	go func() {
 		updateTicker := time.NewTicker(s.collectInterval)
 		defer updateTicker.Stop()
@@ -132,6 +157,8 @@ func (s *StateCollector) Collect() {
 					data[key] = series
 				}
 				s.rw.Unlock()
+			} else {
+				klog.ErrorS(err, "Failed to collect data in state collector", "type", c.GetType())
 			}
 		}(c, s.State)
 

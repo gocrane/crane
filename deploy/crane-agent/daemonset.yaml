@@ -46,7 +46,7 @@ spec:
               port: 8081
       restartPolicy: Always
       priorityClassName: system-node-critical
-      serviceAccount: crane-agent
+      serviceAccountName: crane-agent
       volumes:
         - hostPath:
             path: /sys

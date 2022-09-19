@@ -21,11 +21,12 @@ import (
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 	"github.com/gocrane/api/pkg/generated/informers/externalversions/ensurance/v1alpha1"
 	ensurancelisters "github.com/gocrane/api/pkg/generated/listers/ensurance/v1alpha1"
+
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/ensurance/analyzer/evaluator"
 	ecache "github.com/gocrane/crane/pkg/ensurance/cache"
 	"github.com/gocrane/crane/pkg/ensurance/executor"
-	podinfo "github.com/gocrane/crane/pkg/ensurance/executor/podinfo"
+	"github.com/gocrane/crane/pkg/ensurance/executor/podinfo"
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/utils"
@@ -61,7 +62,7 @@ type AnomalyAnalyzer struct {
 }
 
 // NewAnomalyAnalyzer create an analyzer manager
-func NewAnomalyAnalyzer(kubeClient *kubernetes.Clientset,
+func NewAnomalyAnalyzer(kubeClient kubernetes.Interface,
 	nodeName string,
 	podInformer coreinformers.PodInformer,
 	nodeInformer coreinformers.NodeInformer,

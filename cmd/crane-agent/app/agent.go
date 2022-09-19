@@ -22,6 +22,7 @@ import (
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 	craneclientset "github.com/gocrane/api/pkg/generated/clientset/versioned"
 	craneinformers "github.com/gocrane/api/pkg/generated/informers/externalversions"
+
 	"github.com/gocrane/crane/cmd/crane-agent/app/options"
 	"github.com/gocrane/crane/pkg/agent"
 	"github.com/gocrane/crane/pkg/metrics"
@@ -105,8 +106,15 @@ func Run(ctx context.Context, opts *options.Options) error {
 	actionInformer := craneInformerFactory.Ensurance().V1alpha1().AvoidanceActions()
 	tspInformer := craneInformerFactory.Prediction().V1alpha1().TimeSeriesPredictions()
 
-	newAgent, err := agent.NewAgent(ctx, hostname, opts.RuntimeEndpoint, opts.CgroupDriver, kubeClient, craneClient, podInformer, nodeInformer,
-		nodeQOSInformer, podQOSInformer, actionInformer, tspInformer, opts.NodeResourceReserved, opts.Ifaces, healthCheck, opts.CollectInterval, opts.ExecuteExcess)
+	nrtInformerFactory := craneinformers.NewSharedInformerFactoryWithOptions(craneClient, informerSyncPeriod,
+		craneinformers.WithTweakListOptions(func(options *metav1.ListOptions) {
+			options.FieldSelector = fields.OneTermEqualSelector(nodeNameField, hostname).String()
+		}),
+	)
+	nrtInformer := nrtInformerFactory.Topology().V1alpha1().NodeResourceTopologies()
+
+	newAgent, err := agent.NewAgent(ctx, hostname, opts.RuntimeEndpoint, opts.CgroupDriver, opts.SysPath, kubeClient, craneClient, podInformer, nodeInformer,
+		nodeQOSInformer, podQOSInformer, actionInformer, tspInformer, nrtInformer, opts.NodeResourceReserved, opts.Ifaces, healthCheck, opts.CollectInterval, opts.ExecuteExcess)
 
 	if err != nil {
 		return err
@@ -115,16 +123,18 @@ func Run(ctx context.Context, opts *options.Options) error {
 	podInformerFactory.Start(ctx.Done())
 	nodeInformerFactory.Start(ctx.Done())
 	craneInformerFactory.Start(ctx.Done())
+	nrtInformerFactory.Start(ctx.Done())
 
 	podInformerFactory.WaitForCacheSync(ctx.Done())
 	nodeInformerFactory.WaitForCacheSync(ctx.Done())
 	craneInformerFactory.WaitForCacheSync(ctx.Done())
+	nrtInformerFactory.WaitForCacheSync(ctx.Done())
 
 	newAgent.Run(healthCheck, opts.EnableProfiling, opts.BindAddr)
 	return nil
 }
 
-func buildClient() (*kubernetes.Clientset, *craneclientset.Clientset, error) {
+func buildClient() (kubernetes.Interface, craneclientset.Interface, error) {
 	config, err := ctrl.GetConfig()
 	if err != nil {
 		klog.Errorf("Failed to get GetConfig, %v.", err)

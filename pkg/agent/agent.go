@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -31,16 +31,21 @@ import (
 	craneclientset "github.com/gocrane/api/pkg/generated/clientset/versioned"
 	"github.com/gocrane/api/pkg/generated/informers/externalversions/ensurance/v1alpha1"
 	predictionv1 "github.com/gocrane/api/pkg/generated/informers/externalversions/prediction/v1alpha1"
-	v1alpha12 "github.com/gocrane/api/prediction/v1alpha1"
+	topologyinformer "github.com/gocrane/api/pkg/generated/informers/externalversions/topology/v1alpha1"
+	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
+	topologyapi "github.com/gocrane/api/topology/v1alpha1"
+
 	"github.com/gocrane/crane/pkg/ensurance/analyzer"
 	"github.com/gocrane/crane/pkg/ensurance/cm"
 	"github.com/gocrane/crane/pkg/ensurance/collector"
 	"github.com/gocrane/crane/pkg/ensurance/collector/cadvisor"
+	"github.com/gocrane/crane/pkg/ensurance/collector/noderesourcetopology"
 	"github.com/gocrane/crane/pkg/ensurance/executor"
 	"github.com/gocrane/crane/pkg/ensurance/manager"
 	"github.com/gocrane/crane/pkg/features"
 	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/resource"
+	"github.com/gocrane/crane/pkg/utils"
 )
 
 type Agent struct {
@@ -53,19 +58,20 @@ type Agent struct {
 }
 
 func NewAgent(ctx context.Context,
-	nodeName, runtimeEndpoint, cgroupDriver string,
-	kubeClient *kubernetes.Clientset,
-	craneClient *craneclientset.Clientset,
+	nodeName, runtimeEndpoint, cgroupDriver, sysPath string,
+	kubeClient kubernetes.Interface,
+	craneClient craneclientset.Interface,
 	podInformer coreinformers.PodInformer,
 	nodeInformer coreinformers.NodeInformer,
 	nodeQOSInformer v1alpha1.NodeQOSInformer,
 	podQOSInformer v1alpha1.PodQOSInformer,
 	actionInformer v1alpha1.AvoidanceActionInformer,
 	tspInformer predictionv1.TimeSeriesPredictionInformer,
+	nrtInformer topologyinformer.NodeResourceTopologyInformer,
 	nodeResourceReserved map[string]string,
 	ifaces []string,
 	healthCheck *metrics.HealthCheck,
-	CollectInterval time.Duration,
+	collectInterval time.Duration,
 	executeExcess string,
 ) (*Agent, error) {
 	var managers []manager.Manager
@@ -79,6 +85,7 @@ func NewAgent(ctx context.Context,
 	}
 
 	utilruntime.Must(ensuranceapi.AddToScheme(scheme.Scheme))
+	utilruntime.Must(topologyapi.AddToScheme(scheme.Scheme))
 	cadvisorManager := cadvisor.NewCadvisorManager(cgroupDriver)
 	exclusiveCPUSet := cm.DefaultExclusiveCPUSet
 	if craneCpuSetManager := utilfeature.DefaultFeatureGate.Enabled(features.CraneCpuSetManager); craneCpuSetManager {
@@ -86,7 +93,7 @@ func NewAgent(ctx context.Context,
 		exclusiveCPUSet = cpuManager.GetExclusiveCpu
 		managers = appendManagerIfNotNil(managers, cpuManager)
 	}
-	stateCollector := collector.NewStateCollector(nodeName, nodeQOSInformer.Lister(), podInformer.Lister(), nodeInformer.Lister(), ifaces, healthCheck, CollectInterval, exclusiveCPUSet, cadvisorManager)
+	stateCollector := collector.NewStateCollector(nodeName, sysPath, kubeClient, craneClient, nodeQOSInformer.Lister(), nrtInformer.Lister(), podInformer.Lister(), nodeInformer.Lister(), ifaces, healthCheck, collectInterval, exclusiveCPUSet, cadvisorManager)
 	managers = appendManagerIfNotNil(managers, stateCollector)
 	analyzerManager := analyzer.NewAnomalyAnalyzer(kubeClient, nodeName, podInformer, nodeInformer, nodeQOSInformer, podQOSInformer, actionInformer, stateCollector.AnalyzerChann, noticeCh)
 	managers = appendManagerIfNotNil(managers, analyzerManager)
@@ -105,6 +112,12 @@ func NewAgent(ctx context.Context,
 	if podResource := utilfeature.DefaultFeatureGate.Enabled(features.CranePodResource); podResource {
 		podResourceManager := resource.NewPodResourceManager(kubeClient, nodeName, podInformer, runtimeEndpoint, stateCollector.PodResourceChann, stateCollector.GetCadvisorManager())
 		managers = appendManagerIfNotNil(managers, podResourceManager)
+	}
+
+	if utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResourceTopology) {
+		if err := agent.CreateNodeResourceTopology(sysPath); err != nil {
+			return agent, err
+		}
 	}
 
 	agent.managers = managers
@@ -169,7 +182,7 @@ func (a *Agent) CreateNodeResourceTsp() string {
 		return ""
 	}
 
-	spec := v1alpha12.TimeSeriesPredictionSpec{}
+	spec := predictionapi.TimeSeriesPredictionSpec{}
 	tpl, err := template.New("").Parse(config.Data["spec"])
 	if err != nil {
 		klog.Errorf("Failed to convert spec template : %v", err)
@@ -194,7 +207,7 @@ func (a *Agent) CreateNodeResourceTsp() string {
 	}
 
 	gvk, _ := apiutil.GVKForObject(n, scheme.Scheme)
-	spec.TargetRef = v1.ObjectReference{
+	spec.TargetRef = corev1.ObjectReference{
 		Kind:       gvk.Kind,
 		APIVersion: gvk.GroupVersion().String(),
 		Name:       a.nodeName,
@@ -215,7 +228,7 @@ func (a *Agent) CreateNodeResourceTsp() string {
 		klog.V(4).Infof("The noderesource tsp is updated successfully: %s", a.GenerateNodeResourceTspName())
 	} else {
 		klog.V(4).Infof("The noderesource tsp does not exist, try to create a new one: %s", a.GenerateNodeResourceTspName())
-		tsp = &v1alpha12.TimeSeriesPrediction{}
+		tsp = &predictionapi.TimeSeriesPrediction{}
 		tsp.Name = a.GenerateNodeResourceTspName()
 		tsp.Namespace = resource.TspNamespace
 		tsp.Spec = spec
@@ -229,6 +242,41 @@ func (a *Agent) CreateNodeResourceTsp() string {
 	}
 
 	return a.GenerateNodeResourceTspName()
+}
+
+func (a *Agent) CreateNodeResourceTopology(sysPath string) error {
+	nrt, err := a.craneClient.TopologyV1alpha1().NodeResourceTopologies().Get(context.TODO(), a.nodeName, metav1.GetOptions{})
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			klog.Errorf("Failed to get node resource topology: %v", err)
+			return err
+		}
+		nrt = nil
+	}
+
+	node, err := a.kubeClient.CoreV1().Nodes().Get(context.TODO(), a.nodeName, metav1.GetOptions{})
+	if err != nil {
+		klog.Errorf("Failed to get node: %v", err)
+		return err
+	}
+
+	kubeletConfig, err := utils.GetKubeletConfig(context.TODO(), a.kubeClient, a.nodeName)
+	if err != nil {
+		klog.Errorf("Failed to get kubelet config: %v", err)
+		return err
+	}
+
+	newNrt, err := noderesourcetopology.BuildNodeResourceTopology(sysPath, kubeletConfig, node)
+	if err != nil {
+		klog.Errorf("Failed to build node resource topology: %v", err)
+		return err
+	}
+
+	if err = noderesourcetopology.CreateOrUpdateNodeResourceTopology(a.craneClient, nrt, newNrt); err != nil {
+		klog.Errorf("Failed to create or update node resource topology: %v", err)
+		return err
+	}
+	return nil
 }
 
 func (a *Agent) DeleteNodeResourceTsp() error {

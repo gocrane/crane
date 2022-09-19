@@ -16,6 +16,9 @@ const (
 	// CraneNodeResource enables the node resource features.
 	CraneNodeResource featuregate.Feature = "NodeResource"
 
+	// CraneNodeResourceTopology enables node resource topology features.
+	CraneNodeResourceTopology featuregate.Feature = "NodeResourceTopology"
+
 	// CranePodResource enables the pod resource features.
 	CranePodResource featuregate.Feature = "PodResource"
 
@@ -33,6 +36,7 @@ var defaultFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	CraneAutoscaling:           {Default: true, PreRelease: featuregate.Alpha},
 	CraneAnalysis:              {Default: true, PreRelease: featuregate.Alpha},
 	CraneNodeResource:          {Default: true, PreRelease: featuregate.Alpha},
+	CraneNodeResourceTopology:  {Default: false, PreRelease: featuregate.Alpha},
 	CranePodResource:           {Default: true, PreRelease: featuregate.Alpha},
 	CraneClusterNodePrediction: {Default: false, PreRelease: featuregate.Alpha},
 	CraneTimeSeriesPrediction:  {Default: true, PreRelease: featuregate.Alpha},

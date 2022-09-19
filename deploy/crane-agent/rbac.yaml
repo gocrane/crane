@@ -26,6 +26,12 @@ rules:
   - apiGroups:
       - ""
     resources:
+      - nodes/proxy
+    verbs:
+      - get
+  - apiGroups:
+      - ""
+    resources:
       - configmaps
     verbs:
       - get
@@ -53,6 +59,17 @@ rules:
     resources:
       - timeseriespredictions
       - timeseriespredictions/finalizers
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+  - apiGroups:
+      - "topology.crane.io"
+    resources:
+      - "*"
     verbs:
       - get
       - list
