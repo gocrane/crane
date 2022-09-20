@@ -297,3 +297,17 @@ func GetDaemonSetPods(kubeClient client.Client, namespace string, name string) (
 
 	return podList.Items, nil
 }
+
+func GetNodePods(kubeClient client.Client, nodeName string) ([]corev1.Pod, error) {
+	opts := []client.ListOption{
+		client.MatchingFields{"spec.nodeName": nodeName},
+	}
+
+	podList := &corev1.PodList{}
+	err := kubeClient.List(context.TODO(), podList, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	return podList.Items, nil
+}

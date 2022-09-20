@@ -239,10 +239,15 @@ func (c *RecommendationRuleController) doReconcile(ctx context.Context, recommen
 func (c *RecommendationRuleController) CreateRecommendationObject(recommendationRule *analysisv1alph1.RecommendationRule,
 	target corev1.ObjectReference, id ObjectIdentity, recommenderName string) *analysisv1alph1.Recommendation {
 
+	namespace := known.CraneSystemNamespace
+	if id.Namespace != "" {
+		namespace = id.Namespace
+	}
+
 	recommendation := &analysisv1alph1.Recommendation{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: fmt.Sprintf("%s-%s-", recommendationRule.Name, strings.ToLower(recommenderName)),
-			Namespace:    id.Namespace,
+			Namespace:    namespace,
 			OwnerReferences: []metav1.OwnerReference{
 				*newOwnerRef(recommendationRule),
 			},
@@ -260,6 +265,9 @@ func (c *RecommendationRuleController) CreateRecommendationObject(recommendation
 	recommendation.Labels[known.RecommendationRuleNameLabel] = recommendationRule.Name
 	recommendation.Labels[known.RecommendationRuleUidLabel] = string(recommendationRule.UID)
 	recommendation.Labels[known.RecommendationRuleRecommenderLabel] = recommenderName
+	recommendation.Labels[known.RecommendationRuleTargetKindLabel] = target.Kind
+	recommendation.Labels[known.RecommendationRuleTargetApiVersionLabel] = target.APIVersion
+	recommendation.Labels[known.RecommendationRuleTargetNameLabel] = target.Name
 
 	return recommendation
 }

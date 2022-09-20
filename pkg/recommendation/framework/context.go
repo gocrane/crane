@@ -142,17 +142,21 @@ func RetrieveScale(ctx *RecommendationContext) error {
 }
 
 func RetrievePods(ctx *RecommendationContext) error {
-	if ctx.Recommendation.Spec.TargetRef.Kind != "DaemonSet" {
-		pods, err := utils.GetPodsFromScale(ctx.Client, ctx.Scale)
+	if ctx.Recommendation.Spec.TargetRef.Kind == "Node" {
+		pods, err := utils.GetNodePods(ctx.Client, ctx.Recommendation.Spec.TargetRef.Name)
 		ctx.Pods = pods
 		return err
-	} else {
+	} else if ctx.Recommendation.Spec.TargetRef.Kind == "DaemonSet" {
 		var daemonSet appsv1.DaemonSet
 		err := ObjectConversion(ctx.Object, &daemonSet)
 		if err != nil {
 			return err
 		}
 		pods, err := utils.GetDaemonSetPods(ctx.Client, ctx.Recommendation.Spec.TargetRef.Namespace, ctx.Recommendation.Spec.TargetRef.Name)
+		ctx.Pods = pods
+		return err
+	} else {
+		pods, err := utils.GetPodsFromScale(ctx.Client, ctx.Scale)
 		ctx.Pods = pods
 		return err
 	}

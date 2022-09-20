@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
@@ -18,6 +19,7 @@ import (
 	"k8s.io/client-go/scale"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
 	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
@@ -49,6 +51,7 @@ import (
 	"github.com/gocrane/crane/pkg/recommendation/config"
 	recommender "github.com/gocrane/crane/pkg/recommendation/recommender"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/hpa"
+	"github.com/gocrane/crane/pkg/recommendation/recommender/idlenode"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/replicas"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/resource"
 	"github.com/gocrane/crane/pkg/server"
@@ -125,6 +128,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 	recommenderMgr := initRecommenderManager(recommenders, realtimeDataSources, historyDataSources)
 
 	initScheme()
+	initFieldIndexer(mgr)
 	initWebhooks(mgr, opts)
 	initControllers(ctx, mgr, opts, predictorMgr, recommenderMgr, historyDataSources[providers.PrometheusDataSource])
 	// initialize custom collector metrics
@@ -157,6 +161,12 @@ func initRecommenders(opts *options.Options) (map[string]recommender.Recommender
 			recommenders[recommender.HPARecommender] = hpaRecommender
 		case recommender.ResourceRecommender:
 			recommenders[recommender.ResourceRecommender] = resource.NewResourceRecommender(r)
+		case recommender.IdleNodeRecommender:
+			idleNodeRecommender, err := idlenode.NewIdleNodeRecommender(r)
+			if err != nil {
+				return nil, err
+			}
+			recommenders[recommender.IdleNodeRecommender] = idleNodeRecommender
 		default:
 			return nil, fmt.Errorf("unknown recommender name: %s", r.Name)
 		}
@@ -181,6 +191,23 @@ func initScheme() {
 	}
 	if utilfeature.DefaultFeatureGate.Enabled(features.CraneTimeSeriesPrediction) {
 		utilruntime.Must(predictionapi.AddToScheme(scheme))
+	}
+}
+
+func initFieldIndexer(mgr ctrl.Manager) {
+	// register nodeName indexer
+	if err := mgr.GetFieldIndexer().IndexField(context.TODO(), &corev1.Pod{}, "spec.nodeName", func(obj client.Object) []string {
+		pod, ok := obj.(*corev1.Pod)
+		if !ok {
+			return []string{}
+		}
+		if len(pod.Spec.NodeName) == 0 {
+			return []string{}
+		} else {
+			return []string{pod.Spec.NodeName}
+		}
+	}); err != nil {
+		panic(err)
 	}
 }
 

@@ -17,7 +17,10 @@ const (
 )
 
 const (
-	RecommendationRuleNameLabel        = "analysis.crane.io/recommendation-rule-name"
-	RecommendationRuleUidLabel         = "analysis.crane.io/recommendation-rule-uid"
-	RecommendationRuleRecommenderLabel = "analysis.crane.io/recommendation-rule-recommender"
+	RecommendationRuleNameLabel             = "analysis.crane.io/recommendation-rule-name"
+	RecommendationRuleUidLabel              = "analysis.crane.io/recommendation-rule-uid"
+	RecommendationRuleRecommenderLabel      = "analysis.crane.io/recommendation-rule-recommender"
+	RecommendationRuleTargetKindLabel       = "analysis.crane.io/recommendation-target-kind"
+	RecommendationRuleTargetApiVersionLabel = "analysis.crane.io/recommendation-target-apiversion"
+	RecommendationRuleTargetNameLabel       = "analysis.crane.io/recommendation-target-name"
 )

@@ -1,10 +1,11 @@
-package resource
+package idlenode
 
 import (
+	"strconv"
+
 	"github.com/gocrane/crane/pkg/recommendation/recommender"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/apis"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/base"
-	"strconv"
 )
 
 var _ recommender.Recommender = &IdleNodeRecommender{}

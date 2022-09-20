@@ -9,7 +9,7 @@ import (
 
 var _ recommender.Recommender = &BaseRecommender{}
 
-const DefaultCreationCoolDown = time.Minute * 5
+const DefaultCreationCoolDown = time.Minute * 3
 
 type BaseRecommender struct {
 	apis.Recommender
@@ -17,7 +17,7 @@ type BaseRecommender struct {
 }
 
 func (br *BaseRecommender) Name() string {
-	return recommender.ReplicasRecommender
+	return ""
 }
 
 // NewBaseRecommender create a new base recommender.

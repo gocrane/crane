@@ -13,3 +13,7 @@ recommenders:
         apiVersion: apps/v1
       - kind: StatefulSet
         apiVersion: apps/v1
+  - name: IdleNode
+    acceptedResources:
+      - kind: Node
+        apiVersion: v1

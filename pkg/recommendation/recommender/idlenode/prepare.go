@@ -1,4 +1,4 @@
-package resource
+package idlenode
 
 import (
 	"github.com/gocrane/crane/pkg/recommendation/framework"

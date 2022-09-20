@@ -21,13 +21,18 @@ func (br *BaseRecommender) Filter(ctx *framework.RecommendationContext) error {
 	// 3. if not support, abort the recommendation flow
 	supported := IsIdentitySupported(identity, accepted)
 	if !supported {
-		return fmt.Errorf("recommender %s is failed at fliter, your kubernetes resource is not supported for recommender %s.", br.Name(), br.Name())
+		return fmt.Errorf("recommender %s is failed at filter, your kubernetes resource is not supported for recommender %s ", br.Name(), br.Name())
 	}
 
 	// 4. skip the objects that just created
-	creationCheckingTime := ctx.Object.GetCreationTimestamp().Add(CoolDownForCreation)
+	creationCheckingTime := ctx.Object.GetCreationTimestamp().Add(br.CreationCoolDown)
 	if time.Now().Before(creationCheckingTime) {
+		return fmt.Errorf("recommender %s is failed at filter, Creation Cool Down %s ", br.Name(), ctx.Object.GetCreationTimestamp())
+	}
 
+	// 5. skip the objects that deleting
+	if ctx.Object.GetDeletionTimestamp() != nil {
+		return fmt.Errorf("recommender %s is failed at filter, Is deleting ", br.Name())
 	}
 
 	return nil
