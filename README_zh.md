@@ -75,13 +75,13 @@ Crane Agent 通过 `DaemonSet` 部署在集群的节点上。
 
 ## 快速开始
 
-- [介绍](https://docs.gocrane.io)
-- [安装](https://docs.gocrane.io/dev/installation/)
-- [教程](https://docs.gocrane.io/dev/tutorials/using-effective-hpa-to-scaling-with-effectiveness/)
+- [介绍](https://gocrane.io/zh-cn/docs/getting-started/introduction/)
+- [安装](https://gocrane.io/zh-cn/docs/getting-started/installation/)
+- [教程](https://gocrane.io/zh-cn/docs/tutorials/)
 
 ## 文档
 
-完整的文档请[查看](https://docs.gocrane.io)。
+完整的文档请[查看](https://gocrane.io/zh-cn)。
 
 ## 社区
 
