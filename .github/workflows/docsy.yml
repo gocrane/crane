@@ -39,7 +39,7 @@ jobs:
           echo ${{steps.git-branch.outputs.git-branch}}
           cd site
           npm i
-          hugo --minify --baseURL https://docs.gocrane.io/${{steps.git-branch.outputs.git-branch}}-docsy
+          hugo --minify
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
