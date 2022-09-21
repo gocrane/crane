@@ -75,9 +75,9 @@ Crane Agent is a `DaemonSet` that runs in each node.
 
 ## Getting Started
 
-- [Introduction](https://gocrane.io)
-- [Installation](https://gocrane.io/dev/installation/)
-- [Tutorials](https://gocrane.io/dev/tutorials/using-effective-hpa-to-scaling-with-effectiveness/)
+- [Introduction](https://gocrane.io/docs/getting-started/introduction/)
+- [Installation](https://gocrane.io/docs/getting-started/installation/)
+- [Tutorials](https://gocrane.io/docs/tutorials/)
 
 ## Documentation
 
