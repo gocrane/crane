@@ -1,0 +1,159 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Crane – Contributing</title><link>/docs/contributing/</link><description>Recent content in Contributing on Crane</description><generator>Hugo -- gohugo.io</generator><atom:link href="/docs/contributing/index.xml" rel="self" type="application/rss+xml"/><item><title>Docs: Contributing to Crane</title><link>/docs/contributing/contributing/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/contributing/contributing/</guid><description>
+&lt;p>Welcome to Crane! This document is a guideline about how to contribute to Crane.&lt;/p>
+&lt;h2 id="become-a-contributor">Become a contributor&lt;/h2>
+&lt;p>You can contribute to Crane in several ways. Here are some examples:&lt;/p>
+&lt;ul>
+&lt;li>Contribute to the Crane codebase.&lt;/li>
+&lt;li>Report bugs.&lt;/li>
+&lt;li>Suggest enhancements.&lt;/li>
+&lt;li>Write technical documentation and blog posts, for users and contributors.&lt;/li>
+&lt;li>Organize meetups and user groups in your local area.&lt;/li>
+&lt;li>Help others by answering questions about Crane.&lt;/li>
+&lt;/ul>
+&lt;p>For more ways to contribute, check out the &lt;a href="https://opensource.guide/how-to-contribute/">Open Source Guides&lt;/a>.&lt;/p>
+&lt;h3 id="report-bugs">Report bugs&lt;/h3>
+&lt;p>Before submitting a new issue, try to make sure someone hasn&amp;rsquo;t already reported the problem.
+Look through the &lt;a href="https://github.com/gocrane/crane/issues">existing issues&lt;/a> for similar issues.&lt;/p>
+&lt;p>Report a bug by submitting a &lt;a href="https://github.com/gocrane/crane/issues/new?assignees=&amp;amp;labels=kind%2Fbug&amp;amp;template=bug_report.md&amp;amp;title=">bug report&lt;/a>.
+Make sure that you provide as much information as possible on how to reproduce the bug.&lt;/p>
+&lt;h3 id="suggest-enhancements">Suggest enhancements&lt;/h3>
+&lt;p>If you have an idea to improve Crane, submit an &lt;a href="https://github.com/gocrane/crane/issues/new?assignees=&amp;amp;labels=kind%2Ffeature&amp;amp;template=feature_request.md&amp;amp;title=">feature request&lt;/a>.&lt;/p></description></item><item><title>Docs: Developer Guide</title><link>/docs/contributing/developer-guide/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/contributing/developer-guide/</guid><description>
+&lt;p>First, please make sure you&amp;rsquo;ve got a working &lt;a href="https://golang.org/doc/install">Go environment&lt;/a>
+and &lt;a href="https://docs.docker.com/engine">Docker environment&lt;/a>.&lt;/p>
+&lt;h2 id="clone-crane">Clone crane&lt;/h2>
+&lt;p>Clone the repository,&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>mkdir -p $GOPATH/src/github.com/gocrane/
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>cd $GOPATH/src/github.com/gocrane/
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>git clone https://github.com/gocrane/crane.git
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>cd crane
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="building-binaries">Building Binaries&lt;/h2>
+&lt;p>Run&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># build for linux/amd64 by default&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>make all
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>to build binaries &lt;code>craned&lt;/code>, &lt;code>crane-agent&lt;/code> and &lt;code>metric-adapter&lt;/code> for &lt;code>linux/amd64&lt;/code>.&lt;/p>
+&lt;p>&lt;img src="/images/developer-guide/make_all_finish.jpg" alt="make_all_finish">&lt;/p>
+&lt;p>Also you could specify other platforms when building, such as,&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># build only crane-agent for linux/arm64 and darwin/amd64&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># use comma to separate multiple platforms&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>PLATFORMS&lt;span style="color:#f92672">=&lt;/span>linux/arm64,darwin/amd64 make crane-agent
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># below are all the supported platforms&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># PLATFORMS=darwin/amd64,darwin/arm64,linux/amd64,linux/arm64,linux/ppc64le,linux/s390x,linux/386,linux/arm&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>All the built binaries will be placed at &lt;code>$GOPATH/src/github.com/gocrane/crane/bin&lt;/code> folder.&lt;/p>
+&lt;p>&lt;img src="/images/developer-guide/make_all_binaries_result.jpg" alt="make_all_binaries_result">&lt;/p>
+&lt;h2 id="building-docker-images">Building Docker Images&lt;/h2>
+&lt;p>You can also build docker images. Here &lt;code>docker buildx&lt;/code> is used to help build multi-arch container images.&lt;/p>
+&lt;p>If you&amp;rsquo;re running MacOS, please install &lt;a href="https://docs.docker.com/desktop/">Docker Desktop&lt;/a> and then check the builder,&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>$ docker buildx ls
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>NAME/NODE DRIVER/ENDPOINT STATUS PLATFORMS
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>default * docker
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> default default running linux/amd64, linux/arm64, linux/ppc64le, linux/s390x, linux/386, linux/arm/v7, linux/arm/v6
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>If you&amp;rsquo;re running Linux, please refer to &lt;a href="https://docs.docker.com/buildx/working-with-buildx/">docker buildx docs&lt;/a>
+on the installation.&lt;/p>
+&lt;p>!!! note
+For better &lt;code>docker buildx&lt;/code> support, it is recommended to use Ubuntu Focal 20.04 (LTS), Debian Bullseye 11 and CentOS 8.
+And install deb/rpm package &lt;code>qemu-user-static&lt;/code> as well, such as&lt;/p>
+&lt;pre>&lt;code>```bash
+apt-get install qemu-user-static
+```
+or
+```bash
+yum install qemu-user-static
+```
+```bash
+# build for linux/amd64 by default
+# container images for craned, crane-agent, metric-adapter and dashboard
+make images
+```
+&lt;/code>&lt;/pre>
+&lt;p>&lt;img src="/images/developer-guide/make_image_start.jpg" alt="make_image_start">&lt;/p>
+&lt;p>&lt;img src="/images/developer-guide/make_image_finish.jpg" alt="make_image_finish">&lt;/p>
+&lt;p>Also you could build container images for other platforms, such as &lt;code>arm64&lt;/code>,&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>PLATFORMS&lt;span style="color:#f92672">=&lt;/span>linux/amd64,linux/arm64,linux/ppc64le make images
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># below are all the supported platforms&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># PLATFORMS=linux/amd64,linux/arm64,linux/ppc64le,linux/s390x,linux/386,linux/arm&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>!!! note
+For the first make image, It takes a bit of a long time, Please be patient.&lt;/p>
+&lt;p>When we finish the make image, in the docker desktop, we can see the image we built, and the Tag is the hash value at the time of the git commit.&lt;/p>
+&lt;p>&lt;img src="/images/developer-guide/make_image_docker_images.jpg" alt="make_image_docker_images">&lt;/p></description></item><item><title>Docs: Code Standard</title><link>/docs/contributing/code-standards/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/contributing/code-standards/</guid><description>
+&lt;p>This doc describes the code standards and suggestion for crane project, mainly for new contributor of the project&lt;/p>
+&lt;h3 id="import-need-to-be-organized">import need to be organized&lt;/h3>
+&lt;p>import should be categorized with blank line as system imports, community imports and crane apis and crane imports, like the following example&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">import&lt;/span> (
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#e6db74">&amp;#34;reflect&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#e6db74">&amp;#34;sync&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#e6db74">&amp;#34;time&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">vpa&lt;/span> &lt;span style="color:#e6db74">&amp;#34;k8s.io/autoscaler/vertical-pod-autoscaler/pkg/recommender/util&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#e6db74">&amp;#34;github.com/gocrane/api/prediction/v1alpha1&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#e6db74">&amp;#34;github.com/gocrane/crane/pkg/utils&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#e6db74">&amp;#34;github.com/gocrane/crane/pkg/prediction/config&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>)
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="logs-standard">logs standard&lt;/h3>
+&lt;ul>
+&lt;li>logs are required for troubleshooting purpose&lt;/li>
+&lt;li>log message should always start with capital letter&lt;/li>
+&lt;li>log message should be a complete sentence that contains enough context, for example: object key, action, parameters, status, error message&lt;/li>
+&lt;li>by default, you don&amp;rsquo;t need to set log level&lt;/li>
+&lt;li>set 4 for debug level.&lt;/li>
+&lt;li>set 6 for more detail debug level.&lt;/li>
+&lt;li>set 10 for massive data log level.&lt;/li>
+&lt;li>can use klog.KObj() to contain object key to let we know which object the message is printed for&lt;/li>
+&lt;/ul>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">klog&lt;/span>.&lt;span style="color:#a6e22e">Infof&lt;/span>(&lt;span style="color:#e6db74">&amp;#34;Failed to setup webhook %s&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;value&amp;#34;&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">klog&lt;/span>.&lt;span style="color:#a6e22e">V&lt;/span>(&lt;span style="color:#ae81ff">4&lt;/span>).&lt;span style="color:#a6e22e">Infof&lt;/span>(&lt;span style="color:#e6db74">&amp;#34;Debug info %s&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;value&amp;#34;&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">klog&lt;/span>.&lt;span style="color:#a6e22e">Errorf&lt;/span>(&lt;span style="color:#e6db74">&amp;#34;Failed to get scale, ehpa %s error %v&amp;#34;&lt;/span>, &lt;span style="color:#a6e22e">klog&lt;/span>.&lt;span style="color:#a6e22e">KObj&lt;/span>(&lt;span style="color:#a6e22e">ehpa&lt;/span>), &lt;span style="color:#a6e22e">err&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">klog&lt;/span>.&lt;span style="color:#a6e22e">Error&lt;/span>(&lt;span style="color:#66d9ef">error&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">klog&lt;/span>.&lt;span style="color:#a6e22e">ErrorDepth&lt;/span>(&lt;span style="color:#ae81ff">5&lt;/span>, &lt;span style="color:#a6e22e">fmt&lt;/span>.&lt;span style="color:#a6e22e">Errorf&lt;/span>(&lt;span style="color:#e6db74">&amp;#34;failed to get ehpa %s: %v&amp;#34;&lt;/span>, &lt;span style="color:#a6e22e">klog&lt;/span>.&lt;span style="color:#a6e22e">KObj&lt;/span>(&lt;span style="color:#a6e22e">ehpa&lt;/span>), &lt;span style="color:#a6e22e">err&lt;/span>))
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="event-is-needed-for-critical-reconcile-loop">event is needed for critical reconcile loop&lt;/h3>
+&lt;ul>
+&lt;li>event is to let user know what happens on serverside, only print info we want user to know&lt;/li>
+&lt;li>consider failure paths and success paths&lt;/li>
+&lt;li>event do not need the object key&lt;/li>
+&lt;/ul>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">c&lt;/span>.&lt;span style="color:#a6e22e">Recorder&lt;/span>.&lt;span style="color:#a6e22e">Event&lt;/span>(&lt;span style="color:#a6e22e">ehpa&lt;/span>, &lt;span style="color:#a6e22e">v1&lt;/span>.&lt;span style="color:#a6e22e">EventTypeNormal&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;FailedGetSubstitute&amp;#34;&lt;/span>, &lt;span style="color:#a6e22e">err&lt;/span>.&lt;span style="color:#a6e22e">Error&lt;/span>())
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="comment">comment&lt;/h3>
+&lt;ul>
+&lt;li>every interface should have comments to clarify&lt;/li>
+&lt;li>comment should be a complete sentence&lt;/li>
+&lt;/ul>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// Interface is a source of monitoring metric that provides metrics that can be used for
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// prediction, such as &amp;#39;cpu usage&amp;#39;, &amp;#39;memory footprint&amp;#39;, &amp;#39;request per second (qps)&amp;#39;, etc.
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">Interface&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// GetTimeSeries returns the metric time series that meet the given
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#75715e">// conditions from the specified time range.
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">GetTimeSeries&lt;/span>(&lt;span style="color:#a6e22e">metricName&lt;/span> &lt;span style="color:#66d9ef">string&lt;/span>, &lt;span style="color:#a6e22e">Conditions&lt;/span> []&lt;span style="color:#a6e22e">common&lt;/span>.&lt;span style="color:#a6e22e">QueryCondition&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">startTime&lt;/span> &lt;span style="color:#a6e22e">time&lt;/span>.&lt;span style="color:#a6e22e">Time&lt;/span>, &lt;span style="color:#a6e22e">endTime&lt;/span> &lt;span style="color:#a6e22e">time&lt;/span>.&lt;span style="color:#a6e22e">Time&lt;/span>, &lt;span style="color:#a6e22e">step&lt;/span> &lt;span style="color:#a6e22e">time&lt;/span>.&lt;span style="color:#a6e22e">Duration&lt;/span>) ([]&lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">common&lt;/span>.&lt;span style="color:#a6e22e">TimeSeries&lt;/span>, &lt;span style="color:#66d9ef">error&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// GetLatestTimeSeries returns the latest metric values that meet the given conditions.
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">GetLatestTimeSeries&lt;/span>(&lt;span style="color:#a6e22e">metricName&lt;/span> &lt;span style="color:#66d9ef">string&lt;/span>, &lt;span style="color:#a6e22e">Conditions&lt;/span> []&lt;span style="color:#a6e22e">common&lt;/span>.&lt;span style="color:#a6e22e">QueryCondition&lt;/span>) ([]&lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">common&lt;/span>.&lt;span style="color:#a6e22e">TimeSeries&lt;/span>, &lt;span style="color:#66d9ef">error&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// QueryTimeSeries returns the time series based on a promql like query string.
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">QueryTimeSeries&lt;/span>(&lt;span style="color:#a6e22e">queryExpr&lt;/span> &lt;span style="color:#66d9ef">string&lt;/span>, &lt;span style="color:#a6e22e">startTime&lt;/span> &lt;span style="color:#a6e22e">time&lt;/span>.&lt;span style="color:#a6e22e">Time&lt;/span>, &lt;span style="color:#a6e22e">endTime&lt;/span> &lt;span style="color:#a6e22e">time&lt;/span>.&lt;span style="color:#a6e22e">Time&lt;/span>, &lt;span style="color:#a6e22e">step&lt;/span> &lt;span style="color:#a6e22e">time&lt;/span>.&lt;span style="color:#a6e22e">Duration&lt;/span>) ([]&lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">common&lt;/span>.&lt;span style="color:#a6e22e">TimeSeries&lt;/span>, &lt;span style="color:#66d9ef">error&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// QueryLatestTimeSeries returns the latest metric values that meet the given query.
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">QueryLatestTimeSeries&lt;/span>(&lt;span style="color:#a6e22e">queryExpr&lt;/span> &lt;span style="color:#66d9ef">string&lt;/span>) ([]&lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">common&lt;/span>.&lt;span style="color:#a6e22e">TimeSeries&lt;/span>, &lt;span style="color:#66d9ef">error&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="functions">functions&lt;/h3>
+&lt;ul>
+&lt;li>function name should clarify what do this function do, for example: verb + noun&lt;/li>
+&lt;li>similar functions should be refactored, merge or divide them&lt;/li>
+&lt;li>common functions should move to common folder like utils&lt;/li>
+&lt;/ul>
+&lt;h3 id="variable">variable&lt;/h3>
+&lt;ul>
+&lt;li>variable name should clarify what do this variable does, better not use too short name and too simple name&lt;/li>
+&lt;li>better to use more meaningful variable name for tmp variable, for example: foo loop&lt;/li>
+&lt;/ul>
+&lt;h3 id="folder-and-file">folder and file&lt;/h3>
+&lt;ul>
+&lt;li>folder name should be letter with lower case and number&lt;/li>
+&lt;li>file name should be letter and number and _&lt;/li>
+&lt;/ul>
+&lt;h3 id="unit-test">unit test&lt;/h3>
+&lt;ul>
+&lt;li>Test-driven developing&lt;/li>
+&lt;li>Complex function that include condition decide should add unit test for it&lt;/li>
+&lt;/ul>
+&lt;h3 id="dont-forget-to-run-make-fmt-before-you-submit-code">don&amp;rsquo;t forget to run &lt;code>make fmt&lt;/code> before you submit code&lt;/h3></description></item></channel></rss>

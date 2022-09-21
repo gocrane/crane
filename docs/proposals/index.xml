@@ -1,0 +1,623 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Crane – Proposals</title><link>/docs/proposals/</link><description>Recent content in Proposals on Crane</description><generator>Hugo -- gohugo.io</generator><atom:link href="/docs/proposals/index.xml" rel="self" type="application/rss+xml"/><item><title>Docs: Advanced CPUSet Manager</title><link>/docs/proposals/20220228-advanced-cpuset-manger/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/proposals/20220228-advanced-cpuset-manger/</guid><description>
+&lt;p>Static CPU manager is supported by kubelet, when a guaranteed Pod is running on a node, kubelet allocate specific cpu cores to the processes exclusively, which generally keeps the cpu utilization of the node low.
+This proposal provides a new mechanism to manage cpusets, which allows sharing cpu cores with other processes while binds cpuset.It also allows to revise cpuset when pod is running and relaxes restrictions of binding cpus in kubelet.&lt;/p>
+&lt;h2 id="table-of-contents">Table of Contents&lt;/h2>
+&lt;!-- TOC -->
+&lt;ul>
+&lt;li>&lt;a href="#advanced-cpuset-manager">Advanced CPUSet Manager&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#table-of-contents">Table of Contents&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#motivation">Motivation&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#goals">Goals&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#non-goalsfuture-work">Non-Goals/Future Work&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>&lt;a href="#proposal">Proposal&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#relax-restrictions-of-cpuset-allocation">Relax restrictions of cpuset allocation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#add-new-annotation-to-describe-the--requirement-of-cpuset-contorl-manger">Add new annotation to describe the requirement of cpuset contorl manger&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#advanced-cpu-manager-component">Advanced CPU Manager component&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#user-stories">User Stories&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#story-1">Story 1&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#story-2">Story 2&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>&lt;a href="#risks-and-mitigations">Risks and Mitigations&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;!-- /TOC -->
+&lt;h2 id="motivation">Motivation&lt;/h2>
+&lt;p>Some latency-sensitive applications have lower lantency and cpu usage when running with specific cores, which results in fewer context switchs and higer cache affinity.
+But kubelet will always exclude assigned cores in shared cores, which may waste resources.Offline and other online pods can running on the cores actually. In our experiment, for the most part, it is barely noticeable for performance of service.&lt;/p>
+&lt;h3 id="goals">Goals&lt;/h3>
+&lt;ul>
+&lt;li>Provide a new mechanism to manage cpuset bypass&lt;/li>
+&lt;li>Provide a new cpuset manager method &amp;ldquo;shared&amp;rdquo;&lt;/li>
+&lt;li>Allow revise cpuset when pod running&lt;/li>
+&lt;li>Relax restrictions of binding cpus&lt;/li>
+&lt;/ul>
+&lt;h3 id="non-goalsfuture-work">Non-Goals/Future Work&lt;/h3>
+&lt;ul>
+&lt;li>Solve the conflicts with kubelet static cpuset manager, you need to set kubelet cpuset manager to &amp;ldquo;none&amp;rdquo;&lt;/li>
+&lt;li>Numa manager will support in future, CCX/CCD manager also be considered&lt;/li>
+&lt;/ul>
+&lt;h2 id="proposal">Proposal&lt;/h2>
+&lt;h3 id="relax-restrictions-of-cpuset-allocation">Relax restrictions of cpuset allocation&lt;/h3>
+&lt;p>Kubelet allocate cpus for containers should meet the conditions:&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>requests and limits are specified for all the containers and they are equal&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>the container&amp;rsquo;s resource limit for the limit of CPU is an integer greater than or equal to one and equal to request request of CPU.&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;p>In Crane, only need to meet condition No.2&lt;/p>
+&lt;h3 id="add-new-annotation-to-describe-the--requirement-of-cpuset-contorl-manger">Add new annotation to describe the requirement of cpuset contorl manger&lt;/h3>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Pod&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">annotations&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">qos.gocrane.io/cpu-manager&lt;/span>: &lt;span style="color:#ae81ff">none/exclusive/share&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Provide three polices for cpuset manager:&lt;/p>
+&lt;ul>
+&lt;li>none: containers of this pod shares a set of cpus which not allocated to exclusive containers&lt;/li>
+&lt;li>exclusive: containers of this pod monopolize the allocated CPUs , other containers not allowed to use.&lt;/li>
+&lt;li>share: containers of this pod runs in theallocated CPUs , but other containers can also use.&lt;/li>
+&lt;/ul>
+&lt;h3 id="advanced-cpu-manager-component">Advanced CPU Manager component&lt;/h3>
+&lt;p>&lt;img src="/images/advanced_cpuset_manager.png" alt="advanced_cpuset_manager.png">&lt;/p>
+&lt;ul>
+&lt;li>Crane-agent use podLister informs to sense the creation of pod.&lt;/li>
+&lt;li>Crane-agent allocate cpus when pod is binded, and loop in cycle to addContainer(change cpuset) until the containers are created&lt;/li>
+&lt;li>Update/Delete pod will handle in reconcile state.&lt;/li>
+&lt;li>state.State referenced from kubelet and topology_cpu_assignment copied from kubelet&lt;/li>
+&lt;/ul>
+&lt;h3 id="user-stories">User Stories&lt;/h3>
+&lt;ul>
+&lt;li>Users can update pod annotaion to control cpuset policy flexibly&lt;/li>
+&lt;/ul>
+&lt;h4 id="story-1">Story 1&lt;/h4>
+&lt;p>make pod from none to share without recreating pod&lt;/p>
+&lt;h4 id="story-2">Story 2&lt;/h4>
+&lt;p>make pod from exclusive to share, so offline process can use these CPUs&lt;/p>
+&lt;h3 id="risks-and-mitigations">Risks and Mitigations&lt;/h3>
+&lt;ul>
+&lt;li>kubelet cpu manger policy need to be set to none, otherwise will be conflicted with crane-agent&lt;/li>
+&lt;li>if crane-agent can not allocate CPUs for pods, it will not refuse to start pod as kubelet&lt;/li>
+&lt;/ul></description></item><item><title>Docs: Provide a policy-based abnormal detection mechanism in crane-agent</title><link>/docs/proposals/20220402-policy-based-abnomal-detection/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/proposals/20220402-policy-based-abnomal-detection/</guid><description>
+&lt;h2 id="summary">Summary&lt;/h2>
+&lt;p>Crane-agent is responsible for detecting abnormality on nodes and interference between running pods.&lt;/p>
+&lt;p>Currently, such detection mechanism is fixed and quite simple.
+Crane-agent compares the values of some pre-defined metrics, such as node&amp;rsquo;s &lt;code>cpu_total_usage&lt;/code> and &lt;code>cpu_total_utilization&lt;/code>,
+with some thresholds periodically. If the metric value is higher the threshold for some times, say the &lt;code>cpu_total_utilization&lt;/code>
+on a node is found higher than 80% in 3 consecutive detections, crane-agent thinks the node entering into an abnormal status,
+and will perform some further actions, such as suppressing or evicting pods with low priorities.&lt;/p>
+&lt;p>This proposal suggests a flexible and extensible way to detect abnormality. The criteria of abnormality can be customized by
+users in form of policies, and the detection process is executed in a policy decision-making way, which is offloaded to a
+general-purpose policy engine.&lt;/p>
+&lt;h2 id="motivation">Motivation&lt;/h2>
+&lt;p>The criteria of abnormality or interference are not that always as simple as something like a metric value is higher than a threshold.
+Different users may have different QoS requirements on different applications in different environments. The rule of
+abnormality detection varies, and it is impossible to implement all of them in code in advance.&lt;/p>
+&lt;h3 id="goals">Goals&lt;/h3>
+&lt;ol>
+&lt;li>Provides an abnormality detection mechanism which can consume external metrics.&lt;/li>
+&lt;li>Provides an abnormality detection mechanism in which the logic determining how to check the abnormality can be customized.&lt;/li>
+&lt;li>Metrics and detection policies can be added, updated and deleted on the fly without changing the code.&lt;/li>
+&lt;/ol>
+&lt;h3 id="non-goals">Non-Goals&lt;/h3>
+&lt;ol>
+&lt;li>How to handle the abnormality or interference. This proposal only focuses on detection, and the subsequent action is
+out of scope.&lt;/li>
+&lt;/ol>
+&lt;h2 id="proposal">Proposal&lt;/h2>
+&lt;h3 id="user-stories">User Stories&lt;/h3>
+&lt;h4 id="story-1">Story 1&lt;/h4>
+&lt;p>A user has a critical online application which is latency sensitive running in the cluster, and he wants to use both
+the 99th percentile response time and the error code rate as the application QoS indicators. If either of these 2 indicators
+deteriorates, the application is thought of being in abnormal status.&lt;/p>
+&lt;h4 id="story-2">Story 2&lt;/h4>
+&lt;p>The SRE team finds that if the node CPU utilization is more than 60%, the QoS of some latency sensitive applications
+running on it are likely to decline. So they want to keep the node CPU utilization lower than 60%.
+If the utilization is higher than this threshold, the BE applications should be suppressed
+accordingly.&lt;/p>
+&lt;h4 id="story-3">Story 3&lt;/h4>
+&lt;p>The traffic of online applications is very low at night, and the offline jobs are run during this time.
+Comparing with online applications, offline jobs always require more CPU resource quantities but less resource qualities.
+In this case, the SRE team wants to set different node CPU load thresholds in the daytime and at night.&lt;/p>
+&lt;h3 id="functional-requirements">Functional Requirements&lt;/h3>
+&lt;h3 id="implementation-details">Implementation Details&lt;/h3>
+&lt;h4 id="api">API&lt;/h4>
+&lt;p>#####NodeQOSEnsurancePolicy&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">ensurance.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">NodeQOSEnsurancePolicy&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;xxx&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">nodeQualityProbe&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">prometheus&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targets&lt;/span>: [&lt;span style="color:#e6db74">&amp;#39;localhost:9090&amp;#39;&lt;/span>]
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">queryInterval&lt;/span>: &lt;span style="color:#ae81ff">60s&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">metrics&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">node_cpu_utilization&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">query&lt;/span>: &lt;span style="color:#ae81ff">1&lt;/span> - &lt;span style="color:#ae81ff">avg(irate(node_cpu_seconds_total{mode=&amp;#34;idle&amp;#34;, instance=&amp;#34;$nodeName&amp;#34;}[5m]))&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">variables&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">nodeName&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">valueFrom&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">fieldRef&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">fieldPath&lt;/span>: &lt;span style="color:#ae81ff">spec.nodeName&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">objectiveEnsurances&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;ext_cpu_total_distribute&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">avoidanceThreshold&lt;/span>: &lt;span style="color:#ae81ff">2&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">restoreThreshold&lt;/span>: &lt;span style="color:#ae81ff">2&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">actionName&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;disablescheduling&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">policy&lt;/span>: |&lt;span style="color:#e6db74">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> default abnormal = false
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> hour := time.clock([time.now_ns(), &amp;#34;Local&amp;#34;])[0]
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> abnormal {
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> input.node_cpu_utilization &amp;gt; 0.6
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> hour &amp;gt;= 7, hour &amp;lt; 21
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> }
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> abnormal {
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> input.node_cpu_utilization &amp;gt; 0.8
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> hour &amp;gt;= 21
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> }
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> abnormal {
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> input.node_cpu_utilization &amp;gt; 0.8
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> hour &amp;lt; 7
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> }&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>#####PodQOSEnsurancePolicy&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">ensurance.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">PodQOSEnsurancePolicy&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;xxx&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">selector&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">matchLabels&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">app&lt;/span>: &lt;span style="color:#ae81ff">test&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">qualityProbe&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">prometheus&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targets&lt;/span>: [&lt;span style="color:#e6db74">&amp;#39;localhost:9090&amp;#39;&lt;/span>]
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">queryInterval&lt;/span>: &lt;span style="color:#ae81ff">60s&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">metrics&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">test_app_p90_latency&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">query&lt;/span>: &lt;span style="color:#ae81ff">histogram_quantile(0.9, rate(http_request_duration_seconds_bucket{pod=~&amp;#34;$podName&amp;#34;, node=&amp;#34;$nodeName&amp;#34;}[1m]))&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">variables&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">podName&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">valueFrom&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">fieldRef&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">fieldPath&lt;/span>: &lt;span style="color:#ae81ff">metadata.name&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">nodeName&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">valueFrom&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">fieldRef&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">fieldPath&lt;/span>: &lt;span style="color:#ae81ff">spec.nodeName&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">objectiveEnsurances&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;ext_cpu_total_distribute&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">avoidanceThreshold&lt;/span>: &lt;span style="color:#ae81ff">2&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">restoreThreshold&lt;/span>: &lt;span style="color:#ae81ff">2&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">actionName&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;disablescheduling&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">policy&lt;/span>: |&lt;span style="color:#e6db74">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> &lt;/span> &lt;span style="color:#ae81ff">abnormal if test_app_p90_latency[_].value &amp;gt; 0.1&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>In addition to &lt;code>Prometheus&lt;/code>, other protocols, such as &lt;code>Graphite&lt;/code>, &lt;code>InfluxDB&lt;/code> can also
+be added in the future.&lt;/p>
+&lt;h4 id="metrics">Metrics&lt;/h4>
+&lt;h4 id="built-in-metrics">Built-in metrics&lt;/h4>
+&lt;p>Currently, crane-agent collects a bunch of metrics(defined in &lt;code>pkg/ensurance/collector/types/types.go&lt;/code>, e.g.
+&lt;code>cpu_total_usage&lt;/code>).
+These metrics are collected by &lt;code>nodelocal&lt;/code> and &lt;code>cadvisor&lt;/code> collectors, both of which collects metrics every 10 seconds.&lt;/p>
+&lt;p>We call these metrics as built-in metrics. Users can use built-in metrics in the policy without explicit setting, and
+crane-agent will pass their values to every request to policy engine.&lt;/p>
+&lt;h5 id="external-metrics-new">External metrics (New)&lt;/h5>
+&lt;p>Crane-agent can also get &lt;code>external&lt;/code> metrics by querying against prometheus servers. A new &lt;code>prometheus&lt;/code> quality probe
+will be added to CRDs &lt;code>PodQOSEnsurancePolicy&lt;/code> and &lt;code>NodeQOSEnsurancePolicy&lt;/code> as shown in above 2 example yamls.&lt;/p>
+&lt;p>In &lt;a href="#PodQOSEnsurancePolicy">PodQOSEnsurancePolicy&lt;/a>, &lt;code>.spec.nodeQualityProbe.prometheus.metrics.query&lt;/code> is a promQL, which
+may includes some node variables (prefixed with &lt;code>$&lt;/code>). In this case, crane-agent will use its node name
+to replace the variable &lt;code>$nodeName&lt;/code>.&lt;/p>
+&lt;p>In &lt;a href="#PodQOSEnsurancePolicy">PodQOSEnsurancePolicy&lt;/a>, &lt;code>.spec.qualityProbe.prometheus.metrics.query&lt;/code> is a promQL, which
+may includes some pod related variables (&lt;code>$nodeName&lt;/code>, &lt;code>$podName&lt;/code> in this example). Crane-agent will firstly
+get all pods that match the &lt;code>.spec.selector.matchLabels&lt;/code> on its node. Say two pods are selected, and
+their names are &lt;code>pod-1&lt;/code> and &lt;code>pod-2&lt;/code>, and the node name is &lt;code>node-1&lt;/code>. The replaced promQL will be&lt;/p>
+&lt;pre tabindex="0">&lt;code>histogram_quantile(0.9, rate(http_request_duration_seconds_bucket{pod=~&amp;#34;pod-1|pod-2&amp;#34;, node=&amp;#34;node-1&amp;#34;}[1m]))
+&lt;/code>&lt;/pre>&lt;p>And 2 query results are expected to get returned, like:&lt;/p>
+&lt;pre tabindex="0">&lt;code>test_app_p90_latency{pod=&amp;#34;pod-1&amp;#34;, ...} 0.01
+test_app_p90_latency{pod=&amp;#34;pod-2&amp;#34;, ...} 0.01
+&lt;/code>&lt;/pre>&lt;p>Simply speaking, variables in promQL help crane-agent only query metrics of its own node and the pods that running on its own node.&lt;/p>
+&lt;h4 id="embedded-metrics-tsdb">Embedded metrics TSDB&lt;/h4>
+&lt;p>In order to decouple the components that collect metrics and those which consume the metrics, and to
+make these components&amp;rsquo; logic simple, an embedded metrics TSDB will be imported into crane-agent.&lt;/p>
+&lt;p>Prometheus-tsdb and vmstorage are two good candidates, both of which are easy to insert values and are
+compatible with promQL query grammar.&lt;/p>
+&lt;p>Both analyzer and executor fetch metrics from the TSDB without considering where the metrics come from.&lt;/p>
+&lt;p>&lt;img src="/images/tsdb.png" alt="">&lt;/p>
+&lt;h4 id="policy">Policy&lt;/h4>
+&lt;p>The Open Policy Agent (OPA) is an open source, general-purpose policy engine that unifies policy enforcement.
+Crane-agent will use it to evaluate if nodes or pods are abnormal.&lt;/p>
+&lt;p>The criteria for detecting abnormality is not pre-defined or hardcoded, instead, it is customized by users
+at runtime.&lt;/p>
+&lt;p>A &lt;code>policy&lt;/code> filed will be added to &lt;code>ObjectiveEnsurance&lt;/code>, which is
+a &lt;a href="https://www.openpolicyagent.org/docs/latest/policy-language/">rego&lt;/a> rule whose result is a boolean
+element.&lt;/p>
+&lt;p>crane-agent will feed both the latest built-in and external metrics as input into the OPA policy engine, and OPA
+make decisions based on input and policies.&lt;/p>
+&lt;p>&lt;img src="/images/opa.png" alt="">&lt;/p>
+&lt;p>A sample input is as follows:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-json" data-lang="json">&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;crane&amp;#34;&lt;/span>: {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;cpu_total_usage&amp;#34;&lt;/span>: &lt;span style="color:#ae81ff">4680&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#960050;background-color:#1e0010">...&lt;/span> &lt;span style="color:#960050;background-color:#1e0010">orhter&lt;/span> &lt;span style="color:#960050;background-color:#1e0010">built-in&lt;/span> &lt;span style="color:#960050;background-color:#1e0010">mertrcs&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> },
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;test_app_p90_latency&amp;#34;&lt;/span>: [
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;labels&amp;#34;&lt;/span>: {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;pod&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;pod-1&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;node&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;node-1&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> },
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;value&amp;#34;&lt;/span>: &lt;span style="color:#ae81ff">0.1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> },
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;labels&amp;#34;&lt;/span>: {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;pod&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;pod-2&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;node&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;node-1&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> },
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;value&amp;#34;&lt;/span>: &lt;span style="color:#ae81ff">0.09&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> ],
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#960050;background-color:#1e0010">...&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div></description></item><item><title>Docs: Recommendation Framework</title><link>/docs/proposals/20220706-recommendation-framework/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/proposals/20220706-recommendation-framework/</guid><description>
+&lt;p>Recommendation Framework provide a consistence progress to optimize variable kinds of resources in kubernetes. The progress should be Pluggable and support Multi-Cloud.&lt;/p>
+&lt;h2 id="motivation">Motivation&lt;/h2>
+&lt;p>Currently, we use &lt;code>Analytics&lt;/code> and &lt;code>Recommendation&lt;/code> to provide a recommendation service for workloads in cluster. Kubernetes&amp;rsquo; users use the recommendation to optimize the resource configuration and reduce their cost.
+But the recommendations have some limitations now:&lt;/p>
+&lt;ol>
+&lt;li>Multiple Analytics can select some same resources, it&amp;rsquo;s confused and unnecessary to have two recommendation for the same resource.&lt;/li>
+&lt;li>We need to support more kinds of resources, for example, scan for idle load balancers.&lt;/li>
+&lt;li>We need to make the progress Pluggable to support different user in difference clouds.&lt;/li>
+&lt;/ol>
+&lt;h3 id="goals">Goals&lt;/h3>
+&lt;ul>
+&lt;li>Global analytics rules&lt;/li>
+&lt;li>Easy to know the recommendation for my resource&lt;/li>
+&lt;li>Consistence progress for all resource recommendation&lt;/li>
+&lt;li>Plugin mechanism to support Multi-Cloud&lt;/li>
+&lt;/ul>
+&lt;h3 id="non-goals">Non-Goals&lt;/h3>
+&lt;ul>
+&lt;li>Cloud Resources that not included in kubernetes&lt;/li>
+&lt;/ul>
+&lt;h2 id="proposal">Proposal&lt;/h2>
+&lt;h3 id="user-stories">User Stories&lt;/h3>
+&lt;h4 id="story-1">Story 1&lt;/h4>
+&lt;p>As a Serverless customer, I want to know the suitable requests and limits for my deployments, the result should be fit the existing pod model(e.g. 2c4g, 1c1g) in my cloud production.&lt;/p>
+&lt;h4 id="story-2">Story 2&lt;/h4>
+&lt;p>As an Aliyun ACK customer, I want to know whether there is a waste of LoadBalances in my cluster and delete them if exists.&lt;/p>
+&lt;h4 id="story-3">Story 3&lt;/h4>
+&lt;p>As a container platform user, I want to integrate optimize recommendation to my platform and optimize my cluster within my CICD pipeline.&lt;/p>
+&lt;h3 id="api-definition">Api Definition&lt;/h3>
+&lt;p>RecommendationRule defines which resources are required to recommend and what is the runInterval.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// RecommendationRuleSpec defines resources and runInterval to recommend
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">RecommendationRuleSpec&lt;/span> &lt;span style="color:#66d9ef">struct&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// ResourceSelector indicates how to select resources(e.g. a set of Deployments) for an Recommendation.
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#75715e">// +required
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#75715e">// +kubebuilder:validation:Required
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">ResourceSelectors&lt;/span> []&lt;span style="color:#a6e22e">ResourceSelector&lt;/span> &lt;span style="color:#e6db74">`json:&amp;#34;resourceSelectors&amp;#34;`&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// RunInterval between two recommendation
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">RunInterval&lt;/span> &lt;span style="color:#a6e22e">time&lt;/span>.&lt;span style="color:#a6e22e">Duration&lt;/span> &lt;span style="color:#e6db74">`json:&amp;#34;runInterval,omitempty&amp;#34;`&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// ResourceSelector describes how the resources will be selected.
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">ResourceSelector&lt;/span> &lt;span style="color:#66d9ef">struct&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// Kind of the resource, e.g. Deployment
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">Kind&lt;/span> &lt;span style="color:#66d9ef">string&lt;/span> &lt;span style="color:#e6db74">`json:&amp;#34;kind&amp;#34;`&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// API version of the resource, e.g. &amp;#34;apps/v1&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#75715e">// +optional
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">APIVersion&lt;/span> &lt;span style="color:#66d9ef">string&lt;/span> &lt;span style="color:#e6db74">`json:&amp;#34;apiVersion,omitempty&amp;#34;`&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// Name of the resource.
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#75715e">// +optional
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">Name&lt;/span> &lt;span style="color:#66d9ef">string&lt;/span> &lt;span style="color:#e6db74">`json:&amp;#34;name,omitempty&amp;#34;`&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// +optional
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">LabelSelector&lt;/span> &lt;span style="color:#a6e22e">metav1&lt;/span>.&lt;span style="color:#a6e22e">LabelSelector&lt;/span> &lt;span style="color:#e6db74">`json:&amp;#34;labelSelector,omitempty&amp;#34;`&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">namespace&lt;/span> &lt;span style="color:#960050;background-color:#1e0010">?&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Recommendation is a content holder for recommendation result. We hope that the recommendation data can be applied directly to kubernetes cluster(Recommendation as a code) and Different type recommendation have different recommendation yaml, so the content is stored in recommendation as &lt;code>Data&lt;/code>.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">Recommendation&lt;/span> &lt;span style="color:#66d9ef">struct&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">metav1&lt;/span>.&lt;span style="color:#a6e22e">TypeMeta&lt;/span> &lt;span style="color:#e6db74">`json:&amp;#34;,inline&amp;#34;`&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">metav1&lt;/span>.&lt;span style="color:#a6e22e">ObjectMeta&lt;/span> &lt;span style="color:#e6db74">`json:&amp;#34;metadata,omitempty&amp;#34;`&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// +kubebuilder:pruning:PreserveUnknownFields
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">Data&lt;/span> &lt;span style="color:#a6e22e">runtime&lt;/span>.&lt;span style="color:#a6e22e">RawExtension&lt;/span> &lt;span style="color:#e6db74">`json:&amp;#34;data&amp;#34;`&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="recommendation-configuration">Recommendation Configuration&lt;/h3>
+&lt;p>Recommendation Configuration is centralized configuration that contains every rule for universal resource optimization. It not only includes RecommendationRules that use defines but also contains RecommendationPlugins.&lt;/p>
+&lt;h3 id="phases-for-a-recommender">Phases for a recommender&lt;/h3>
+&lt;p>&lt;img src="/images/crane_recommendation_framework.jpg" alt="">&lt;/p>
+&lt;h3 id="phases">Phases&lt;/h3>
+&lt;p>We divide the whole recommendation process into four actions, Fliter, Prepare, Recommend, Observe. The input of the whole system is the kubernetes resource you want to analyze, and the output is the best recommendation for the resource.Below we describe in detail the capabilities and input and output of each part of Recommendation Framework.&lt;/p>
+&lt;h4 id="fliter">Fliter&lt;/h4>
+&lt;p>The input of Fliter is an analysis recommendation task queue, and the queue stores the Recommendation CR submitted by the user.In default PreFliter,we will do nothing for the queue, this queue will be a FIFO queue.If you want to follow certain rules for the queue, you can implement it yourself PreFliter via extension point or override this func.In the default fliter stage, we will first filter the non-recommended resources according to the user-defined analyzable resource type. For example, the analyzable kubernetes resource I defined is deployment,ingress,node. If you submit a recommendation cr for statefulset, it will be abort in this phase.Then, we will check whether the resource you want exists, if not, we will abort.If you wish to use different filtering logic, you can implement your own logic through the fliter extension point or override it.&lt;/p>
+&lt;h4 id="prepare">Prepare&lt;/h4>
+&lt;p>Prepare is the data preparation stage, and will pull the indicator sequence within the specified time according to your recommended tasks.In PrePrepare,by default we will check the connectivity of the metrics system. And we need generate the specified metrics information for metrics server system like prometheus or metrics server. In Prepare,we will get the indicator sequence information.In PostPrepare, we will implement a data processing module.Some data processing such as data correction for cold start application resource glitch, missing data padding, data aggregation,deduplication or noise reduction. The output of whole will be normalized to a specified data type.Of course you can also implement your own PrePrepare, Prepare, PostPrepare logic.&lt;/p>
+&lt;h4 id="recommend">Recommend&lt;/h4>
+&lt;p>The input of Recommend is a data sequence, and the output is the result of the recommendation type you specify. For example, if your recommendation type is resource, the output is the recommended size of the resource of the kubernetes workload you specified.In Recommend, we will apply crane&amp;rsquo;s algorithm library to your data sequence.And in PostRecommend,We will use some strategies to regularize the results of the algorithm. For example, if a margin needs to be added when recommending resources, it will be processed at this stage.You can implement your own Recommend logic via extension points or override it.&lt;/p>
+&lt;h4 id="observe">Observe&lt;/h4>
+&lt;p>Observe is to intuitively reflect the effectiveness of the recommendation results. For example, when making resource recommendations, users not only care about the recommended resource configuration, but also how much cost can be saved after modifying the resource configuration. In PreObserver, we will check the cloud api connectivity and establish link with cloud vendor&amp;rsquo;s billing system. And in Observe we will turn resource optimization into cost optimization.You can implement your own Observe logic via extension points or override it.&lt;/p></description></item><item><title>Docs: Pod Sorting And Precise Execution For Crane Agent</title><link>/docs/proposals/pod-sorting-and-precise-execution-for-crane-agent/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/proposals/pod-sorting-and-precise-execution-for-crane-agent/</guid><description>
+&lt;p>The proposal enriches the sorting strategy of the crane agent and perfects the general sorting. In addition, a framework of precise operation (throttle/eviction) is implemented. When performing throttle, eviction and other operations, the precise operation logic of operating to the water level specified by the user, i.e. stopping, avoids excessive operation of low optimal pod;&lt;/p>
+&lt;p>Specifically:&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>Enriches the sorting strategy of crane agent, and perfects the general sorting and CPU dimension sorting with CPU usage as the main reference;&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>For CPU usage, the precise operation logic that stops when operating to the water level specified by the user when throttle/eviction is implemented, which avoids the excessive operation of low optimal pod;&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>A framework of precise operation (throttle/eviction) is implemented. By improving some column attributes and implementation of user-defined indicators, it can also have the same precise operation ability as CPU usage without caring about specific details, and has certain universality and scalability.&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;h2 id="table-of-contents">Table of Contents&lt;/h2>
+&lt;!-- TOC -->
+&lt;ul>
+&lt;li>[Pod Sorting And Precise Execution For Crane Agent](#Pod Sorting And Precise Execution For Crane Agent)
+&lt;ul>
+&lt;li>&lt;a href="#table-of-contents">Table of Contents&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#motivation">Motivation&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#goals">Goals&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>&lt;a href="#proposal">Proposal&lt;/a>
+&lt;ul>
+&lt;li>[Enrich the sorting strategy of pod](#Enrich the sorting strategy of pod)&lt;/li>
+&lt;li>[Definition of metric attribute](#Definition of metric attribute)&lt;/li>
+&lt;li>[How to control accurately according to the water level](#How to control accurately according to the water level)&lt;/li>
+&lt;li>[Precise operation of pod based on water level](#Precise operation of pod based on water level)
+&lt;ul>
+&lt;li>[Analyzer phase](#Analyzer phase)&lt;/li>
+&lt;li>[Executor phase](#Executor phase)&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>&lt;a href="#non-goalsfuture-work">Non-Goals/Future Work&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#user-stories">User Stories&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;!-- /TOC -->
+&lt;h2 id="motivation">Motivation&lt;/h2>
+&lt;p>Currently, in the crane agent, when the water level specified in the NodeQosEnsurancePolicy is exceeded, perform throttle, eviction and other operations to sort the low priority pods first. The current sorting is based on the prority class of the pod, and then perform throttle or eviction on the sorted pods;&lt;/p>
+&lt;p>The existing problems are:&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>sorting only refers to prority class, which cannot meet the sorting based on other features; At the same time, it can not meet the requirements of flexible sequencing according to the precise operation of the water level line, and can not meet the requirements of making the nodes reach the specified water level as soon as possible. For example, when we want to reduce the CPU usage of low priority services as soon as possible, we should select the pod with more CPU usage, which can reduce the CPU usage faster and ensure that high-quality services are not affected.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>after triggering the watermark specified in NodeQosEnsurancePolicy, all pods on the node that are lower than the specified prolityclass will be operated; For example, there are 10 pods on the current node that are lower than the specified prority class. After the water level is triggered, operations will be performed on all 10 pods. However, in fact, after the operation on the first pod is completed, it may be lower than the index value in NodeQosEnsurancePolicy. The operation on the remaining pods is excessive and can be avoided. If the index value in NodeQosEnsurancePolicy can be used as the watermark to accurately operate the pod, it is more appropriate to operate it just below the watermark, so as to avoid excessive impact on low priority services.&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;h3 id="goals">Goals&lt;/h3>
+&lt;ul>
+&lt;li>
+&lt;p>Enriches the sorting strategy of crane agent, including the sorting with pod CPU consumption as the main reference, the sorting with pod memory consumption as the main reference, the sorting based on runtime, and the sorting based on extended resource utilization.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Implement a framework including sorting and a precise operation, support to enrich sorting rules for different indicators, and realize precise operation.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>To achieve a precise operation for CPU usage and memory usage, when the machine load exceeds the water level specified in NodeQosEnsurancePolicy, the low priority pods will be sorted first, and then the operation will be carried out in order until it is just below the water level.&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;h2 id="proposal">Proposal&lt;/h2>
+&lt;h3 id="enrich-the-sorting-strategy-of-pod">Enrich the sorting strategy of pod&lt;/h3>
+&lt;ul>
+&lt;li>
+&lt;p>The proposal implements some general sorting methods (which will be improved later):&lt;/p>
+&lt;p>classAndPriority： Compare the Qos class and class value of two pods. Compare Qos class first and then class value; Those with high priority are ranked later and have higher priority&lt;/p>
+&lt;p>runningTime：Compare the running time of two pods. The one with a long running time is ranked later and has a higher priority&lt;/p>
+&lt;p>If you only need to use these two sorting strategies, you can use the default sorting method: you will first compare the priority of the pod, then compare the usage of the corresponding indicators of the pod, and then compare the running time of the pod. There is a dimension that can compare the results, that is, the sorting results of the pod&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">func&lt;/span> &lt;span style="color:#a6e22e">GeneralSorter&lt;/span>(&lt;span style="color:#a6e22e">pods&lt;/span> []&lt;span style="color:#a6e22e">podinfo&lt;/span>.&lt;span style="color:#a6e22e">PodContext&lt;/span>) {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">orderedBy&lt;/span>(&lt;span style="color:#a6e22e">classAndPriority&lt;/span>, &lt;span style="color:#a6e22e">runningTime&lt;/span>).&lt;span style="color:#a6e22e">Sort&lt;/span>(&lt;span style="color:#a6e22e">pods&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>Sorting of CPU usage&lt;/p>
+&lt;p>The priority of two pods will be compared in turn. If the priority is the same, then compare the CPU usage. If the CPU usage is also the same, continue to compare the EXT CPU resource usage (this is a special point of the CPU attribute). Finally, compare the running time of the pod. When there is a difference in a certain index, the comparison result can be returned&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">func&lt;/span> &lt;span style="color:#a6e22e">CpuUsageSorter&lt;/span>(&lt;span style="color:#a6e22e">pods&lt;/span> []&lt;span style="color:#a6e22e">podinfo&lt;/span>.&lt;span style="color:#a6e22e">PodContext&lt;/span>) {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">orderedBy&lt;/span>(&lt;span style="color:#a6e22e">classAndPriority&lt;/span>, &lt;span style="color:#a6e22e">cpuUsage&lt;/span>, &lt;span style="color:#a6e22e">extCpuUsage&lt;/span>, &lt;span style="color:#a6e22e">runningTime&lt;/span>).&lt;span style="color:#a6e22e">Sort&lt;/span>(&lt;span style="color:#a6e22e">pods&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>Sorting of ext CPU usage&lt;/p>
+&lt;p>First, it will compare whether the extended CPU resources are used by two pods. If both are used, it will compare the ratio of the extended CPU resource usage / the extended CPU resource limit&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>For the indicators that need to be customized, the following methods can be implemented, and the flexible and customized sorting of pods can be easily realized by freely matching the general sorting methods. The &lt;metric> represents the customized metric indicators, and the &lt;metric sort func> represents the customized sorting strategy for &lt;metric>&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">func&lt;/span> &amp;lt;&lt;span style="color:#a6e22e">metric&lt;/span>&amp;gt;&lt;span style="color:#a6e22e">Sorter&lt;/span>(&lt;span style="color:#a6e22e">pods&lt;/span> []&lt;span style="color:#a6e22e">podinfo&lt;/span>.&lt;span style="color:#a6e22e">PodContext&lt;/span>) {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">orderedBy&lt;/span>(&lt;span style="color:#a6e22e">classAndPriority&lt;/span>, &amp;lt;&lt;span style="color:#a6e22e">metric&lt;/span>&lt;span style="color:#f92672">-&lt;/span>&lt;span style="color:#a6e22e">sort&lt;/span>&lt;span style="color:#f92672">-&lt;/span>&lt;span style="color:#66d9ef">func&lt;/span>&amp;gt;, &lt;span style="color:#a6e22e">runningTime&lt;/span>).&lt;span style="color:#a6e22e">Sort&lt;/span>(&lt;span style="color:#a6e22e">pods&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>The &lt;metric sort func> only needs to implement the following sorting methods&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">func&lt;/span> (&lt;span style="color:#a6e22e">p1&lt;/span>, &lt;span style="color:#a6e22e">p2&lt;/span> &lt;span style="color:#a6e22e">podinfo&lt;/span>.&lt;span style="color:#a6e22e">PodContext&lt;/span>) &lt;span style="color:#66d9ef">int32&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/li>
+&lt;/ul>
+&lt;h3 id="definition-of-metric-attribute">Definition of metric attribute&lt;/h3>
+&lt;p>In order to better sort and precisely control metrics configured based on NodeQosEnsurancePolicy, the concept of attributes is introduced into metrics.&lt;/p>
+&lt;p>The attributes of metrics include the following:&lt;/p>
+&lt;ol>
+&lt;li>Name indicates the name of the metric, which should be consistent with the indicator name collected in the collector module&lt;/li>
+&lt;li>ActionPriority indicates the priority of the indicator. 0 is the lowest and 10 is the highest&lt;/li>
+&lt;li>SortAble indicates whether the indicator can be sorted&lt;/li>
+&lt;li>Sorting methods corresponding to SortFunc. Sorting methods can be arranged and combined with some general methods, and then combined with the sorting of indicators, which will be introduced in detail below&lt;/li>
+&lt;li>ThrottleAble indicates whether pod can be suppressed for this indicator. For example, for the metric of CPU usage, there are corresponding suppression methods. However, for the indicator of memory usage, the pod can only be expelled, and effective suppression cannot be carried out&lt;/li>
+&lt;li>ThrottleQuantified indicates whether the corresponding metric resources released after the suppression can be accurately calculated after a pod is restored. We call the indicators that can be accurately quantified quantifiable, otherwise, they are not quantifiable;
+For example, the CPU usage can be suppressed by limiting the CGroup usage, and the CPU usage released after suppression can be calculated by the current running value and the value after suppression; For example, memory usage does not belong to the suppression quantifiable metric, because memory has no corresponding throttle implementation, so it is impossible to accurately measure the specific amount of memory resources released after suppressing a pod;&lt;/li>
+&lt;li>ThrottleFunc, the specific method to execute the throttle action. If throttling is not available, the returned released is null&lt;/li>
+&lt;li>RestoreFunc: after being throttled, the specific method to execute the recovery action. If throttling is not allowed, the returned released is null&lt;/li>
+&lt;li>Relevant definitions of evicting actions by evictable, evictquantified, and evictfunc are similar to those of throttle actions&lt;/li>
+&lt;/ol>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">metric&lt;/span> &lt;span style="color:#66d9ef">struct&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">Name&lt;/span> &lt;span style="color:#a6e22e">WaterLineMetric&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">ActionPriority&lt;/span> &lt;span style="color:#66d9ef">int&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">SortAble&lt;/span> &lt;span style="color:#66d9ef">bool&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">SortFunc&lt;/span> &lt;span style="color:#66d9ef">func&lt;/span>(&lt;span style="color:#a6e22e">pods&lt;/span> []&lt;span style="color:#a6e22e">podinfo&lt;/span>.&lt;span style="color:#a6e22e">PodContext&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">ThrottleAble&lt;/span> &lt;span style="color:#66d9ef">bool&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">ThrottleQuantified&lt;/span> &lt;span style="color:#66d9ef">bool&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">ThrottleFunc&lt;/span> &lt;span style="color:#66d9ef">func&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">ExecuteContext&lt;/span>, &lt;span style="color:#a6e22e">index&lt;/span> &lt;span style="color:#66d9ef">int&lt;/span>, &lt;span style="color:#a6e22e">ThrottleDownPods&lt;/span> &lt;span style="color:#a6e22e">ThrottlePods&lt;/span>, &lt;span style="color:#a6e22e">totalReleasedResource&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">ReleaseResource&lt;/span>) (&lt;span style="color:#a6e22e">errPodKeys&lt;/span> []&lt;span style="color:#66d9ef">string&lt;/span>, &lt;span style="color:#a6e22e">released&lt;/span> &lt;span style="color:#a6e22e">ReleaseResource&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">RestoreFunc&lt;/span> &lt;span style="color:#66d9ef">func&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">ExecuteContext&lt;/span>, &lt;span style="color:#a6e22e">index&lt;/span> &lt;span style="color:#66d9ef">int&lt;/span>, &lt;span style="color:#a6e22e">ThrottleUpPods&lt;/span> &lt;span style="color:#a6e22e">ThrottlePods&lt;/span>, &lt;span style="color:#a6e22e">totalReleasedResource&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">ReleaseResource&lt;/span>) (&lt;span style="color:#a6e22e">errPodKeys&lt;/span> []&lt;span style="color:#66d9ef">string&lt;/span>, &lt;span style="color:#a6e22e">released&lt;/span> &lt;span style="color:#a6e22e">ReleaseResource&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">EvictAble&lt;/span> &lt;span style="color:#66d9ef">bool&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">EvictQuantified&lt;/span> &lt;span style="color:#66d9ef">bool&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">EvictFunc&lt;/span> &lt;span style="color:#66d9ef">func&lt;/span>(&lt;span style="color:#a6e22e">wg&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">sync&lt;/span>.&lt;span style="color:#a6e22e">WaitGroup&lt;/span>, &lt;span style="color:#a6e22e">ctx&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">ExecuteContext&lt;/span>, &lt;span style="color:#a6e22e">index&lt;/span> &lt;span style="color:#66d9ef">int&lt;/span>, &lt;span style="color:#a6e22e">totalReleasedResource&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">ReleaseResource&lt;/span>, &lt;span style="color:#a6e22e">EvictPods&lt;/span> &lt;span style="color:#a6e22e">EvictPods&lt;/span>) (&lt;span style="color:#a6e22e">errPodKeys&lt;/span> []&lt;span style="color:#66d9ef">string&lt;/span>, &lt;span style="color:#a6e22e">released&lt;/span> &lt;span style="color:#a6e22e">ReleaseResource&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>You can define your own metric. After the construction is completed, you can register it through registermetricmap()&lt;/p>
+&lt;h3 id="how-to-control-accurately-according-to-the-water-level">How to control accurately according to the water level&lt;/h3>
+&lt;ul>
+&lt;li>
+&lt;p>Build multiple waterlines according to multiple nodeqosensurancepolicies and objectiveinsurances:&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>Classified according to the actions corresponding to objectiveinsurances, the crane agent currently has three operations to guarantee node QoS, namely, evict, thtottledown (to suppress pod usage when the current usage is higher than the value in objectiveinsurances) and throttleup (to relax and recover pod usage when the current usage is lower than the value in objectiveinsurances). Therefore, there will be three waterline sets, namely, throttledownwaterline, Throttleupwaterline and evictwaterline&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Then classify the waterlines in the same operation category according to their metric rules (metric A and metric Z are used as schematic in the figure), and record the value of each objectiveinsurances water level line, which is recorded as waterline;&lt;/p>
+&lt;p>The structures of throttledownwaterline, throttleupwaterline and evictwaterline are as follows:
+&lt;code>type WaterLines map[WaterLineMetric]*WaterLine&lt;/code>&lt;/p>
+&lt;p>Where waterlinemetric is the name field of the above metric, and waterline of value is the resource value
+&lt;code>type WaterLine resource.Quantity&lt;/code>&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;p>Finally, a data store similar to the following figure is formed:&lt;br>
+&lt;img src="/images/waterline-construct.png" alt="">&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Construct the difference between real-time consumption and waterline:
+The following data structure is constructed by combining the difference between the real-time consumption of the indicator at the current node and the minimum value in the waterline corresponding to the indicator in waterlines, representing the difference between the current consumption and the waterline
+&lt;code>type GapToWaterLines map[WaterLineMetric]float64&lt;/code>&lt;/p>
+&lt;p>Where the key value is the name field of metric, and the value is the difference between the consumption and the waterline;&lt;/p>
+&lt;p>It should be noted that for throttleup, the minimum waterline - current usage is used as the gap value. For the other two, the minimum waterline - current usage is used as the gap value, that is, the gap value is always kept positive&lt;/p>
+&lt;p>The following three data represent the indicators that need to perform evict, thatttledown and throttleup operations and their corresponding differences to the lowest waterline&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">EvictGapToWaterLines&lt;/span>[&lt;span style="color:#a6e22e">metrics&lt;/span>]
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">ThrottoleDownGapToWaterLines&lt;/span>[&lt;span style="color:#a6e22e">metrics&lt;/span>]
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">ThrottleUpGapWaterLine&lt;/span>[&lt;span style="color:#a6e22e">metrics&lt;/span>]
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>Taking the metric CpuUsage as an example, the process and data structure of constructing the waterline related to node CPU usage are as follows:
+&lt;img src="/images/cpu-usage-water-line.png" alt="">&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;h3 id="precise-operation-of-pod-based-on-water-level">Precise operation of pod based on water level&lt;/h3>
+&lt;p>In order to realize the precise operation of pod based on the water level, the proposal will modify the analyzer and executor. The general process is as follows:&lt;/p>
+&lt;p>In the analyzer phase, construct waterlines for different operations (eviction, throttle, etc.) and different metrics, delete the original sorting logic, and move it to the executor phase where formal operations are required, and multiple rounds of sorting may be required;&lt;/p>
+&lt;p>In the executor stage, the corresponding sorting is carried out according to the indicators involved in the waterline, the latest consumption is obtained, gaptowaterlines is constructed, and precise operations are carried out&lt;/p>
+&lt;h4 id="analyzer-phase">Analyzer phase&lt;/h4>
+&lt;p>At this stage, the NodeQosEnsurancePolicy is converted to waterlines, and the rules of the same actionname and metricreule are merged. The details have been described above&lt;/p>
+&lt;h4 id="executor-phase">Executor phase&lt;/h4>
+&lt;p>Throttle:&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>Firstly, analyze the metrics involved in the ThrottoleDownGapToWaterLines, and divide these metrics into two parts according to their quantized attribute. If there is a metric that cannot be quantized, get the metric of a throttleable (with a throttlefunc) with the highest action priority through gethighstprioritythottleablemetric to suppress all the selected pods, because if there is a metric that cannot be quantized, It is impossible to carry out a precise operation&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Get the latest usage of the current node and workload through getstatefunc(), Construct the gaptowaterline according to the ThrottoleDownGapToWaterLines and real-time usage (note that when constructing the gaptowaterline, it will traverse with the registered metric, so the finally constructed metric in the gaptowaterline will be the metric registered in the ThrottoleDownGapToWaterLines, avoiding the situation that the configuration error does not exist or the metric is not registered in the nodeqosensancepolicy)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>If there is a metric in the gaptowaterline whose real-time usage cannot be obtained (hasusagemissedmetric), obtain the metric of a throttleable (with throttlefunc) with the highest action priority through GetHighestPriorityThrottleAbleMetric to suppress all the selected pods, because if there is a metric whose real-time usage cannot be obtained, the gap with the waterline cannot be known, and precise operations cannot be performed&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>If the situation in 3 does not exist, traverse the quantifiable metrics in the ThrottoleDownGapToWaterLines: if the metric has a sorting method, it directly uses its sortfunc to sort the pods. If not, it uses generalsorter to sort the pods, and then uses its corresponding throttlefunc to suppress the pods, and calculate the released resources of the corresponding metric, Until the gap corresponding to this metric in ThrottoleDownGapToWaterLines no longer exists&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">metricsQuantified&lt;/span>, &lt;span style="color:#a6e22e">MetricsNotQuantified&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> &lt;span style="color:#a6e22e">ThrottleDownWaterLine&lt;/span>.&lt;span style="color:#a6e22e">DivideMetricsByQuantified&lt;/span>()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">if&lt;/span> len(&lt;span style="color:#a6e22e">MetricsNotThrottleQuantified&lt;/span>) &lt;span style="color:#f92672">!=&lt;/span> &lt;span style="color:#ae81ff">0&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">highestPrioriyMetric&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> &lt;span style="color:#a6e22e">GetHighestPriorityThrottleAbleMetric&lt;/span>()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">if&lt;/span> &lt;span style="color:#a6e22e">highestPrioriyMetric&lt;/span> &lt;span style="color:#f92672">!=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;&amp;#34;&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">t&lt;/span>.&lt;span style="color:#a6e22e">throttlePods&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span>, &lt;span style="color:#f92672">&amp;amp;&lt;/span>&lt;span style="color:#a6e22e">totalReleased&lt;/span>, &lt;span style="color:#a6e22e">highestPrioriyMetric&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>} &lt;span style="color:#66d9ef">else&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">ThrottoleDownGapToWaterLines&lt;/span> = &lt;span style="color:#a6e22e">buildGapToWaterLine&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span>.&lt;span style="color:#a6e22e">getStateFunc&lt;/span>())
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">if&lt;/span> &lt;span style="color:#a6e22e">ThrottoleDownGapToWaterLines&lt;/span>.&lt;span style="color:#a6e22e">HasUsageMissedMetric&lt;/span>() {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">highestPrioriyMetric&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> &lt;span style="color:#a6e22e">ThrottleDownWaterLine&lt;/span>.&lt;span style="color:#a6e22e">GetHighestPriorityThrottleAbleMetric&lt;/span>()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">if&lt;/span> &lt;span style="color:#a6e22e">highestPrioriyMetric&lt;/span> &lt;span style="color:#f92672">!=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;&amp;#34;&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">throttlePods&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span>, &lt;span style="color:#f92672">&amp;amp;&lt;/span>&lt;span style="color:#a6e22e">totalReleased&lt;/span>, &lt;span style="color:#a6e22e">highestPrioriyMetric&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> } &lt;span style="color:#66d9ef">else&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">var&lt;/span> &lt;span style="color:#a6e22e">released&lt;/span> &lt;span style="color:#a6e22e">ReleaseResource&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">for&lt;/span> &lt;span style="color:#a6e22e">_&lt;/span>, &lt;span style="color:#a6e22e">m&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> &lt;span style="color:#66d9ef">range&lt;/span> &lt;span style="color:#a6e22e">metricsQuantified&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">if&lt;/span> &lt;span style="color:#a6e22e">m&lt;/span>.&lt;span style="color:#a6e22e">SortAble&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">m&lt;/span>.&lt;span style="color:#a6e22e">SortFunc&lt;/span>(&lt;span style="color:#a6e22e">ThrottleDownPods&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> } &lt;span style="color:#66d9ef">else&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">GeneralSorter&lt;/span>(&lt;span style="color:#a6e22e">ThrottleDownPods&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">for&lt;/span> !&lt;span style="color:#a6e22e">ThrottoleDownGapToWaterLines&lt;/span>.&lt;span style="color:#a6e22e">TargetGapsRemoved&lt;/span>(&lt;span style="color:#a6e22e">m&lt;/span>) {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">for&lt;/span> &lt;span style="color:#a6e22e">index&lt;/span>, &lt;span style="color:#a6e22e">_&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> &lt;span style="color:#66d9ef">range&lt;/span> &lt;span style="color:#a6e22e">ThrottleDownPods&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">released&lt;/span> = &lt;span style="color:#a6e22e">m&lt;/span>.&lt;span style="color:#a6e22e">ThrottleFunc&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span>, &lt;span style="color:#a6e22e">index&lt;/span>, &lt;span style="color:#a6e22e">ThrottleDownPods&lt;/span>, &lt;span style="color:#f92672">&amp;amp;&lt;/span>&lt;span style="color:#a6e22e">totalReleased&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">ThrottoleDownGapToWaterLines&lt;/span>[&lt;span style="color:#a6e22e">m&lt;/span>] &lt;span style="color:#f92672">-=&lt;/span> &lt;span style="color:#a6e22e">released&lt;/span>[&lt;span style="color:#a6e22e">m&lt;/span>]
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Eviction：&lt;/p>
+&lt;p>The process of eviction and throttle is the same, except that it is necessary to judge whether the pod has been expelled when operating the pod; Take out a pod that has not been executed, execute the eviction operation, calculate the released metric resources, and subtract the released value from the corresponding water level until the current metric waterline requirements are met&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">metricsEvictQuantified&lt;/span>, &lt;span style="color:#a6e22e">MetricsNotEvcitQuantified&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> &lt;span style="color:#a6e22e">EvictWaterLine&lt;/span>.&lt;span style="color:#a6e22e">DivideMetricsByEvictQuantified&lt;/span>()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">if&lt;/span> len(&lt;span style="color:#a6e22e">MetricsNotEvcitQuantified&lt;/span>) &lt;span style="color:#f92672">!=&lt;/span> &lt;span style="color:#ae81ff">0&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">highestPrioriyMetric&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> &lt;span style="color:#a6e22e">e&lt;/span>.&lt;span style="color:#a6e22e">EvictWaterLine&lt;/span>.&lt;span style="color:#a6e22e">GetHighestPriorityEvictAbleMetric&lt;/span>()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">if&lt;/span> &lt;span style="color:#a6e22e">highestPrioriyMetric&lt;/span> &lt;span style="color:#f92672">!=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;&amp;#34;&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">e&lt;/span>.&lt;span style="color:#a6e22e">evictPods&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span>, &lt;span style="color:#f92672">&amp;amp;&lt;/span>&lt;span style="color:#a6e22e">totalReleased&lt;/span>, &lt;span style="color:#a6e22e">highestPrioriyMetric&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>} &lt;span style="color:#66d9ef">else&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">EvictGapToWaterLines&lt;/span> = &lt;span style="color:#a6e22e">buildGapToWaterLine&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span>.&lt;span style="color:#a6e22e">getStateFunc&lt;/span>(), &lt;span style="color:#a6e22e">ThrottleExecutor&lt;/span>{}, &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">e&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">if&lt;/span> &lt;span style="color:#a6e22e">EvictGapToWaterLines&lt;/span>.&lt;span style="color:#a6e22e">HasUsageMissedMetric&lt;/span>() {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">highestPrioriyMetric&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> &lt;span style="color:#a6e22e">EvictWaterLine&lt;/span>.&lt;span style="color:#a6e22e">GetHighestPriorityEvictAbleMetric&lt;/span>()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">if&lt;/span> &lt;span style="color:#a6e22e">highestPrioriyMetric&lt;/span> &lt;span style="color:#f92672">!=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;&amp;#34;&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">e&lt;/span>.&lt;span style="color:#a6e22e">evictPods&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span>, &lt;span style="color:#f92672">&amp;amp;&lt;/span>&lt;span style="color:#a6e22e">totalReleased&lt;/span>, &lt;span style="color:#a6e22e">highestPrioriyMetric&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> } &lt;span style="color:#66d9ef">else&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">wg&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> &lt;span style="color:#a6e22e">sync&lt;/span>.&lt;span style="color:#a6e22e">WaitGroup&lt;/span>{}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">var&lt;/span> &lt;span style="color:#a6e22e">released&lt;/span> &lt;span style="color:#a6e22e">ReleaseResource&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">for&lt;/span> &lt;span style="color:#a6e22e">_&lt;/span>, &lt;span style="color:#a6e22e">m&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> &lt;span style="color:#66d9ef">range&lt;/span> &lt;span style="color:#a6e22e">metricsEvictQuantified&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">if&lt;/span> &lt;span style="color:#a6e22e">MetricMap&lt;/span>[&lt;span style="color:#a6e22e">m&lt;/span>].&lt;span style="color:#a6e22e">SortAble&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">MetricMap&lt;/span>[&lt;span style="color:#a6e22e">m&lt;/span>].&lt;span style="color:#a6e22e">SortFunc&lt;/span>(&lt;span style="color:#a6e22e">e&lt;/span>.&lt;span style="color:#a6e22e">EvictPods&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> } &lt;span style="color:#66d9ef">else&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">execsort&lt;/span>.&lt;span style="color:#a6e22e">GeneralSorter&lt;/span>(&lt;span style="color:#a6e22e">e&lt;/span>.&lt;span style="color:#a6e22e">EvictPods&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">for&lt;/span> !&lt;span style="color:#a6e22e">EvictGapToWaterLines&lt;/span>.&lt;span style="color:#a6e22e">TargetGapsRemoved&lt;/span>(&lt;span style="color:#a6e22e">m&lt;/span>) {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">if&lt;/span> &lt;span style="color:#a6e22e">podinfo&lt;/span>.&lt;span style="color:#a6e22e">HasNoExecutedPod&lt;/span>(&lt;span style="color:#a6e22e">e&lt;/span>.&lt;span style="color:#a6e22e">EvictPods&lt;/span>) {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">index&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> &lt;span style="color:#a6e22e">podinfo&lt;/span>.&lt;span style="color:#a6e22e">GetFirstNoExecutedPod&lt;/span>(&lt;span style="color:#a6e22e">e&lt;/span>.&lt;span style="color:#a6e22e">EvictPods&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">released&lt;/span> = &lt;span style="color:#a6e22e">MetricMap&lt;/span>[&lt;span style="color:#a6e22e">m&lt;/span>].&lt;span style="color:#a6e22e">EvictFunc&lt;/span>(&lt;span style="color:#f92672">&amp;amp;&lt;/span>&lt;span style="color:#a6e22e">wg&lt;/span>, &lt;span style="color:#a6e22e">ctx&lt;/span>, &lt;span style="color:#a6e22e">index&lt;/span>, &lt;span style="color:#f92672">&amp;amp;&lt;/span>&lt;span style="color:#a6e22e">totalReleased&lt;/span>, &lt;span style="color:#a6e22e">e&lt;/span>.&lt;span style="color:#a6e22e">EvictPods&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">e&lt;/span>.&lt;span style="color:#a6e22e">EvictPods&lt;/span>[&lt;span style="color:#a6e22e">index&lt;/span>].&lt;span style="color:#a6e22e">HasBeenActioned&lt;/span> = &lt;span style="color:#66d9ef">true&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">ctx&lt;/span>.&lt;span style="color:#a6e22e">EvictGapToWaterLines&lt;/span>[&lt;span style="color:#a6e22e">m&lt;/span>] &lt;span style="color:#f92672">-=&lt;/span> &lt;span style="color:#a6e22e">released&lt;/span>[&lt;span style="color:#a6e22e">m&lt;/span>]
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">wg&lt;/span>.&lt;span style="color:#a6e22e">Wait&lt;/span>()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="non-goalsfuture-work">Non-Goals/Future Work&lt;/h3>
+&lt;ul>
+&lt;li>Currently, only the precise operation of CPU usage is supported, but the framework can be reused. In the future, the framework based on precise control can achieve precise control of more dimensional indicators.&lt;/li>
+&lt;li>In the process of precise control, only the release of metric is considered at present, and the interaction between different metrics is not considered. For example, when pressing CPU usage, memory usage will also be affected. If there are many indicators, the relationship between different indicators will be very complex, so the direct interaction of different metrics will not be considered for the time being.&lt;/li>
+&lt;/ul>
+&lt;h3 id="user-stories">User Stories&lt;/h3>
+&lt;ul>
+&lt;li>Users can use crane agent for better QoS guarantees. Support faster node load reduction to ensure that high priority services are not affected. At the same time, the throttle/eviction of low priority services is precisely controlled to avoid excessive operation.&lt;/li>
+&lt;li>With the help of the framework of precise operation (throttle/eviction), users can easily realize the QoS function with precise operation and sorting capability based on the user-defined metric without paying attention to details by implementing the attributes and methods related to the user-defined metric.&lt;/li>
+&lt;/ul></description></item></channel></rss>
