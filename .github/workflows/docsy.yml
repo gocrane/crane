@@ -46,4 +46,3 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: site/public
-          destination_dir: ${{steps.git-branch.outputs.git-branch}}-docsy
