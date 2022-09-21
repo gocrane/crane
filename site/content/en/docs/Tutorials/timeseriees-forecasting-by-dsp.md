@@ -1,5 +1,5 @@
 ---
-title: "DSP 预测算法"
+title: "DSP Algorithm"
 description: "Introduction for DSP Algorithm"
 weight: 16
 ---
