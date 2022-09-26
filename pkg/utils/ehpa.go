@@ -17,13 +17,11 @@ func IsEHPAPredictionEnabled(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscal
 
 func IsEHPAHasPredictionMetric(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) bool {
 	for _, metric := range ehpa.Spec.Metrics {
-		if metric.Type == autoscalingv2.ResourceMetricSourceType {
-			metricName := GetPredictionMetricName(metric.Type, false)
-			if len(metricName) == 0 {
-				continue
-			}
-			return true
+		metricName := GetPredictionMetricName(metric.Type)
+		if len(metricName) == 0 {
+			continue
 		}
+		return true
 	}
 
 	for key := range ehpa.Annotations {
@@ -39,17 +37,18 @@ func IsEHPACronEnabled(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) bo
 }
 
 // GetPredictionMetricName return metric name used by prediction
-func GetPredictionMetricName(sourceType autoscalingv2.MetricSourceType, isCron bool) (metricName string) {
-	if isCron {
-		metricName = known.MetricNameCron
-	} else {
-		switch sourceType {
-		case autoscalingv2.ResourceMetricSourceType, autoscalingv2.PodsMetricSourceType, autoscalingv2.ExternalMetricSourceType:
-			metricName = known.MetricNamePrediction
-		}
+func GetPredictionMetricName(sourceType autoscalingv2.MetricSourceType) (metricName string) {
+	switch sourceType {
+	case autoscalingv2.ResourceMetricSourceType, autoscalingv2.PodsMetricSourceType, autoscalingv2.ExternalMetricSourceType:
+		metricName = known.MetricNamePrediction
 	}
 
 	return metricName
+}
+
+// GetCronMetricName return metric name used by cron
+func GetCronMetricName() string {
+	return known.MetricNameCron
 }
 
 // GetGeneralPredictionMetricName return metric name used by prediction
