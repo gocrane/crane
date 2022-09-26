@@ -1,7 +1,7 @@
 ---
 title: "Installation"
 description: "How to install Crane"
-weight: 11
+weight: 12
 ---
 
 ## Prerequisites
@@ -17,82 +17,73 @@ Please refer to Helm's [documentation](https://helm.sh/docs/intro/install/) for 
 
 ### Installing prometheus and grafana with helm chart
 
-!!! note
-    If you already deployed prometheus, grafana in your environment, then skip this step.
+{{% alert color="warning" %}}
+If you already deployed prometheus, grafana in your environment, then skip this step.
+{{% /alert %}}
 
-!!! Warning "Network Problems"
-    If your network is hard to connect GitHub resources, you can try the mirror repo. Like GitHub Release, GitHub Raw Content `raw.githubusercontent.com`.
-
-    But mirror repo has a certain **latency**.[Mirror Repo](mirror.md)
+{{% alert color="warning" %}}
+If your network is hard to connect GitHub resources, you can try the mirror repo. Like GitHub Release, GitHub Raw Content raw.githubusercontent.com.
+But mirror repo has a certain latency. Please see Mirror Resources to know details.
+{{% /alert %}}
 
 Crane use prometheus to be the default metric provider. 
 
 Using following command to install prometheus components: prometheus-server, node-exporter, kube-state-metrics.
 
-=== "Main"
+{{< tabpane right=true >}}
+{{< tab header="Main" lang="en" >}}
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm install prometheus -n crane-system \
+    --set pushgateway.enabled=false \
+    --set alertmanager.enabled=false \
+    --set server.persistentVolume.enabled=false \
+    -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/prometheus/override_values.yaml \
+    --create-namespace  prometheus-community/prometheus
+{{< /tab >}}
+{{< tab header="Mirror" lang="en" >}}
+helm repo add prometheus-community https://finops-helm.pkg.coding.net/gocrane/prometheus-community
+helm install prometheus -n crane-system \
+    --set pushgateway.enabled=false \
+    --set alertmanager.enabled=false \
+    --set server.persistentVolume.enabled=false \
+    -f https://gitee.com/finops/helm-charts/raw/main/integration/prometheus/override_values.yaml \
+    --create-namespace  prometheus-community/prometheus
+{{< /tab >}}
+{{% /tabpane %}}
 
-    ```bash
-    helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-    helm install prometheus -n crane-system \
-                            --set pushgateway.enabled=false \
-                            --set alertmanager.enabled=false \
-                            --set server.persistentVolume.enabled=false \
-                            -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/prometheus/override_values.yaml \
-                            --create-namespace  prometheus-community/prometheus
-    ```
-
-=== "Mirror"
-
-    ```bash
-    helm repo add prometheus-community https://finops-helm.pkg.coding.net/gocrane/prometheus-community
-    helm install prometheus -n crane-system \
-                            --set pushgateway.enabled=false \
-                            --set alertmanager.enabled=false \
-                            --set server.persistentVolume.enabled=false \
-                            -f https://gitee.com/finops/helm-charts/raw/main/integration/prometheus/override_values.yaml \
-                            --create-namespace  prometheus-community/prometheus
-    ```
 Fadvisor use grafana to present cost estimates. Using following command to install a grafana.
 
-
-=== "Main"
-
-    ```bash
-    helm repo add grafana https://grafana.github.io/helm-charts
-    helm install grafana \
-                 -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/grafana/override_values.yaml \
-                 -n crane-system \
-                 --create-namespace grafana/grafana
-    ```
-
-=== "Mirror"
-
-    ```bash
-    helm repo add grafana https://finops-helm.pkg.coding.net/gocrane/grafana
-    helm install grafana \
-                 -f https://gitee.com/finops/helm-charts/raw/main/integration/grafana/override_values.yaml \
-                 -n crane-system \
-                 --create-namespace grafana/grafana
-    ```
+{{< tabpane right=true >}}
+{{< tab header="Main" lang="en" >}}
+helm repo add grafana https://grafana.github.io/helm-charts
+helm install grafana \
+    -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/grafana/override_values.yaml \
+    -n crane-system \
+    --create-namespace grafana/grafana
+{{< /tab >}}
+{{< tab header="Mirror" lang="en" >}}
+helm repo add grafana https://finops-helm.pkg.coding.net/gocrane/grafana
+helm install grafana \
+    -f https://gitee.com/finops/helm-charts/raw/main/integration/grafana/override_values.yaml \
+    -n crane-system \
+    --create-namespace grafana/grafana
+{{< /tab >}}
+{{% /tabpane %}}
 
 ### Deploying Crane and Fadvisor
 
-
-=== "Main"
-
-    ```bash
-    helm repo add crane https://gocrane.github.io/helm-charts
-    helm install crane -n crane-system --create-namespace crane/crane
-    helm install fadvisor -n crane-system --create-namespace crane/fadvisor
-    ```
-
-=== "Mirror"
-
-    ```bash
-    helm repo add crane https://finops-helm.pkg.coding.net/gocrane/gocrane
-    helm install crane -n crane-system --create-namespace crane/crane
-    helm install fadvisor -n crane-system --create-namespace crane/fadvisor
-    ```
+{{< tabpane right=true >}}
+{{< tab header="Main" lang="en" >}}
+helm repo add crane https://gocrane.github.io/helm-charts
+helm install crane -n crane-system --create-namespace crane/crane
+helm install fadvisor -n crane-system --create-namespace crane/fadvisor
+{{< /tab >}}
+{{< tab header="Mirror" lang="en" >}}
+helm repo add crane https://finops-helm.pkg.coding.net/gocrane/gocrane
+helm install crane -n crane-system --create-namespace crane/crane
+helm install fadvisor -n crane-system --create-namespace crane/fadvisor
+{{< /tab >}}
+{{% /tabpane %}}
 
 ### Deploying Crane-scheduler(optional)
 ```bash
@@ -129,27 +120,24 @@ you can see [this](https://github.com/gocrane/helm-charts) to learn more.
 
 Deploy `Crane` by apply YAML declaration.
 
-=== "Main"
-
-    ```bash
-    git clone https://github.com/gocrane/crane.git
-    CRANE_LATEST_VERSION=$(curl -s https://api.github.com/repos/gocrane/crane/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
-    git checkout $CRANE_LATEST_VERSION
-    kubectl apply -f deploy/manifests 
-    kubectl apply -f deploy/craned 
-    kubectl apply -f deploy/metric-adapter
-    ```
-
-=== "Mirror"
-
-    ```bash
-    git clone https://e.coding.net/finops/gocrane/crane.git
-    CRANE_LATEST_VERSION=$(curl -s https://api.github.com/repos/gocrane/crane/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
-    git checkout $CRANE_LATEST_VERSION
-    kubectl apply -f deploy/manifests
-    kubectl apply -f deploy/craned
-    kubectl apply -f deploy/metric-adapter
-    ```
+{{< tabpane right=true >}}
+{{< tab header="Main" lang="en" >}}
+git clone https://github.com/gocrane/crane.git
+CRANE_LATEST_VERSION=$(curl -s https://api.github.com/repos/gocrane/crane/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
+git checkout $CRANE_LATEST_VERSION
+kubectl apply -f deploy/manifests
+kubectl apply -f deploy/craned
+kubectl apply -f deploy/metric-adapter
+{{< /tab >}}
+{{< tab header="Mirror" lang="en" >}}
+git clone https://e.coding.net/finops/gocrane/crane.git
+CRANE_LATEST_VERSION=$(curl -s https://api.github.com/repos/gocrane/crane/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
+git checkout $CRANE_LATEST_VERSION
+kubectl apply -f deploy/manifests
+kubectl apply -f deploy/craned
+kubectl apply -f deploy/metric-adapter
+{{< /tab >}}
+{{% /tabpane %}}
 
 The following command will configure prometheus http address for crane if you want to customize it. Specify `CUSTOMIZE_PROMETHEUS` if you have existing prometheus server.
 
@@ -162,7 +150,7 @@ if [ $CUSTOMIZE_PROMETHEUS ]; then sed -i '' "s/http:\/\/prometheus-server.crane
 
 You can use the dashboard to view and manage crane manifests.
 
-![](images/dashboard.png)
+![](/images/dashboard.png)
 
 ### Port Forward
 
