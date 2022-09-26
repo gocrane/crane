@@ -247,7 +247,7 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 				continue
 			}
 
-			name := utils.GetPredictionMetricName(metric.Type, false)
+			name := utils.GetPredictionMetricName(metric.Type)
 			if len(name) == 0 {
 				continue
 			}
@@ -299,7 +299,7 @@ func GetCronMetricSpecsForHPA(ehpa *autoscalingapi.EffectiveHorizontalPodAutosca
 		Type: autoscalingv2.ExternalMetricSourceType,
 		External: &autoscalingv2.ExternalMetricSource{
 			Metric: autoscalingv2.MetricIdentifier{
-				Name: utils.GetPredictionMetricName(autoscalingv2.PodsMetricSourceType, true),
+				Name: utils.GetCronMetricName(),
 				Selector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{
 						"targetKind":         ehpa.Spec.ScaleTargetRef.Kind,
