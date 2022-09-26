@@ -47,7 +47,7 @@ func GetPredictionMetricName(sourceType autoscalingv2.MetricSourceType) (metricN
 }
 
 // GetCronMetricName return metric name used by cron
-func GetCronMetricName() (metricName string) {
+func GetCronMetricName() string {
 	return known.MetricNameCron
 }
 
