@@ -9,7 +9,7 @@ CRANE_CLUSTER_NAME="crane"
 
 echo "Step1: Create local cluster: " ${CRANE_KUBECONFIG}
 kind delete cluster --name="${CRANE_CLUSTER_NAME}" 2>&1
-kind create cluster --kubeconfig "${CRANE_KUBECONFIG}" --name "${CRANE_CLUSTER_NAME}"
+kind create cluster --kubeconfig "${CRANE_KUBECONFIG}" --name "${CRANE_CLUSTER_NAME}" --image kindest/node:v1.21.1
 export KUBECONFIG="${CRANE_KUBECONFIG}"
 echo "Step1: Create local cluster finished."
 
@@ -40,3 +40,7 @@ echo "Step4: Installing Crane finished."
 
 kubectl get deploy -n crane-system
 echo "Please wait for all pods ready"
+echo "After all pods ready, Get the Crane Dashboard URL to visit by running these commands in the same shell:"
+echo "    export KUBECONFIG=${HOME}/.kube/config_crane"
+echo "    kubectl -n crane-system port-forward service/craned 9090:9090"
+
