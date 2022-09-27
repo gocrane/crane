@@ -47,7 +47,42 @@ scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="tru
 &lt;li>&lt;a href="https://github.com/gocrane/api">gocrane/api&lt;/a> - This repository defines component-level APIs for the Crane platform.&lt;/li>
 &lt;li>&lt;a href="https://github.com/gocrane/fadvisor">gocrane/fadvisor&lt;/a> - Financial advisor which collect resource prices from cloud API.&lt;/li>
 &lt;li>&lt;a href="https://github.com/gocrane/crane-scheduler">gocrane/crane-scheduler&lt;/a> - A Kubernetes scheduler which can schedule pod based on actual node load.&lt;/li>
-&lt;/ul></description></item><item><title>Docs: Installation</title><link>/docs/getting-started/installation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/getting-started/installation/</guid><description>
+&lt;/ul></description></item><item><title>Docs: Quick Start</title><link>/docs/getting-started/quick-start/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/getting-started/quick-start/</guid><description>
+&lt;p>Welcome to Crane! In this document, we will work through how to install Crane and visit Crane Dashboard in your local
+environments:&lt;/p>
+&lt;ul>
+&lt;li>Create a local running Kubernetes cluster by &lt;a href="https://kind.sigs.k8s.io/">Kind&lt;/a>&lt;/li>
+&lt;li>Install Prometheus and Grafana by &lt;a href="https://helm.sh/">Helm&lt;/a>&lt;/li>
+&lt;li>Install Crane by &lt;a href="https://helm.sh/">Helm&lt;/a>&lt;/li>
+&lt;li>Visit Crane Dashboard via kubectl port-forward&lt;/li>
+&lt;/ul>
+&lt;p>Please referring to &lt;a href="/docs/getting-started/installation">Installation&lt;/a> to know more about how to install crane 。&lt;/p>
+&lt;h2 id="prerequisites">Prerequisites&lt;/h2>
+&lt;ul>
+&lt;li>kubectl&lt;/li>
+&lt;li>Kubernetes 1.18+&lt;/li>
+&lt;li>Helm 3.1.0&lt;/li>
+&lt;li>Kind 0.16+&lt;/li>
+&lt;/ul>
+&lt;h2 id="installation">Installation&lt;/h2>
+&lt;p>Following command will install Crane with dependencies applications(Prometheus/Grafana).&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>curl -sf https://raw.githubusercontent.com/gocrane/crane/main/hack/local-env-setup.sh | sh -
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Make sure all pods are running:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>$ export KUBECONFIG&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">${&lt;/span>HOME&lt;span style="color:#e6db74">}&lt;/span>/.kube/config_crane
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>$ kubectl get deploy -n crane-system
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>NAME READY STATUS RESTARTS AGE
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>crane-agent-5r9l2 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m40s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>craned-6dcc5c569f-vnfsf 2/2 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m41s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>fadvisor-5b685f4cd6-xpxzq 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m37s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>grafana-64656f6d54-6l24j 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m46s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>metric-adapter-967c6d57f-swhfv 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m41s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>prometheus-kube-state-metrics-7f9d78cffc-p8l7c 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m46s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>prometheus-node-exporter-4wk8b 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m40s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>prometheus-server-fb944f4b7-4qqlv 2/2 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m46s
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="visit-crane-dashboard">Visit Crane Dashboard&lt;/h2>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>kubectl -n crane-system port-forward service/craned 9090:9090
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Visit dashboard via &lt;a href="http://127.0.0.1:9090/">here&lt;/a>&lt;/p>
+&lt;p>&lt;img src="/images/dashboard.png" alt="">&lt;/p></description></item><item><title>Docs: Installation</title><link>/docs/getting-started/installation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/getting-started/installation/</guid><description>
 &lt;h2 id="prerequisites">Prerequisites&lt;/h2>
 &lt;ul>
 &lt;li>Kubernetes 1.18+&lt;/li>
@@ -57,70 +92,95 @@ scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="tru
 &lt;h3 id="helm-installation">Helm Installation&lt;/h3>
 &lt;p>Please refer to Helm&amp;rsquo;s &lt;a href="https://helm.sh/docs/intro/install/">documentation&lt;/a> for installation.&lt;/p>
 &lt;h3 id="installing-prometheus-and-grafana-with-helm-chart">Installing prometheus and grafana with helm chart&lt;/h3>
-&lt;p>!!! note
-If you already deployed prometheus, grafana in your environment, then skip this step.&lt;/p>
-&lt;p>!!! Warning &amp;ldquo;Network Problems&amp;rdquo;
-If your network is hard to connect GitHub resources, you can try the mirror repo. Like GitHub Release, GitHub Raw Content &lt;code>raw.githubusercontent.com&lt;/code>.&lt;/p>
-&lt;pre>&lt;code>But mirror repo has a certain **latency**.[Mirror Repo](mirror.md)
-&lt;/code>&lt;/pre>
+&lt;div class="alert alert-warning" role="alert">
+If you already deployed prometheus, grafana in your environment, then skip this step.
+&lt;/div>
+&lt;div class="alert alert-warning" role="alert">
+If your network is hard to connect GitHub resources, you can try the mirror repo. Like GitHub Release, GitHub Raw Content raw.githubusercontent.com.
+But mirror repo has a certain latency. Please see Mirror Resources to know details.
+&lt;/div>
 &lt;p>Crane use prometheus to be the default metric provider.&lt;/p>
 &lt;p>Using following command to install prometheus components: prometheus-server, node-exporter, kube-state-metrics.&lt;/p>
-&lt;p>=== &amp;ldquo;Main&amp;rdquo;&lt;/p>
-&lt;pre>&lt;code>```bash
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+&lt;ul class="nav nav-tabs" id="tabs-2" role="tablist">&lt;li class="nav-item">
+&lt;a class="nav-link active tab-Main"
+id="tabs-2-0-tab" data-toggle="tab" href="#tabs-2-0" role="tab" onclick="handleClick(&amp;#34;Main&amp;#34;);"
+aria-controls="tabs-2-0" aria-selected="true">
+Main
+&lt;/a>
+&lt;/li>&lt;li class="nav-item">
+&lt;a class="nav-link tab-Mirror"
+id="tabs-2-1-tab" data-toggle="tab" href="#tabs-2-1" role="tab" onclick="handleClick(&amp;#34;Mirror&amp;#34;);"
+aria-controls="tabs-2-1" aria-selected="false">
+Mirror
+&lt;/a>
+&lt;/li>&lt;/ul>
+&lt;div class="tab-content" id="tabs-2-content">&lt;div class="tab-pane fade show active"
+id="tabs-2-0" role="tabpanel" aria-labelled-by="tabs-2-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm install prometheus -n crane-system \
 --set pushgateway.enabled=false \
 --set alertmanager.enabled=false \
 --set server.persistentVolume.enabled=false \
 -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/prometheus/override_values.yaml \
---create-namespace prometheus-community/prometheus
-```
-&lt;/code>&lt;/pre>
-&lt;p>=== &amp;ldquo;Mirror&amp;rdquo;&lt;/p>
-&lt;pre>&lt;code>```bash
-helm repo add prometheus-community https://finops-helm.pkg.coding.net/gocrane/prometheus-community
+--create-namespace prometheus-community/prometheus&lt;/code>&lt;/pre>&lt;/div>
+&lt;div class="tab-pane fade"
+id="tabs-2-1" role="tabpanel" aria-labelled-by="tabs-2-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add prometheus-community https://finops-helm.pkg.coding.net/gocrane/prometheus-community
 helm install prometheus -n crane-system \
 --set pushgateway.enabled=false \
 --set alertmanager.enabled=false \
 --set server.persistentVolume.enabled=false \
 -f https://gitee.com/finops/helm-charts/raw/main/integration/prometheus/override_values.yaml \
---create-namespace prometheus-community/prometheus
-```
-&lt;/code>&lt;/pre>
+--create-namespace prometheus-community/prometheus&lt;/code>&lt;/pre>&lt;/div>
+&lt;/div>
 &lt;p>Fadvisor use grafana to present cost estimates. Using following command to install a grafana.&lt;/p>
-&lt;p>=== &amp;ldquo;Main&amp;rdquo;&lt;/p>
-&lt;pre>&lt;code>```bash
-helm repo add grafana https://grafana.github.io/helm-charts
+&lt;ul class="nav nav-tabs" id="tabs-3" role="tablist">&lt;li class="nav-item">
+&lt;a class="nav-link active tab-Main"
+id="tabs-3-0-tab" data-toggle="tab" href="#tabs-3-0" role="tab" onclick="handleClick(&amp;#34;Main&amp;#34;);"
+aria-controls="tabs-3-0" aria-selected="true">
+Main
+&lt;/a>
+&lt;/li>&lt;li class="nav-item">
+&lt;a class="nav-link tab-Mirror"
+id="tabs-3-1-tab" data-toggle="tab" href="#tabs-3-1" role="tab" onclick="handleClick(&amp;#34;Mirror&amp;#34;);"
+aria-controls="tabs-3-1" aria-selected="false">
+Mirror
+&lt;/a>
+&lt;/li>&lt;/ul>
+&lt;div class="tab-content" id="tabs-3-content">&lt;div class="tab-pane fade show active"
+id="tabs-3-0" role="tabpanel" aria-labelled-by="tabs-3-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add grafana https://grafana.github.io/helm-charts
 helm install grafana \
 -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/grafana/override_values.yaml \
 -n crane-system \
---create-namespace grafana/grafana
-```
-&lt;/code>&lt;/pre>
-&lt;p>=== &amp;ldquo;Mirror&amp;rdquo;&lt;/p>
-&lt;pre>&lt;code>```bash
-helm repo add grafana https://finops-helm.pkg.coding.net/gocrane/grafana
+--create-namespace grafana/grafana&lt;/code>&lt;/pre>&lt;/div>
+&lt;div class="tab-pane fade"
+id="tabs-3-1" role="tabpanel" aria-labelled-by="tabs-3-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add grafana https://finops-helm.pkg.coding.net/gocrane/grafana
 helm install grafana \
 -f https://gitee.com/finops/helm-charts/raw/main/integration/grafana/override_values.yaml \
 -n crane-system \
---create-namespace grafana/grafana
-```
-&lt;/code>&lt;/pre>
+--create-namespace grafana/grafana&lt;/code>&lt;/pre>&lt;/div>
+&lt;/div>
 &lt;h3 id="deploying-crane-and-fadvisor">Deploying Crane and Fadvisor&lt;/h3>
-&lt;p>=== &amp;ldquo;Main&amp;rdquo;&lt;/p>
-&lt;pre>&lt;code>```bash
-helm repo add crane https://gocrane.github.io/helm-charts
+&lt;ul class="nav nav-tabs" id="tabs-4" role="tablist">&lt;li class="nav-item">
+&lt;a class="nav-link active tab-Main"
+id="tabs-4-0-tab" data-toggle="tab" href="#tabs-4-0" role="tab" onclick="handleClick(&amp;#34;Main&amp;#34;);"
+aria-controls="tabs-4-0" aria-selected="true">
+Main
+&lt;/a>
+&lt;/li>&lt;li class="nav-item">
+&lt;a class="nav-link tab-Mirror"
+id="tabs-4-1-tab" data-toggle="tab" href="#tabs-4-1" role="tab" onclick="handleClick(&amp;#34;Mirror&amp;#34;);"
+aria-controls="tabs-4-1" aria-selected="false">
+Mirror
+&lt;/a>
+&lt;/li>&lt;/ul>
+&lt;div class="tab-content" id="tabs-4-content">&lt;div class="tab-pane fade show active"
+id="tabs-4-0" role="tabpanel" aria-labelled-by="tabs-4-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add crane https://gocrane.github.io/helm-charts
 helm install crane -n crane-system --create-namespace crane/crane
-helm install fadvisor -n crane-system --create-namespace crane/fadvisor
-```
-&lt;/code>&lt;/pre>
-&lt;p>=== &amp;ldquo;Mirror&amp;rdquo;&lt;/p>
-&lt;pre>&lt;code>```bash
-helm repo add crane https://finops-helm.pkg.coding.net/gocrane/gocrane
+helm install fadvisor -n crane-system --create-namespace crane/fadvisor&lt;/code>&lt;/pre>&lt;/div>
+&lt;div class="tab-pane fade"
+id="tabs-4-1" role="tabpanel" aria-labelled-by="tabs-4-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add crane https://finops-helm.pkg.coding.net/gocrane/gocrane
 helm install crane -n crane-system --create-namespace crane/crane
-helm install fadvisor -n crane-system --create-namespace crane/fadvisor
-```
-&lt;/code>&lt;/pre>
+helm install fadvisor -n crane-system --create-namespace crane/fadvisor&lt;/code>&lt;/pre>&lt;/div>
+&lt;/div>
 &lt;h3 id="deploying-crane-scheduleroptional">Deploying Crane-scheduler(optional)&lt;/h3>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>helm install scheduler -n crane-system --create-namespace crane/scheduler
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="verify-installation">Verify Installation&lt;/h3>
@@ -142,32 +202,40 @@ helm install fadvisor -n crane-system --create-namespace crane/fadvisor
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>you can see &lt;a href="https://github.com/gocrane/helm-charts">this&lt;/a> to learn more.&lt;/p>
 &lt;h2 id="customize-installation">Customize Installation&lt;/h2>
 &lt;p>Deploy &lt;code>Crane&lt;/code> by apply YAML declaration.&lt;/p>
-&lt;p>=== &amp;ldquo;Main&amp;rdquo;&lt;/p>
-&lt;pre>&lt;code>```bash
-git clone https://github.com/gocrane/crane.git
-CRANE_LATEST_VERSION=$(curl -s https://api.github.com/repos/gocrane/crane/releases/latest | grep -oP '&amp;quot;tag_name&amp;quot;: &amp;quot;\K(.*)(?=&amp;quot;)')
+&lt;ul class="nav nav-tabs" id="tabs-5" role="tablist">&lt;li class="nav-item">
+&lt;a class="nav-link active tab-Main"
+id="tabs-5-0-tab" data-toggle="tab" href="#tabs-5-0" role="tab" onclick="handleClick(&amp;#34;Main&amp;#34;);"
+aria-controls="tabs-5-0" aria-selected="true">
+Main
+&lt;/a>
+&lt;/li>&lt;li class="nav-item">
+&lt;a class="nav-link tab-Mirror"
+id="tabs-5-1-tab" data-toggle="tab" href="#tabs-5-1" role="tab" onclick="handleClick(&amp;#34;Mirror&amp;#34;);"
+aria-controls="tabs-5-1" aria-selected="false">
+Mirror
+&lt;/a>
+&lt;/li>&lt;/ul>
+&lt;div class="tab-content" id="tabs-5-content">&lt;div class="tab-pane fade show active"
+id="tabs-5-0" role="tabpanel" aria-labelled-by="tabs-5-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">git clone https://github.com/gocrane/crane.git
+CRANE_LATEST_VERSION=$(curl -s https://api.github.com/repos/gocrane/crane/releases/latest | grep -oP &amp;#39;&amp;#34;tag_name&amp;#34;: &amp;#34;\K(.*)(?=&amp;#34;)&amp;#39;)
 git checkout $CRANE_LATEST_VERSION
 kubectl apply -f deploy/manifests
 kubectl apply -f deploy/craned
-kubectl apply -f deploy/metric-adapter
-```
-&lt;/code>&lt;/pre>
-&lt;p>=== &amp;ldquo;Mirror&amp;rdquo;&lt;/p>
-&lt;pre>&lt;code>```bash
-git clone https://e.coding.net/finops/gocrane/crane.git
-CRANE_LATEST_VERSION=$(curl -s https://api.github.com/repos/gocrane/crane/releases/latest | grep -oP '&amp;quot;tag_name&amp;quot;: &amp;quot;\K(.*)(?=&amp;quot;)')
+kubectl apply -f deploy/metric-adapter&lt;/code>&lt;/pre>&lt;/div>
+&lt;div class="tab-pane fade"
+id="tabs-5-1" role="tabpanel" aria-labelled-by="tabs-5-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">git clone https://e.coding.net/finops/gocrane/crane.git
+CRANE_LATEST_VERSION=$(curl -s https://api.github.com/repos/gocrane/crane/releases/latest | grep -oP &amp;#39;&amp;#34;tag_name&amp;#34;: &amp;#34;\K(.*)(?=&amp;#34;)&amp;#39;)
 git checkout $CRANE_LATEST_VERSION
 kubectl apply -f deploy/manifests
 kubectl apply -f deploy/craned
-kubectl apply -f deploy/metric-adapter
-```
-&lt;/code>&lt;/pre>
+kubectl apply -f deploy/metric-adapter&lt;/code>&lt;/pre>&lt;/div>
+&lt;/div>
 &lt;p>The following command will configure prometheus http address for crane if you want to customize it. Specify &lt;code>CUSTOMIZE_PROMETHEUS&lt;/code> if you have existing prometheus server.&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>export CUSTOMIZE_PROMETHEUS&lt;span style="color:#f92672">=&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">if&lt;/span> &lt;span style="color:#f92672">[&lt;/span> $CUSTOMIZE_PROMETHEUS &lt;span style="color:#f92672">]&lt;/span>; &lt;span style="color:#66d9ef">then&lt;/span> sed -i &lt;span style="color:#e6db74">&amp;#39;&amp;#39;&lt;/span> &lt;span style="color:#e6db74">&amp;#34;s/http:\/\/prometheus-server.crane-system.svc.cluster.local:8080/&lt;/span>&lt;span style="color:#e6db74">${&lt;/span>CUSTOMIZE_PROMETHEUS&lt;span style="color:#e6db74">}&lt;/span>&lt;span style="color:#e6db74">/&amp;#34;&lt;/span> deploy/craned/deployment.yaml ; &lt;span style="color:#66d9ef">fi&lt;/span>
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="access-dashboard">Access Dashboard&lt;/h2>
 &lt;p>You can use the dashboard to view and manage crane manifests.&lt;/p>
-&lt;p>&lt;img src="images/dashboard.png" alt="">&lt;/p>
+&lt;p>&lt;img src="/images/dashboard.png" alt="">&lt;/p>
 &lt;h3 id="port-forward">Port Forward&lt;/h3>
 &lt;p>Easy access to the dashboard through &lt;code>kubectl port-forward&lt;/code>.&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>kubectl -n crane-system port-forward service/craned 9090:9090

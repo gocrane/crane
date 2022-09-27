@@ -722,7 +722,207 @@ make decisions based on input and policies.&lt;/p>
 &lt;h3 id="0120-december">0.12.0 [December]&lt;/h3>
 &lt;ul>
 &lt;li>Multi-cluster cost optimization&lt;/li>
-&lt;/ul></description></item><item><title>Docs: 安装文档</title><link>/zh-cn/docs/getting-started/installation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/getting-started/installation/</guid><description>
+&lt;/ul></description></item><item><title>Docs: 开发者指南</title><link>/zh-cn/docs/contributing/developer-guide/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/contributing/developer-guide/</guid><description>
+&lt;p>First, please make sure you&amp;rsquo;ve got a working &lt;a href="https://golang.org/doc/install">Go environment&lt;/a>
+and &lt;a href="https://docs.docker.com/engine">Docker environment&lt;/a>.&lt;/p>
+&lt;h2 id="clone-crane">Clone crane&lt;/h2>
+&lt;p>Clone the repository,&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>mkdir -p $GOPATH/src/github.com/gocrane/
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>cd $GOPATH/src/github.com/gocrane/
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>git clone https://github.com/gocrane/crane.git
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>cd crane
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="building-binaries">Building Binaries&lt;/h2>
+&lt;p>Run&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># build for linux/amd64 by default&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>make all
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>to build binaries &lt;code>craned&lt;/code>, &lt;code>crane-agent&lt;/code> and &lt;code>metric-adapter&lt;/code> for &lt;code>linux/amd64&lt;/code>.&lt;/p>
+&lt;p>&lt;img src="/images/developer-guide/make_all_finish.jpg" alt="make_all_finish">&lt;/p>
+&lt;p>Also you could specify other platforms when building, such as,&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># build only crane-agent for linux/arm64 and darwin/amd64&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># use comma to separate multiple platforms&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>PLATFORMS&lt;span style="color:#f92672">=&lt;/span>linux/arm64,darwin/amd64 make crane-agent
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># below are all the supported platforms&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># PLATFORMS=darwin/amd64,darwin/arm64,linux/amd64,linux/arm64,linux/ppc64le,linux/s390x,linux/386,linux/arm&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>All the built binaries will be placed at &lt;code>$GOPATH/src/github.com/gocrane/crane/bin&lt;/code> folder.&lt;/p>
+&lt;p>&lt;img src="/images/developer-guide/make_all_binaries_result.jpg" alt="make_all_binaries_result">&lt;/p>
+&lt;h2 id="building-docker-images">Building Docker Images&lt;/h2>
+&lt;p>You can also build docker images. Here &lt;code>docker buildx&lt;/code> is used to help build multi-arch container images.&lt;/p>
+&lt;p>If you&amp;rsquo;re running MacOS, please install &lt;a href="https://docs.docker.com/desktop/">Docker Desktop&lt;/a> and then check the builder,&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>$ docker buildx ls
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>NAME/NODE DRIVER/ENDPOINT STATUS PLATFORMS
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>default * docker
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> default default running linux/amd64, linux/arm64, linux/ppc64le, linux/s390x, linux/386, linux/arm/v7, linux/arm/v6
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>If you&amp;rsquo;re running Linux, please refer to &lt;a href="https://docs.docker.com/buildx/working-with-buildx/">docker buildx docs&lt;/a>
+on the installation.&lt;/p>
+&lt;p>!!! note
+For better &lt;code>docker buildx&lt;/code> support, it is recommended to use Ubuntu Focal 20.04 (LTS), Debian Bullseye 11 and CentOS 8.
+And install deb/rpm package &lt;code>qemu-user-static&lt;/code> as well, such as&lt;/p>
+&lt;pre>&lt;code>```bash
+apt-get install qemu-user-static
+```
+or
+```bash
+yum install qemu-user-static
+```
+```bash
+# build for linux/amd64 by default
+# container images for craned, crane-agent, metric-adapter and dashboard
+make images
+```
+&lt;/code>&lt;/pre>
+&lt;p>&lt;img src="/images/developer-guide/make_image_start.jpg" alt="make_image_start">&lt;/p>
+&lt;p>&lt;img src="/images/developer-guide/make_image_finish.jpg" alt="make_image_finish">&lt;/p>
+&lt;p>Also you could build container images for other platforms, such as &lt;code>arm64&lt;/code>,&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>PLATFORMS&lt;span style="color:#f92672">=&lt;/span>linux/amd64,linux/arm64,linux/ppc64le make images
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># below are all the supported platforms&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># PLATFORMS=linux/amd64,linux/arm64,linux/ppc64le,linux/s390x,linux/386,linux/arm&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>!!! note
+For the first make image, It takes a bit of a long time, Please be patient.&lt;/p>
+&lt;p>When we finish the make image, in the docker desktop, we can see the image we built, and the Tag is the hash value at the time of the git commit.&lt;/p>
+&lt;p>&lt;img src="/images/developer-guide/make_image_docker_images.jpg" alt="make_image_docker_images">&lt;/p></description></item><item><title>Docs: 快速开始</title><link>/zh-cn/docs/getting-started/quick-start/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/getting-started/quick-start/</guid><description>
+&lt;p>欢迎来到 Crane！在本文档中我们将介绍如何在本地安装 Crane 以及访问 Crane Dashboard：&lt;/p>
+&lt;ul>
+&lt;li>使用 &lt;a href="https://kind.sigs.k8s.io/">Kind&lt;/a> 安装一个本地运行的 Kubernetes 集群&lt;/li>
+&lt;li>使用 &lt;a href="https://helm.sh/">Helm&lt;/a> 安装 Prometheus 和 Grafana&lt;/li>
+&lt;li>使用 &lt;a href="https://helm.sh/">Helm&lt;/a> 安装 Crane&lt;/li>
+&lt;li>通过 kubectl 的 port-forward 访问 Crane Dashboard&lt;/li>
+&lt;/ul>
+&lt;p>更多关于安装的介绍请参考 &lt;a href="/zh-cn/docs/getting-started/installation">安装文档&lt;/a> 。&lt;/p>
+&lt;h2 id="部署环境要求">部署环境要求&lt;/h2>
+&lt;ul>
+&lt;li>kubectl&lt;/li>
+&lt;li>Kubernetes 1.18+&lt;/li>
+&lt;li>Helm 3.1.0&lt;/li>
+&lt;li>Kind 0.16+&lt;/li>
+&lt;/ul>
+&lt;h2 id="安装">安装&lt;/h2>
+&lt;p>以下命令将安装 Crane 以及其依赖 (Prometheus/Grafana).&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>curl -sf https://raw.githubusercontent.com/gocrane/crane/main/hack/local-env-setup.sh | sh -
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>确保所有 Pod 都正常运行:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>$ export KUBECONFIG&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">${&lt;/span>HOME&lt;span style="color:#e6db74">}&lt;/span>/.kube/config_crane
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>$ kubectl get deploy -n crane-system
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>NAME READY STATUS RESTARTS AGE
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>crane-agent-5r9l2 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m40s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>craned-6dcc5c569f-vnfsf 2/2 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m41s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>fadvisor-5b685f4cd6-xpxzq 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m37s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>grafana-64656f6d54-6l24j 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m46s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>metric-adapter-967c6d57f-swhfv 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m41s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>prometheus-kube-state-metrics-7f9d78cffc-p8l7c 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m46s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>prometheus-node-exporter-4wk8b 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m40s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>prometheus-server-fb944f4b7-4qqlv 2/2 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m46s
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="访问-crane-dashboard">访问 Crane Dashboard&lt;/h2>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>kubectl -n crane-system port-forward service/craned 9090:9090
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>点击 &lt;a href="http://127.0.0.1:9090/">这里&lt;/a> 访问 Crane Dashboard&lt;/p>
+&lt;p>&lt;img src="/images/dashboard.png" alt="">&lt;/p></description></item><item><title>Docs: 智能推荐</title><link>/zh-cn/docs/tutorials/analytics-and-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/analytics-and-recommendation/</guid><description>
+&lt;p>智能推荐能够帮助用户自动分析集群并给出优化建议。就像手机助手一样，智能推荐会定期的扫描、分析你的集群并给出推荐建议。目前，我们提供了两种优化能力：&lt;/p>
+&lt;ul>
+&lt;li>&lt;a href="/zh-cn/docs/tutorials/resource-recommendation">&lt;strong>资源推荐&lt;/strong>&lt;/a>: 通过资源推荐的算法分析应用的真实用量推荐更合适的资源配置，您可以参考并采纳它提升集群的资源利用率。&lt;/li>
+&lt;li>&lt;a href="/zh-cn/docs/tutorials/replicas-recommendation">&lt;strong>副本数推荐&lt;/strong>&lt;/a>: 通过副本数推荐的算法分析应用的真实用量推荐更合适的副本和 EHPA 配置，您可以参考并采纳它提升集群的资源利用率。&lt;/li>
+&lt;/ul>
+&lt;p>应用可以根据资源推荐调整 request 也可以根据副本数推荐调整副本数，这两种优化都能帮助您降低成本，您可以根据您的需求选择采用相应的优化建议。&lt;/p>
+&lt;h2 id="架构">架构&lt;/h2>
+&lt;p>&lt;img src="/images/analytics-arch.png" alt="analytics-arch">&lt;/p>
+&lt;h2 id="一次分析的过程">一次分析的过程&lt;/h2>
+&lt;ol>
+&lt;li>用户创建 Analytics 对象，通过 ResourceSelector 选择需要分析的资源，支持选择多类型（基于Group,Kind,Version）的批量选择&lt;/li>
+&lt;li>并行分析每个选择的资源，尝试进行分析推荐，每次分析过程分成筛选和推荐两个阶段：
+&lt;ol>
+&lt;li>筛选：排除不满足推荐条件的资源。比如对于弹性推荐，排除没有 running pod 的 workload&lt;/li>
+&lt;li>推荐：通过算法计算分析，给出推荐结果&lt;/li>
+&lt;/ol>
+&lt;/li>
+&lt;li>如果通过筛选，创建 Recommendation 对象，将推荐结果展示在 Recommendation.Status&lt;/li>
+&lt;li>未通过筛选的原因和状态展示在 Analytics.Status&lt;/li>
+&lt;li>根据运行间隔等待下次分析&lt;/li>
+&lt;/ol>
+&lt;h2 id="名词解释">名词解释&lt;/h2>
+&lt;h3 id="分析">分析&lt;/h3>
+&lt;p>分析定义了一个扫描分析任务。支持两种任务类型：资源推荐和弹性推荐。Crane 定期运行分析任务，并产生推荐结果。&lt;/p>
+&lt;h3 id="推荐">推荐&lt;/h3>
+&lt;p>推荐展示了一个优化推荐的结果。推荐的结果是一段 YAML 配置，根据结果用户可以进行相应的优化动作，比如调整应用的资源配置。&lt;/p>
+&lt;h3 id="参数配置">参数配置&lt;/h3>
+&lt;p>不同的分析采用不同的计算模型，Crane 提供了一套默认的计算模型以及一套配套的配置，用户可以通过修改配置来定制推荐的效果。支持修改全局的默认配置和修改单个分析任务的配置。&lt;/p></description></item><item><title>Docs: Recommendation Framework</title><link>/zh-cn/docs/proposals/20220706-recommendation-framework/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/proposals/20220706-recommendation-framework/</guid><description>
+&lt;p>Recommendation Framework provide a consistence progress to optimize variable kinds of resources in kubernetes. The progress should be Pluggable and support Multi-Cloud.&lt;/p>
+&lt;h2 id="motivation">Motivation&lt;/h2>
+&lt;p>Currently, we use &lt;code>Analytics&lt;/code> and &lt;code>Recommendation&lt;/code> to provide a recommendation service for workloads in cluster. Kubernetes&amp;rsquo; users use the recommendation to optimize the resource configuration and reduce their cost.
+But the recommendations have some limitations now:&lt;/p>
+&lt;ol>
+&lt;li>Multiple Analytics can select some same resources, it&amp;rsquo;s confused and unnecessary to have two recommendation for the same resource.&lt;/li>
+&lt;li>We need to support more kinds of resources, for example, scan for idle load balancers.&lt;/li>
+&lt;li>We need to make the progress Pluggable to support different user in difference clouds.&lt;/li>
+&lt;/ol>
+&lt;h3 id="goals">Goals&lt;/h3>
+&lt;ul>
+&lt;li>Global analytics rules&lt;/li>
+&lt;li>Easy to know the recommendation for my resource&lt;/li>
+&lt;li>Consistence progress for all resource recommendation&lt;/li>
+&lt;li>Plugin mechanism to support Multi-Cloud&lt;/li>
+&lt;/ul>
+&lt;h3 id="non-goals">Non-Goals&lt;/h3>
+&lt;ul>
+&lt;li>Cloud Resources that not included in kubernetes&lt;/li>
+&lt;/ul>
+&lt;h2 id="proposal">Proposal&lt;/h2>
+&lt;h3 id="user-stories">User Stories&lt;/h3>
+&lt;h4 id="story-1">Story 1&lt;/h4>
+&lt;p>As a Serverless customer, I want to know the suitable requests and limits for my deployments, the result should be fit the existing pod model(e.g. 2c4g, 1c1g) in my cloud production.&lt;/p>
+&lt;h4 id="story-2">Story 2&lt;/h4>
+&lt;p>As an Aliyun ACK customer, I want to know whether there is a waste of LoadBalances in my cluster and delete them if exists.&lt;/p>
+&lt;h4 id="story-3">Story 3&lt;/h4>
+&lt;p>As a container platform user, I want to integrate optimize recommendation to my platform and optimize my cluster within my CICD pipeline.&lt;/p>
+&lt;h3 id="api-definition">Api Definition&lt;/h3>
+&lt;p>RecommendationRule defines which resources are required to recommend and what is the runInterval.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// RecommendationRuleSpec defines resources and runInterval to recommend
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">RecommendationRuleSpec&lt;/span> &lt;span style="color:#66d9ef">struct&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// ResourceSelector indicates how to select resources(e.g. a set of Deployments) for an Recommendation.
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#75715e">// +required
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#75715e">// +kubebuilder:validation:Required
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">ResourceSelectors&lt;/span> []&lt;span style="color:#a6e22e">ResourceSelector&lt;/span> &lt;span style="color:#e6db74">`json:&amp;#34;resourceSelectors&amp;#34;`&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// RunInterval between two recommendation
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">RunInterval&lt;/span> &lt;span style="color:#a6e22e">time&lt;/span>.&lt;span style="color:#a6e22e">Duration&lt;/span> &lt;span style="color:#e6db74">`json:&amp;#34;runInterval,omitempty&amp;#34;`&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// ResourceSelector describes how the resources will be selected.
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">ResourceSelector&lt;/span> &lt;span style="color:#66d9ef">struct&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// Kind of the resource, e.g. Deployment
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">Kind&lt;/span> &lt;span style="color:#66d9ef">string&lt;/span> &lt;span style="color:#e6db74">`json:&amp;#34;kind&amp;#34;`&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// API version of the resource, e.g. &amp;#34;apps/v1&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#75715e">// +optional
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">APIVersion&lt;/span> &lt;span style="color:#66d9ef">string&lt;/span> &lt;span style="color:#e6db74">`json:&amp;#34;apiVersion,omitempty&amp;#34;`&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// Name of the resource.
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#75715e">// +optional
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">Name&lt;/span> &lt;span style="color:#66d9ef">string&lt;/span> &lt;span style="color:#e6db74">`json:&amp;#34;name,omitempty&amp;#34;`&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// +optional
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">LabelSelector&lt;/span> &lt;span style="color:#a6e22e">metav1&lt;/span>.&lt;span style="color:#a6e22e">LabelSelector&lt;/span> &lt;span style="color:#e6db74">`json:&amp;#34;labelSelector,omitempty&amp;#34;`&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">namespace&lt;/span> &lt;span style="color:#960050;background-color:#1e0010">?&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Recommendation is a content holder for recommendation result. We hope that the recommendation data can be applied directly to kubernetes cluster(Recommendation as a code) and Different type recommendation have different recommendation yaml, so the content is stored in recommendation as &lt;code>Data&lt;/code>.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">Recommendation&lt;/span> &lt;span style="color:#66d9ef">struct&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">metav1&lt;/span>.&lt;span style="color:#a6e22e">TypeMeta&lt;/span> &lt;span style="color:#e6db74">`json:&amp;#34;,inline&amp;#34;`&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">metav1&lt;/span>.&lt;span style="color:#a6e22e">ObjectMeta&lt;/span> &lt;span style="color:#e6db74">`json:&amp;#34;metadata,omitempty&amp;#34;`&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// +kubebuilder:pruning:PreserveUnknownFields
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">Data&lt;/span> &lt;span style="color:#a6e22e">runtime&lt;/span>.&lt;span style="color:#a6e22e">RawExtension&lt;/span> &lt;span style="color:#e6db74">`json:&amp;#34;data&amp;#34;`&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="recommendation-configuration">Recommendation Configuration&lt;/h3>
+&lt;p>Recommendation Configuration is centralized configuration that contains every rule for universal resource optimization. It not only includes RecommendationRules that use defines but also contains RecommendationPlugins.&lt;/p>
+&lt;h3 id="phases-for-a-recommender">Phases for a recommender&lt;/h3>
+&lt;p>&lt;img src="/images/crane_recommendation_framework.jpg" alt="">&lt;/p>
+&lt;h3 id="phases">Phases&lt;/h3>
+&lt;p>We divide the whole recommendation process into four actions, Fliter, Prepare, Recommend, Observe. The input of the whole system is the kubernetes resource you want to analyze, and the output is the best recommendation for the resource.Below we describe in detail the capabilities and input and output of each part of Recommendation Framework.&lt;/p>
+&lt;h4 id="fliter">Fliter&lt;/h4>
+&lt;p>The input of Fliter is an analysis recommendation task queue, and the queue stores the Recommendation CR submitted by the user.In default PreFliter,we will do nothing for the queue, this queue will be a FIFO queue.If you want to follow certain rules for the queue, you can implement it yourself PreFliter via extension point or override this func.In the default fliter stage, we will first filter the non-recommended resources according to the user-defined analyzable resource type. For example, the analyzable kubernetes resource I defined is deployment,ingress,node. If you submit a recommendation cr for statefulset, it will be abort in this phase.Then, we will check whether the resource you want exists, if not, we will abort.If you wish to use different filtering logic, you can implement your own logic through the fliter extension point or override it.&lt;/p>
+&lt;h4 id="prepare">Prepare&lt;/h4>
+&lt;p>Prepare is the data preparation stage, and will pull the indicator sequence within the specified time according to your recommended tasks.In PrePrepare,by default we will check the connectivity of the metrics system. And we need generate the specified metrics information for metrics server system like prometheus or metrics server. In Prepare,we will get the indicator sequence information.In PostPrepare, we will implement a data processing module.Some data processing such as data correction for cold start application resource glitch, missing data padding, data aggregation,deduplication or noise reduction. The output of whole will be normalized to a specified data type.Of course you can also implement your own PrePrepare, Prepare, PostPrepare logic.&lt;/p>
+&lt;h4 id="recommend">Recommend&lt;/h4>
+&lt;p>The input of Recommend is a data sequence, and the output is the result of the recommendation type you specify. For example, if your recommendation type is resource, the output is the recommended size of the resource of the kubernetes workload you specified.In Recommend, we will apply crane&amp;rsquo;s algorithm library to your data sequence.And in PostRecommend,We will use some strategies to regularize the results of the algorithm. For example, if a margin needs to be added when recommending resources, it will be processed at this stage.You can implement your own Recommend logic via extension points or override it.&lt;/p>
+&lt;h4 id="observe">Observe&lt;/h4>
+&lt;p>Observe is to intuitively reflect the effectiveness of the recommendation results. For example, when making resource recommendations, users not only care about the recommended resource configuration, but also how much cost can be saved after modifying the resource configuration. In PreObserver, we will check the cloud api connectivity and establish link with cloud vendor&amp;rsquo;s billing system. And in Observe we will turn resource optimization into cost optimization.You can implement your own Observe logic via extension points or override it.&lt;/p></description></item><item><title>Docs: 安装文档</title><link>/zh-cn/docs/getting-started/installation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/getting-started/installation/</guid><description>
 &lt;p>为了让您更快的部署 Crane ，本文档提供清晰的：&lt;/p>
 &lt;ul>
 &lt;li>部署环境要求&lt;/li>
@@ -743,69 +943,94 @@ make decisions based on input and policies.&lt;/p>
 &lt;p>建议参考 Helm 官网&lt;a href="https://helm.sh/docs/intro/install/">安装文档&lt;/a>。&lt;/p>
 &lt;h3 id="安装-prometheus-和-grafana">安装 Prometheus 和 Grafana&lt;/h3>
 &lt;p>使用 Helm 安装 Prometheus 和 Grafana。&lt;/p>
-&lt;p>!!! Note &amp;ldquo;注意&amp;rdquo;
-如果您已经在环境中部署了 Prometheus 和 Grafana，可以跳过该步骤。&lt;/p>
-&lt;p>!!! Warning &amp;ldquo;网络问题&amp;rdquo;
-如果你的网络无法访问GitHub资源(GitHub Release, GitHub Raw Content &lt;code>raw.githubusercontent.com&lt;/code>)。&lt;/p>
-&lt;pre>&lt;code>那么你可以尝试镜像仓库。但镜像仓库具有一定的**时延**。[镜像仓库](mirror.zh.md)
-&lt;/code>&lt;/pre>
+&lt;div class="alert alert-warning" role="alert">
+如果您已经在环境中部署了 Prometheus 和 Grafana，可以跳过该步骤。
+&lt;/div>
+&lt;div class="alert alert-warning" role="alert">
+如果你的网络无法访问GitHub资源(GitHub Release, GitHub Raw Content &lt;code>raw.githubusercontent.com&lt;/code>)。
+那么你可以尝试镜像仓库。但镜像仓库具有一定的&lt;strong>时延&lt;/strong>。
+&lt;/div>
 &lt;p>Crane 使用 Prometheus 抓取集群工作负载对资源的使用情况。安装 Prometheus：&lt;/p>
-&lt;p>=== &amp;ldquo;Main&amp;rdquo;&lt;/p>
-&lt;pre>&lt;code>```bash
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+&lt;ul class="nav nav-tabs" id="tabs-2" role="tablist">&lt;li class="nav-item">
+&lt;a class="nav-link active tab-Main"
+id="tabs-2-0-tab" data-toggle="tab" href="#tabs-2-0" role="tab" onclick="handleClick(&amp;#34;Main&amp;#34;);"
+aria-controls="tabs-2-0" aria-selected="true">
+Main
+&lt;/a>
+&lt;/li>&lt;li class="nav-item">
+&lt;a class="nav-link tab-Mirror"
+id="tabs-2-1-tab" data-toggle="tab" href="#tabs-2-1" role="tab" onclick="handleClick(&amp;#34;Mirror&amp;#34;);"
+aria-controls="tabs-2-1" aria-selected="false">
+Mirror
+&lt;/a>
+&lt;/li>&lt;/ul>
+&lt;div class="tab-content" id="tabs-2-content">&lt;div class="tab-pane fade show active"
+id="tabs-2-0" role="tabpanel" aria-labelled-by="tabs-2-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm install prometheus -n crane-system \
 --set pushgateway.enabled=false \
 --set alertmanager.enabled=false \
 --set server.persistentVolume.enabled=false \
 -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/prometheus/override_values.yaml \
---create-namespace prometheus-community/prometheus
-```
-&lt;/code>&lt;/pre>
-&lt;p>=== &amp;ldquo;Mirror&amp;rdquo;&lt;/p>
-&lt;pre>&lt;code>```bash
-helm repo add prometheus-community https://finops-helm.pkg.coding.net/gocrane/prometheus-community
+--create-namespace prometheus-community/prometheus&lt;/code>&lt;/pre>&lt;/div>
+&lt;div class="tab-pane fade"
+id="tabs-2-1" role="tabpanel" aria-labelled-by="tabs-2-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add prometheus-community https://finops-helm.pkg.coding.net/gocrane/prometheus-community
 helm install prometheus -n crane-system \
 --set pushgateway.enabled=false \
 --set alertmanager.enabled=false \
 --set server.persistentVolume.enabled=false \
 -f https://gitee.com/finops/helm-charts/raw/main/integration/prometheus/override_values.yaml \
---create-namespace prometheus-community/prometheus
-```
-&lt;/code>&lt;/pre>
+--create-namespace prometheus-community/prometheus&lt;/code>&lt;/pre>&lt;/div>
+&lt;/div>
 &lt;p>Crane 的 Fadvisor 使用 Grafana 展示成本预估。安装 Grafana：&lt;/p>
-&lt;p>=== &amp;ldquo;Main&amp;rdquo;&lt;/p>
-&lt;pre>&lt;code>```bash
-helm repo add grafana https://grafana.github.io/helm-charts
+&lt;ul class="nav nav-tabs" id="tabs-3" role="tablist">&lt;li class="nav-item">
+&lt;a class="nav-link active tab-Main"
+id="tabs-3-0-tab" data-toggle="tab" href="#tabs-3-0" role="tab" onclick="handleClick(&amp;#34;Main&amp;#34;);"
+aria-controls="tabs-3-0" aria-selected="true">
+Main
+&lt;/a>
+&lt;/li>&lt;li class="nav-item">
+&lt;a class="nav-link tab-Mirror"
+id="tabs-3-1-tab" data-toggle="tab" href="#tabs-3-1" role="tab" onclick="handleClick(&amp;#34;Mirror&amp;#34;);"
+aria-controls="tabs-3-1" aria-selected="false">
+Mirror
+&lt;/a>
+&lt;/li>&lt;/ul>
+&lt;div class="tab-content" id="tabs-3-content">&lt;div class="tab-pane fade show active"
+id="tabs-3-0" role="tabpanel" aria-labelled-by="tabs-3-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add grafana https://grafana.github.io/helm-charts
 helm install grafana \
 -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/grafana/override_values.yaml \
 -n crane-system \
---create-namespace grafana/grafana
-```
-&lt;/code>&lt;/pre>
-&lt;p>=== &amp;ldquo;Mirror&amp;rdquo;&lt;/p>
-&lt;pre>&lt;code>```bash
-helm repo add grafana https://finops-helm.pkg.coding.net/gocrane/grafana
+--create-namespace grafana/grafana&lt;/code>&lt;/pre>&lt;/div>
+&lt;div class="tab-pane fade"
+id="tabs-3-1" role="tabpanel" aria-labelled-by="tabs-3-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add grafana https://finops-helm.pkg.coding.net/gocrane/grafana
 helm install grafana \
 -f https://gitee.com/finops/helm-charts/raw/main/integration/grafana/override_values.yaml \
 -n crane-system \
---create-namespace grafana/grafana
-```
-&lt;/code>&lt;/pre>
+--create-namespace grafana/grafana&lt;/code>&lt;/pre>&lt;/div>
+&lt;/div>
 &lt;h3 id="安装-crane-和-fadvisor">安装 Crane 和 Fadvisor&lt;/h3>
-&lt;p>=== &amp;ldquo;Main&amp;rdquo;&lt;/p>
-&lt;pre>&lt;code>```bash
-helm repo add crane https://gocrane.github.io/helm-charts
+&lt;ul class="nav nav-tabs" id="tabs-4" role="tablist">&lt;li class="nav-item">
+&lt;a class="nav-link active tab-Main"
+id="tabs-4-0-tab" data-toggle="tab" href="#tabs-4-0" role="tab" onclick="handleClick(&amp;#34;Main&amp;#34;);"
+aria-controls="tabs-4-0" aria-selected="true">
+Main
+&lt;/a>
+&lt;/li>&lt;li class="nav-item">
+&lt;a class="nav-link tab-Mirror"
+id="tabs-4-1-tab" data-toggle="tab" href="#tabs-4-1" role="tab" onclick="handleClick(&amp;#34;Mirror&amp;#34;);"
+aria-controls="tabs-4-1" aria-selected="false">
+Mirror
+&lt;/a>
+&lt;/li>&lt;/ul>
+&lt;div class="tab-content" id="tabs-4-content">&lt;div class="tab-pane fade show active"
+id="tabs-4-0" role="tabpanel" aria-labelled-by="tabs-4-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add crane https://gocrane.github.io/helm-charts
 helm install crane -n crane-system --create-namespace crane/crane
-helm install fadvisor -n crane-system --create-namespace crane/fadvisor
-```
-&lt;/code>&lt;/pre>
-&lt;p>=== &amp;ldquo;Mirror&amp;rdquo;&lt;/p>
-&lt;pre>&lt;code>```bash
-helm repo add crane https://finops-helm.pkg.coding.net/gocrane/gocrane
+helm install fadvisor -n crane-system --create-namespace crane/fadvisor&lt;/code>&lt;/pre>&lt;/div>
+&lt;div class="tab-pane fade"
+id="tabs-4-1" role="tabpanel" aria-labelled-by="tabs-4-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add crane https://finops-helm.pkg.coding.net/gocrane/gocrane
 helm install crane -n crane-system --create-namespace crane/crane
-helm install fadvisor -n crane-system --create-namespace crane/fadvisor
-```
-&lt;/code>&lt;/pre>
+helm install fadvisor -n crane-system --create-namespace crane/fadvisor&lt;/code>&lt;/pre>&lt;/div>
+&lt;/div>
 &lt;h3 id="安装-crane-scheduler可选">安装 Crane-scheduler（可选）&lt;/h3>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-console" data-lang="console">&lt;span style="display:flex;">&lt;span>helm install scheduler -n crane-system --create-namespace crane/scheduler
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="验证安装是否成功">验证安装是否成功&lt;/h2>
@@ -923,26 +1148,34 @@ $ curl -H &amp;#34;Host: dashboard.gocrane.io&amp;#34; 10.200.0.6
 ................................................................
 &lt;/code>&lt;/pre>&lt;h2 id="自定义安装">自定义安装&lt;/h2>
 &lt;p>通过 YAML 安装 &lt;code>Crane&lt;/code> 。&lt;/p>
-&lt;p>=== &amp;ldquo;Main&amp;rdquo;&lt;/p>
-&lt;pre>&lt;code>```bash
-git clone https://github.com/gocrane/crane.git
-CRANE_LATEST_VERSION=$(curl -s https://api.github.com/repos/gocrane/crane/releases/latest | grep -oP '&amp;quot;tag_name&amp;quot;: &amp;quot;\K(.*)(?=&amp;quot;)')
+&lt;ul class="nav nav-tabs" id="tabs-5" role="tablist">&lt;li class="nav-item">
+&lt;a class="nav-link active tab-Main"
+id="tabs-5-0-tab" data-toggle="tab" href="#tabs-5-0" role="tab" onclick="handleClick(&amp;#34;Main&amp;#34;);"
+aria-controls="tabs-5-0" aria-selected="true">
+Main
+&lt;/a>
+&lt;/li>&lt;li class="nav-item">
+&lt;a class="nav-link tab-Mirror"
+id="tabs-5-1-tab" data-toggle="tab" href="#tabs-5-1" role="tab" onclick="handleClick(&amp;#34;Mirror&amp;#34;);"
+aria-controls="tabs-5-1" aria-selected="false">
+Mirror
+&lt;/a>
+&lt;/li>&lt;/ul>
+&lt;div class="tab-content" id="tabs-5-content">&lt;div class="tab-pane fade show active"
+id="tabs-5-0" role="tabpanel" aria-labelled-by="tabs-5-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">git clone https://github.com/gocrane/crane.git
+CRANE_LATEST_VERSION=$(curl -s https://api.github.com/repos/gocrane/crane/releases/latest | grep -oP &amp;#39;&amp;#34;tag_name&amp;#34;: &amp;#34;\K(.*)(?=&amp;#34;)&amp;#39;)
 git checkout $CRANE_LATEST_VERSION
 kubectl apply -f deploy/manifests
 kubectl apply -f deploy/craned
-kubectl apply -f deploy/metric-adapter
-```
-&lt;/code>&lt;/pre>
-&lt;p>=== &amp;ldquo;Mirror&amp;rdquo;&lt;/p>
-&lt;pre>&lt;code>```bash
-git clone https://e.coding.net/finops/gocrane/crane.git
-CRANE_LATEST_VERSION=$(curl -s https://api.github.com/repos/gocrane/crane/releases/latest | grep -oP '&amp;quot;tag_name&amp;quot;: &amp;quot;\K(.*)(?=&amp;quot;)')
+kubectl apply -f deploy/metric-adapter&lt;/code>&lt;/pre>&lt;/div>
+&lt;div class="tab-pane fade"
+id="tabs-5-1" role="tabpanel" aria-labelled-by="tabs-5-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">git clone https://e.coding.net/finops/gocrane/crane.git
+CRANE_LATEST_VERSION=$(curl -s https://api.github.com/repos/gocrane/crane/releases/latest | grep -oP &amp;#39;&amp;#34;tag_name&amp;#34;: &amp;#34;\K(.*)(?=&amp;#34;)&amp;#39;)
 git checkout $CRANE_LATEST_VERSION
 kubectl apply -f deploy/manifests
 kubectl apply -f deploy/craned
-kubectl apply -f deploy/metric-adapter
-```
-&lt;/code>&lt;/pre>
+kubectl apply -f deploy/metric-adapter&lt;/code>&lt;/pre>&lt;/div>
+&lt;/div>
 &lt;p>如果您想自定义 Crane 里配置 Prometheus 的 HTTP 地址，请参考以下的命令。如果您在集群里已存在一个 Prometheus，请将 Server 地址填于&lt;code>CUSTOMIZE_PROMETHEUS&lt;/code> 。&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-console" data-lang="console">&lt;span style="display:flex;">&lt;span>export CUSTOMIZE_PROMETHEUS=
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>if [ $CUSTOMIZE_PROMETHEUS ]; then sed -i &amp;#39;&amp;#39; &amp;#34;s/http:\/\/prometheus-server.crane-system.svc.cluster.local:8080/${CUSTOMIZE_PROMETHEUS}/&amp;#34; deploy/craned/deployment.yaml ; fi
@@ -959,173 +1192,7 @@ kubectl apply -f deploy/metric-adapter
 &lt;p>注意：若您的集群节点只有内网 IP，则访问该 IP 的计算机需要在同一内网。若集群节点拥有外网 IP，则没有相关问题。&lt;/p>
 &lt;h4 id="loadbalance-方式">LoadBalance 方式&lt;/h4>
 &lt;p>若您使用的是公有云厂商的服务，您可以将 Crane 的 Service 的类型换成公网 LB 类型，这样可以直接通过 LB IP + 9090 端口号的方式，打开控制台。&lt;/p>
-&lt;p>具体操作：修改 crane-system 命名空间下名为 craned 的 Service，将其访问方式该为公网 LB 的方式。&lt;/p></description></item><item><title>Docs: 开发者指南</title><link>/zh-cn/docs/contributing/developer-guide/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/contributing/developer-guide/</guid><description>
-&lt;p>First, please make sure you&amp;rsquo;ve got a working &lt;a href="https://golang.org/doc/install">Go environment&lt;/a>
-and &lt;a href="https://docs.docker.com/engine">Docker environment&lt;/a>.&lt;/p>
-&lt;h2 id="clone-crane">Clone crane&lt;/h2>
-&lt;p>Clone the repository,&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>mkdir -p $GOPATH/src/github.com/gocrane/
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>cd $GOPATH/src/github.com/gocrane/
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>git clone https://github.com/gocrane/crane.git
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>cd crane
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="building-binaries">Building Binaries&lt;/h2>
-&lt;p>Run&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># build for linux/amd64 by default&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>make all
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>to build binaries &lt;code>craned&lt;/code>, &lt;code>crane-agent&lt;/code> and &lt;code>metric-adapter&lt;/code> for &lt;code>linux/amd64&lt;/code>.&lt;/p>
-&lt;p>&lt;img src="/images/developer-guide/make_all_finish.jpg" alt="make_all_finish">&lt;/p>
-&lt;p>Also you could specify other platforms when building, such as,&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># build only crane-agent for linux/arm64 and darwin/amd64&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># use comma to separate multiple platforms&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>PLATFORMS&lt;span style="color:#f92672">=&lt;/span>linux/arm64,darwin/amd64 make crane-agent
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># below are all the supported platforms&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># PLATFORMS=darwin/amd64,darwin/arm64,linux/amd64,linux/arm64,linux/ppc64le,linux/s390x,linux/386,linux/arm&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>All the built binaries will be placed at &lt;code>$GOPATH/src/github.com/gocrane/crane/bin&lt;/code> folder.&lt;/p>
-&lt;p>&lt;img src="/images/developer-guide/make_all_binaries_result.jpg" alt="make_all_binaries_result">&lt;/p>
-&lt;h2 id="building-docker-images">Building Docker Images&lt;/h2>
-&lt;p>You can also build docker images. Here &lt;code>docker buildx&lt;/code> is used to help build multi-arch container images.&lt;/p>
-&lt;p>If you&amp;rsquo;re running MacOS, please install &lt;a href="https://docs.docker.com/desktop/">Docker Desktop&lt;/a> and then check the builder,&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>$ docker buildx ls
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>NAME/NODE DRIVER/ENDPOINT STATUS PLATFORMS
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>default * docker
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> default default running linux/amd64, linux/arm64, linux/ppc64le, linux/s390x, linux/386, linux/arm/v7, linux/arm/v6
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>If you&amp;rsquo;re running Linux, please refer to &lt;a href="https://docs.docker.com/buildx/working-with-buildx/">docker buildx docs&lt;/a>
-on the installation.&lt;/p>
-&lt;p>!!! note
-For better &lt;code>docker buildx&lt;/code> support, it is recommended to use Ubuntu Focal 20.04 (LTS), Debian Bullseye 11 and CentOS 8.
-And install deb/rpm package &lt;code>qemu-user-static&lt;/code> as well, such as&lt;/p>
-&lt;pre>&lt;code>```bash
-apt-get install qemu-user-static
-```
-or
-```bash
-yum install qemu-user-static
-```
-```bash
-# build for linux/amd64 by default
-# container images for craned, crane-agent, metric-adapter and dashboard
-make images
-```
-&lt;/code>&lt;/pre>
-&lt;p>&lt;img src="/images/developer-guide/make_image_start.jpg" alt="make_image_start">&lt;/p>
-&lt;p>&lt;img src="/images/developer-guide/make_image_finish.jpg" alt="make_image_finish">&lt;/p>
-&lt;p>Also you could build container images for other platforms, such as &lt;code>arm64&lt;/code>,&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>PLATFORMS&lt;span style="color:#f92672">=&lt;/span>linux/amd64,linux/arm64,linux/ppc64le make images
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># below are all the supported platforms&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># PLATFORMS=linux/amd64,linux/arm64,linux/ppc64le,linux/s390x,linux/386,linux/arm&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>!!! note
-For the first make image, It takes a bit of a long time, Please be patient.&lt;/p>
-&lt;p>When we finish the make image, in the docker desktop, we can see the image we built, and the Tag is the hash value at the time of the git commit.&lt;/p>
-&lt;p>&lt;img src="/images/developer-guide/make_image_docker_images.jpg" alt="make_image_docker_images">&lt;/p></description></item><item><title>Docs: 智能推荐</title><link>/zh-cn/docs/tutorials/analytics-and-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/analytics-and-recommendation/</guid><description>
-&lt;p>智能推荐能够帮助用户自动分析集群并给出优化建议。就像手机助手一样，智能推荐会定期的扫描、分析你的集群并给出推荐建议。目前，我们提供了两种优化能力：&lt;/p>
-&lt;ul>
-&lt;li>&lt;a href="/zh-cn/docs/tutorials/resource-recommendation">&lt;strong>资源推荐&lt;/strong>&lt;/a>: 通过资源推荐的算法分析应用的真实用量推荐更合适的资源配置，您可以参考并采纳它提升集群的资源利用率。&lt;/li>
-&lt;li>&lt;a href="/zh-cn/docs/tutorials/replicas-recommendation">&lt;strong>副本数推荐&lt;/strong>&lt;/a>: 通过副本数推荐的算法分析应用的真实用量推荐更合适的副本和 EHPA 配置，您可以参考并采纳它提升集群的资源利用率。&lt;/li>
-&lt;/ul>
-&lt;p>应用可以根据资源推荐调整 request 也可以根据副本数推荐调整副本数，这两种优化都能帮助您降低成本，您可以根据您的需求选择采用相应的优化建议。&lt;/p>
-&lt;h2 id="架构">架构&lt;/h2>
-&lt;p>&lt;img src="/images/analytics-arch.png" alt="analytics-arch">&lt;/p>
-&lt;h2 id="一次分析的过程">一次分析的过程&lt;/h2>
-&lt;ol>
-&lt;li>用户创建 Analytics 对象，通过 ResourceSelector 选择需要分析的资源，支持选择多类型（基于Group,Kind,Version）的批量选择&lt;/li>
-&lt;li>并行分析每个选择的资源，尝试进行分析推荐，每次分析过程分成筛选和推荐两个阶段：
-&lt;ol>
-&lt;li>筛选：排除不满足推荐条件的资源。比如对于弹性推荐，排除没有 running pod 的 workload&lt;/li>
-&lt;li>推荐：通过算法计算分析，给出推荐结果&lt;/li>
-&lt;/ol>
-&lt;/li>
-&lt;li>如果通过筛选，创建 Recommendation 对象，将推荐结果展示在 Recommendation.Status&lt;/li>
-&lt;li>未通过筛选的原因和状态展示在 Analytics.Status&lt;/li>
-&lt;li>根据运行间隔等待下次分析&lt;/li>
-&lt;/ol>
-&lt;h2 id="名词解释">名词解释&lt;/h2>
-&lt;h3 id="分析">分析&lt;/h3>
-&lt;p>分析定义了一个扫描分析任务。支持两种任务类型：资源推荐和弹性推荐。Crane 定期运行分析任务，并产生推荐结果。&lt;/p>
-&lt;h3 id="推荐">推荐&lt;/h3>
-&lt;p>推荐展示了一个优化推荐的结果。推荐的结果是一段 YAML 配置，根据结果用户可以进行相应的优化动作，比如调整应用的资源配置。&lt;/p>
-&lt;h3 id="参数配置">参数配置&lt;/h3>
-&lt;p>不同的分析采用不同的计算模型，Crane 提供了一套默认的计算模型以及一套配套的配置，用户可以通过修改配置来定制推荐的效果。支持修改全局的默认配置和修改单个分析任务的配置。&lt;/p></description></item><item><title>Docs: Recommendation Framework</title><link>/zh-cn/docs/proposals/20220706-recommendation-framework/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/proposals/20220706-recommendation-framework/</guid><description>
-&lt;p>Recommendation Framework provide a consistence progress to optimize variable kinds of resources in kubernetes. The progress should be Pluggable and support Multi-Cloud.&lt;/p>
-&lt;h2 id="motivation">Motivation&lt;/h2>
-&lt;p>Currently, we use &lt;code>Analytics&lt;/code> and &lt;code>Recommendation&lt;/code> to provide a recommendation service for workloads in cluster. Kubernetes&amp;rsquo; users use the recommendation to optimize the resource configuration and reduce their cost.
-But the recommendations have some limitations now:&lt;/p>
-&lt;ol>
-&lt;li>Multiple Analytics can select some same resources, it&amp;rsquo;s confused and unnecessary to have two recommendation for the same resource.&lt;/li>
-&lt;li>We need to support more kinds of resources, for example, scan for idle load balancers.&lt;/li>
-&lt;li>We need to make the progress Pluggable to support different user in difference clouds.&lt;/li>
-&lt;/ol>
-&lt;h3 id="goals">Goals&lt;/h3>
-&lt;ul>
-&lt;li>Global analytics rules&lt;/li>
-&lt;li>Easy to know the recommendation for my resource&lt;/li>
-&lt;li>Consistence progress for all resource recommendation&lt;/li>
-&lt;li>Plugin mechanism to support Multi-Cloud&lt;/li>
-&lt;/ul>
-&lt;h3 id="non-goals">Non-Goals&lt;/h3>
-&lt;ul>
-&lt;li>Cloud Resources that not included in kubernetes&lt;/li>
-&lt;/ul>
-&lt;h2 id="proposal">Proposal&lt;/h2>
-&lt;h3 id="user-stories">User Stories&lt;/h3>
-&lt;h4 id="story-1">Story 1&lt;/h4>
-&lt;p>As a Serverless customer, I want to know the suitable requests and limits for my deployments, the result should be fit the existing pod model(e.g. 2c4g, 1c1g) in my cloud production.&lt;/p>
-&lt;h4 id="story-2">Story 2&lt;/h4>
-&lt;p>As an Aliyun ACK customer, I want to know whether there is a waste of LoadBalances in my cluster and delete them if exists.&lt;/p>
-&lt;h4 id="story-3">Story 3&lt;/h4>
-&lt;p>As a container platform user, I want to integrate optimize recommendation to my platform and optimize my cluster within my CICD pipeline.&lt;/p>
-&lt;h3 id="api-definition">Api Definition&lt;/h3>
-&lt;p>RecommendationRule defines which resources are required to recommend and what is the runInterval.&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// RecommendationRuleSpec defines resources and runInterval to recommend
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">RecommendationRuleSpec&lt;/span> &lt;span style="color:#66d9ef">struct&lt;/span> {
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// ResourceSelector indicates how to select resources(e.g. a set of Deployments) for an Recommendation.
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#75715e">// +required
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#75715e">// +kubebuilder:validation:Required
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">ResourceSelectors&lt;/span> []&lt;span style="color:#a6e22e">ResourceSelector&lt;/span> &lt;span style="color:#e6db74">`json:&amp;#34;resourceSelectors&amp;#34;`&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// RunInterval between two recommendation
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">RunInterval&lt;/span> &lt;span style="color:#a6e22e">time&lt;/span>.&lt;span style="color:#a6e22e">Duration&lt;/span> &lt;span style="color:#e6db74">`json:&amp;#34;runInterval,omitempty&amp;#34;`&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// ResourceSelector describes how the resources will be selected.
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">ResourceSelector&lt;/span> &lt;span style="color:#66d9ef">struct&lt;/span> {
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// Kind of the resource, e.g. Deployment
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">Kind&lt;/span> &lt;span style="color:#66d9ef">string&lt;/span> &lt;span style="color:#e6db74">`json:&amp;#34;kind&amp;#34;`&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// API version of the resource, e.g. &amp;#34;apps/v1&amp;#34;
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#75715e">// +optional
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">APIVersion&lt;/span> &lt;span style="color:#66d9ef">string&lt;/span> &lt;span style="color:#e6db74">`json:&amp;#34;apiVersion,omitempty&amp;#34;`&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// Name of the resource.
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#75715e">// +optional
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">Name&lt;/span> &lt;span style="color:#66d9ef">string&lt;/span> &lt;span style="color:#e6db74">`json:&amp;#34;name,omitempty&amp;#34;`&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// +optional
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">LabelSelector&lt;/span> &lt;span style="color:#a6e22e">metav1&lt;/span>.&lt;span style="color:#a6e22e">LabelSelector&lt;/span> &lt;span style="color:#e6db74">`json:&amp;#34;labelSelector,omitempty&amp;#34;`&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">namespace&lt;/span> &lt;span style="color:#960050;background-color:#1e0010">?&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Recommendation is a content holder for recommendation result. We hope that the recommendation data can be applied directly to kubernetes cluster(Recommendation as a code) and Different type recommendation have different recommendation yaml, so the content is stored in recommendation as &lt;code>Data&lt;/code>.&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">Recommendation&lt;/span> &lt;span style="color:#66d9ef">struct&lt;/span> {
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">metav1&lt;/span>.&lt;span style="color:#a6e22e">TypeMeta&lt;/span> &lt;span style="color:#e6db74">`json:&amp;#34;,inline&amp;#34;`&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">metav1&lt;/span>.&lt;span style="color:#a6e22e">ObjectMeta&lt;/span> &lt;span style="color:#e6db74">`json:&amp;#34;metadata,omitempty&amp;#34;`&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// +kubebuilder:pruning:PreserveUnknownFields
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">Data&lt;/span> &lt;span style="color:#a6e22e">runtime&lt;/span>.&lt;span style="color:#a6e22e">RawExtension&lt;/span> &lt;span style="color:#e6db74">`json:&amp;#34;data&amp;#34;`&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="recommendation-configuration">Recommendation Configuration&lt;/h3>
-&lt;p>Recommendation Configuration is centralized configuration that contains every rule for universal resource optimization. It not only includes RecommendationRules that use defines but also contains RecommendationPlugins.&lt;/p>
-&lt;h3 id="phases-for-a-recommender">Phases for a recommender&lt;/h3>
-&lt;p>&lt;img src="/images/crane_recommendation_framework.jpg" alt="">&lt;/p>
-&lt;h3 id="phases">Phases&lt;/h3>
-&lt;p>We divide the whole recommendation process into four actions, Fliter, Prepare, Recommend, Observe. The input of the whole system is the kubernetes resource you want to analyze, and the output is the best recommendation for the resource.Below we describe in detail the capabilities and input and output of each part of Recommendation Framework.&lt;/p>
-&lt;h4 id="fliter">Fliter&lt;/h4>
-&lt;p>The input of Fliter is an analysis recommendation task queue, and the queue stores the Recommendation CR submitted by the user.In default PreFliter,we will do nothing for the queue, this queue will be a FIFO queue.If you want to follow certain rules for the queue, you can implement it yourself PreFliter via extension point or override this func.In the default fliter stage, we will first filter the non-recommended resources according to the user-defined analyzable resource type. For example, the analyzable kubernetes resource I defined is deployment,ingress,node. If you submit a recommendation cr for statefulset, it will be abort in this phase.Then, we will check whether the resource you want exists, if not, we will abort.If you wish to use different filtering logic, you can implement your own logic through the fliter extension point or override it.&lt;/p>
-&lt;h4 id="prepare">Prepare&lt;/h4>
-&lt;p>Prepare is the data preparation stage, and will pull the indicator sequence within the specified time according to your recommended tasks.In PrePrepare,by default we will check the connectivity of the metrics system. And we need generate the specified metrics information for metrics server system like prometheus or metrics server. In Prepare,we will get the indicator sequence information.In PostPrepare, we will implement a data processing module.Some data processing such as data correction for cold start application resource glitch, missing data padding, data aggregation,deduplication or noise reduction. The output of whole will be normalized to a specified data type.Of course you can also implement your own PrePrepare, Prepare, PostPrepare logic.&lt;/p>
-&lt;h4 id="recommend">Recommend&lt;/h4>
-&lt;p>The input of Recommend is a data sequence, and the output is the result of the recommendation type you specify. For example, if your recommendation type is resource, the output is the recommended size of the resource of the kubernetes workload you specified.In Recommend, we will apply crane&amp;rsquo;s algorithm library to your data sequence.And in PostRecommend,We will use some strategies to regularize the results of the algorithm. For example, if a margin needs to be added when recommending resources, it will be processed at this stage.You can implement your own Recommend logic via extension points or override it.&lt;/p>
-&lt;h4 id="observe">Observe&lt;/h4>
-&lt;p>Observe is to intuitively reflect the effectiveness of the recommendation results. For example, when making resource recommendations, users not only care about the recommended resource configuration, but also how much cost can be saved after modifying the resource configuration. In PreObserver, we will check the cloud api connectivity and establish link with cloud vendor&amp;rsquo;s billing system. And in Observe we will turn resource optimization into cost optimization.You can implement your own Observe logic via extension points or override it.&lt;/p></description></item><item><title>Docs: 代码规范</title><link>/zh-cn/docs/contributing/code-standards/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/contributing/code-standards/</guid><description>
+&lt;p>具体操作：修改 crane-system 命名空间下名为 craned 的 Service，将其访问方式该为公网 LB 的方式。&lt;/p></description></item><item><title>Docs: 代码规范</title><link>/zh-cn/docs/contributing/code-standards/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/contributing/code-standards/</guid><description>
 &lt;p>This doc describes the code standards and suggestion for crane project, mainly for new contributor of the project&lt;/p>
 &lt;h3 id="import-need-to-be-organized">import need to be organized&lt;/h3>
 &lt;p>import should be categorized with blank line as system imports, community imports and crane apis and crane imports, like the following example&lt;/p>
