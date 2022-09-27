@@ -43,6 +43,25 @@ spec:
     - name: Resource
 `
 
+const RecommendationRuleIdleNodeName = "idlenodes-rule"
+const RecommendationRuleIdleNodeYAML = `
+apiVersion: analysis.crane.io/v1alpha1
+kind: RecommendationRule
+metadata:
+  name: idlenodes-rule
+  labels:
+    analysis.crane.io/recommendation-rule-preinstall: "true"
+spec:
+  runInterval: 24h                            # 每24h运行一次
+  resourceSelectors:                          # 资源的信息
+    - kind: Node
+      apiVersion: v1
+  namespaceSelector:
+    any: true                                 # 扫描所有namespace
+  recommenders:
+    - name: IdleNode
+`
+
 type AddClustersRequest struct {
 	Clusters []*store.Cluster `json:"clusters"`
 }
@@ -129,30 +148,16 @@ func (ch *ClusterHandler) AddClusters(c *gin.Context) {
 		}
 
 		if cluster.PreinstallRecommendation && err == nil {
-			key := types.NamespacedName{
-				Namespace: known.CraneSystemNamespace,
-				Name:      RecommendationRuleWorkloadsName,
-			}
-			var recommendationRule analysisapi.RecommendationRule
-			err = ch.client.Get(context.TODO(), key, &recommendationRule)
+			err := ch.upsertRecommendationRule(RecommendationRuleWorkloadsName, RecommendationRuleWorkloadsYAML)
 			if err != nil {
-				if errors.IsNotFound(err) {
-					var workloadRecommendationRule analysisapi.RecommendationRule
-					err = yaml.Unmarshal([]byte(RecommendationRuleWorkloadsYAML), &workloadRecommendationRule)
-					if err != nil {
-						ginwrapper.WriteResponse(c, err, nil)
-						return
-					}
-					err = ch.client.Create(context.TODO(), &workloadRecommendationRule)
-					if err != nil {
-						ginwrapper.WriteResponse(c, err, nil)
-						return
-					}
-				} else {
-					klog.Errorf("get preinstall recommendation failed: %v", err)
-					ginwrapper.WriteResponse(c, err, nil)
-					return
-				}
+				ginwrapper.WriteResponse(c, err, nil)
+				return
+			}
+
+			err = ch.upsertRecommendationRule(RecommendationRuleIdleNodeName, RecommendationRuleIdleNodeYAML)
+			if err != nil {
+				ginwrapper.WriteResponse(c, err, nil)
+				return
 			}
 		} else if err != nil {
 			ginwrapper.WriteResponse(c, err, nil)
@@ -248,4 +253,31 @@ func (ch *ClusterHandler) getClusterMap() (map[string]*store.Cluster, error) {
 		clustersMap[clu.Id] = clu
 	}
 	return clustersMap, nil
+}
+
+func (ch *ClusterHandler) upsertRecommendationRule(name string, yamlString string) error {
+	key := types.NamespacedName{
+		Namespace: known.CraneSystemNamespace,
+		Name:      name,
+	}
+	var recommendationRule analysisapi.RecommendationRule
+	err := ch.client.Get(context.TODO(), key, &recommendationRule)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			var workloadRecommendationRule analysisapi.RecommendationRule
+			err = yaml.Unmarshal([]byte(yamlString), &workloadRecommendationRule)
+			if err != nil {
+				return err
+			}
+			err = ch.client.Create(context.TODO(), &workloadRecommendationRule)
+			if err != nil {
+				return err
+			}
+		} else {
+			klog.Errorf("get preinstall recommendation failed: %v", err)
+			return err
+		}
+	}
+
+	return nil
 }

@@ -91,7 +91,7 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 	var oldContainers []corev1.Container
 
 	namespace := ctx.Object.GetNamespace()
-	for _, c := range ctx.PodTemplate.Spec.Containers {
+	for _, c := range ctx.Pods[0].Spec.Containers {
 		cr := types.ContainerRecommendation{
 			ContainerName: c.Name,
 			Target:        map[corev1.ResourceName]string{},

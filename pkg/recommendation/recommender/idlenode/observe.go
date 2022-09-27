@@ -1,10 +1,10 @@
-package hpa
+package idlenode
 
 import (
 	"github.com/gocrane/crane/pkg/recommendation/framework"
 )
 
 // Observe enhance the observability.
-func (rr *HPARecommender) Observe(ctx *framework.RecommendationContext) error {
+func (inr *IdleNodeRecommender) Observe(ctx *framework.RecommendationContext) error {
 	return nil
 }

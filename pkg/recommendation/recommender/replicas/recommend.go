@@ -152,7 +152,7 @@ func (rr *ReplicasRecommender) ProposeMinReplicas(workloadCpu float64, requestTo
 		minReplicas = 1
 	}
 
-	min := int32(math.Ceil(workloadCpu / (float64(rr.TargetUtilization) / 100. * float64(requestTotal) / 1000.)))
+	min := int32(math.Ceil(workloadCpu / (rr.TargetUtilization * float64(requestTotal) / 1000.)))
 	if min > minReplicas {
 		minReplicas = min
 	}
