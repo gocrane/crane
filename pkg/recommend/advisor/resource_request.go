@@ -139,13 +139,19 @@ func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) 
 		if len(tsList) < 1 || len(tsList[0].Samples) < 1 {
 			return fmt.Errorf("no value retured for queryExpr: %s", metricNamer.BuildUniqueKey())
 		}
-		klog.InfoS("cpu_recommend_debug, workload name %s", a.Recommendation.Spec.TargetRef.Name, "ts", tsList[0].Samples[0].String())
 
 		v := int64(tsList[0].Samples[0].Value * 1000)
 		q := resource.NewMilliQuantity(v, resource.DecimalSI)
 		cr.Target[corev1.ResourceCPU] = q.String()
 		// export recommended values as prom metrics
-		a.recordResourceRecommendation(c.Name, corev1.ResourceCPU, q)
+
+		var currLimitCpu resource.Quantity
+		if containerLimit, ok := c.Resources.Limits[corev1.ResourceCPU]; ok {
+			currLimitCpu = containerLimit
+		}
+		klog.InfoS("cpu_recommend_debug", "workload name", a.Recommendation.Spec.TargetRef.Name, "recommend cpu", q.String(), "current cpu", currLimitCpu.String())
+
+		a.recordResourceRecommendation(c.Name, corev1.ResourceCPU, q, currLimitCpu)
 
 		metricNamer = ResourceToContainerMetricNamer(namespace, a.Recommendation.Spec.TargetRef.APIVersion,
 			a.Recommendation.Spec.TargetRef.Kind, a.Recommendation.Spec.TargetRef.Name, c.Name, corev1.ResourceMemory, caller)
@@ -165,7 +171,12 @@ func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) 
 		q = resource.NewQuantity(v, resource.BinarySI)
 		cr.Target[corev1.ResourceMemory] = q.String()
 		// export recommended values as prom metrics
-		a.recordResourceRecommendation(c.Name, corev1.ResourceMemory, q)
+		var currLimitMem resource.Quantity
+		if containerLimit, ok := c.Resources.Limits[corev1.ResourceMemory]; ok {
+			currLimitMem = containerLimit
+		}
+		klog.InfoS("mem_recommend_debug", "workload name", a.Recommendation.Spec.TargetRef.Name, "container", c.Name, "recommend mem", q.String(), "current mem", currLimitMem.String())
+		a.recordResourceRecommendation(c.Name, corev1.ResourceMemory, q, currLimitMem)
 
 		r.Containers = append(r.Containers, cr)
 	}
@@ -174,7 +185,7 @@ func (a *ResourceRequestAdvisor) Advise(proposed *types.ProposedRecommendation) 
 	return nil
 }
 
-func (a *ResourceRequestAdvisor) recordResourceRecommendation(containerName string, resName corev1.ResourceName, quantity *resource.Quantity) {
+func (a *ResourceRequestAdvisor) recordResourceRecommendation(containerName string, resName corev1.ResourceName, quantity *resource.Quantity, currLimitQuantity resource.Quantity) {
 	labels := map[string]string{
 		"apiversion": a.Recommendation.Spec.TargetRef.APIVersion,
 		"owner_kind": a.Recommendation.Spec.TargetRef.Kind,
@@ -189,6 +200,16 @@ func (a *ResourceRequestAdvisor) recordResourceRecommendation(containerName stri
 		labels["owner_replicas"] = fmt.Sprintf("%d", a.Scale.Spec.Replicas)
 	} else if a.DaemonSet != nil {
 		labels["owner_replicas"] = fmt.Sprintf("%d", a.DaemonSet.Status.NumberAvailable)
+	}
+
+	if currLimitQuantity.IsZero() {
+		labels["range"] = "unknown"
+	} else if quantity.Cmp(currLimitQuantity) > 0 {
+		labels["range"] = "larger"
+	} else if quantity.Cmp(currLimitQuantity) == 0 {
+		labels["range"] = "equal"
+	} else {
+		labels["range"] = "smaller"
 	}
 
 	switch resName {

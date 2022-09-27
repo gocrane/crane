@@ -6,12 +6,10 @@ import (
 	"sync"
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/metricnaming"
-	"github.com/gocrane/crane/pkg/metricquery"
 	"github.com/gocrane/crane/pkg/prediction"
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/providers"
@@ -484,13 +482,5 @@ func (p *percentilePrediction) Name() string {
 }
 
 func IsMassiveCpu(namer metricnaming.MetricNamer, sample common.Sample) bool {
-	metricNamer := namer.(*metricnaming.GeneralMetricNamer)
-	if metricNamer.Metric.Type == metricquery.ContainerMetricType && metricNamer.Metric.MetricName == corev1.ResourceCPU.String() {
-		if sample.Value > 100 {
-			klog.V(4).Infof("Massive cpu metric %f, just ignore.", sample.Value)
-			return true
-		}
-	}
-
 	return false
 }
