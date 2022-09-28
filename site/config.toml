@@ -134,9 +134,13 @@ version_menu = "Releases"
 archived_version = false
 
 # The version number for the version of the docs represented in this doc set.
-# Used in the "version-banner" partial to display a version number for the 
+# Used in the "version-banner" partial to display a version number for the
 # current doc set.
 version = "0.8.0"
+
+[[params.versions]]
+  version = "main"
+  url = "https://gocrane.io"
 
 # Repository configuration (URLs for in-page links to opening issues and suggesting changes)
 github_repo = "https://github.com/gocrane/crane"
