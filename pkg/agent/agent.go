@@ -36,12 +36,13 @@ import (
 	topologyapi "github.com/gocrane/api/topology/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/ensurance/analyzer"
-	"github.com/gocrane/crane/pkg/ensurance/cm"
+	"github.com/gocrane/crane/pkg/ensurance/cm/cpumanager"
 	"github.com/gocrane/crane/pkg/ensurance/collector"
 	"github.com/gocrane/crane/pkg/ensurance/collector/cadvisor"
 	"github.com/gocrane/crane/pkg/ensurance/collector/noderesourcetopology"
 	"github.com/gocrane/crane/pkg/ensurance/executor"
 	"github.com/gocrane/crane/pkg/ensurance/manager"
+	"github.com/gocrane/crane/pkg/ensurance/runtime"
 	"github.com/gocrane/crane/pkg/features"
 	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/resource"
@@ -58,7 +59,7 @@ type Agent struct {
 }
 
 func NewAgent(ctx context.Context,
-	nodeName, runtimeEndpoint, cgroupDriver, sysPath string,
+	nodeName, runtimeEndpoint, cgroupDriver, sysPath, kubeletRootPath string,
 	kubeClient kubernetes.Interface,
 	craneClient craneclientset.Interface,
 	podInformer coreinformers.PodInformer,
@@ -73,6 +74,8 @@ func NewAgent(ctx context.Context,
 	healthCheck *metrics.HealthCheck,
 	collectInterval time.Duration,
 	executeExcess string,
+	cpuManagerReconcilePeriod time.Duration,
+	defaultCPUPolicy string,
 ) (*Agent, error) {
 	var managers []manager.Manager
 	var noticeCh = make(chan executor.AvoidanceExecutor)
@@ -84,15 +87,29 @@ func NewAgent(ctx context.Context,
 		craneClient: craneClient,
 	}
 
+	runtimeService, err := runtime.GetCRIRuntimeService(runtimeEndpoint)
+	if err != nil {
+		return nil, err
+	}
+
 	utilruntime.Must(ensuranceapi.AddToScheme(scheme.Scheme))
 	utilruntime.Must(topologyapi.AddToScheme(scheme.Scheme))
 	cadvisorManager := cadvisor.NewCadvisorManager(cgroupDriver)
-	exclusiveCPUSet := cm.DefaultExclusiveCPUSet
-	if craneCpuSetManager := utilfeature.DefaultFeatureGate.Enabled(features.CraneCpuSetManager); craneCpuSetManager {
-		cpuManager := cm.NewAdvancedCpuManager(podInformer, runtimeEndpoint, cadvisorManager)
-		exclusiveCPUSet = cpuManager.GetExclusiveCpu
-		managers = appendManagerIfNotNil(managers, cpuManager)
+	exclusiveCPUSet := cpumanager.DefaultExclusiveCPUSet
+	if utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResourceTopology) {
+		if err := agent.CreateNodeResourceTopology(sysPath); err != nil {
+			return nil, err
+		}
+		if utilfeature.DefaultFeatureGate.Enabled(features.CraneCPUManager) {
+			cpuManager, err := cpumanager.NewCPUManager(nodeName, defaultCPUPolicy, cpuManagerReconcilePeriod, cadvisorManager, runtimeService, kubeletRootPath, podInformer, nrtInformer)
+			if err != nil {
+				return nil, fmt.Errorf("failed to new cpumanager: %v", err)
+			}
+			exclusiveCPUSet = cpuManager.GetExclusiveCPUSet
+			managers = appendManagerIfNotNil(managers, cpuManager)
+		}
 	}
+
 	stateCollector := collector.NewStateCollector(nodeName, sysPath, kubeClient, craneClient, nodeQOSInformer.Lister(), nrtInformer.Lister(), podInformer.Lister(), nodeInformer.Lister(), ifaces, healthCheck, collectInterval, exclusiveCPUSet, cadvisorManager)
 	managers = appendManagerIfNotNil(managers, stateCollector)
 	analyzerManager := analyzer.NewAnomalyAnalyzer(kubeClient, nodeName, podInformer, nodeInformer, nodeQOSInformer, podQOSInformer, actionInformer, stateCollector.AnalyzerChann, noticeCh)
@@ -112,12 +129,6 @@ func NewAgent(ctx context.Context,
 	if podResource := utilfeature.DefaultFeatureGate.Enabled(features.CranePodResource); podResource {
 		podResourceManager := resource.NewPodResourceManager(kubeClient, nodeName, podInformer, runtimeEndpoint, stateCollector.PodResourceChann, stateCollector.GetCadvisorManager())
 		managers = appendManagerIfNotNil(managers, podResourceManager)
-	}
-
-	if utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResourceTopology) {
-		if err := agent.CreateNodeResourceTopology(sysPath); err != nil {
-			return agent, err
-		}
 	}
 
 	agent.managers = managers

@@ -311,3 +311,7 @@ func GetNodePods(kubeClient client.Client, nodeName string) ([]corev1.Pod, error
 
 	return podList.Items, nil
 }
+
+func IsPodTerminated(pod *corev1.Pod) bool {
+	return pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed
+}

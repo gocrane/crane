@@ -33,7 +33,6 @@ var (
 )
 
 const (
-	nodeNameField      = "metadata.name"
 	specNodeNameField  = "spec.nodeName"
 	informerSyncPeriod = time.Minute
 	DefaultWorkers     = 2
@@ -94,7 +93,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 
 	nodeInformerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, informerSyncPeriod,
 		informers.WithTweakListOptions(func(options *metav1.ListOptions) {
-			options.FieldSelector = fields.OneTermEqualSelector(nodeNameField, hostname).String()
+			options.FieldSelector = fields.OneTermEqualSelector(metav1.ObjectNameField, hostname).String()
 		}),
 	)
 	podInformer := podInformerFactory.Core().V1().Pods()
@@ -108,13 +107,15 @@ func Run(ctx context.Context, opts *options.Options) error {
 
 	nrtInformerFactory := craneinformers.NewSharedInformerFactoryWithOptions(craneClient, informerSyncPeriod,
 		craneinformers.WithTweakListOptions(func(options *metav1.ListOptions) {
-			options.FieldSelector = fields.OneTermEqualSelector(nodeNameField, hostname).String()
+			options.FieldSelector = fields.OneTermEqualSelector(metav1.ObjectNameField, hostname).String()
 		}),
 	)
 	nrtInformer := nrtInformerFactory.Topology().V1alpha1().NodeResourceTopologies()
 
-	newAgent, err := agent.NewAgent(ctx, hostname, opts.RuntimeEndpoint, opts.CgroupDriver, opts.SysPath, kubeClient, craneClient, podInformer, nodeInformer,
-		nodeQOSInformer, podQOSInformer, actionInformer, tspInformer, nrtInformer, opts.NodeResourceReserved, opts.Ifaces, healthCheck, opts.CollectInterval, opts.ExecuteExcess)
+	newAgent, err := agent.NewAgent(ctx, hostname, opts.RuntimeEndpoint, opts.CgroupDriver, opts.SysPath,
+		opts.KubeletRootPath, kubeClient, craneClient, podInformer, nodeInformer, nodeQOSInformer, podQOSInformer,
+		actionInformer, tspInformer, nrtInformer, opts.NodeResourceReserved, opts.Ifaces, healthCheck,
+		opts.CollectInterval, opts.ExecuteExcess, opts.CPUManagerReconcilePeriod, opts.DefaultCPUPolicy)
 
 	if err != nil {
 		return err

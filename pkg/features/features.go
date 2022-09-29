@@ -28,8 +28,8 @@ const (
 	// CraneTimeSeriesPrediction enables the time series prediction features.
 	CraneTimeSeriesPrediction featuregate.Feature = "TimeSeriesPrediction"
 
-	// CraneCpuSetManager enables the cpuset manger features.
-	CraneCpuSetManager featuregate.Feature = "CpusetManager"
+	// CraneCPUManager enables the cpu manger features.
+	CraneCPUManager featuregate.Feature = "CraneCPUManager"
 )
 
 var defaultFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
@@ -40,7 +40,7 @@ var defaultFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	CranePodResource:           {Default: true, PreRelease: featuregate.Alpha},
 	CraneClusterNodePrediction: {Default: false, PreRelease: featuregate.Alpha},
 	CraneTimeSeriesPrediction:  {Default: true, PreRelease: featuregate.Alpha},
-	CraneCpuSetManager:         {Default: false, PreRelease: featuregate.Alpha},
+	CraneCPUManager:            {Default: false, PreRelease: featuregate.Alpha},
 }
 
 func init() {
