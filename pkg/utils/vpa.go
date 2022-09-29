@@ -21,7 +21,7 @@ func GetEVPAFromScaleTarget(context context.Context, kubeClient client.Client, n
 
 	for _, evpa := range evpaList.Items {
 		if evpa.Spec.TargetRef.Name == objRef.Name &&
-			evpa.Spec.TargetRef.Kind == objRef.APIVersion &&
+			evpa.Spec.TargetRef.Kind == objRef.Kind &&
 			evpa.Spec.TargetRef.APIVersion == objRef.APIVersion {
 			return &evpa, nil
 		}
