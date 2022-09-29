@@ -36,6 +36,7 @@ enum CompletionStrategyType {
 export enum RecommendationType {
   Replicas = 'Replicas',
   Resource = 'Resource',
+  IdleNode = 'IdleNode',
 }
 
 enum AdoptionType {
@@ -119,7 +120,7 @@ const URI = '/api/v1/recommendation';
 
 export const recommendationApi = createApi({
   reducerPath: 'recommendationApi',
-  tagTypes: ['recommendation'],
+  tagTypes: ['recommendation', 'idleNode'],
   baseQuery: fetchBaseQuery({
     cache: 'no-cache',
     baseUrl: ``,

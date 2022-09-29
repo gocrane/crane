@@ -42,6 +42,7 @@ export const store = configureStore({
       recommendationApi.middleware,
       prometheusApi.middleware,
     );
+
     return middlewares;
   },
 });

@@ -1,45 +1,45 @@
-import CommonStyle from '../../../styles/common.module.less';
-import SearchForm from '../ReplicaRecommend/components/SearchForm';
 import './index.module.less';
+
 import classnames from 'classnames';
 import { useCraneUrl } from 'hooks';
+import JsYaml from 'js-yaml';
 import React, { memo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { Button, Col, Dialog, Divider, MessagePlugin, Row, Space, Table, Tag } from 'tdesign-react';
+
 import {
   RecommendationSimpleInfo,
   RecommendationType,
   useFetchRecommendationListQuery,
 } from '../../../services/recommendationApi';
-import { useNavigate } from 'react-router-dom';
-import JsYaml from 'js-yaml';
-import { useTranslation } from 'react-i18next';
-import { Prism } from '@mantine/prism';
-import { copyToClipboard } from '../../../utils/copyToClipboard';
-import { K8SUNIT, transformK8sUnit } from 'utils/transformK8sUnit';
+import CommonStyle from '../../../styles/common.module.less';
+import SearchForm from './components/SearchForm';
 
 const Editor = React.lazy(() => import('components/common/Editor'));
 
-export const SelectTable = () => {
+const SelectTable = () => {
   const { t } = useTranslation();
   const [yamlDialogVisible, setYamlDialogVisible] = useState<boolean>(false);
   const [currentSelection, setCurrentSelection] = useState<RecommendationSimpleInfo | null>(null);
-  const [commandDialogVisible, setCommandDialogVisible] = useState<boolean>(false);
 
   const navigate = useNavigate();
   const [selectedRowKeys, setSelectedRowKeys] = useState<(string | number)[]>([0, 1]);
   const [visible, setVisible] = useState(false);
-  const craneUrl: any = useCraneUrl();
-
   const [filterParams, setFilterParams] = useState({
     namespace: undefined,
     workloadType: undefined,
     name: undefined,
   });
+  const craneUrl: any = useCraneUrl();
 
-  const { data, isFetching, isSuccess, isError, error } = useFetchRecommendationListQuery({
-    craneUrl,
-    recommendationType: RecommendationType.Resource,
-  });
+  const { data, isFetching, isError, isSuccess, error } = useFetchRecommendationListQuery(
+    {
+      craneUrl,
+      recommendationType: RecommendationType.IdleNode,
+    },
+    { skip: !craneUrl },
+  );
   // const recommendation = data?.data?.items || [];
 
   let recommendation: any[];
@@ -47,8 +47,10 @@ export const SelectTable = () => {
     recommendation = data?.data?.items || [];
   } else {
     recommendation = [];
-    if (isError) MessagePlugin.error(`${error.status} ${error.error}`);
+    if (isError) MessagePlugin.error(`${(error as any).status} ${(error as any).error}`);
   }
+
+  console.log(data);
 
   const filterResult = recommendation
     .filter((recommendation) => {
@@ -90,6 +92,7 @@ export const SelectTable = () => {
     } catch (error) {
       //
     }
+    console.log(yaml);
     return yaml;
   };
 
@@ -107,7 +110,6 @@ export const SelectTable = () => {
       <Table
         loading={isFetching || isError}
         data={filterResult}
-        tableLayout='auto'
         verticalAlign='middle'
         columns={[
           {
@@ -116,14 +118,8 @@ export const SelectTable = () => {
             ellipsis: true,
           },
           {
-            title: t('推荐目标名称'),
+            title: t('节点名'),
             colKey: 'spec.targetRef.name',
-          },
-          {
-            title: t('Namespace'),
-            ellipsis: true,
-            sortType: 'all',
-            colKey: 'spec.targetRef.namespace',
           },
           {
             title: t('目标类型'),
@@ -138,49 +134,6 @@ export const SelectTable = () => {
                   </Tag>
                 </Space>
               );
-            },
-          },
-          {
-            title: t('当前资源(容器/CPU/Memory)'),
-            colKey: 'status.currentInfo',
-            cell({ row }) {
-              if (typeof row.status.currentInfo === 'string') {
-                const containers = JSON.parse(row?.status?.currentInfo).spec?.template?.spec?.containers || [];
-                if (containers.length > 0) {
-                  return (
-                    <Space direction='vertical'>
-                      {containers.map((o: any, i: number) => (
-                        <Tag key={i} theme='primary' variant='light'>
-                          {o.name} / {o.resources.requests.cpu} /
-                          {transformK8sUnit(o.resources.requests.memory, K8SUNIT.Mi)}Mi
-                        </Tag>
-                      ))}
-                    </Space>
-                  );
-                }
-              }
-              return '';
-            },
-          },
-          {
-            title: t('推荐资源(容器/CPU/Memory)'),
-            colKey: 'status.recommendedInfo',
-            cell({ row }) {
-              if (typeof row.status.recommendedValue !== 'string') {
-                const containers = row?.status?.recommendedValue?.resourceRequest?.containers || [];
-                if (containers.length > 0) {
-                  return (
-                    <Space direction='vertical'>
-                      {containers.map((o: any, i: number) => (
-                        <Tag key={i} theme='primary' variant='light'>
-                          {o.containerName} / {o.target.cpu} / {transformK8sUnit(o.target.memory, K8SUNIT.Mi)}Mi
-                        </Tag>
-                      ))}
-                    </Space>
-                  );
-                }
-              }
-              return 'abc';
             },
           },
           {
@@ -209,28 +162,16 @@ export const SelectTable = () => {
             title: t('操作'),
             cell(record) {
               return (
-                <>
-                  <Button
-                    theme='primary'
-                    variant='text'
-                    onClick={() => {
-                      setCurrentSelection(record.row as RecommendationSimpleInfo);
-                      setCommandDialogVisible(true);
-                    }}
-                  >
-                    {t('采纳建议')}
-                  </Button>
-                  <Button
-                    theme='primary'
-                    variant='text'
-                    onClick={() => {
-                      setCurrentSelection(record.row as RecommendationSimpleInfo);
-                      setYamlDialogVisible(true);
-                    }}
-                  >
-                    {t('查看YAML')}
-                  </Button>
-                </>
+                <Button
+                  theme='primary'
+                  variant='text'
+                  onClick={() => {
+                    setCurrentSelection(record.row as RecommendationSimpleInfo);
+                    setYamlDialogVisible(true);
+                  }}
+                >
+                  {t('查看YAML')}
+                </Button>
               );
             },
           },
@@ -241,7 +182,7 @@ export const SelectTable = () => {
         onSelectChange={onSelectChange}
         pagination={{
           defaultCurrent: 1,
-          defaultPageSize: 5,
+          defaultPageSize: 10,
           total: filterResult.length,
           showJumper: true,
           onChange(pageInfo) {
@@ -277,36 +218,6 @@ export const SelectTable = () => {
         <React.Suspense fallback={'loading'}>
           <Editor value={currentSelection ? toYaml(currentSelection) ?? '' : ''} />
         </React.Suspense>
-      </Dialog>
-      <Dialog
-        width={850}
-        header={t('查看命令')}
-        visible={commandDialogVisible}
-        cancelBtn={
-          <Button
-            onClick={async () => {
-              try {
-                await copyToClipboard(
-                  `patchData=\`kubectl get recommend ${currentSelection?.metadata?.name} -n ${currentSelection?.spec?.targetRef?.namespace} -o jsonpath='{.status.recommendedInfo}'\`;kubectl patch ${currentSelection?.spec?.targetRef?.kind} ${currentSelection?.spec?.targetRef?.name} -n ${currentSelection?.spec?.targetRef?.namespace} --patch "\${patchData}"`,
-                );
-                await MessagePlugin.success('Copy command to clipboard.');
-              } catch (err) {
-                await MessagePlugin.error(`Failed to copy: ${err}`);
-              }
-            }}
-          >
-            Copy Code
-          </Button>
-        }
-        confirmBtn={false}
-        onClose={() => {
-          setCommandDialogVisible(false);
-          setCurrentSelection(null);
-        }}
-      >
-        <Prism withLineNumbers language='bash' noCopy={true}>
-          {`patchData=\`kubectl get recommend ${currentSelection?.metadata?.name} -n ${currentSelection?.spec?.targetRef?.namespace} -o jsonpath='{.status.recommendedInfo}'\`\nkubectl patch ${currentSelection?.spec?.targetRef?.kind} ${currentSelection?.spec?.targetRef?.name} -n ${currentSelection?.spec?.targetRef?.namespace} --patch "\${patchData}"`}
-        </Prism>
       </Dialog>
     </>
   );
