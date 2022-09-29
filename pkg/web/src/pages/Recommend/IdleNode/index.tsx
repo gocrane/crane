@@ -118,7 +118,7 @@ const SelectTable = () => {
             ellipsis: true,
           },
           {
-            title: t('推荐目标名称'),
+            title: t('节点名'),
             colKey: 'spec.targetRef.name',
           },
           {

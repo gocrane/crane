@@ -21,16 +21,6 @@ const SearchForm: React.FC<SearchFormProps> = ({ recommendation, setFilterParams
 
   const onReset = () => setFilterParams({});
 
-  const nameSpaceOptions = _.uniqBy(
-    recommendation.map((r: { namespace: any; label: any }) => ({ value: r.namespace, label: r.namespace })),
-    'value',
-  );
-
-  const workloadTypeOptions = _.uniqBy(
-    recommendation.map((r: { workloadType: any }) => ({ value: r.workloadType, label: r.workloadType })),
-    'value',
-  );
-
   return (
     <div className='list-common-table-query'>
       <Form onValuesChange={onValuesChange} onReset={onReset} labelWidth={80} layout={'inline'}>
@@ -40,15 +30,6 @@ const SearchForm: React.FC<SearchFormProps> = ({ recommendation, setFilterParams
               <Col>
                 <FormItem label={t('推荐名称')} name='name'>
                   <Input placeholder={t('请输入推荐名称')} />
-                </FormItem>
-              </Col>
-              <Col>
-                <FormItem label={t('工作负载类型')} name='workloadType'>
-                  <Select
-                    options={workloadTypeOptions}
-                    placeholder={t('请选择工作负载类型')}
-                    style={{ margin: '0px 20px' }}
-                  />
                 </FormItem>
               </Col>
             </Row>
