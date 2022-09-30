@@ -168,7 +168,11 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 					for _, metricRule := range c.MetricRulesResource {
 						if match, _ := (regexp.Match(metricRule.MetricMatches, []byte(metricName))); match {
 							klog.V(4).Infof("Got MetricRulesResource prometheus-adapter-resource MetricMatches[%s] SeriesName[%s]", metricRule.MetricMatches, metricRule.SeriesName)
+<<<<<<< HEAD
 							expressionQuery, err = metricRule.QueryForSeriesResource(ehpa.Namespace, labels.SelectorFromSet(extensionLabels), ehpa.Spec.ScaleTargetRef.Name, utils.GetPodNameReg(ehpa.Spec.ScaleTargetRef.Name, ehpa.Spec.ScaleTargetRef.Kind))
+=======
+							expressionQuery, err = metricRule.QueryForSeriesResource(ehpa.Namespace, labels.SelectorFromSet(extensionLabels), ehpa.Spec.ScaleTargetRef.Name, ehpa.Spec.ScaleTargetRef.Name+"-"+utils.RegMatchesPodName)
+>>>>>>> support prom-adapter regexp
 							if err != nil {
 								klog.Errorf("Got promSelector prometheus-adapter-resource %v", err)
 							} else {
@@ -182,7 +186,11 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 					for _, metricRule := range c.MetricRulesCustomer {
 						if match, _ := (regexp.Match(metricRule.MetricMatches, []byte(metricName))); match {
 							klog.V(4).Infof("Got metricRule prometheus-adapter-customer MetricMatches[%s] SeriesName[%s]", metricRule.MetricMatches, metricRule.SeriesName)
+<<<<<<< HEAD
 							var matchLabels map[string]string
+=======
+							var matchLabels = make(map[string]string)
+>>>>>>> support prom-adapter regexp
 							if metric.Pods.Metric.Selector != nil {
 								matchLabels = GetMatchLabels(extensionLabels, metric.Pods.Metric.Selector.MatchLabels)
 							} else {
@@ -203,7 +211,11 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 					for _, metricRule := range c.MetricRulesExternal {
 						if match, _ := (regexp.Match(metricRule.MetricMatches, []byte(metricName))); match {
 							klog.V(4).Infof("Got metricRule prometheus-adapter-external MetricMatches[%s] SeriesName[%s]", metricRule.MetricMatches, metricRule.SeriesName)
+<<<<<<< HEAD
 							var matchLabels map[string]string
+=======
+							var matchLabels = make(map[string]string)
+>>>>>>> support prom-adapter regexp
 							if metric.External.Metric.Selector != nil {
 								matchLabels = GetMatchLabels(extensionLabels, metric.External.Metric.Selector.MatchLabels)
 							} else {

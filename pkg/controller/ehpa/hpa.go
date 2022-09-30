@@ -272,7 +272,11 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 						for _, metricRule := range c.MetricRulesCustomer {
 							if match, _ := (regexp.Match(metricRule.MetricMatches, []byte(metricName))); match {
 								klog.V(4).Infof("Got MetricRulesCustomer prometheus-adapter-customer MetricMatches[%s] SeriesName[%s]", metricRule.MetricMatches, metricRule.SeriesName)
+<<<<<<< HEAD
 								var matchLabels map[string]string
+=======
+								var matchLabels = make(map[string]string)
+>>>>>>> support prom-adapter regexp
 								if metric.Pods.Metric.Selector != nil {
 									matchLabels = GetMatchLabels(extensionLabels, metric.Pods.Metric.Selector.MatchLabels)
 								} else {
@@ -293,7 +297,11 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 						for _, metricRule := range c.MetricRulesExternal {
 							if match, _ := (regexp.Match(metricRule.MetricMatches, []byte(metricName))); match {
 								klog.V(4).Infof("Got MetricRulesExternal prometheus-adapter-external MetricMatches[%s] SeriesName[%s]", metricRule.MetricMatches, metricRule.SeriesName)
+<<<<<<< HEAD
 								var matchLabels map[string]string
+=======
+								var matchLabels = make(map[string]string)
+>>>>>>> support prom-adapter regexp
 								if metric.External.Metric.Selector != nil {
 									matchLabels = GetMatchLabels(extensionLabels, metric.External.Metric.Selector.MatchLabels)
 								} else {

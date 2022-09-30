@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+<<<<<<< HEAD
 	"math"
+=======
+>>>>>>> support prom-adapter regexp
 
 	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/jaypipes/ghw"
@@ -117,7 +120,10 @@ func BuildNodeResourceTopology(sysPath string, kubeletConfig *kubeletconfiginter
 	nrtBuilder := topology.NewNRTBuilder()
 	nrtBuilder.WithNode(node)
 	nrtBuilder.WithReserved(reserved)
+<<<<<<< HEAD
 	nrtBuilder.WithReservedCPUs(getNumReservedCPUs(reserved))
+=======
+>>>>>>> support prom-adapter regexp
 	nrtBuilder.WithTopologyInfo(topo)
 	nrtBuilder.WithCPUManagerPolicy(cpuManagerPolicy)
 	newNrt := nrtBuilder.Build()
@@ -178,6 +184,7 @@ func parseResourceList(m map[string]string) (corev1.ResourceList, error) {
 	}
 	return rl, nil
 }
+<<<<<<< HEAD
 
 // getNumReservedCPUs will get the number of reserve cpus by reserved resource request.
 func getNumReservedCPUs(nodeAllocatableReservation corev1.ResourceList) int {
@@ -191,3 +198,5 @@ func getNumReservedCPUs(nodeAllocatableReservation corev1.ResourceList) int {
 	numReservedCPUs := int(math.Ceil(reservedCPUsFloat))
 	return numReservedCPUs
 }
+=======
+>>>>>>> support prom-adapter regexp

@@ -17,10 +17,15 @@ type Options struct {
 	RuntimeEndpoint string
 	// driver that the kubelet uses to manipulate cgroups on the host (cgroupfs or systemd)
 	CgroupDriver string
+<<<<<<< HEAD
 	// SysPath is the path to /sys dir.
 	SysPath string
 	// KubeletRootPath is the Path to kubelet root directory.
 	KubeletRootPath string
+=======
+	// SysPath is th path to /sys dir.
+	SysPath string
+>>>>>>> support prom-adapter regexp
 	// Is debug/pprof endpoint enabled
 	EnableProfiling bool
 	// BindAddr is the address the endpoint binds to.
@@ -61,7 +66,10 @@ func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&o.RuntimeEndpoint, "runtime-endpoint", "", "The runtime endpoint docker: unix:///var/run/dockershim.sock, containerd: unix:///run/containerd/containerd.sock, cri-o: unix:///run/crio/crio.sock, k3s: unix:///run/k3s/containerd/containerd.sock.")
 	flags.StringVar(&o.CgroupDriver, "cgroup-driver", "cgroupfs", "Driver that the kubelet uses to manipulate cgroups on the host.  Possible values: 'cgroupfs', 'systemd'. Default to 'cgroupfs'")
 	flags.StringVar(&o.SysPath, "sys-path", "/sys", "Path to /sys dir.")
+<<<<<<< HEAD
 	flags.StringVar(&o.KubeletRootPath, "kubelet-root-path", "/var/lib/kubelet", "Path to the kubelet root directory.")
+=======
+>>>>>>> support prom-adapter regexp
 	flags.Bool("enable-profiling", false, "Is debug/pprof endpoint enabled, default: false")
 	flags.StringVar(&o.BindAddr, "bind-address", "0.0.0.0:8081", "The address the agent binds to for metrics, health-check and pprof, default: 0.0.0.0:8081.")
 	flags.DurationVar(&o.CollectInterval, "collect-interval", 10*time.Second, "Period for the state collector to collect metrics, default: 10s")
