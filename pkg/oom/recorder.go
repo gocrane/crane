@@ -167,6 +167,10 @@ func (r *PodOOMRecorder) updateOOMRecord(oomRecord OOMRecord, saved []OOMRecord)
 		configMap := &v1.ConfigMap{}
 		err = r.Client.Get(context.TODO(), types.NamespacedName{Namespace: known.CraneSystemNamespace, Name: ConfigMapOOMRecordName}, configMap)
 		if err != nil {
+			if configMap.Name == ConfigMapOOMRecordName && configMap.Namespace == known.CraneSystemNamespace {
+				//delete the bad configmap in the CraneSystemNamespace
+				return r.Client.Delete(context.TODO(), configMap)
+			}
 			if apierrors.IsNotFound(err) {
 				// create ConfigMap if not exist
 				configMap.Name = ConfigMapOOMRecordName
