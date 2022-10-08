@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: low-pi6
+  name: low-pi1
   labels:
     k8s-app: low
     preemptible_job: "true"
 spec:
   containers:
-    - image: ccr.ccs.tencentyun.com/tkeimages/stress-ng:v0.12.09
+    - image: docker.io/gocrane/stress-ng:v0.12.09
       command:
         - stress-ng
         - --vm-hang
@@ -17,14 +17,6 @@ spec:
         - --vm-bytes
         - "2G"
       name: stress
-      volumeMounts:
-        - mountPath: /data
-          name: data
-  volumes:
-    - hostPath:
-        path: /data/dd
-        type: DirectoryOrCreate
-      name: data
 ---
 apiVersion: v1
 kind: Pod
@@ -35,7 +27,7 @@ metadata:
     preemptible_job: "true"
 spec:
   containers:
-    - image: ccr.ccs.tencentyun.com/tkeimages/stress-ng:v0.12.09
+    - image: docker.io/gocrane/stress-ng:v0.12.09
       command:
         - stress-ng
         - --vm-hang
@@ -45,12 +37,4 @@ spec:
         - --vm-bytes
         - "3.5G"
       name: stress
-      volumeMounts:
-        - mountPath: /data
-          name: data
-  volumes:
-    - hostPath:
-        path: /data/dd
-        type: DirectoryOrCreate
-      name: data
 

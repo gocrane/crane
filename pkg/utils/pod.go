@@ -205,8 +205,8 @@ func GetContainerNameFromPod(pod *v1.Pod, containerId string) string {
 		if len(strList) > 0 {
 			klog.V(6).Infof("cri-containerd is %s ", "cri-containerd-"+strList[len(strList)-1]+".scope")
 			klog.V(6).Infof("containerid is %s", containerId)
-			if "cri-containerd-"+strList[len(strList)-1]+".scope" == containerId {
-				klog.V(6).Infof("111111111")
+			containerIdFromPod := fmt.Sprintf("cri-containerd-%s.scope", strList[len(strList)-1])
+			if containerIdFromPod == containerId {
 				return v.Name
 			}
 		}

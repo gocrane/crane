@@ -13,6 +13,6 @@ spec:
       metricRule:
         name: memory_total_utilization
         value: 50
-      name: cpu-usage-percent
+      name: mem-usage-percent
       restoreThreshold: 2
       strategy: None

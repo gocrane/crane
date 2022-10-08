@@ -12,7 +12,7 @@ spec:
       avoidanceThreshold: 2
       metricRule:
         name: memory_total_usage
-        value: 5000000000
-      name: cpu-usage-percent
+        value: 5000000000 # means 5Gi
+      name: mem-usage
       restoreThreshold: 2
       strategy: None
