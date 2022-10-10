@@ -1,0 +1,347 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Crane – 智能推荐</title><link>/zh-cn/docs/tutorials/recommendation/</link><description>Recent content in 智能推荐 on Crane</description><generator>Hugo -- gohugo.io</generator><atom:link href="/zh-cn/docs/tutorials/recommendation/index.xml" rel="self" type="application/rss+xml"/><item><title>Docs: 推荐框架</title><link>/zh-cn/docs/tutorials/recommendation/recommendation-framework/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/recommendation/recommendation-framework/</guid><description>
+&lt;p>&lt;strong>推荐框架&lt;/strong>是指自动分析集群的各种资源的运行情况并给出优化建议。&lt;/p>
+&lt;h2 id="推荐概览">推荐概览&lt;/h2>
+&lt;p>Crane 的推荐模块定期的检测发现集群资源配置的问题，并给出优化建议。智能推荐提供了多种 Recommender 来实现面向不同资源的优化推荐。
+如何你想了解 Crane 如何做智能推荐的，或者你想要尝试实现一个自定义的 Recommender，或者修改一个已有的 Recommender 的推荐规则，这篇文章将帮助你了解智能推荐。&lt;/p>
+&lt;h2 id="用例">用例&lt;/h2>
+&lt;p>以下是智能推荐的典型用例：&lt;/p>
+&lt;ul>
+&lt;li>创建 RecommendationRule 配置。RecommendationRule Controller 会根据配置定期运行推荐任务，给出优化建议 Recommendation。&lt;/li>
+&lt;li>根据优化建议 Recommendation 调整资源配置。&lt;/li>
+&lt;/ul>
+&lt;h2 id="创建-recommendationrule-配置">创建 RecommendationRule 配置&lt;/h2>
+&lt;p>下面是一个 RecommendationRule 示例： workload-rule.yaml。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">RecommendationRule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">runInterval&lt;/span>: &lt;span style="color:#ae81ff">24h &lt;/span> &lt;span style="color:#75715e"># 每24h运行一次&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceSelectors&lt;/span>: &lt;span style="color:#75715e"># 资源的信息&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">StatefulSet&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespaceSelector&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">any&lt;/span>: &lt;span style="color:#66d9ef">true&lt;/span> &lt;span style="color:#75715e"># 扫描所有namespace&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommenders&lt;/span>: &lt;span style="color:#75715e"># 使用 Workload 的副本和资源推荐器&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Replicas&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Resource&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>在该示例中：&lt;/p>
+&lt;ul>
+&lt;li>每隔24小时运行一次分析推荐，&lt;code>runInterval&lt;/code>格式为时间间隔，比如: 1h，1m，设置为空表示只运行一次。&lt;/li>
+&lt;li>待分析的资源通过配置 &lt;code>resourceSelectors&lt;/code> 数组设置，每个 &lt;code>resourceSelector&lt;/code> 通过 kind，apiVersion，name 选择 k8s 中的资源，当不指定 name 时表示在 &lt;code>namespaceSelector&lt;/code> 基础上的所有资源&lt;/li>
+&lt;li>&lt;code>namespaceSelector&lt;/code> 定义了待分析资源的 namespace，&lt;code>any: true&lt;/code> 表示选择所有 namespace&lt;/li>
+&lt;li>&lt;code>recommenders&lt;/code> 定义了待分析的资源需要通过哪些 Recommender 进行分析。目前支持的类型：&lt;a href="/zh-cn/docs/tutorials/recommendation/recommendation-framework#recommender">recommenders&lt;/a>&lt;/li>
+&lt;li>资源类型和 &lt;code>recommenders&lt;/code> 需要可以匹配，比如 Resource 推荐默认只支持 Deployments 和 StatefulSets，每种 Recommender 支持哪些资源类型请参考 recommender 的文档&lt;/li>
+&lt;/ul>
+&lt;ol>
+&lt;li>通过以下命令创建 RecommendationRule，刚创建时会立刻开始一次推荐。&lt;/li>
+&lt;/ol>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>kubectl apply -f workload-rules.yaml
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>这个例子会对所有 namespace 中的 Deployments 和 StatefulSets 做资源推荐和副本数推荐。&lt;/p>
+&lt;ol start="2">
+&lt;li>检查 RecommendationRule 的推荐进度。通过 Status.recommendations 观察推荐任务的进度，推荐任务是顺序执行，如果所有任务的 lastStartTime 为最近时间且 message 有值，则表示这一次推荐完成&lt;/li>
+&lt;/ol>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>kubectl get rr workloads-rule
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">status&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastUpdateTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2022-09-28T10:36:02Z&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommendations&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastStartTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2022-09-28T10:36:02Z&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">message&lt;/span>: &lt;span style="color:#ae81ff">Success&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule-replicas-rckvb&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommenderRef&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Replicas&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">php-apache&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">b15cbcd7-6fe2-4ace-9ae8-11cc0a6e69c2&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastStartTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2022-09-28T10:36:02Z&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">message&lt;/span>: &lt;span style="color:#ae81ff">Success&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule-resource-pnnxn&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommenderRef&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Resource&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">php-apache&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">8472013a-bda2-4025-b0df-3fdc69c1c910&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ol start="3">
+&lt;li>查看优化建议 &lt;code>Recommendation&lt;/code>&lt;/li>
+&lt;/ol>
+&lt;p>可通过以下 label 筛选 &lt;code>Recommendation&lt;/code>，比如 &lt;code>kubectl get recommend -l analysis.crane.io/recommendation-rule-name=workloads-rule&lt;/code>&lt;/p>
+&lt;ul>
+&lt;li>RecommendationRule 名称：analysis.crane.io/recommendation-rule-name&lt;/li>
+&lt;li>RecommendationRule UID：analysis.crane.io/recommendation-rule-uid&lt;/li>
+&lt;li>RecommendationRule 的 recommender：analysis.crane.io/recommendation-rule-recommender&lt;/li>
+&lt;li>推荐资源的 kind：analysis.crane.io/recommendation-target-kind&lt;/li>
+&lt;li>推荐资源的 apiversion：analysis.crane.io/recommendation-target-apiversion&lt;/li>
+&lt;li>推荐资源的 name：analysis.crane.io/recommendation-target-apiversion&lt;/li>
+&lt;/ul>
+&lt;p>通常， &lt;code>Recommendation&lt;/code> 的 namespace 等于推荐资源的 namespace。闲置节点推荐的 &lt;code>Recommendation&lt;/code> 除外，它们在 Crane 的 root namespace 中，默认是 crane-system。&lt;/p>
+&lt;h2 id="根据优化建议-recommendation-调整资源配置">根据优化建议 Recommendation 调整资源配置&lt;/h2>
+&lt;p>对于资源推荐和副本数推荐建议，用户可以 PATCH status.recommendedInfo 到 workload 更新资源配置，例如：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>patchData&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">`&lt;/span>kubectl get recommend workloads-rule-replicas-rckvb -n default -o jsonpath&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#39;{.status.recommendedInfo}&amp;#39;&lt;/span>&lt;span style="color:#e6db74">`&lt;/span>;kubectl patch Deployment php-apache -n default --patch &lt;span style="color:#e6db74">&amp;#34;&lt;/span>&lt;span style="color:#e6db74">${&lt;/span>patchData&lt;span style="color:#e6db74">}&lt;/span>&lt;span style="color:#e6db74">&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>对于闲置节点推荐，由于节点的下线在不同平台上的步骤不同，用户可以根据自身需求进行节点的下线或者缩容。&lt;/p>
+&lt;h2 id="recommender">Recommender&lt;/h2>
+&lt;p>目前 Crane 支持了以下 Recommender：&lt;/p>
+&lt;ul>
+&lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/resource-recommendation">&lt;strong>资源推荐&lt;/strong>&lt;/a>: 通过 VPA 算法分析应用的真实用量推荐更合适的资源配置&lt;/li>
+&lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/replicas-recommendation">&lt;strong>副本数推荐&lt;/strong>&lt;/a>: 通过 HPA 算法分析应用的真实用量推荐更合适的副本数量&lt;/li>
+&lt;/ul>
+&lt;h3 id="recommender-框架">Recommender 框架&lt;/h3>
+&lt;p>Recommender 框架定义了一套工作流程，Recommender 按流程顺序执行，流程分为四个阶段：Filter,Prepare,Recommend,Observe，Recommender 通过实现这四个阶段完成推荐功能。&lt;/p>
+&lt;p>开发或者扩展 Recommender 请参考：&lt;a href="/zh-cn/docs/tutorials/recommendation/how-to-develop-recommender">如何开发 Recommender&lt;/a>&lt;/p>
+&lt;h2 id="recommendationconfiguration">RecommendationConfiguration&lt;/h2>
+&lt;p>RecommendationConfiguration 定义了 recommender 的配置。部署时会在 crane root namespace创建一个 ConfigMap：recommendation-configuration，数据包括了一个 yaml 格式的 RecommendationConfiguration.&lt;/p>
+&lt;p>下面是一个 RecommendationConfiguration 示例。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">ConfigMap&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">recommendation-configuration&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">crane-system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">data&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">config.yaml&lt;/span>: |-&lt;span style="color:#e6db74">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> apiVersion: analysis.crane.io/v1alpha1
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> kind: RecommendationConfiguration
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> recommenders:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - name: Replicas
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> acceptedResources: # 接受的资源类型
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - kind: Deployment
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> apiVersion: apps/v1
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - kind: StatefulSet
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> apiVersion: apps/v1
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> config: # 设置 recommender 的参数
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> workload-min-replicas: &amp;#34;1&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - name: Resource
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> acceptedResources: # 接受的资源类型
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - kind: Deployment
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> apiVersion: apps/v1
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - kind: StatefulSet
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> apiVersion: apps/v1&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>用户可以修改 ConfigMap 内容并重新发布 Crane，触发新的配置生效。&lt;/p>
+&lt;h2 id="如何让推荐结果更准确">如何让推荐结果更准确&lt;/h2>
+&lt;p>应用在监控系统（比如 Prometheus）中的历史数据越久，推荐结果就越准确，建议生产上超过两周时间。对新建应用的预测往往不准。&lt;/p></description></item><item><title>Docs: 副本数推荐</title><link>/zh-cn/docs/tutorials/recommendation/replicas-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/recommendation/replicas-recommendation/</guid><description>
+&lt;p>Kubernetes 用户在创建应用资源时常常是基于经验值来设置副本数。通过副本数推荐的算法分析应用的真实用量推荐更合适的副本配置，您可以参考并采纳它提升集群的资源利用率。&lt;/p>
+&lt;h2 id="实现原理">实现原理&lt;/h2>
+&lt;p>基于 Workload 历史 CPU 负载，找到过去七天内每小时负载最低的 CPU 用量，计算按50%（可配置）利用率和 Workload CPU Request 应配置的副本数&lt;/p>
+&lt;h3 id="filter-阶段">Filter 阶段&lt;/h3>
+&lt;ol>
+&lt;li>低副本数的工作负载: 过低的副本数可能弹性需求不高，关联配置: &lt;code>workload-min-replicas&lt;/code>&lt;/li>
+&lt;li>存在一定比例非 Running Pod 的工作负载: 如果工作负载的 Pod 大多不能正常运行，可能不适合弹性，关联配置: &lt;code>pod-min-ready-seconds&lt;/code> | &lt;code>pod-available-ratio&lt;/code>&lt;/li>
+&lt;/ol>
+&lt;h3 id="prepare-阶段">Prepare 阶段&lt;/h3>
+&lt;p>查询过去一周的 CPU 使用量&lt;/p>
+&lt;h3 id="recommend-阶段">Recommend 阶段&lt;/h3>
+&lt;ol>
+&lt;li>计算过去7天 workload 每小时使用量中位数的最低值(防止极小值影响): workload_cpu_usage_medium_min&lt;/li>
+&lt;li>目标利用率对应的副本数:&lt;/li>
+&lt;/ol>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">replicas&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> int32(&lt;span style="color:#a6e22e">math&lt;/span>.&lt;span style="color:#a6e22e">Ceil&lt;/span>(&lt;span style="color:#a6e22e">workloadCpu&lt;/span> &lt;span style="color:#f92672">/&lt;/span> (&lt;span style="color:#a6e22e">rr&lt;/span>.&lt;span style="color:#a6e22e">TargetUtilization&lt;/span> &lt;span style="color:#f92672">*&lt;/span> float64(&lt;span style="color:#a6e22e">requestTotal&lt;/span>) &lt;span style="color:#f92672">/&lt;/span> &lt;span style="color:#ae81ff">1000.&lt;/span>)))
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ol start="3">
+&lt;li>为了防止 replicas 过小，replicas 需要大于等于 default-min-replicas&lt;/li>
+&lt;/ol>
+&lt;h3 id="observe-阶段">Observe 阶段&lt;/h3>
+&lt;p>将推荐 replicas 记录到 Metric：crane_analytics_replicas_recommendation&lt;/p>
+&lt;h2 id="支持的资源类型">支持的资源类型&lt;/h2>
+&lt;p>默认支持 StatefulSet 和 Deployment，但是支持所有实现了 Scale SubResource 的 Workload。&lt;/p>
+&lt;h2 id="参数配置">参数配置&lt;/h2>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>配置项&lt;/th>
+&lt;th>默认值&lt;/th>
+&lt;th>描述&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>workload-min-replicas&lt;/td>
+&lt;td>1&lt;/td>
+&lt;td>小于该值的工作负载不做弹性推荐&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>pod-min-ready-seconds&lt;/td>
+&lt;td>30&lt;/td>
+&lt;td>定义了 Pod 是否 Ready 的秒数&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>pod-available-ratio&lt;/td>
+&lt;td>0.5&lt;/td>
+&lt;td>Ready Pod 比例小于该值的工作负载不做弹性推荐&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>default-min-replicas&lt;/td>
+&lt;td>1&lt;/td>
+&lt;td>最小 minReplicas&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>cpu-target-utilizationn&lt;/td>
+&lt;td>0.5&lt;/td>
+&lt;td>按该值计算最小副本数&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table></description></item><item><title>Docs: 资源推荐</title><link>/zh-cn/docs/tutorials/recommendation/resource-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/recommendation/resource-recommendation/</guid><description>
+&lt;p>Kubernetes 用户在创建应用资源时常常是基于经验值来设置 request 和 limit。通过资源推荐的算法分析应用的真实用量推荐更合适的资源配置，您可以参考并采纳它提升集群的资源利用率。&lt;/p>
+&lt;h2 id="实现原理">实现原理&lt;/h2>
+&lt;p>算法模型采用了 VPA 的滑动窗口（Moving Window）算法进行推荐&lt;/p>
+&lt;ol>
+&lt;li>通过监控数据，获取 Workload 过去一周（可配置）的 CPU 和 Memory 历史用量。&lt;/li>
+&lt;li>算法考虑数据的时效性，较新的数据采样点会拥有更高的权重。&lt;/li>
+&lt;li>CPU 推荐值基于用户设置的目标百分位值计算，Memory 推荐值基于历史数据的最大值&lt;/li>
+&lt;/ol>
+&lt;h2 id="资源推荐计算模型">资源推荐计算模型&lt;/h2>
+&lt;h3 id="filter-阶段">Filter 阶段&lt;/h3>
+&lt;p>没有 Pod 的工作负载: 如果工作负载没有 Pod，无法进行算法分析&lt;/p>
+&lt;h3 id="recommend-推荐">Recommend 推荐&lt;/h3>
+&lt;p>采用 VPA 的滑动窗口（Moving Window）算法分别计算每个容器的 CPU 和 Memory 并给出对应的推荐值&lt;/p>
+&lt;h3 id="observe-推荐">Observe 推荐&lt;/h3>
+&lt;p>将推荐资源配置记录到 Metric：crane_analytics_replicas_recommendation&lt;/p>
+&lt;h2 id="支持的资源类型">支持的资源类型&lt;/h2>
+&lt;p>默认支持 StatefulSet 和 Deployment，但是支持所有实现了 Scale SubResource 的 Workload。&lt;/p>
+&lt;h2 id="参数配置">参数配置&lt;/h2>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>配置项&lt;/th>
+&lt;th>默认值&lt;/th>
+&lt;th>描述&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>cpu-sample-interval&lt;/td>
+&lt;td>1m&lt;/td>
+&lt;td>请求 CPU 监控数据的 Metric 采样点时间间隔&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>cpu-request-percentile&lt;/td>
+&lt;td>0.99&lt;/td>
+&lt;td>CPU 百分位值&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>cpu-request-margin-fraction&lt;/td>
+&lt;td>0.15&lt;/td>
+&lt;td>CPU 推荐值扩大系数，0.15指推荐值乘以 1.15&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>cpu-target-utilization&lt;/td>
+&lt;td>1&lt;/td>
+&lt;td>CPU 目标利用率，0.8 指推荐值除以 0.8&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>cpu-model-history-length&lt;/td>
+&lt;td>168h&lt;/td>
+&lt;td>CPU 历史监控数据的时间&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>mem-sample-interval&lt;/td>
+&lt;td>1m&lt;/td>
+&lt;td>请求 Memory 监控数据的 Metric 采样点时间间隔&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>mem-request-percentile&lt;/td>
+&lt;td>0.99&lt;/td>
+&lt;td>Memory 百分位值&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>mem-request-margin-fraction&lt;/td>
+&lt;td>0.15&lt;/td>
+&lt;td>Memory 推荐值扩大系数，0.15指推荐值乘以 1.15&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>mem-target-utilization&lt;/td>
+&lt;td>1&lt;/td>
+&lt;td>Memory 目标利用率，0.8 指推荐值除以 0.8&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>mem-model-history-length&lt;/td>
+&lt;td>168h&lt;/td>
+&lt;td>Memory 历史监控数据的时间&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table></description></item><item><title>Docs: 如何开发 Recommender</title><link>/zh-cn/docs/tutorials/recommendation/how-to-develop-recommender/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/recommendation/how-to-develop-recommender/</guid><description>
+&lt;p>Recommendation Framework 提供了一套可扩展的 Recommender 框架并支持了内置的 Recommender，用户可以实现一个自定义的 Recommender，或者修改一个已有的 Recommender。&lt;/p>
+&lt;h2 id="recommender-interface">Recommender Interface&lt;/h2>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">Recommender&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">Name&lt;/span>() &lt;span style="color:#66d9ef">string&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">framework&lt;/span>.&lt;span style="color:#a6e22e">Filter&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">framework&lt;/span>.&lt;span style="color:#a6e22e">PrePrepare&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">framework&lt;/span>.&lt;span style="color:#a6e22e">Prepare&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">framework&lt;/span>.&lt;span style="color:#a6e22e">PostPrepare&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">framework&lt;/span>.&lt;span style="color:#a6e22e">PreRecommend&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">framework&lt;/span>.&lt;span style="color:#a6e22e">Recommend&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">framework&lt;/span>.&lt;span style="color:#a6e22e">PostRecommend&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">framework&lt;/span>.&lt;span style="color:#a6e22e">Observe&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// Phase: Filter
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// Filter interface
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">Filter&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// The Filter will filter resource can`t be recommended via target recommender.
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">Filter&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">RecommendationContext&lt;/span>) &lt;span style="color:#66d9ef">error&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// Phase: Prepare
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// PrePrepare interface
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">PrePrepare&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">CheckDataProviders&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">RecommendationContext&lt;/span>) &lt;span style="color:#66d9ef">error&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// Prepare interface
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">Prepare&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">CollectData&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">RecommendationContext&lt;/span>) &lt;span style="color:#66d9ef">error&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">PostPrepare&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">PostProcessing&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">RecommendationContext&lt;/span>) &lt;span style="color:#66d9ef">error&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// PreRecommend interface
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">PreRecommend&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">PreRecommend&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">RecommendationContext&lt;/span>) &lt;span style="color:#66d9ef">error&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// Phase: Recommend
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// Recommend interface
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">Recommend&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">Recommend&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">RecommendationContext&lt;/span>) &lt;span style="color:#66d9ef">error&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// PostRecommend interface
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">PostRecommend&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">Policy&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">RecommendationContext&lt;/span>) &lt;span style="color:#66d9ef">error&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// Phase: Observe
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// Observe interface
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">Observe&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">Observe&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">RecommendationContext&lt;/span>) &lt;span style="color:#66d9ef">error&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Recommender 接口定义了一次推荐需要实现的四个阶段和八个扩展点。这些扩展点会在推荐过程中按顺序被调用。这些扩展点中的的一些可以改变调度决策，而另一些仅用来提供信息。&lt;/p>
+&lt;h2 id="架构">架构&lt;/h2>
+&lt;p>&lt;img src="/images/recommendation-framework.png" alt="">&lt;/p>
+&lt;h2 id="阶段">阶段&lt;/h2>
+&lt;p>整个推荐过程分成了四个阶段：Filter，Prepare，Recommend，Observe。阶段的输入是需要分析的 Kubernetes 资源，输出是推荐的优化建议。 下面开始介绍每个阶段的输入、输出和能力。&lt;/p>
+&lt;p>&lt;code>RecommendationContext&lt;/code> 保存了一次推荐过程中的上下文，包括推荐目标，RecommendationConfiguration 等，用户可以按需增加更多的内容。&lt;/p>
+&lt;h3 id="filter">Filter&lt;/h3>
+&lt;p>Filter 阶段用于预处理推荐数据。通常，在预处理时需判断推荐目标是否和 Recommender 匹配，比如，Resource Recommender 只支持处理 Workload（Deployment，StatefulSet）。除此之外，还可以判断推荐目标状态是否适合推荐，比如是否删除中，是否刚创建等。当返回 error 会终止此次推荐。BaseRecommender 实现了基本的预处理功能，用户可以调用它继承相关功能。&lt;/p>
+&lt;h3 id="prepare">Prepare&lt;/h3>
+&lt;p>Prepare 阶段用于数据准备，请求外部监控系统并将时序数据保存在上下文中。PrePrepare 扩展点用于检测监控系统的链接情况。Prepare 扩展点用于查询时序数据。PostPrepare 扩展点用于对时序数据的数据处理，比如：应用冷启动的异常数据，部分数据的缺失，数据聚合，异常数据清理等。&lt;/p>
+&lt;h3 id="recommend">Recommend&lt;/h3>
+&lt;p>Recommend 阶段用于基于时序数据和资源配置进行优化建议。优化建议的类型取决于推荐的类型。比如，如果是资源推荐，那么输出就是 kubernetes workload 的资源配置。Recommend 扩展点用于采用 Crane 的算法模块对数据进行分析计算，PostRecommend 阶段对分析结果进行最后处理。用户可以自定义 Recommend 阶段实现自定义的推荐结果。&lt;/p>
+&lt;h3 id="observe">Observe&lt;/h3>
+&lt;p>Observe 阶段用于推荐结果的可观测。比如，在资源推荐时，将优化建议的信息通过 Metric 保存到监控系统，再通过 Dashboard 观测优化建议带来的收益。&lt;/p></description></item></channel></rss>
