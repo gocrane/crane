@@ -32,7 +32,6 @@ spec:
           imagePullPolicy: Always
           command:
             - /crane-agent
-            - --kubelet-root-path=/kubelet
             - -v=2
           name: crane-agent
           volumeMounts:
@@ -40,7 +39,7 @@ spec:
               name: sys
             - mountPath: /run
               name: run
-            - mountPath: /kubelet
+            - mountPath: /var/lib/kubelet
               name: kubelet-root-path
           livenessProbe:
             httpGet:

@@ -192,7 +192,7 @@ func NewCPUManager(
 		initialContainers,
 	)
 	if err != nil {
-		klog.ErrorS(err, "Could not initialize checkpoint state, please drain node and remove policy state file")
+		klog.ErrorS(err, "Could not initialize checkpoint state, please remove crane cpu policy state file and restart crane agent")
 		return nil, err
 	}
 
