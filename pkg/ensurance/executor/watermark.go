@@ -16,8 +16,9 @@ type WatermarkMetric string
 
 // Be consistent with metrics in collector/types/types.go
 const (
-	CpuUsage = WatermarkMetric(types.MetricNameCpuTotalUsage)
-	MemUsage = WatermarkMetric(types.MetricNameMemoryTotalUsage)
+	CpuUsage        = WatermarkMetric(types.MetricNameCpuTotalUsage)
+	CpuUsagePercent = WatermarkMetric(types.MetricNameCpuTotalUtilization)
+	MemUsage        = WatermarkMetric(types.MetricNameMemoryTotalUsage)
 )
 
 const (
@@ -163,7 +164,18 @@ func calculateGaps(stateMap map[string][]common.TimeSeries,
 				delete(result, m.Name)
 			} else {
 				klog.V(6).Infof("BuildEvictWatermarkGap: For metrics %+v, maxUsed is %f, watermark is %f", m, maxUsed, float64(evictWatermark.PopSmallest().Value()))
-				result[m.Name] = (1 + executeExcessPercent) * (maxUsed - float64(evictWatermark.PopSmallest().Value()))
+				if m.Name == CpuUsagePercent {
+					cpuCoreNums, ok := stateMap[string(types.MetricNameCpuCoreNumbers)]
+					if !ok {
+						klog.Warningf("Can't get MetricNameCpuCoreNumbers")
+					} else {
+						cpuPercentToUsage := (1 + executeExcessPercent) * (maxUsed - float64(evictWatermark.PopSmallest().Value())) * cpuCoreNums[0].Samples[0].Value * 1000 / types.MaxPercentage
+						result[m.Name] = cpuPercentToUsage
+						klog.V(6).Infof("maxUsed is %f, watermark is %f, cpuPercentToUsageGap is %f", maxUsed, float64(evictWatermark.PopSmallest().Value()), cpuPercentToUsage)
+					}
+				} else {
+					result[m.Name] = (1 + executeExcessPercent) * (maxUsed - float64(evictWatermark.PopSmallest().Value()))
+				}
 			}
 		}
 	} else if throttleExecutor != nil {

@@ -1,0 +1,13 @@
+apiVersion: ensurance.crane.io/v1alpha1
+kind: PodQOS
+metadata:
+  name: all-elastic-pods
+spec:
+  allowedActions:
+    - eviction
+  resourceQOS:
+    cpuQOS:
+      cpuPriority: 7
+  labelSelector:
+    matchLabels:
+      preemptible_job: "true"

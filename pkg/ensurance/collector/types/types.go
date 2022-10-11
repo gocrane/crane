@@ -19,6 +19,7 @@ const (
 	MetricNameCpuLoad1Min         MetricName = "cpu_load_1_min"
 	MetricNameCpuLoad5Min         MetricName = "cpu_load_5_min"
 	MetricNameCpuLoad15Min        MetricName = "cpu_load_15_min"
+	MetricNameCpuCoreNumbers      MetricName = "cpu_core_numbers"
 
 	MetricNameExclusiveCPUIdle MetricName = "exclusive_cpu_idle"
 

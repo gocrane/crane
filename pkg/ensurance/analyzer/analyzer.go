@@ -476,7 +476,6 @@ func (s *AnomalyAnalyzer) getEvictPods(triggered bool, action *ensuranceapi.Avoi
 		}
 		for _, pod := range filteredPods {
 			evictPods = append(evictPods, podinfo.BuildPodActionContext(pod, stateMap, action, podinfo.Evict))
-
 		}
 	}
 	return evictPods

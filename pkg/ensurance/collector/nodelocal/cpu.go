@@ -109,6 +109,7 @@ func collectCPU(nodeLocalContext *nodeLocalContext) (map[string][]common.TimeSer
 	data[string(types.MetricNameCpuTotalUsage)] = []common.TimeSeries{{Samples: []common.Sample{{Value: usageCore, Timestamp: now.Unix()}}}}
 	data[string(types.MetricNameCpuTotalUtilization)] = []common.TimeSeries{{Samples: []common.Sample{{Value: usagePercent, Timestamp: now.Unix()}}}}
 	data[string(types.MetricNameExclusiveCPUIdle)] = []common.TimeSeries{{Samples: []common.Sample{{Value: exclusiveCPUIdle, Timestamp: now.Unix()}}}}
+	data[string(types.MetricNameCpuCoreNumbers)] = []common.TimeSeries{{Samples: []common.Sample{{Value: float64(nodeState.cpuCoreNumbers), Timestamp: now.Unix()}}}}
 
 	return data, nil
 }

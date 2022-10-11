@@ -92,12 +92,11 @@ func (e *EvictExecutor) Avoid(ctx *ExecuteContext) error {
 					execsort.GeneralSorter(e.EvictPods)
 				}
 
-				klog.V(6).Info("After sort, the sequence to evict is ")
 				for _, pc := range e.EvictPods {
 					klog.V(6).Info(pc.Key.String())
 				}
 				for !ctx.ToBeEvict.TargetGapsRemoved(m) {
-					klog.V(2).Infof("For metric %s, there is more gap to watermarks: %f of %s", m, ctx.ToBeEvict[m], m)
+					klog.V(2).Infof("For metric %s, there is gap %f to watermarks %s", m, ctx.ToBeEvict[m], m)
 					if podinfo.ContainsNoExecutedPod(e.EvictPods) {
 						index := podinfo.GetFirstPendingPod(e.EvictPods)
 						errKeys, released = metricMap[m].EvictFunc(&wg, ctx, index, &totalReleased, e.EvictPods)
