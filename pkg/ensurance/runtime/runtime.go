@@ -2,10 +2,14 @@ package runtime
 
 import (
 	"fmt"
+	"time"
 
 	"google.golang.org/grpc"
+	"k8s.io/apimachinery/pkg/util/errors"
+	criapis "k8s.io/cri-api/pkg/apis"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	"k8s.io/klog/v2"
+	criremote "k8s.io/kubernetes/pkg/kubelet/cri/remote"
 
 	gprcconnection "github.com/gocrane/crane/pkg/ensurance/grpc"
 )
@@ -52,4 +56,24 @@ func GetImageClient(imageEndpoint string) (pb.ImageServiceClient, *grpc.ClientCo
 	}
 	imageClient := pb.NewImageServiceClient(conn)
 	return imageClient, conn, nil
+}
+
+// GetCRIRuntimeService get the CRI runtime service.
+func GetCRIRuntimeService(runtimeEndpoint string) (criapis.RuntimeService, error) {
+	var runtimeEndpoints []string
+	if runtimeEndpoint != "" {
+		runtimeEndpoints = append(runtimeEndpoints, runtimeEndpoint)
+	}
+	runtimeEndpoints = append(runtimeEndpoints, defaultRuntimeEndpoints...)
+	klog.V(2).Infof("Runtime connect using endpoints: %v. You can set the endpoint instead.", defaultRuntimeEndpoints)
+
+	var errs []error
+	for _, endpoint := range runtimeEndpoints {
+		containerRuntime, err := criremote.NewRemoteRuntimeService(endpoint, 3*time.Second)
+		if err == nil {
+			return containerRuntime, nil
+		}
+		errs = append(errs, err)
+	}
+	return nil, errors.NewAggregate(errs)
 }

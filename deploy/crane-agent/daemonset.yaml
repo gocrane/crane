@@ -1,4 +1,3 @@
-
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -40,6 +39,8 @@ spec:
               name: sys
             - mountPath: /run
               name: run
+            - mountPath: /var/lib/kubelet
+              name: kubelet-root-path
           livenessProbe:
             httpGet:
               path: /health-check
@@ -56,3 +57,6 @@ spec:
             path: /run
             type: ""
           name: run
+        - hostPath:
+            path: /var/lib/kubelet
+          name: kubelet-root-path

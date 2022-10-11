@@ -3,14 +3,13 @@ package topology
 import (
 	"sort"
 
+	topologyapi "github.com/gocrane/api/topology/v1alpha1"
 	"github.com/jaypipes/ghw"
 	"github.com/jaypipes/ghw/pkg/topology"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
-
-	topologyapi "github.com/gocrane/api/topology/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/utils"
 )
@@ -22,7 +21,7 @@ type NRTBuilder struct {
 	cpuManagerPolicy      topologyapi.CPUManagerPolicy
 	topologyManagerPolicy topologyapi.TopologyManagerPolicy
 	reserved              corev1.ResourceList
-	reservedCPUs          int32
+	reservedCPUs          int
 	topologyInfo          *topology.Info
 }
 
@@ -49,6 +48,11 @@ func (b *NRTBuilder) WithCPUManagerPolicy(cpuManagerPolicy topologyapi.CPUManage
 // WithReserved sets the reserved property of a Builder.
 func (b *NRTBuilder) WithReserved(reserved corev1.ResourceList) {
 	b.reserved = reserved
+}
+
+// WithReservedCPUs sets the reserved property of a Builder.
+func (b *NRTBuilder) WithReservedCPUs(reservedCPUs int) {
+	b.reservedCPUs = reservedCPUs
 }
 
 // WithTopologyInfo sets the topologyInfo property of a Builder.
@@ -117,7 +121,7 @@ func buildCostsPerNUMANode(node *ghw.TopologyNode) []topologyapi.CostInfo {
 	return nodeCosts
 }
 
-func buildNodeResource(node *ghw.TopologyNode, reserved corev1.ResourceList, reservedCPUs *int32) *topologyapi.ResourceInfo {
+func buildNodeResource(node *ghw.TopologyNode, reserved corev1.ResourceList, reservedCPUs *int) *topologyapi.ResourceInfo {
 	logicalCores := 0
 	for _, core := range node.Cores {
 		logicalCores += len(core.LogicalProcessors)
@@ -128,18 +132,18 @@ func buildNodeResource(node *ghw.TopologyNode, reserved corev1.ResourceList, res
 		capacity[corev1.ResourceMemory] = *resource.NewQuantity(node.Memory.TotalUsableBytes, resource.BinarySI)
 	}
 	allocatable := getNodeAllocatable(capacity, reserved)
-	var reservedCPUNums int32
-	if int32(logicalCores) >= *reservedCPUs {
+	var reservedCPUNums int
+	if logicalCores >= *reservedCPUs {
 		reservedCPUNums = *reservedCPUs
 		*reservedCPUs = 0
 	} else {
-		reservedCPUNums = int32(logicalCores)
-		*reservedCPUs -= int32(logicalCores)
+		reservedCPUNums = logicalCores
+		*reservedCPUs -= logicalCores
 	}
 	return &topologyapi.ResourceInfo{
 		Capacity:        capacity,
 		Allocatable:     allocatable,
-		ReservedCPUNums: reservedCPUNums,
+		ReservedCPUNums: int32(reservedCPUNums),
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 
 	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/jaypipes/ghw"
@@ -116,6 +117,7 @@ func BuildNodeResourceTopology(sysPath string, kubeletConfig *kubeletconfiginter
 	nrtBuilder := topology.NewNRTBuilder()
 	nrtBuilder.WithNode(node)
 	nrtBuilder.WithReserved(reserved)
+	nrtBuilder.WithReservedCPUs(getNumReservedCPUs(reserved))
 	nrtBuilder.WithTopologyInfo(topo)
 	nrtBuilder.WithCPUManagerPolicy(cpuManagerPolicy)
 	newNrt := nrtBuilder.Build()
@@ -175,4 +177,17 @@ func parseResourceList(m map[string]string) (corev1.ResourceList, error) {
 		}
 	}
 	return rl, nil
+}
+
+// getNumReservedCPUs will get the number of reserve cpus by reserved resource request.
+func getNumReservedCPUs(nodeAllocatableReservation corev1.ResourceList) int {
+	reservedCPUs, ok := nodeAllocatableReservation[corev1.ResourceCPU]
+	if !ok || reservedCPUs.IsZero() {
+		// The static policy cannot initialize without this information.
+		return 0
+	}
+
+	reservedCPUsFloat := float64(reservedCPUs.MilliValue()) / 1000
+	numReservedCPUs := int(math.Ceil(reservedCPUsFloat))
+	return numReservedCPUs
 }
