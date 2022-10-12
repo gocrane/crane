@@ -251,7 +251,6 @@ func (c *RecommendationRuleController) CreateRecommendationObject(recommendation
 			OwnerReferences: []metav1.OwnerReference{
 				*newOwnerRef(recommendationRule),
 			},
-			Labels: id.Labels,
 		},
 		Spec: analysisv1alph1.RecommendationSpec{
 			TargetRef: target,
@@ -259,16 +258,18 @@ func (c *RecommendationRuleController) CreateRecommendationObject(recommendation
 		},
 	}
 
-	if recommendation.Labels == nil {
-		recommendation.Labels = map[string]string{}
+	labels := map[string]string{}
+	labels[known.RecommendationRuleNameLabel] = recommendationRule.Name
+	labels[known.RecommendationRuleUidLabel] = string(recommendationRule.UID)
+	labels[known.RecommendationRuleRecommenderLabel] = recommenderName
+	labels[known.RecommendationRuleTargetKindLabel] = target.Kind
+	labels[known.RecommendationRuleTargetVersionLabel] = target.GroupVersionKind().Version
+	labels[known.RecommendationRuleTargetNameLabel] = target.Name
+	for k, v := range id.Labels {
+		labels[k] = v
 	}
-	recommendation.Labels[known.RecommendationRuleNameLabel] = recommendationRule.Name
-	recommendation.Labels[known.RecommendationRuleUidLabel] = string(recommendationRule.UID)
-	recommendation.Labels[known.RecommendationRuleRecommenderLabel] = recommenderName
-	recommendation.Labels[known.RecommendationRuleTargetKindLabel] = target.Kind
-	recommendation.Labels[known.RecommendationRuleTargetApiVersionLabel] = target.APIVersion
-	recommendation.Labels[known.RecommendationRuleTargetNameLabel] = target.Name
 
+	recommendation.Labels = labels
 	return recommendation
 }
 
