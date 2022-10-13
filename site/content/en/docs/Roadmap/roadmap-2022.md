@@ -15,13 +15,13 @@ Please let us know if you have urgent needs which are not presented in the plan.
 - fadvisor to support billing	
 ### 0.2.0：[released]
 - Multiple Metric Adaptor support
-- Node QoS Ensurance for CPU
+- Node QOS Ensurance for CPU
 - Operation Metrics about R3 and EPA applied ratio
 ### 0.3.0 [released]
 - UI with cost visibility and usage optimizations.
 - Request Recommendation adapts with Virtual Kubelet
 - Multiple Triggers for EPA
-- Node QoS Ensurance for Mem
+- Node QOS Ensurance for Mem
 - Prediction with CPU, Memory, and Business Metrics
 - Scalability to support 1K TSP and 1K EPA			
 ### 0.4.0 [released]
@@ -31,7 +31,7 @@ Please let us know if you have urgent needs which are not presented in the plan.
 - Load-aware Scheduler
 ### 0.6.0 [released]
 - Scalability to support 3k TSP and 3k EPA		
-- Algorithm and QoS Documentation
+- Algorithm and QOS Documentation
 - EHPA grafana dashboard
 - DSP Algorithm Optimization
 - Support remote adapter for external metric

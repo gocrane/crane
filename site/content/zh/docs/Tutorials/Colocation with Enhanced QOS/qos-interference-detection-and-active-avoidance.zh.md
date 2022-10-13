@@ -1,11 +1,17 @@
-## Qos Ensurance 架构
-Qos ensurance 的架构如下图所示。它包含三个模块。
+---
+title: "干扰检测和主动回避"
+description: "水位线功能"
+weight: 19
+---
+
+## QOS Ensurance 架构
+QOS ensurance 的架构如下图所示。它包含三个模块。
 
 1. `State Collector`：定期收集指标
 2. `Anomaly Analyzer`：使用收集指标，以分析节点是否发生异常
 3. `Action Executor`：执行回避动作，包括 Disable Scheduling、Throttle 和 Eviction。
 
-![crane-qos-enurance](../images/crane-qos-ensurance.png)
+![](/images/crane-qos-ensurance.png)
 
 主要流程：
 
@@ -102,7 +108,7 @@ spec:
 
 ### Throttle
 
-定义 `AvoidanceAction`, `NodeQOS` 和 `PodQOS`。
+定义 `AvoidanceAction` 和 `NodeQOS`。
 
 当节点 CPU 使用率触发回避阈值时，将执行节点的`Throttle Action`。
 

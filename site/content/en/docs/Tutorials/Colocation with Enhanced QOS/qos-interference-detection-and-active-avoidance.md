@@ -1,11 +1,17 @@
-## Qos Ensurance Architecture
-Qos ensurance's architecture is shown as below. It contains three modules.
+---
+title: "Interference Detection and Active Avoidance"
+description: "Watermark and executor"
+weight: 19
+---
+
+## QOS Ensurance Architecture
+QOS ensurance's architecture is shown as below. It contains three modules.
 
 1. state collector: collect metrics periodically
 2. anomaly analyzer: analyze the node triggered anomaly used collected metrics
 3. action executor: execute avoidance actions, include disable scheduling, throttle and eviction.
 
-![crane-qos-enurance](../images/crane-qos-ensurance.png)
+![](/images/crane-qos-ensurance.png)
 
 The main process:
 

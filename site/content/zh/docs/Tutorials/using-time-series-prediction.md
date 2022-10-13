@@ -1,7 +1,7 @@
 ---
 title: "TimeSeriesPrediction"
 description: "TimeSeriesPrediction 功能介绍"
-weight: 19
+weight: 24
 ---
 
 Knowing the future makes things easier for us.

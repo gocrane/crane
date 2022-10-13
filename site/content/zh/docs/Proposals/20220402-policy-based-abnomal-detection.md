@@ -19,7 +19,7 @@ general-purpose policy engine.
 
 ## Motivation
 The criteria of abnormality or interference are not that always as simple as something like a metric value is higher than a threshold. 
-Different users may have different QoS requirements on different applications in different environments. The rule of
+Different users may have different QOS requirements on different applications in different environments. The rule of
 abnormality detection varies, and it is impossible to implement all of them in code in advance.
 
 ### Goals
@@ -38,12 +38,12 @@ out of scope.
 
 #### Story 1
 A user has a critical online application which is latency sensitive running in the cluster, and he wants to use both 
-the 99th percentile response time and the error code rate as the application QoS indicators. If either of these 2 indicators 
+the 99th percentile response time and the error code rate as the application QOS indicators. If either of these 2 indicators 
 deteriorates, the application is thought of being in abnormal status.
 
 
 #### Story 2
-The SRE team finds that if the node CPU utilization is more than 60%, the QoS of some latency sensitive applications 
+The SRE team finds that if the node CPU utilization is more than 60%, the QOS of some latency sensitive applications 
 running on it are likely to decline. So they want to keep the node CPU utilization lower than 60%. 
 If the utilization is higher than this threshold, the BE applications should be suppressed
 accordingly.
