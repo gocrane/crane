@@ -36,15 +36,15 @@ Crane Dashboard **在线 Demo**: http://dashboard.gocrane.io/
 
 **推荐框架**
 
-提供了一个可扩展的推荐框架以支持多种云资源的分析，内置了多种推荐器：资源推荐，副本推荐，闲置资源推荐。
+提供了一个可扩展的推荐框架以支持多种云资源的分析，内置了多种推荐器：资源推荐，副本推荐，闲置资源推荐。[了解更多](https://gocrane.io/zh-cn/docs/tutorials/recommendation/)
 
 **基于预测的水平弹性器**
 
-EffectiveHorizontalPodAutoscaler 支持了预测驱动的弹性。它基于社区 HPA 做底层的弹性控制，支持更丰富的弹性触发策略（预测，观测，周期），让弹性更加高效，并保障了服务的质量。[了解更多](docs/tutorials/using-effective-hpa-to-scaling-with-effectiveness.zh.md)。
+EffectiveHorizontalPodAutoscaler 支持了预测驱动的弹性。它基于社区 HPA 做底层的弹性控制，支持更丰富的弹性触发策略（预测，观测，周期），让弹性更加高效，并保障了服务的质量。[了解更多](https://gocrane.io/zh-cn/docs/tutorials/using-effective-hpa-to-scaling-with-effectiveness/)
 
 **负载感知的调度器**
 
-动态调度器根据实际的节点利用率构建了一个简单但高效的模型，并过滤掉那些负载高的节点来平衡集群。[了解更多](docs/tutorials/scheduling-pods-based-on-actual-node-load.zh.md)。
+动态调度器根据实际的节点利用率构建了一个简单但高效的模型，并过滤掉那些负载高的节点来平衡集群。[了解更多](https://gocrane.io/zh-cn/docs/tutorials/scheduling-pods-based-on-actual-node-load/)
 
 **基于 QoS 的混部**
 

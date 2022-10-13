@@ -36,15 +36,15 @@ https://user-images.githubusercontent.com/35299017/186680122-d7756b47-06be-44cb-
 
 **Recommendation Framework**
 
-Provide a pluggable framework for analytics and give recommendation for cloud resources, support out-of-box recommenders: Workload Resources/Replicas, Idle Resources.
+Provide a pluggable framework for analytics and give recommendation for cloud resources, support out-of-box recommenders: Workload Resources/Replicas, Idle Resources. [learn more](https://gocrane.io/docs/tutorials/recommendation/).
 
 **Prediction-driven Horizontal Autoscaling**
 
-EffectiveHorizontalPodAutoscaler supports prediction-driven autoscaling. With this capability, user can forecast the incoming peak flow and scale up their application ahead, also user can know when the peak flow will end and scale down their application gracefully. [learn more](docs/tutorials/using-effective-hpa-to-scaling-with-effectiveness.md).
+EffectiveHorizontalPodAutoscaler supports prediction-driven autoscaling. With this capability, user can forecast the incoming peak flow and scale up their application ahead, also user can know when the peak flow will end and scale down their application gracefully. [learn more](https://gocrane.io/docs/tutorials/using-effective-hpa-to-scaling-with-effectiveness/).
 
 **Load-Aware Scheduling**
 
-Provide a simple but efficient scheduler that schedule pods based on actual node utilization data，and filters out those nodes with high load to balance the cluster. [learn more](docs/tutorials/scheduling-pods-based-on-actual-node-load.md).
+Provide a simple but efficient scheduler that schedule pods based on actual node utilization data，and filters out those nodes with high load to balance the cluster. [learn more](https://gocrane.io/docs/tutorials/scheduling-pods-based-on-actual-node-load/).
 
 **Colocation with Enhanced QoS**
 
