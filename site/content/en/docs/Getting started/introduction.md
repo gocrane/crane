@@ -29,7 +29,7 @@ scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="tru
 
 **Recommendation Framework**
 
-Provide a pluggable framework for analytics and give recommendation for cloud resources, support out-of-box recommenders: Workload Resources/Replicas, Idle Resources.
+Provide a pluggable framework for analytics and give recommendation for cloud resources, support out-of-box recommenders: Workload Resources/Replicas, Idle Resources. [learn more](/docs/tutorials/recommendation).
 
 **Prediction-driven Horizontal Autoscaling**
 

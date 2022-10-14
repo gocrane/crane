@@ -12,7 +12,7 @@ Kubernetes 用户在创建应用资源时常常是基于经验值来设置副本
 
 ### Filter 阶段
 
-1. 低副本数的工作负载: 过低的副本数可能弹性需求不高，关联配置: `workload-min-replicas`
+1. 低副本数的工作负载: 过低的副本数可能推荐需求不高，关联配置: `workload-min-replicas`
 2. 存在一定比例非 Running Pod 的工作负载: 如果工作负载的 Pod 大多不能正常运行，可能不适合弹性，关联配置: `pod-min-ready-seconds` | `pod-available-ratio`
 
 ### Prepare 阶段
@@ -46,4 +46,4 @@ Kubernetes 用户在创建应用资源时常常是基于经验值来设置副本
 | pod-min-ready-seconds| 30  | 定义了 Pod 是否 Ready 的秒数 |
 | pod-available-ratio| 0.5 | Ready Pod 比例小于该值的工作负载不做弹性推荐 |
 | default-min-replicas| 1   | 最小 minReplicas  |
-| cpu-target-utilizationn| 0.5 | 按该值计算最小副本数      |
+| cpu-target-utilization| 0.5 | 按该值计算最小副本数      |
