@@ -17,7 +17,7 @@ scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="tru
 &lt;li>Multi-dimensional cost insight, optimization evaluates are supported. Support Multi-cloud Pricing through &lt;code>Cloud Provider&lt;/code>。&lt;/li>
 &lt;/ul>
 &lt;p>&lt;strong>Recommendation Framework&lt;/strong>&lt;/p>
-&lt;p>Provide a pluggable framework for analytics and give recommendation for cloud resources, support out-of-box recommenders: Workload Resources/Replicas, Idle Resources.&lt;/p>
+&lt;p>Provide a pluggable framework for analytics and give recommendation for cloud resources, support out-of-box recommenders: Workload Resources/Replicas, Idle Resources. &lt;a href="/docs/tutorials/recommendation">learn more&lt;/a>.&lt;/p>
 &lt;p>&lt;strong>Prediction-driven Horizontal Autoscaling&lt;/strong>&lt;/p>
 &lt;p>EffectiveHorizontalPodAutoscaler supports prediction-driven autoscaling. With this capability, user can forecast the incoming peak flow and scale up their application ahead, also user can know when the peak flow will end and scale down their application gracefully. &lt;a href="/docs/tutorials/using-effective-hpa-to-scaling-with-effectiveness">learn more&lt;/a>.&lt;/p>
 &lt;p>&lt;strong>Load-Aware Scheduling&lt;/strong>&lt;/p>

@@ -20,6 +20,8 @@ Make sure that you provide as much information as possible on how to reproduce t
 &lt;p>If you have an idea to improve Crane, submit an &lt;a href="https://github.com/gocrane/crane/issues/new?assignees=&amp;amp;labels=kind%2Ffeature&amp;amp;template=feature_request.md&amp;amp;title=">feature request&lt;/a>.&lt;/p></description></item><item><title>Docs: Developer Guide</title><link>/docs/contributing/developer-guide/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/contributing/developer-guide/</guid><description>
 &lt;p>First, please make sure you&amp;rsquo;ve got a working &lt;a href="https://golang.org/doc/install">Go environment&lt;/a>
 and &lt;a href="https://docs.docker.com/engine">Docker environment&lt;/a>.&lt;/p>
+&lt;h2 id="prepare-local-crane-environment">Prepare local crane environment&lt;/h2>
+&lt;p>Please referring to &lt;a href="/docs/getting-started/quick-start">quick start&lt;/a>&lt;/p>
 &lt;h2 id="clone-crane">Clone crane&lt;/h2>
 &lt;p>Clone the repository,&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>mkdir -p $GOPATH/src/github.com/gocrane/

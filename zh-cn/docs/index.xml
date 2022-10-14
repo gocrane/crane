@@ -857,6 +857,8 @@ make decisions based on input and policies.&lt;/p>
 &lt;/ul></description></item><item><title>Docs: 开发者指南</title><link>/zh-cn/docs/contributing/developer-guide/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/contributing/developer-guide/</guid><description>
 &lt;p>First, please make sure you&amp;rsquo;ve got a working &lt;a href="https://golang.org/doc/install">Go environment&lt;/a>
 and &lt;a href="https://docs.docker.com/engine">Docker environment&lt;/a>.&lt;/p>
+&lt;h2 id="prepare-local-crane-environment">Prepare local crane environment&lt;/h2>
+&lt;p>Please referring to &lt;a href="/docs/getting-started/quick-start">quick start&lt;/a>&lt;/p>
 &lt;h2 id="clone-crane">Clone crane&lt;/h2>
 &lt;p>Clone the repository,&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>mkdir -p $GOPATH/src/github.com/gocrane/
@@ -1677,7 +1679,7 @@ ThrottleDownWaterLine，ThrottleUpWaterLine和EvictWaterLine&lt;/p>
 &lt;p>基于 Workload 历史 CPU 负载，找到过去七天内每小时负载最低的 CPU 用量，计算按50%（可配置）利用率和 Workload CPU Request 应配置的副本数&lt;/p>
 &lt;h3 id="filter-阶段">Filter 阶段&lt;/h3>
 &lt;ol>
-&lt;li>低副本数的工作负载: 过低的副本数可能弹性需求不高，关联配置: &lt;code>workload-min-replicas&lt;/code>&lt;/li>
+&lt;li>低副本数的工作负载: 过低的副本数可能推荐需求不高，关联配置: &lt;code>workload-min-replicas&lt;/code>&lt;/li>
 &lt;li>存在一定比例非 Running Pod 的工作负载: 如果工作负载的 Pod 大多不能正常运行，可能不适合弹性，关联配置: &lt;code>pod-min-ready-seconds&lt;/code> | &lt;code>pod-available-ratio&lt;/code>&lt;/li>
 &lt;/ol>
 &lt;h3 id="prepare-阶段">Prepare 阶段&lt;/h3>
@@ -1726,7 +1728,7 @@ ThrottleDownWaterLine，ThrottleUpWaterLine和EvictWaterLine&lt;/p>
 &lt;td>最小 minReplicas&lt;/td>
 &lt;/tr>
 &lt;tr>
-&lt;td>cpu-target-utilizationn&lt;/td>
+&lt;td>cpu-target-utilization&lt;/td>
 &lt;td>0.5&lt;/td>
 &lt;td>按该值计算最小副本数&lt;/td>
 &lt;/tr>
@@ -1740,7 +1742,6 @@ ThrottleDownWaterLine，ThrottleUpWaterLine和EvictWaterLine&lt;/p>
 &lt;li>算法考虑数据的时效性，较新的数据采样点会拥有更高的权重。&lt;/li>
 &lt;li>CPU 推荐值基于用户设置的目标百分位值计算，Memory 推荐值基于历史数据的最大值&lt;/li>
 &lt;/ol>
-&lt;h2 id="资源推荐计算模型">资源推荐计算模型&lt;/h2>
 &lt;h3 id="filter-阶段">Filter 阶段&lt;/h3>
 &lt;p>没有 Pod 的工作负载: 如果工作负载没有 Pod，无法进行算法分析&lt;/p>
 &lt;h3 id="recommend-推荐">Recommend 推荐&lt;/h3>
@@ -3024,7 +3025,7 @@ crane agent为cpuset管理提供了新的策略，允许pod和其他pod共享cpu
 &lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">Observe&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> {
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">Observe&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">RecommendationContext&lt;/span>) &lt;span style="color:#66d9ef">error&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Recommender 接口定义了一次推荐需要实现的四个阶段和八个扩展点。这些扩展点会在推荐过程中按顺序被调用。这些扩展点中的的一些可以改变调度决策，而另一些仅用来提供信息。&lt;/p>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Recommender 接口定义了一次推荐需要实现的四个阶段和八个扩展点。这些扩展点会在推荐过程中按顺序被调用。这些扩展点中的的一些可以改变推荐决策，而另一些仅用来提供信息。&lt;/p>
 &lt;h2 id="架构">架构&lt;/h2>
 &lt;p>&lt;img src="/images/recommendation-framework.png" alt="">&lt;/p>
 &lt;h2 id="阶段">阶段&lt;/h2>

@@ -435,7 +435,7 @@ scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="tru
 &lt;li>Multi-dimensional cost insight, optimization evaluates are supported. Support Multi-cloud Pricing through &lt;code>Cloud Provider&lt;/code>。&lt;/li>
 &lt;/ul>
 &lt;p>&lt;strong>Recommendation Framework&lt;/strong>&lt;/p>
-&lt;p>Provide a pluggable framework for analytics and give recommendation for cloud resources, support out-of-box recommenders: Workload Resources/Replicas, Idle Resources.&lt;/p>
+&lt;p>Provide a pluggable framework for analytics and give recommendation for cloud resources, support out-of-box recommenders: Workload Resources/Replicas, Idle Resources. &lt;a href="/docs/tutorials/recommendation">learn more&lt;/a>.&lt;/p>
 &lt;p>&lt;strong>Prediction-driven Horizontal Autoscaling&lt;/strong>&lt;/p>
 &lt;p>EffectiveHorizontalPodAutoscaler supports prediction-driven autoscaling. With this capability, user can forecast the incoming peak flow and scale up their application ahead, also user can know when the peak flow will end and scale down their application gracefully. &lt;a href="/docs/tutorials/using-effective-hpa-to-scaling-with-effectiveness">learn more&lt;/a>.&lt;/p>
 &lt;p>&lt;strong>Load-Aware Scheduling&lt;/strong>&lt;/p>
@@ -465,34 +465,143 @@ scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="tru
 &lt;li>&lt;a href="https://github.com/gocrane/api">gocrane/api&lt;/a> - This repository defines component-level APIs for the Crane platform.&lt;/li>
 &lt;li>&lt;a href="https://github.com/gocrane/fadvisor">gocrane/fadvisor&lt;/a> - Financial advisor which collect resource prices from cloud API.&lt;/li>
 &lt;li>&lt;a href="https://github.com/gocrane/crane-scheduler">gocrane/crane-scheduler&lt;/a> - A Kubernetes scheduler which can schedule pod based on actual node load.&lt;/li>
-&lt;/ul></description></item><item><title>Docs: Analytics and Recommendation</title><link>/docs/tutorials/analytics-and-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/analytics-and-recommendation/</guid><description>
-&lt;p>Analytics and Recommendation provide capacity that analyzes the workload in k8s cluster and provide recommendations about resource optimize.&lt;/p>
-&lt;p>Two Recommendations are currently supported:&lt;/p>
+&lt;/ul></description></item><item><title>Docs: Recommendation Framework</title><link>/docs/tutorials/recommendation/recommendation-framework/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/recommendation-framework/</guid><description>
+&lt;p>&lt;strong>Recommendation Framework&lt;/strong> provides the ability to automatically analyze various resources in Kubernetes cluster and make recommendations for optimization。&lt;/p>
+&lt;h2 id="overview">Overview&lt;/h2>
+&lt;p>Crane&amp;rsquo;s recommendation module periodically detects cluster resource configuration problems and provides optimization suggestions. Framework provides a variety of recommender to implement the optimization and recommendation for different resources.
+If you want to know how Crane makes Recommendations, or if you want to try to implement a custom Recommender, or change the recommender&amp;rsquo;s implements, this article will help you know How it does.&lt;/p>
+&lt;h2 id="use-case">Use Case&lt;/h2>
+&lt;p>The following are typical use cases for recommendation framework：&lt;/p>
 &lt;ul>
-&lt;li>&lt;a href="/docs/tutorials/resource-recommendation">&lt;strong>ResourceRecommend&lt;/strong>&lt;/a>: Replicas recommendation analyze the actual application usage and give advice for replicas and HPA configurations.&lt;/li>
-&lt;li>&lt;a href="/docs/tutorials/replicas-recommendation">&lt;strong>HPARecommend&lt;/strong>&lt;/a>: Resource recommendation allows you to obtain recommended values for resources in a cluster and use them to improve the resource utilization of the cluster.&lt;/li>
+&lt;li>Create a RecommendationRule configuration. RecommendationRule Controller will conduct Recommendation tasks periodically based on the configuration and give recommendations.&lt;/li>
+&lt;li>Adjust the allocation of resources according to the optimization Recommendation.&lt;/li>
 &lt;/ul>
-&lt;h2 id="architecture">Architecture&lt;/h2>
-&lt;p>&lt;img src="/images/analytics-arch.png" alt="analytics-arch">&lt;/p>
-&lt;h2 id="an-analytical-process">An analytical process&lt;/h2>
+&lt;h2 id="create-recommendationrule">Create RecommendationRule&lt;/h2>
+&lt;p>This is a sample for RecommendationRule: workload-rule.yaml。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">RecommendationRule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">runInterval&lt;/span>: &lt;span style="color:#ae81ff">24h &lt;/span> &lt;span style="color:#75715e"># Run every 24 hours&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceSelectors&lt;/span>: &lt;span style="color:#75715e"># configuration for resources&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">StatefulSet&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespaceSelector&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">any&lt;/span>: &lt;span style="color:#66d9ef">true&lt;/span> &lt;span style="color:#75715e"># scan all namespace&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommenders&lt;/span>: &lt;span style="color:#75715e"># Replicas and Resource recommenders for Workload &lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Replicas&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Resource&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>In this example：&lt;/p>
+&lt;ul>
+&lt;li>The analysis is run every 24 hours. &lt;code>runInterval&lt;/code> format is an time interval, for example, 1h or 1m. If this parameter is set to null, the analysis is run only once.&lt;/li>
+&lt;li>Resources to be analyzed are set by configuring the &amp;lsquo;resourceSelectors&amp;rsquo; array. Each &lt;code>resourceSelector&lt;/code> selects resources in k8s by kind, apiVersion, name. If no name is specified, it indicates all resources based on &lt;code>namespaceSelector&lt;/code>.&lt;/li>
+&lt;li>&lt;code>namespaceSelector&lt;/code> defines the namespace of the resource to be analyzed. &lt;code>any: true&lt;/code> indicates that all namespaces are selected&lt;/li>
+&lt;li>&lt;code>recommenders&lt;/code> define which recommender should be used to analyze the resources. Currently, supported types: &lt;a href="/docs/tutorials/recommendation/recommendation-framework#recommender">recommenders&lt;/a>&lt;/li>
+&lt;li>the Resource type and &lt;code>recommenders&lt;/code> need to match, such as the Resource recommended default only support Deployments and StatefulSets. Please refer to the Recommender docs to know which resources it supports&lt;/li>
+&lt;/ul>
 &lt;ol>
-&lt;li>Users create &lt;code>Analytics&lt;/code> object and config ResourceSelector to select resources to be analyzed. Multiple types of resource selection (based on Group,Kind, and Version) are supported.&lt;/li>
-&lt;li>Analyze each selected resource in parallel and try to execute analysis and give recommendation. Each analysis process is divided into two stages: inspecting and advising:&lt;/li>
-&lt;li>Inspecting: Filter resources that don&amp;rsquo;t match the recommended conditions. For example, for hpa recommendation, the workload that has many not running pod is excluded&lt;/li>
-&lt;li>Advising: Analysis and calculation based on algorithm model then provide the recommendation result.&lt;/li>
-&lt;li>If you paas the above two stages, it will create &lt;code>Recommendation&lt;/code> object and display the result in &lt;code>recommendation.Status&lt;/code>&lt;/li>
-&lt;li>You can find the failure reasons from &lt;code>analytics.status.recommendations&lt;/code>&lt;/li>
-&lt;li>Wait for the next analytics based on the interval&lt;/li>
+&lt;li>Create the RecommendationRule with the following command, a recommendation will start as soon as it is created.&lt;/li>
 &lt;/ol>
-&lt;h2 id="core-concept">Core concept&lt;/h2>
-&lt;h3 id="analytics">Analytics&lt;/h3>
-&lt;p>Analysis defines a scanning analysis task. Two task types are supported: resource recommendation and hpa recommendation. Crane regularly runs analysis tasks and produces recommended results.&lt;/p>
-&lt;h3 id="recommendation">Recommendation&lt;/h3>
-&lt;p>The recommendation shows the results of an &lt;code>Analytics&lt;/code>. The recommended result is a YAML configuration that allows users to take appropriate optimization actions, such as adjusting the resource configuration of the application.&lt;/p>
-&lt;h3 id="configuration">Configuration&lt;/h3>
-&lt;p>Different analytics uses different computing models. Crane provides a default computing model and a corresponding configuration that users can modify to customize the recommended effect. You can modify the default configuration globally or modify the configuration of a single analytics task.&lt;/p></description></item><item><title>Docs: Developer Guide</title><link>/docs/contributing/developer-guide/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/contributing/developer-guide/</guid><description>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>kubectl apply -f workload-rules.yaml
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>This example will analysis Resource and Replicas for Deployments and StatefulSets in all namespace.。&lt;/p>
+&lt;ol start="2">
+&lt;li>Check the RecommendationRule recommendation progress. Observe the progress of recommendation tasks through &lt;code>Status.recommendations&lt;/code>. Recommendation tasks are executed sequentially. If lastStartTime of all tasks is the latest time and message has value, it indicates that this recommendation is completed.&lt;/li>
+&lt;/ol>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>kubectl get rr workloads-rule
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">status&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastUpdateTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2022-09-28T10:36:02Z&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommendations&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastStartTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2022-09-28T10:36:02Z&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">message&lt;/span>: &lt;span style="color:#ae81ff">Success&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule-replicas-rckvb&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommenderRef&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Replicas&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">php-apache&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">b15cbcd7-6fe2-4ace-9ae8-11cc0a6e69c2&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastStartTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2022-09-28T10:36:02Z&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">message&lt;/span>: &lt;span style="color:#ae81ff">Success&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule-resource-pnnxn&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommenderRef&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Resource&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">php-apache&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">8472013a-bda2-4025-b0df-3fdc69c1c910&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ol start="3">
+&lt;li>Check &lt;code>Recommendation&lt;/code>&lt;/li>
+&lt;/ol>
+&lt;p>You can filter &lt;code>Recommendation&lt;/code> through these labels，like &lt;code>kubectl get recommend -l analysis.crane.io/recommendation-rule-name=workloads-rule&lt;/code>&lt;/p>
+&lt;ul>
+&lt;li>RecommendationRule Name：analysis.crane.io/recommendation-rule-name&lt;/li>
+&lt;li>RecommendationRule UID：analysis.crane.io/recommendation-rule-uid&lt;/li>
+&lt;li>RecommendationRule recommender：analysis.crane.io/recommendation-rule-recommender&lt;/li>
+&lt;li>Recommended resource&amp;rsquo;s kind：analysis.crane.io/recommendation-target-kind&lt;/li>
+&lt;li>Recommended resource&amp;rsquo;s version：analysis.crane.io/recommendation-target-version&lt;/li>
+&lt;li>Recommended resource&amp;rsquo;s name：analysis.crane.io/recommendation-target-name&lt;/li>
+&lt;/ul>
+&lt;p>In general, the namespace of &lt;code>Recommendation&lt;/code> is equal to the namespace of the recommended resource. But Recommendation for idle nodes is excluded, which are in the root namespace of crane, and the default root namespace is Crane-system.&lt;/p>
+&lt;h2 id="adjust-the-allocation-of-resources-according-to-the-optimization-recommendation">Adjust the allocation of resources according to the optimization Recommendation&lt;/h2>
+&lt;p>For resource/replicas recommendation and recommendedInfo, users can PATCH status.recommendedinfo to workload to update the resource configuration, for example:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>patchData&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">`&lt;/span>kubectl get recommend workloads-rule-replicas-rckvb -n default -o jsonpath&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#39;{.status.recommendedInfo}&amp;#39;&lt;/span>&lt;span style="color:#e6db74">`&lt;/span>;kubectl patch Deployment php-apache -n default --patch &lt;span style="color:#e6db74">&amp;#34;&lt;/span>&lt;span style="color:#e6db74">${&lt;/span>patchData&lt;span style="color:#e6db74">}&lt;/span>&lt;span style="color:#e6db74">&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>For idle nodes, users can offline or reduce the capacity of idle nodes based on their requirements.&lt;/p>
+&lt;h2 id="recommender">Recommender&lt;/h2>
+&lt;p>Currently, Crane support these Recommenders:&lt;/p>
+&lt;ul>
+&lt;li>&lt;a href="/docs/tutorials/recommendation/resource-recommendation">&lt;strong>Resource Recommendation&lt;/strong>&lt;/a>: Use the VPA algorithm to analyze the actual usage of applications and recommend more appropriate resource configurations.&lt;/li>
+&lt;li>&lt;a href="/docs/tutorials/recommendation/replicas-recommendation">&lt;strong>Replicas Recommendation&lt;/strong>&lt;/a>: Use the HPA algorithm to analyze the actual usage of applications and recommend more appropriate replicas configurations.&lt;/li>
+&lt;/ul>
+&lt;h3 id="recommender-framework">Recommender Framework&lt;/h3>
+&lt;p>Recommender framework defines a set of workflow, The workflow execution sequence according to the process, the process is divided into four stages: Filter, Prepare, Recommend, Observe. Recommender performs recommends functions by implementing these four stages.&lt;/p>
+&lt;p>If you want to implement or extend a Recommender, please refer to :&lt;a href="/docs/tutorials/recommendation/how-to-develop-recommender">How to develop recommender&lt;/a>&lt;/p>
+&lt;h2 id="recommendationconfiguration">RecommendationConfiguration&lt;/h2>
+&lt;p>RecommendationConfiguration defines the configuration for recommender. It will deploy a ConfigMap in crane root namespace: recommendation-configuration.&lt;/p>
+&lt;p>The following is a sample for RecommendationConfiguration.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">ConfigMap&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">recommendation-configuration&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">crane-system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">data&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">config.yaml&lt;/span>: |-&lt;span style="color:#e6db74">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> apiVersion: analysis.crane.io/v1alpha1
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> kind: RecommendationConfiguration
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> recommenders:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - name: Replicas
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> acceptedResources: # Accepted resources
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - kind: Deployment
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> apiVersion: apps/v1
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - kind: StatefulSet
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> apiVersion: apps/v1
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> config: # settings for recommender
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> workload-min-replicas: &amp;#34;1&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - name: Resource
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> acceptedResources: # Accepted resources
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - kind: Deployment
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> apiVersion: apps/v1
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - kind: StatefulSet
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> apiVersion: apps/v1&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Users can modify ConfigMap and rolling update Crane to make new configuration works.&lt;/p>
+&lt;h2 id="how-to-make-recommendations-more-accurate">How to make recommendations more accurate&lt;/h2>
+&lt;p>The more historical data stored in a monitoring system, such as Prometheus, the more accurate the recommendation will be. More than two weeks&amp;rsquo;s data is recommended for production. Predictions about new apps are often inaccurate.&lt;/p></description></item><item><title>Docs: Developer Guide</title><link>/docs/contributing/developer-guide/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/contributing/developer-guide/</guid><description>
 &lt;p>First, please make sure you&amp;rsquo;ve got a working &lt;a href="https://golang.org/doc/install">Go environment&lt;/a>
 and &lt;a href="https://docs.docker.com/engine">Docker environment&lt;/a>.&lt;/p>
+&lt;h2 id="prepare-local-crane-environment">Prepare local crane environment&lt;/h2>
+&lt;p>Please referring to &lt;a href="/docs/getting-started/quick-start">quick start&lt;/a>&lt;/p>
 &lt;h2 id="clone-crane">Clone crane&lt;/h2>
 &lt;p>Clone the repository,&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>mkdir -p $GOPATH/src/github.com/gocrane/
@@ -1555,471 +1664,145 @@ The following data structure is constructed by combining the difference between 
 &lt;ul>
 &lt;li>Users can use crane agent for better QoS guarantees. Support faster node load reduction to ensure that high priority services are not affected. At the same time, the throttle/eviction of low priority services is precisely controlled to avoid excessive operation.&lt;/li>
 &lt;li>With the help of the framework of precise operation (throttle/eviction), users can easily realize the QoS function with precise operation and sorting capability based on the user-defined metric without paying attention to details by implementing the attributes and methods related to the user-defined metric.&lt;/li>
-&lt;/ul></description></item><item><title>Docs: Replicas Recommendation</title><link>/docs/tutorials/replicas-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/replicas-recommendation/</guid><description>
-&lt;p>Kubernetes&amp;rsquo; users often set the replicas of workload or HPA configurations based on empirical values. Replicas recommendation analyze the actual application usage and give advice for replicas and HPA configurations. You can refer to and adopt it for your workloads to improve cluster resource utilization.&lt;/p>
-&lt;h2 id="features">Features&lt;/h2>
+&lt;/ul></description></item><item><title>Docs: Replicas Recommendation</title><link>/docs/tutorials/recommendation/replicas-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/replicas-recommendation/</guid><description>
+&lt;p>Kubernetes&amp;rsquo; users often set the replicas based on empirical values when creating application resources. Based on the replicas recommendation, you can analyze the actual application usage and recommend a more suitable replicas configuration. You can use it to improve the resource utilization of the cluster.&lt;/p>
+&lt;h2 id="implement">Implement&lt;/h2>
+&lt;p>Based on the historical Workload CPU loads, find the workload&amp;rsquo;s lowest CPU usage per hour in the past seven days, and calculate the replicas with 50% (configurable) cpu usage that should be configured&lt;/p>
+&lt;h3 id="filter-phase">Filter Phase&lt;/h3>
 &lt;ol>
-&lt;li>Algorithm: The algorithm for calculating the replicas refers to HPA, and supports to customization algo args&lt;/li>
-&lt;li>HPA recommendations: Scan for applications that suitable for configuring horizontal elasticity (EHPA), And give advice for configuration of EHPA, &lt;a href="/docs/tutorials/using-effective-hpa-to-scaling-with-effectiveness">EHPA&lt;/a> is a smart horizontal elastic product provided by Crane&lt;/li>
-&lt;li>Support batch analysis: With the ResourceSelector, users can batch analyze multiple workloads&lt;/li>
+&lt;li>workload with low replicas: If the replicas is too low, it may not have high recommendation demand. Associated configuration: &amp;lsquo;workload-min-replicas&amp;rsquo;&lt;/li>
+&lt;li>There is a certain percentage of the not running pods for workload: if the Pod of workload mostly can&amp;rsquo;t run normally, may not be suitable for recommendation, associated configuration: &lt;code>pod-min-ready-seconds&lt;/code> | &lt;code>pod-available-ratio&lt;/code>&lt;/li>
 &lt;/ol>
-&lt;h2 id="create-hpa-analytics">Create HPA Analytics&lt;/h2>
-&lt;p>Create an &lt;strong>Resource&lt;/strong> &lt;code>Analytics&lt;/code> to give recommendation for deployment: &lt;code>nginx-deployment&lt;/code> as a sample.&lt;/p>
-&lt;p>=== &amp;ldquo;Main&amp;rdquo;&lt;/p>
-&lt;pre>&lt;code> ```bash
-kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/nginx-deployment.yaml
-kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/analytics-replicas.yaml
-```
-&lt;/code>&lt;/pre>
-&lt;p>=== &amp;ldquo;Mirror&amp;rdquo;&lt;/p>
-&lt;pre>&lt;code> ```bash
-kubectl apply -f https://gitee.com/finops/crane/raw/main/examples/analytics/nginx-deployment.yaml
-kubectl apply -f https://gitee.com/finops/crane/raw/main/examples/analytics/analytics-replicas.yaml
-```
-&lt;/code>&lt;/pre>
-&lt;p>The created &lt;code>Analytics&lt;/code> yaml is following:&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Analytics&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">nginx-hpa&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">Replicas &lt;/span> &lt;span style="color:#75715e"># This can only be &amp;#34;Resource&amp;#34; or &amp;#34;Replicas&amp;#34;.&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategy&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategyType&lt;/span>: &lt;span style="color:#ae81ff">Periodical &lt;/span> &lt;span style="color:#75715e"># This can only be &amp;#34;Once&amp;#34; or &amp;#34;Periodical&amp;#34;.&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">periodSeconds&lt;/span>: &lt;span style="color:#ae81ff">600&lt;/span> &lt;span style="color:#75715e"># analytics selected resources every 10 minutes&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceSelectors&lt;/span>: &lt;span style="color:#75715e"># defines all the resources to be select with&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">nginx-deployment&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">config&lt;/span>: &lt;span style="color:#75715e"># defines all the configuration for this analytics&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">ehpa.deployment-min-replicas&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;1&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">ehpa.fluctuation-threshold&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;0&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">ehpa.min-cpu-usage-threshold&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;0&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>You can get created recommendations from analytics status:&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>kubectl get analytics nginx-replicas -o yaml
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>The output is similar to:&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Analytics&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">nginx-replicas&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategy&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategyType&lt;/span>: &lt;span style="color:#ae81ff">Periodical&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">periodSeconds&lt;/span>: &lt;span style="color:#ae81ff">600&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">config&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">replicas.fluctuation-threshold&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;0&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">replicas.min-cpu-usage-threshold&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;0&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">replicas.workload-min-replicas&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;1&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceSelectors&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labelSelector&lt;/span>: {}
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">nginx-deployment&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">Replicas&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">status&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">conditions&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">lastTransitionTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2022-06-02T09:44:54Z&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">message&lt;/span>: &lt;span style="color:#ae81ff">Analytics is ready&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">reason&lt;/span>: &lt;span style="color:#ae81ff">AnalyticsReady&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">status&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;True&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">Ready&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastUpdateTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2022-06-02T09:44:54Z&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommendations&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">lastStartTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2022-06-02T09:44:54Z&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">message&lt;/span>: &lt;span style="color:#ae81ff">Success&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">nginx-replicas-replicas-7qspm&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">nginx-deployment&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">c853043c-5ff6-4ee0-a941-e04c8ec3093b&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="recommendation-analytics-result">Recommendation: Analytics result&lt;/h2>
-&lt;p>Use label selector to get related recommendations owns by &lt;code>Analytics&lt;/code>.&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>kubectl get recommend -l analysis.crane.io/analytics-name&lt;span style="color:#f92672">=&lt;/span>nginx-replicas -o yaml
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>The output is similar to:&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">v1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">items&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">metadata&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">creationTimestamp&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2022-06-02T09:44:54Z&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">generateName&lt;/span>: &lt;span style="color:#ae81ff">nginx-replicas-replicas-&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">generation&lt;/span>: &lt;span style="color:#ae81ff">2&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labels&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/analytics-name&lt;/span>: &lt;span style="color:#ae81ff">nginx-replicas&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/analytics-type&lt;/span>: &lt;span style="color:#ae81ff">Replicas&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/analytics-uid&lt;/span>: &lt;span style="color:#ae81ff">e9168c6e-329f-40e9-8d0f-a1ddc35b0d47&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">app&lt;/span>: &lt;span style="color:#ae81ff">nginx&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">nginx-replicas-replicas-7qspm&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">ownerReferences&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">blockOwnerDeletion&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">controller&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Analytics&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">nginx-replicas&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">e9168c6e-329f-40e9-8d0f-a1ddc35b0d47&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceVersion&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;818959913&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">selfLink&lt;/span>: &lt;span style="color:#ae81ff">/apis/analysis.crane.io/v1alpha1/namespaces/default/recommendations/nginx-replicas-replicas-7qspm&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">c853043c-5ff6-4ee0-a941-e04c8ec3093b&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">spec&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">adoptionType&lt;/span>: &lt;span style="color:#ae81ff">StatusAndAnnotation&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategy&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategyType&lt;/span>: &lt;span style="color:#ae81ff">Once&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">nginx-deployment&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">Replicas&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">status&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">conditions&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">lastTransitionTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2022-06-02T09:44:54Z&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">message&lt;/span>: &lt;span style="color:#ae81ff">Recommendation is ready&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">reason&lt;/span>: &lt;span style="color:#ae81ff">RecommendationReady&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">status&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;True&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">Ready&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastUpdateTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2022-06-02T09:44:54Z&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommendedValue&lt;/span>: |&lt;span style="color:#e6db74">
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> effectiveHPA:
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> maxReplicas: 3
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> metrics:
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - resource:
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> name: cpu
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> target:
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> averageUtilization: 75
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> type: Utilization
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> type: Resource
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> minReplicas: 3
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> replicasRecommendation:
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> replicas: 3&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">List&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceVersion&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">selfLink&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="batch-recommendation">Batch recommendation&lt;/h2>
-&lt;p>Use a sample to show how to recommend all Deployments and StatefulSets by one &lt;code>Analytics&lt;/code>:&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Analytics&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workload-replicas&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">crane-system &lt;/span> &lt;span style="color:#75715e"># The Analytics in Crane-system will select all resource across all namespaces.&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">Replicas &lt;/span> &lt;span style="color:#75715e"># This can only be &amp;#34;Resource&amp;#34; or &amp;#34;Replicas&amp;#34;.&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategy&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategyType&lt;/span>: &lt;span style="color:#ae81ff">Periodical &lt;/span> &lt;span style="color:#75715e"># This can only be &amp;#34;Once&amp;#34; or &amp;#34;Periodical&amp;#34;.&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">periodSeconds&lt;/span>: &lt;span style="color:#ae81ff">86400&lt;/span> &lt;span style="color:#75715e"># analytics selected resources every 1 day&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceSelectors&lt;/span>: &lt;span style="color:#75715e"># defines all the resources to be select with&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">StatefulSet&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ol>
-&lt;li>when using &lt;code>crane-system&lt;/code> as your namespace，&lt;code>Analytics&lt;/code> selected all namespaces，when namespace not equal &lt;code>crane-system&lt;/code>，&lt;code>Analytics&lt;/code> selected the resource that in &lt;code>Analytics&lt;/code> namespace&lt;/li>
-&lt;li>resourceSelectors defines the resource to analysis，kind and apiVersion is mandatory，name is optional&lt;/li>
-&lt;li>resourceSelectors supoort any resource that are &lt;a href="https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#scale-subresource">Scale Subresource&lt;/a>&lt;/li>
-&lt;/ol>
-&lt;h2 id="hpa-recommendation-algorithm-model">HPA Recommendation Algorithm model&lt;/h2>
-&lt;h3 id="inspecting">Inspecting&lt;/h3>
+&lt;h3 id="prepare-phase">Prepare Phase&lt;/h3>
+&lt;p>Query the workload cpu usage in the past week.&lt;/p>
+&lt;h3 id="recommend-phase">Recommend Phase&lt;/h3>
 &lt;ol>
-&lt;li>Workload with low replicas: If the replicas is too low, may not be suitable for hpa recommendation. Associated configuration: &lt;code>ehpa.deployment-min-replicas&lt;/code> | &lt;code>ehpa.statefulset-min-replicas&lt;/code> | &lt;code>ehpa.workload-min-replicas&lt;/code>&lt;/li>
-&lt;li>Workload with a certain percentage of not running pods: if the workload of Pod mostly can&amp;rsquo;t run normally, may not be suitable for flexibility. Associated configuration: &lt;code>ehpa.pod-min-ready-seconds&lt;/code> | &lt;code>ehpa.pod-available-ratio&lt;/code>&lt;/li>
-&lt;li>Workload with low CPU usage: The low CPU usage workload means that there is no load pressure. In this case, we can&amp;rsquo;t estimate it. Associated configuration: &lt;code>ehpa.min-cpu-usage-threshold&lt;/code>&lt;/li>
-&lt;li>Workload with low fluctuation of CPU usage: dividing of the maximum and minimum usage is defined as the fluctuation rate. If the fluctuation rate is too low, the workload will not benefit much from hpa. Associated configuration: &lt;code>ehpa.fluctuation-threshold&lt;/code>&lt;/li>
+&lt;li>Calculate the lowest value of the median workload usage per hour in the past seven days (to prevent the impact of the minimum value): workload_cpu_usage_medium_min&lt;/li>
+&lt;li>The number of replicas corresponding to the target utilization:&lt;/li>
 &lt;/ol>
-&lt;h3 id="advising">Advising&lt;/h3>
-&lt;p>In the advising phase, one EffectiveHPA Spec is recommended using the following Algorithm model. The recommended logic for each field is as follows:&lt;/p>
-&lt;p>&lt;strong>Recommend TargetUtilization&lt;/strong>&lt;/p>
-&lt;p>Principle: Use Pod P99 resource utilization to recommend hpa. Because if the application can accept this utilization over P99 time, it can be inferred as a target for elasticity.&lt;/p>
-&lt;ol>
-&lt;li>
-&lt;p>Get the Pod P99 usage of the past seven days by Percentile algorithm: $pod_cpu_usage_p99$&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>Corresponding utilization:&lt;/p>
-&lt;p>$target_pod_CPU_utilization = \frac{pod_cpu_usage_p99}{pod_cpu_request}$&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>To prevent over-utilization or under-utilization, target_pod_cpu_utilization needs to be less than ehpa.min-cpu-target-utilization and greater than ehpa. max-cpu-target-utilization&lt;/p>
-&lt;p>$ehpa.max\mbox{-}cpu\mbox{-}target\mbox{-}utilization &amp;lt; target_pod_cpu_utilization &amp;lt; ehpa.min\mbox{-}cpu\mbox{-}target\mbox{-}utilization$&lt;/p>
-&lt;/li>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">replicas&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> int32(&lt;span style="color:#a6e22e">math&lt;/span>.&lt;span style="color:#a6e22e">Ceil&lt;/span>(&lt;span style="color:#a6e22e">workload_cpu_usage_medium_min&lt;/span> &lt;span style="color:#f92672">/&lt;/span> (&lt;span style="color:#a6e22e">rr&lt;/span>.&lt;span style="color:#a6e22e">TargetUtilization&lt;/span> &lt;span style="color:#f92672">*&lt;/span> float64(&lt;span style="color:#a6e22e">requestTotal&lt;/span>) &lt;span style="color:#f92672">/&lt;/span> &lt;span style="color:#ae81ff">1000.&lt;/span>)))
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ol start="3">
+&lt;li>In order to prevent too low replicas，replicas should be larger than or equal to default-min-replicas&lt;/li>
 &lt;/ol>
-&lt;p>&lt;strong>Recommend minReplicas&lt;/strong>&lt;/p>
-&lt;p>Principle: MinReplicas are recommended for the lowest hourly workload utilization for the past seven days.&lt;/p>
-&lt;ol>
-&lt;li>
-&lt;p>Calculate the lowest median workload cpu usage of the past seven days: $workload_cpu_usage_medium_min$&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>Corresponding replicas:&lt;/p>
-&lt;p>$minReplicas = \frac{\mathrm{workload_cpu_usage_medium_min} }{pod_cpu_request \times ehpa.max-cpu-target-utilization}$&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>To prevent the minReplicas being too small, the minReplicas must be greater than or equal to ehpa.default-min-replicas&lt;/p>
-&lt;p>$minReplicas \geq ehpa.default\mbox{-}min\mbox{-}replicas$&lt;/p>
-&lt;/li>
-&lt;/ol>
-&lt;p>&lt;strong>Recommend maxReplicas&lt;/strong>&lt;/p>
-&lt;p>Principle: Use workload&amp;rsquo;s past and future seven days load to recommend maximum replicas.&lt;/p>
-&lt;ol>
-&lt;li>
-&lt;p>Calculate P95 workload CPU usage for the past seven days and the next seven days: $workload_cpu_usage_p95$&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>Corresponding replicas:&lt;/p>
-&lt;p>$max_replicas_origin = \frac{\mathrm{workload_cpu_usage_p95} }{pod_cpu_request \times target_cpu_utilization}$&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>To handle with the peak traffic, Magnify by a certain factor:&lt;/p>
-&lt;p>$max_replicas = max_replicas_origin \times ehpa.max\mbox{-}replicas\mbox{-}factor$&lt;/p>
-&lt;/li>
-&lt;/ol>
-&lt;p>&lt;strong>Recommend MetricSpec(except CpuUtilization)&lt;/strong>&lt;/p>
-&lt;ol>
-&lt;li>If HPA is configured for workload, MetricSpecs other than CpuUtilization are inherited&lt;/li>
-&lt;/ol>
-&lt;p>&lt;strong>Recommend Behavior&lt;/strong>&lt;/p>
-&lt;ol>
-&lt;li>If HPA is configured for workload, the corresponding Behavior configuration is inherited&lt;/li>
-&lt;/ol>
-&lt;p>&lt;strong>Recommend Prediction&lt;/strong>&lt;/p>
-&lt;ol>
-&lt;li>Try to predict the CPU usage of the workload in the next seven days using DSP&lt;/li>
-&lt;li>If the prediction is successful, add the prediction configuration&lt;/li>
-&lt;li>If the workload is not predictable, do not add the prediction configuration.&lt;/li>
-&lt;/ol>
-&lt;h2 id="configurations-for-hpa-recommendation">Configurations for HPA Recommendation&lt;/h2>
+&lt;h3 id="observe-phase">Observe Phase&lt;/h3>
+&lt;p>Record recommended replicas to Metric: crane_analytics_replicas_recommendation&lt;/p>
+&lt;h2 id="accepted-resources">Accepted resources&lt;/h2>
+&lt;p>Support StatefulSet and Deployment by default，but all workloads that support &lt;code>Scale SubResource&lt;/code> are supported.&lt;/p>
+&lt;h2 id="configuration">Configuration&lt;/h2>
 &lt;table>
 &lt;thead>
 &lt;tr>
-&lt;th>Configuration&lt;/th>
-&lt;th>Default Value&lt;/th>
+&lt;th>Configuration items&lt;/th>
+&lt;th>Default&lt;/th>
 &lt;th>Description&lt;/th>
 &lt;/tr>
 &lt;/thead>
 &lt;tbody>
 &lt;tr>
-&lt;td>ehpa.deployment-min-replicas&lt;/td>
+&lt;td>workload-min-replicas&lt;/td>
 &lt;td>1&lt;/td>
-&lt;td>hpa recommendations are not made for workloads smaller than this value.&lt;/td>
+&lt;td>Workload replicas than less than this value are not recommended&lt;/td>
 &lt;/tr>
 &lt;tr>
-&lt;td>ehpa.statefulset-min-replicas&lt;/td>
-&lt;td>1&lt;/td>
-&lt;td>hpa recommendations are not made for workloads smaller than this value.&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td>ehpa.workload-min-replicas&lt;/td>
-&lt;td>1&lt;/td>
-&lt;td>Workload replicas smaller than this value are not recommended for hpa.&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td>ehpa.pod-min-ready-seconds&lt;/td>
+&lt;td>pod-min-ready-seconds&lt;/td>
 &lt;td>30&lt;/td>
-&lt;td>specifies the number of seconds in decide whether a POD is ready.&lt;/td>
+&lt;td>Defines the min seconds to identify Pod is ready&lt;/td>
 &lt;/tr>
 &lt;tr>
-&lt;td>ehpa.pod-available-ratio&lt;/td>
+&lt;td>pod-available-ratio&lt;/td>
 &lt;td>0.5&lt;/td>
-&lt;td>Workloads whose Ready pod ratio is smaller than this value are not recommended for hpa.&lt;/td>
+&lt;td>Workload ready Pod ratio that less than this value are not recommended&lt;/td>
 &lt;/tr>
 &lt;tr>
-&lt;td>ehpa.default-min-replicas&lt;/td>
-&lt;td>2&lt;/td>
-&lt;td>the default minimum minReplicas.&lt;/td>
+&lt;td>default-min-replicas&lt;/td>
+&lt;td>1&lt;/td>
+&lt;td>default minReplicas&lt;/td>
 &lt;/tr>
 &lt;tr>
-&lt;td>ehpa.max-replicas-factor&lt;/td>
-&lt;td>3&lt;/td>
-&lt;td>the factor for calculate maxReplicas.&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td>ehpa.min-cpu-usage-threshold&lt;/td>
-&lt;td>10&lt;/td>
-&lt;td>hpa recommendations are not made for workloads smaller than this value.&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td>ehpa.fluctuation-threshold&lt;/td>
-&lt;td>1.5&lt;/td>
-&lt;td>hpa recommendations are not made for workloads smaller than this value.&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td>ehpa.min-cpu-target-utilization&lt;/td>
-&lt;td>30&lt;/td>
-&lt;td>&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td>ehpa.max-cpu-target-utilization&lt;/td>
-&lt;td>75&lt;/td>
-&lt;td>&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td>ehpa.reference-hpa&lt;/td>
-&lt;td>true&lt;/td>
-&lt;td>inherits the existing HPA configuration&lt;/td>
+&lt;td>cpu-target-utilization&lt;/td>
+&lt;td>0.5&lt;/td>
+&lt;td>Calculate the minimum replicas based on this cpu utilization&lt;/td>
 &lt;/tr>
 &lt;/tbody>
-&lt;/table></description></item><item><title>Docs: Resource Recommendation</title><link>/docs/tutorials/resource-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/resource-recommendation/</guid><description>
-&lt;p>Resource recommendation allows you to obtain recommended values for resources in a cluster and use them to improve the resource utilization of the cluster.&lt;/p>
-&lt;h2 id="difference-between-vpa">Difference between VPA&lt;/h2>
-&lt;p>Resource recommendations are a lightweight implementation of VPA and are more flexible.&lt;/p>
+&lt;/table></description></item><item><title>Docs: Resource Recommendation</title><link>/docs/tutorials/recommendation/resource-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/resource-recommendation/</guid><description>
+&lt;p>Kubernetes&amp;rsquo; users often config request and limit based on empirical values when creating application resources. Based on the resource recommendation algorithm, you can analyze the actual application usage and recommend more appropriate resource configurations. You can use the resource recommendation algorithm to improve the resource utilization of the cluster.&lt;/p>
+&lt;h2 id="implement">Implement&lt;/h2>
+&lt;p>The algorithm model adopts VPA&amp;rsquo;s Moving Window algorithm for recommendation&lt;/p>
 &lt;ol>
-&lt;li>Algorithm: The algorithm model adopts the Moving Window algorithm of VPA, and supports to customization algo args , providing higher flexibility&lt;/li>
-&lt;li>Support batch analysis: With the ResourceSelector, users can batch analyze multiple workloads without creating VPA objects one by one&lt;/li>
-&lt;li>More portable: It is difficult to use VPA&amp;rsquo;s Auto mode in production because it will cause container reconstruction when updating container resource configuration. Resource recommendation provides suggestions to users and leaves the decision of change to users&lt;/li>
+&lt;li>By monitoring system, you can obtain the Workload (configurable) CPU and Memory usage history in the past week.&lt;/li>
+&lt;li>The algorithm considers the timeliness of data. The newer data sampling points will have higher weight.&lt;/li>
+&lt;li>The recommended CPU value is calculated based on the target percentile value that set by the user, and the recommended Memory value is calculated based on the maximum historical value&lt;/li>
 &lt;/ol>
-&lt;h2 id="create-resource-analytics">Create Resource Analytics&lt;/h2>
-&lt;p>Create an &lt;strong>Resource&lt;/strong> &lt;code>Analytics&lt;/code> to give recommendation for deployment: &lt;code>nginx-deployment&lt;/code> as a sample.&lt;/p>
-&lt;p>=== &amp;ldquo;Main&amp;rdquo;&lt;/p>
-&lt;pre>&lt;code> ```bash
-kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/nginx-deployment.yaml
-kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/examples/analytics/analytics-resource.yaml
-kubectl get analytics
-```
-&lt;/code>&lt;/pre>
-&lt;p>=== &amp;ldquo;Mirror&amp;rdquo;&lt;/p>
-&lt;pre>&lt;code> ```bash
-kubectl apply -f https://gitee.com/finops/crane/raw/main/examples/analytics/nginx-deployment.yaml
-kubectl apply -f https://gitee.com/finops/crane/raw/main/examples/analytics/analytics-resource.yaml
-kubectl get analytics
-```
-&lt;/code>&lt;/pre>
-&lt;p>The created &lt;code>Analytics&lt;/code> yaml is following:&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Analytics&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">nginx-resource&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">Resource &lt;/span> &lt;span style="color:#75715e"># This can only be &amp;#34;Resource&amp;#34; or &amp;#34;Replicas&amp;#34;.&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategy&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategyType&lt;/span>: &lt;span style="color:#ae81ff">Periodical &lt;/span> &lt;span style="color:#75715e"># This can only be &amp;#34;Once&amp;#34; or &amp;#34;Periodical&amp;#34;.&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">periodSeconds&lt;/span>: &lt;span style="color:#ae81ff">86400&lt;/span> &lt;span style="color:#75715e"># analytics selected resources every 1 day&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceSelectors&lt;/span>: &lt;span style="color:#75715e"># defines all the resources to be select with&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">nginx-deployment&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>The output is:&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>NAME AGE
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>nginx-resource 16m
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>You can get view analytics status by running:&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>kubectl get analytics nginx-resource -o yaml
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>The output is similar to:&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Analytics&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">nginx-resource&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategy&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategyType&lt;/span>: &lt;span style="color:#ae81ff">Periodical&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">periodSeconds&lt;/span>: &lt;span style="color:#ae81ff">86400&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceSelectors&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labelSelector&lt;/span>: {}
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">nginx-deployment&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">Resource&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">status&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">conditions&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">lastTransitionTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2022-05-15T14:38:35Z&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">message&lt;/span>: &lt;span style="color:#ae81ff">Analytics is ready&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">reason&lt;/span>: &lt;span style="color:#ae81ff">AnalyticsReady&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">status&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;True&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">Ready&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastUpdateTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2022-05-15T14:38:35Z&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommendations&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">lastStartTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2022-05-15T14:38:35Z&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">message&lt;/span>: &lt;span style="color:#ae81ff">Success&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">nginx-resource-resource-w45nq&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">nginx-deployment&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">750cb3bd-0b87-4f87-acbe-57e621af0a1e &lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="recommendation-analytics-result">Recommendation: Analytics result&lt;/h2>
-&lt;p>You can get recommendations that created by above &lt;code>Analytics&lt;/code> by running.&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>kubectl get recommend -l analysis.crane.io/analytics-name&lt;span style="color:#f92672">=&lt;/span>nginx-resource -o yaml
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>The output is similar to:&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">v1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">items&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>- &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">metadata&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">creationTimestamp&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2022-06-15T15:26:25Z&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">generateName&lt;/span>: &lt;span style="color:#ae81ff">nginx-resource-resource-&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">generation&lt;/span>: &lt;span style="color:#ae81ff">1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labels&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/analytics-name&lt;/span>: &lt;span style="color:#ae81ff">nginx-resource&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/analytics-type&lt;/span>: &lt;span style="color:#ae81ff">Resource&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/analytics-uid&lt;/span>: &lt;span style="color:#ae81ff">9e78964b-f8ae-40de-9740-f9a715d16280&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">app&lt;/span>: &lt;span style="color:#ae81ff">nginx&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">nginx-resource-resource-t4xpn&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">ownerReferences&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">blockOwnerDeletion&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">controller&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Analytics&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">nginx-resource&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">9e78964b-f8ae-40de-9740-f9a715d16280&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceVersion&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2117439429&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">selfLink&lt;/span>: &lt;span style="color:#ae81ff">/apis/analysis.crane.io/v1alpha1/namespaces/default/recommendations/nginx-resource-resource-t4xpn&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">8005e3e0-8fe9-470b-99cf-5ce9dd407529&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">spec&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">adoptionType&lt;/span>: &lt;span style="color:#ae81ff">StatusAndAnnotation&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategy&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategyType&lt;/span>: &lt;span style="color:#ae81ff">Once&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">nginx-deployment&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">Resource&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">status&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommendedValue&lt;/span>: |&lt;span style="color:#e6db74">
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> resourceRequest:
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> containers:
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - containerName: nginx
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> target:
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> cpu: 100m
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> memory: 100Mi&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">List&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceVersion&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">selfLink&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>The &lt;code>status.recommendedValue.ResourceRequest&lt;/code> is recommended by crane&amp;rsquo;s recommendation engine.&lt;/p>
-&lt;h2 id="batch-recommendation">Batch recommendation&lt;/h2>
-&lt;p>Use a sample to show how to recommend all Deployments and StatefulSets by one &lt;code>Analytics&lt;/code>:&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Analytics&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workload-resource&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">crane-system &lt;/span> &lt;span style="color:#75715e"># The Analytics in Crane-system will select all resource across all namespaces.&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">Resource &lt;/span> &lt;span style="color:#75715e"># This can only be &amp;#34;Resource&amp;#34; or &amp;#34;Replicas&amp;#34;.&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategy&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategyType&lt;/span>: &lt;span style="color:#ae81ff">Periodical &lt;/span> &lt;span style="color:#75715e"># This can only be &amp;#34;Once&amp;#34; or &amp;#34;Periodical&amp;#34;.&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">periodSeconds&lt;/span>: &lt;span style="color:#ae81ff">86400&lt;/span> &lt;span style="color:#75715e"># analytics selected resources every 1 day&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceSelectors&lt;/span>: &lt;span style="color:#75715e"># defines all the resources to be select with&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">StatefulSet&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ol>
-&lt;li>when using &lt;code>crane-system&lt;/code> as your namespace，&lt;code>Analytics&lt;/code> selected all namespaces，when namespace not equal &lt;code>crane-system&lt;/code>，&lt;code>Analytics&lt;/code> selected the resource that in &lt;code>Analytics&lt;/code> namespace&lt;/li>
-&lt;li>resourceSelectors defines the resource to analysis，kind and apiVersion is mandatory，name is optional&lt;/li>
-&lt;li>resourceSelectors supoort any resource that are &lt;a href="https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#scale-subresource">Scale Subresource&lt;/a>&lt;/li>
-&lt;/ol>
-&lt;h2 id="resource-recommendation-algorithm-model">Resource Recommendation Algorithm model&lt;/h2>
-&lt;h3 id="inspecting">Inspecting&lt;/h3>
-&lt;p>Workload with not pods: if the workload has no pods exist means that it&amp;rsquo;s not a available workload.&lt;/p>
-&lt;h3 id="advising">Advising&lt;/h3>
-&lt;p>VPA&amp;rsquo;s Moving Window algorithm was used to calculate the CPU and Memory of each container and give the corresponding recommended values&lt;/p></description></item><item><title>Docs: Crane-scheduler</title><link>/docs/tutorials/scheduling-pods-based-on-actual-node-load/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/scheduling-pods-based-on-actual-node-load/</guid><description>
+&lt;h3 id="filter-phase">Filter Phase&lt;/h3>
+&lt;p>Workloads that have no Pods: If the workload does not have Pods, analysis cannot be performed&lt;/p>
+&lt;h3 id="recommend-phase">Recommend Phase&lt;/h3>
+&lt;p>Adopt VPA Moving Window algorithm to calculate CPU and Memory for every container and give recommendation config.&lt;/p>
+&lt;h3 id="observe-phase">Observe Phase&lt;/h3>
+&lt;p>Record recommended resource to Metric：crane_analytics_replicas_recommendation&lt;/p>
+&lt;h2 id="accepted-resources">Accepted Resources&lt;/h2>
+&lt;p>Support StatefulSet and Deployment by default，but all workloads that support &lt;code>Scale SubResource&lt;/code> are supported.&lt;/p>
+&lt;h2 id="configuration">Configuration&lt;/h2>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>Configuration items&lt;/th>
+&lt;th>Default&lt;/th>
+&lt;th>Description&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>cpu-sample-interval&lt;/td>
+&lt;td>1m&lt;/td>
+&lt;td>Metric sampling interval for requesting CPU monitoring data&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>cpu-request-percentile&lt;/td>
+&lt;td>0.99&lt;/td>
+&lt;td>Target CPU Percentile that used for VPA&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>cpu-request-margin-fraction&lt;/td>
+&lt;td>0.15&lt;/td>
+&lt;td>CPU recommend value margin factor，0.15 means recommended value = recommended value * 1.15&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>cpu-target-utilization&lt;/td>
+&lt;td>1&lt;/td>
+&lt;td>CPU target utilization，0.8 means recommended value = recommended value / 0.8&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>cpu-model-history-length&lt;/td>
+&lt;td>168h&lt;/td>
+&lt;td>Historical length for CPU monitoring data&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>mem-sample-interval&lt;/td>
+&lt;td>1m&lt;/td>
+&lt;td>Metric sampling interval for requesting Memory monitoring data&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>mem-request-percentile&lt;/td>
+&lt;td>0.99&lt;/td>
+&lt;td>Target Memory Percentile that used for VPA&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>mem-request-margin-fraction&lt;/td>
+&lt;td>0.15&lt;/td>
+&lt;td>Memory recommend value margin factor，0.15 means recommended value = recommended value * 1.15&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>mem-target-utilization&lt;/td>
+&lt;td>1&lt;/td>
+&lt;td>Memory target utilization，0.8 means recommended value = recommended value / 0.8&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>mem-model-history-length&lt;/td>
+&lt;td>168h&lt;/td>
+&lt;td>Historical length for Memory monitoring data&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table></description></item><item><title>Docs: Crane-scheduler</title><link>/docs/tutorials/scheduling-pods-based-on-actual-node-load/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/scheduling-pods-based-on-actual-node-load/</guid><description>
 &lt;h2 id="overview">Overview&lt;/h2>
 &lt;p>Crane-scheduler is a collection of scheduler plugins based on &lt;a href="https://kubernetes.io/docs/concepts/scheduling-eviction/scheduling-framework/">scheduler framework&lt;/a>, including:&lt;/p>
 &lt;ul>
@@ -3147,4 +2930,79 @@ For example, the CPU usage can be suppressed by limiting the CGroup usage, and t
 &lt;li>&lt;code>percentile&lt;/code> is an algorithm to estimate a time series, and find a recommended value to represent the past time series, it is based on exponentially-decaying weights historgram statistics. it is used to estimate a time series, it is not good at to predict a time sequences, although the percentile can output a time series predicted data, but it is all the same value. so if you want to predict a time sequences, dsp is a better choice.&lt;/li>
 &lt;/ul>
 &lt;h4 id="dsp-params">dsp params&lt;/h4>
-&lt;h4 id="percentile-params">percentile params&lt;/h4></description></item></channel></rss>
+&lt;h4 id="percentile-params">percentile params&lt;/h4></description></item><item><title>Docs: How to develop Recommender</title><link>/docs/tutorials/recommendation/how-to-develop-recommender/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/how-to-develop-recommender/</guid><description>
+&lt;p>Recommendation Framework provides an extensible framework for Recommender and supports several built-in Recommender. Users can implement a self-defined Recommender or modify the existing Recommenders.&lt;/p>
+&lt;h2 id="recommender-interface">Recommender Interface&lt;/h2>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">Recommender&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">Name&lt;/span>() &lt;span style="color:#66d9ef">string&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">framework&lt;/span>.&lt;span style="color:#a6e22e">Filter&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">framework&lt;/span>.&lt;span style="color:#a6e22e">PrePrepare&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">framework&lt;/span>.&lt;span style="color:#a6e22e">Prepare&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">framework&lt;/span>.&lt;span style="color:#a6e22e">PostPrepare&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">framework&lt;/span>.&lt;span style="color:#a6e22e">PreRecommend&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">framework&lt;/span>.&lt;span style="color:#a6e22e">Recommend&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">framework&lt;/span>.&lt;span style="color:#a6e22e">PostRecommend&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">framework&lt;/span>.&lt;span style="color:#a6e22e">Observe&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// Phase: Filter
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// Filter interface
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">Filter&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// The Filter will filter resource can`t be recommended via target recommender.
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">Filter&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">RecommendationContext&lt;/span>) &lt;span style="color:#66d9ef">error&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// Phase: Prepare
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// PrePrepare interface
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">PrePrepare&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">CheckDataProviders&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">RecommendationContext&lt;/span>) &lt;span style="color:#66d9ef">error&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// Prepare interface
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">Prepare&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">CollectData&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">RecommendationContext&lt;/span>) &lt;span style="color:#66d9ef">error&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">PostPrepare&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">PostProcessing&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">RecommendationContext&lt;/span>) &lt;span style="color:#66d9ef">error&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// PreRecommend interface
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">PreRecommend&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">PreRecommend&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">RecommendationContext&lt;/span>) &lt;span style="color:#66d9ef">error&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// Phase: Recommend
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// Recommend interface
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">Recommend&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">Recommend&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">RecommendationContext&lt;/span>) &lt;span style="color:#66d9ef">error&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// PostRecommend interface
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">PostRecommend&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">Policy&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">RecommendationContext&lt;/span>) &lt;span style="color:#66d9ef">error&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// Phase: Observe
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// Observe interface
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">Observe&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">Observe&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">RecommendationContext&lt;/span>) &lt;span style="color:#66d9ef">error&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Recommender interface defines four stages and eight extension points that need to be implemented in recommender. These extension points are called sequentially during the recommendation process. Some of these extension points can change recommendation decisions, while others are only give information.&lt;/p>
+&lt;h2 id="architecture">Architecture&lt;/h2>
+&lt;p>&lt;img src="/images/recommendation-framework.png" alt="">&lt;/p>
+&lt;h2 id="phases">Phases&lt;/h2>
+&lt;p>The whole recommendation process is divided into four phases: Filter，Prepare，Recommend，Observe。Phase&amp;rsquo;s input is the Kubernetes resource to analysis，output is the recommendation advise. Let&amp;rsquo;s begin to introduce the inputs, outputs, and capabilities of each phase.&lt;/p>
+&lt;p>&lt;code>RecommendationContext&lt;/code> saved the context for a recommended process, including recommended target, RecommendationConfiguration etc., the user can add more content as needed.&lt;/p>
+&lt;h3 id="filter">Filter&lt;/h3>
+&lt;p>The Filter phase is used to preprocess the recommendation data. In general, it is necessary to decide whether the recommendation target matches Recommender during preprocessing. For example, the Resource Recommender only supports handling Workload (Deployment, StatefulSet). In addition, it can also determine whether the recommended target state is suitable for recommendation, such as whether it is being deleted or just created. The recommendation will be terminated when return error. BaseRecommender implements basic preprocessing functions and users can call it to inherit related functions.&lt;/p>
+&lt;h3 id="prepare">Prepare&lt;/h3>
+&lt;p>The Prepare phase is used for data preparation, requesting an external monitoring system and saving the timing data in the context. PrePrepare extension point used to check the connection status of the monitoring system. Prepare extension point used to query time series data. The PostPrepare extension point is used to process time series data, such as abnormal cold start data, partial data loss, data aggregation, and clearing abnormal data.&lt;/p>
+&lt;h3 id="recommend">Recommend&lt;/h3>
+&lt;p>The Recommend phase is used to optimize recommendations based on timing data and resource allocation. The type of optimization recommendation depends on the type of recommendation. For example, if it is a resource recommendation, then the output is the resource configuration for the kubernetes workload. The Recommend extension point is used to analyze and calculate the data using Crane&amp;rsquo;s algorithm module, and the analysis result is finally processed in the PostRecommend stage. Users can customize it by implement their Recommend phase.&lt;/p>
+&lt;h3 id="observe">Observe&lt;/h3>
+&lt;p>The Observe phase is used to observe the recommendation result. For example, when recommending a resource, the information about the optimization proposal is saved to the monitoring system via Metric, and the revenue generated by the optimization proposal is observed through the Dashboard.&lt;/p></description></item></channel></rss>

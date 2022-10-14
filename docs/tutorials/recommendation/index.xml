@@ -1,47 +1,47 @@
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Crane – 智能推荐</title><link>/zh-cn/docs/tutorials/recommendation/</link><description>Recent content in 智能推荐 on Crane</description><generator>Hugo -- gohugo.io</generator><atom:link href="/zh-cn/docs/tutorials/recommendation/index.xml" rel="self" type="application/rss+xml"/><item><title>Docs: 推荐框架</title><link>/zh-cn/docs/tutorials/recommendation/recommendation-framework/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/recommendation/recommendation-framework/</guid><description>
-&lt;p>&lt;strong>推荐框架&lt;/strong>是指自动分析集群的各种资源的运行情况并给出优化建议。&lt;/p>
-&lt;h2 id="推荐概览">推荐概览&lt;/h2>
-&lt;p>Crane 的推荐模块定期的检测发现集群资源配置的问题，并给出优化建议。智能推荐提供了多种 Recommender 来实现面向不同资源的优化推荐。
-如何你想了解 Crane 如何做智能推荐的，或者你想要尝试实现一个自定义的 Recommender，或者修改一个已有的 Recommender 的推荐规则，这篇文章将帮助你了解智能推荐。&lt;/p>
-&lt;h2 id="用例">用例&lt;/h2>
-&lt;p>以下是智能推荐的典型用例：&lt;/p>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Crane – Recommendation</title><link>/docs/tutorials/recommendation/</link><description>Recent content in Recommendation on Crane</description><generator>Hugo -- gohugo.io</generator><atom:link href="/docs/tutorials/recommendation/index.xml" rel="self" type="application/rss+xml"/><item><title>Docs: Recommendation Framework</title><link>/docs/tutorials/recommendation/recommendation-framework/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/recommendation-framework/</guid><description>
+&lt;p>&lt;strong>Recommendation Framework&lt;/strong> provides the ability to automatically analyze various resources in Kubernetes cluster and make recommendations for optimization。&lt;/p>
+&lt;h2 id="overview">Overview&lt;/h2>
+&lt;p>Crane&amp;rsquo;s recommendation module periodically detects cluster resource configuration problems and provides optimization suggestions. Framework provides a variety of recommender to implement the optimization and recommendation for different resources.
+If you want to know how Crane makes Recommendations, or if you want to try to implement a custom Recommender, or change the recommender&amp;rsquo;s implements, this article will help you know How it does.&lt;/p>
+&lt;h2 id="use-case">Use Case&lt;/h2>
+&lt;p>The following are typical use cases for recommendation framework：&lt;/p>
 &lt;ul>
-&lt;li>创建 RecommendationRule 配置。RecommendationRule Controller 会根据配置定期运行推荐任务，给出优化建议 Recommendation。&lt;/li>
-&lt;li>根据优化建议 Recommendation 调整资源配置。&lt;/li>
+&lt;li>Create a RecommendationRule configuration. RecommendationRule Controller will conduct Recommendation tasks periodically based on the configuration and give recommendations.&lt;/li>
+&lt;li>Adjust the allocation of resources according to the optimization Recommendation.&lt;/li>
 &lt;/ul>
-&lt;h2 id="创建-recommendationrule-配置">创建 RecommendationRule 配置&lt;/h2>
-&lt;p>下面是一个 RecommendationRule 示例： workload-rule.yaml。&lt;/p>
+&lt;h2 id="create-recommendationrule">Create RecommendationRule&lt;/h2>
+&lt;p>This is a sample for RecommendationRule: workload-rule.yaml。&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">RecommendationRule&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">spec&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">runInterval&lt;/span>: &lt;span style="color:#ae81ff">24h &lt;/span> &lt;span style="color:#75715e"># 每24h运行一次&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceSelectors&lt;/span>: &lt;span style="color:#75715e"># 资源的信息&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">runInterval&lt;/span>: &lt;span style="color:#ae81ff">24h &lt;/span> &lt;span style="color:#75715e"># Run every 24 hours&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceSelectors&lt;/span>: &lt;span style="color:#75715e"># configuration for resources&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">StatefulSet&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespaceSelector&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">any&lt;/span>: &lt;span style="color:#66d9ef">true&lt;/span> &lt;span style="color:#75715e"># 扫描所有namespace&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommenders&lt;/span>: &lt;span style="color:#75715e"># 使用 Workload 的副本和资源推荐器&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">any&lt;/span>: &lt;span style="color:#66d9ef">true&lt;/span> &lt;span style="color:#75715e"># scan all namespace&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommenders&lt;/span>: &lt;span style="color:#75715e"># Replicas and Resource recommenders for Workload &lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Replicas&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Resource&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>在该示例中：&lt;/p>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>In this example：&lt;/p>
 &lt;ul>
-&lt;li>每隔24小时运行一次分析推荐，&lt;code>runInterval&lt;/code>格式为时间间隔，比如: 1h，1m，设置为空表示只运行一次。&lt;/li>
-&lt;li>待分析的资源通过配置 &lt;code>resourceSelectors&lt;/code> 数组设置，每个 &lt;code>resourceSelector&lt;/code> 通过 kind，apiVersion，name 选择 k8s 中的资源，当不指定 name 时表示在 &lt;code>namespaceSelector&lt;/code> 基础上的所有资源&lt;/li>
-&lt;li>&lt;code>namespaceSelector&lt;/code> 定义了待分析资源的 namespace，&lt;code>any: true&lt;/code> 表示选择所有 namespace&lt;/li>
-&lt;li>&lt;code>recommenders&lt;/code> 定义了待分析的资源需要通过哪些 Recommender 进行分析。目前支持的类型：&lt;a href="/zh-cn/docs/tutorials/recommendation/recommendation-framework#recommender">recommenders&lt;/a>&lt;/li>
-&lt;li>资源类型和 &lt;code>recommenders&lt;/code> 需要可以匹配，比如 Resource 推荐默认只支持 Deployments 和 StatefulSets，每种 Recommender 支持哪些资源类型请参考 recommender 的文档&lt;/li>
+&lt;li>The analysis is run every 24 hours. &lt;code>runInterval&lt;/code> format is an time interval, for example, 1h or 1m. If this parameter is set to null, the analysis is run only once.&lt;/li>
+&lt;li>Resources to be analyzed are set by configuring the &amp;lsquo;resourceSelectors&amp;rsquo; array. Each &lt;code>resourceSelector&lt;/code> selects resources in k8s by kind, apiVersion, name. If no name is specified, it indicates all resources based on &lt;code>namespaceSelector&lt;/code>.&lt;/li>
+&lt;li>&lt;code>namespaceSelector&lt;/code> defines the namespace of the resource to be analyzed. &lt;code>any: true&lt;/code> indicates that all namespaces are selected&lt;/li>
+&lt;li>&lt;code>recommenders&lt;/code> define which recommender should be used to analyze the resources. Currently, supported types: &lt;a href="/docs/tutorials/recommendation/recommendation-framework#recommender">recommenders&lt;/a>&lt;/li>
+&lt;li>the Resource type and &lt;code>recommenders&lt;/code> need to match, such as the Resource recommended default only support Deployments and StatefulSets. Please refer to the Recommender docs to know which resources it supports&lt;/li>
 &lt;/ul>
 &lt;ol>
-&lt;li>通过以下命令创建 RecommendationRule，刚创建时会立刻开始一次推荐。&lt;/li>
+&lt;li>Create the RecommendationRule with the following command, a recommendation will start as soon as it is created.&lt;/li>
 &lt;/ol>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>kubectl apply -f workload-rules.yaml
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>这个例子会对所有 namespace 中的 Deployments 和 StatefulSets 做资源推荐和副本数推荐。&lt;/p>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>This example will analysis Resource and Replicas for Deployments and StatefulSets in all namespace.。&lt;/p>
 &lt;ol start="2">
-&lt;li>检查 RecommendationRule 的推荐进度。通过 Status.recommendations 观察推荐任务的进度，推荐任务是顺序执行，如果所有任务的 lastStartTime 为最近时间且 message 有值，则表示这一次推荐完成&lt;/li>
+&lt;li>Check the RecommendationRule recommendation progress. Observe the progress of recommendation tasks through &lt;code>Status.recommendations&lt;/code>. Recommendation tasks are executed sequentially. If lastStartTime of all tasks is the latest time and message has value, it indicates that this recommendation is completed.&lt;/li>
 &lt;/ol>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>kubectl get rr workloads-rule
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">status&lt;/span>:
@@ -76,34 +76,34 @@
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">8472013a-bda2-4025-b0df-3fdc69c1c910&lt;/span>
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ol start="3">
-&lt;li>查看优化建议 &lt;code>Recommendation&lt;/code>&lt;/li>
+&lt;li>Check &lt;code>Recommendation&lt;/code>&lt;/li>
 &lt;/ol>
-&lt;p>可通过以下 label 筛选 &lt;code>Recommendation&lt;/code>，比如 &lt;code>kubectl get recommend -l analysis.crane.io/recommendation-rule-name=workloads-rule&lt;/code>&lt;/p>
+&lt;p>You can filter &lt;code>Recommendation&lt;/code> through these labels，like &lt;code>kubectl get recommend -l analysis.crane.io/recommendation-rule-name=workloads-rule&lt;/code>&lt;/p>
 &lt;ul>
-&lt;li>RecommendationRule 名称：analysis.crane.io/recommendation-rule-name&lt;/li>
+&lt;li>RecommendationRule Name：analysis.crane.io/recommendation-rule-name&lt;/li>
 &lt;li>RecommendationRule UID：analysis.crane.io/recommendation-rule-uid&lt;/li>
-&lt;li>RecommendationRule 的 recommender：analysis.crane.io/recommendation-rule-recommender&lt;/li>
-&lt;li>推荐资源的 kind：analysis.crane.io/recommendation-target-kind&lt;/li>
-&lt;li>推荐资源的 apiversion：analysis.crane.io/recommendation-target-apiversion&lt;/li>
-&lt;li>推荐资源的 name：analysis.crane.io/recommendation-target-apiversion&lt;/li>
+&lt;li>RecommendationRule recommender：analysis.crane.io/recommendation-rule-recommender&lt;/li>
+&lt;li>Recommended resource&amp;rsquo;s kind：analysis.crane.io/recommendation-target-kind&lt;/li>
+&lt;li>Recommended resource&amp;rsquo;s version：analysis.crane.io/recommendation-target-version&lt;/li>
+&lt;li>Recommended resource&amp;rsquo;s name：analysis.crane.io/recommendation-target-name&lt;/li>
 &lt;/ul>
-&lt;p>通常， &lt;code>Recommendation&lt;/code> 的 namespace 等于推荐资源的 namespace。闲置节点推荐的 &lt;code>Recommendation&lt;/code> 除外，它们在 Crane 的 root namespace 中，默认是 crane-system。&lt;/p>
-&lt;h2 id="根据优化建议-recommendation-调整资源配置">根据优化建议 Recommendation 调整资源配置&lt;/h2>
-&lt;p>对于资源推荐和副本数推荐建议，用户可以 PATCH status.recommendedInfo 到 workload 更新资源配置，例如：&lt;/p>
+&lt;p>In general, the namespace of &lt;code>Recommendation&lt;/code> is equal to the namespace of the recommended resource. But Recommendation for idle nodes is excluded, which are in the root namespace of crane, and the default root namespace is Crane-system.&lt;/p>
+&lt;h2 id="adjust-the-allocation-of-resources-according-to-the-optimization-recommendation">Adjust the allocation of resources according to the optimization Recommendation&lt;/h2>
+&lt;p>For resource/replicas recommendation and recommendedInfo, users can PATCH status.recommendedinfo to workload to update the resource configuration, for example:&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>patchData&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">`&lt;/span>kubectl get recommend workloads-rule-replicas-rckvb -n default -o jsonpath&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#39;{.status.recommendedInfo}&amp;#39;&lt;/span>&lt;span style="color:#e6db74">`&lt;/span>;kubectl patch Deployment php-apache -n default --patch &lt;span style="color:#e6db74">&amp;#34;&lt;/span>&lt;span style="color:#e6db74">${&lt;/span>patchData&lt;span style="color:#e6db74">}&lt;/span>&lt;span style="color:#e6db74">&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>对于闲置节点推荐，由于节点的下线在不同平台上的步骤不同，用户可以根据自身需求进行节点的下线或者缩容。&lt;/p>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>For idle nodes, users can offline or reduce the capacity of idle nodes based on their requirements.&lt;/p>
 &lt;h2 id="recommender">Recommender&lt;/h2>
-&lt;p>目前 Crane 支持了以下 Recommender：&lt;/p>
+&lt;p>Currently, Crane support these Recommenders:&lt;/p>
 &lt;ul>
-&lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/resource-recommendation">&lt;strong>资源推荐&lt;/strong>&lt;/a>: 通过 VPA 算法分析应用的真实用量推荐更合适的资源配置&lt;/li>
-&lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/replicas-recommendation">&lt;strong>副本数推荐&lt;/strong>&lt;/a>: 通过 HPA 算法分析应用的真实用量推荐更合适的副本数量&lt;/li>
+&lt;li>&lt;a href="/docs/tutorials/recommendation/resource-recommendation">&lt;strong>Resource Recommendation&lt;/strong>&lt;/a>: Use the VPA algorithm to analyze the actual usage of applications and recommend more appropriate resource configurations.&lt;/li>
+&lt;li>&lt;a href="/docs/tutorials/recommendation/replicas-recommendation">&lt;strong>Replicas Recommendation&lt;/strong>&lt;/a>: Use the HPA algorithm to analyze the actual usage of applications and recommend more appropriate replicas configurations.&lt;/li>
 &lt;/ul>
-&lt;h3 id="recommender-框架">Recommender 框架&lt;/h3>
-&lt;p>Recommender 框架定义了一套工作流程，Recommender 按流程顺序执行，流程分为四个阶段：Filter,Prepare,Recommend,Observe，Recommender 通过实现这四个阶段完成推荐功能。&lt;/p>
-&lt;p>开发或者扩展 Recommender 请参考：&lt;a href="/zh-cn/docs/tutorials/recommendation/how-to-develop-recommender">如何开发 Recommender&lt;/a>&lt;/p>
+&lt;h3 id="recommender-framework">Recommender Framework&lt;/h3>
+&lt;p>Recommender framework defines a set of workflow, The workflow execution sequence according to the process, the process is divided into four stages: Filter, Prepare, Recommend, Observe. Recommender performs recommends functions by implementing these four stages.&lt;/p>
+&lt;p>If you want to implement or extend a Recommender, please refer to :&lt;a href="/docs/tutorials/recommendation/how-to-develop-recommender">How to develop recommender&lt;/a>&lt;/p>
 &lt;h2 id="recommendationconfiguration">RecommendationConfiguration&lt;/h2>
-&lt;p>RecommendationConfiguration 定义了 recommender 的配置。部署时会在 crane root namespace创建一个 ConfigMap：recommendation-configuration，数据包括了一个 yaml 格式的 RecommendationConfiguration.&lt;/p>
-&lt;p>下面是一个 RecommendationConfiguration 示例。&lt;/p>
+&lt;p>RecommendationConfiguration defines the configuration for recommender. It will deploy a ConfigMap in crane root namespace: recommendation-configuration.&lt;/p>
+&lt;p>The following is a sample for RecommendationConfiguration.&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">v1&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">ConfigMap&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
@@ -115,161 +115,161 @@
 &lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> kind: RecommendationConfiguration
 &lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> recommenders:
 &lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - name: Replicas
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> acceptedResources: # 接受的资源类型
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> acceptedResources: # Accepted resources
 &lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - kind: Deployment
 &lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> apiVersion: apps/v1
 &lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - kind: StatefulSet
 &lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> apiVersion: apps/v1
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> config: # 设置 recommender 的参数
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> config: # settings for recommender
 &lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> workload-min-replicas: &amp;#34;1&amp;#34;
 &lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - name: Resource
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> acceptedResources: # 接受的资源类型
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> acceptedResources: # Accepted resources
 &lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - kind: Deployment
 &lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> apiVersion: apps/v1
 &lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - kind: StatefulSet
 &lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> apiVersion: apps/v1&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>用户可以修改 ConfigMap 内容并重新发布 Crane，触发新的配置生效。&lt;/p>
-&lt;h2 id="如何让推荐结果更准确">如何让推荐结果更准确&lt;/h2>
-&lt;p>应用在监控系统（比如 Prometheus）中的历史数据越久，推荐结果就越准确，建议生产上超过两周时间。对新建应用的预测往往不准。&lt;/p></description></item><item><title>Docs: 副本数推荐</title><link>/zh-cn/docs/tutorials/recommendation/replicas-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/recommendation/replicas-recommendation/</guid><description>
-&lt;p>Kubernetes 用户在创建应用资源时常常是基于经验值来设置副本数。通过副本数推荐的算法分析应用的真实用量推荐更合适的副本配置，您可以参考并采纳它提升集群的资源利用率。&lt;/p>
-&lt;h2 id="实现原理">实现原理&lt;/h2>
-&lt;p>基于 Workload 历史 CPU 负载，找到过去七天内每小时负载最低的 CPU 用量，计算按50%（可配置）利用率和 Workload CPU Request 应配置的副本数&lt;/p>
-&lt;h3 id="filter-阶段">Filter 阶段&lt;/h3>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Users can modify ConfigMap and rolling update Crane to make new configuration works.&lt;/p>
+&lt;h2 id="how-to-make-recommendations-more-accurate">How to make recommendations more accurate&lt;/h2>
+&lt;p>The more historical data stored in a monitoring system, such as Prometheus, the more accurate the recommendation will be. More than two weeks&amp;rsquo;s data is recommended for production. Predictions about new apps are often inaccurate.&lt;/p></description></item><item><title>Docs: Replicas Recommendation</title><link>/docs/tutorials/recommendation/replicas-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/replicas-recommendation/</guid><description>
+&lt;p>Kubernetes&amp;rsquo; users often set the replicas based on empirical values when creating application resources. Based on the replicas recommendation, you can analyze the actual application usage and recommend a more suitable replicas configuration. You can use it to improve the resource utilization of the cluster.&lt;/p>
+&lt;h2 id="implement">Implement&lt;/h2>
+&lt;p>Based on the historical Workload CPU loads, find the workload&amp;rsquo;s lowest CPU usage per hour in the past seven days, and calculate the replicas with 50% (configurable) cpu usage that should be configured&lt;/p>
+&lt;h3 id="filter-phase">Filter Phase&lt;/h3>
 &lt;ol>
-&lt;li>低副本数的工作负载: 过低的副本数可能推荐需求不高，关联配置: &lt;code>workload-min-replicas&lt;/code>&lt;/li>
-&lt;li>存在一定比例非 Running Pod 的工作负载: 如果工作负载的 Pod 大多不能正常运行，可能不适合弹性，关联配置: &lt;code>pod-min-ready-seconds&lt;/code> | &lt;code>pod-available-ratio&lt;/code>&lt;/li>
+&lt;li>workload with low replicas: If the replicas is too low, it may not have high recommendation demand. Associated configuration: &amp;lsquo;workload-min-replicas&amp;rsquo;&lt;/li>
+&lt;li>There is a certain percentage of the not running pods for workload: if the Pod of workload mostly can&amp;rsquo;t run normally, may not be suitable for recommendation, associated configuration: &lt;code>pod-min-ready-seconds&lt;/code> | &lt;code>pod-available-ratio&lt;/code>&lt;/li>
 &lt;/ol>
-&lt;h3 id="prepare-阶段">Prepare 阶段&lt;/h3>
-&lt;p>查询过去一周的 CPU 使用量&lt;/p>
-&lt;h3 id="recommend-阶段">Recommend 阶段&lt;/h3>
+&lt;h3 id="prepare-phase">Prepare Phase&lt;/h3>
+&lt;p>Query the workload cpu usage in the past week.&lt;/p>
+&lt;h3 id="recommend-phase">Recommend Phase&lt;/h3>
 &lt;ol>
-&lt;li>计算过去7天 workload 每小时使用量中位数的最低值(防止极小值影响): workload_cpu_usage_medium_min&lt;/li>
-&lt;li>目标利用率对应的副本数:&lt;/li>
+&lt;li>Calculate the lowest value of the median workload usage per hour in the past seven days (to prevent the impact of the minimum value): workload_cpu_usage_medium_min&lt;/li>
+&lt;li>The number of replicas corresponding to the target utilization:&lt;/li>
 &lt;/ol>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">replicas&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> int32(&lt;span style="color:#a6e22e">math&lt;/span>.&lt;span style="color:#a6e22e">Ceil&lt;/span>(&lt;span style="color:#a6e22e">workloadCpu&lt;/span> &lt;span style="color:#f92672">/&lt;/span> (&lt;span style="color:#a6e22e">rr&lt;/span>.&lt;span style="color:#a6e22e">TargetUtilization&lt;/span> &lt;span style="color:#f92672">*&lt;/span> float64(&lt;span style="color:#a6e22e">requestTotal&lt;/span>) &lt;span style="color:#f92672">/&lt;/span> &lt;span style="color:#ae81ff">1000.&lt;/span>)))
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">replicas&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> int32(&lt;span style="color:#a6e22e">math&lt;/span>.&lt;span style="color:#a6e22e">Ceil&lt;/span>(&lt;span style="color:#a6e22e">workload_cpu_usage_medium_min&lt;/span> &lt;span style="color:#f92672">/&lt;/span> (&lt;span style="color:#a6e22e">rr&lt;/span>.&lt;span style="color:#a6e22e">TargetUtilization&lt;/span> &lt;span style="color:#f92672">*&lt;/span> float64(&lt;span style="color:#a6e22e">requestTotal&lt;/span>) &lt;span style="color:#f92672">/&lt;/span> &lt;span style="color:#ae81ff">1000.&lt;/span>)))
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ol start="3">
-&lt;li>为了防止 replicas 过小，replicas 需要大于等于 default-min-replicas&lt;/li>
+&lt;li>In order to prevent too low replicas，replicas should be larger than or equal to default-min-replicas&lt;/li>
 &lt;/ol>
-&lt;h3 id="observe-阶段">Observe 阶段&lt;/h3>
-&lt;p>将推荐 replicas 记录到 Metric：crane_analytics_replicas_recommendation&lt;/p>
-&lt;h2 id="支持的资源类型">支持的资源类型&lt;/h2>
-&lt;p>默认支持 StatefulSet 和 Deployment，但是支持所有实现了 Scale SubResource 的 Workload。&lt;/p>
-&lt;h2 id="参数配置">参数配置&lt;/h2>
+&lt;h3 id="observe-phase">Observe Phase&lt;/h3>
+&lt;p>Record recommended replicas to Metric: crane_analytics_replicas_recommendation&lt;/p>
+&lt;h2 id="accepted-resources">Accepted resources&lt;/h2>
+&lt;p>Support StatefulSet and Deployment by default，but all workloads that support &lt;code>Scale SubResource&lt;/code> are supported.&lt;/p>
+&lt;h2 id="configuration">Configuration&lt;/h2>
 &lt;table>
 &lt;thead>
 &lt;tr>
-&lt;th>配置项&lt;/th>
-&lt;th>默认值&lt;/th>
-&lt;th>描述&lt;/th>
+&lt;th>Configuration items&lt;/th>
+&lt;th>Default&lt;/th>
+&lt;th>Description&lt;/th>
 &lt;/tr>
 &lt;/thead>
 &lt;tbody>
 &lt;tr>
 &lt;td>workload-min-replicas&lt;/td>
 &lt;td>1&lt;/td>
-&lt;td>小于该值的工作负载不做弹性推荐&lt;/td>
+&lt;td>Workload replicas than less than this value are not recommended&lt;/td>
 &lt;/tr>
 &lt;tr>
 &lt;td>pod-min-ready-seconds&lt;/td>
 &lt;td>30&lt;/td>
-&lt;td>定义了 Pod 是否 Ready 的秒数&lt;/td>
+&lt;td>Defines the min seconds to identify Pod is ready&lt;/td>
 &lt;/tr>
 &lt;tr>
 &lt;td>pod-available-ratio&lt;/td>
 &lt;td>0.5&lt;/td>
-&lt;td>Ready Pod 比例小于该值的工作负载不做弹性推荐&lt;/td>
+&lt;td>Workload ready Pod ratio that less than this value are not recommended&lt;/td>
 &lt;/tr>
 &lt;tr>
 &lt;td>default-min-replicas&lt;/td>
 &lt;td>1&lt;/td>
-&lt;td>最小 minReplicas&lt;/td>
+&lt;td>default minReplicas&lt;/td>
 &lt;/tr>
 &lt;tr>
 &lt;td>cpu-target-utilization&lt;/td>
 &lt;td>0.5&lt;/td>
-&lt;td>按该值计算最小副本数&lt;/td>
+&lt;td>Calculate the minimum replicas based on this cpu utilization&lt;/td>
 &lt;/tr>
 &lt;/tbody>
-&lt;/table></description></item><item><title>Docs: 资源推荐</title><link>/zh-cn/docs/tutorials/recommendation/resource-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/recommendation/resource-recommendation/</guid><description>
-&lt;p>Kubernetes 用户在创建应用资源时常常是基于经验值来设置 request 和 limit。通过资源推荐的算法分析应用的真实用量推荐更合适的资源配置，您可以参考并采纳它提升集群的资源利用率。&lt;/p>
-&lt;h2 id="实现原理">实现原理&lt;/h2>
-&lt;p>算法模型采用了 VPA 的滑动窗口（Moving Window）算法进行推荐&lt;/p>
+&lt;/table></description></item><item><title>Docs: Resource Recommendation</title><link>/docs/tutorials/recommendation/resource-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/resource-recommendation/</guid><description>
+&lt;p>Kubernetes&amp;rsquo; users often config request and limit based on empirical values when creating application resources. Based on the resource recommendation algorithm, you can analyze the actual application usage and recommend more appropriate resource configurations. You can use the resource recommendation algorithm to improve the resource utilization of the cluster.&lt;/p>
+&lt;h2 id="implement">Implement&lt;/h2>
+&lt;p>The algorithm model adopts VPA&amp;rsquo;s Moving Window algorithm for recommendation&lt;/p>
 &lt;ol>
-&lt;li>通过监控数据，获取 Workload 过去一周（可配置）的 CPU 和 Memory 历史用量。&lt;/li>
-&lt;li>算法考虑数据的时效性，较新的数据采样点会拥有更高的权重。&lt;/li>
-&lt;li>CPU 推荐值基于用户设置的目标百分位值计算，Memory 推荐值基于历史数据的最大值&lt;/li>
+&lt;li>By monitoring system, you can obtain the Workload (configurable) CPU and Memory usage history in the past week.&lt;/li>
+&lt;li>The algorithm considers the timeliness of data. The newer data sampling points will have higher weight.&lt;/li>
+&lt;li>The recommended CPU value is calculated based on the target percentile value that set by the user, and the recommended Memory value is calculated based on the maximum historical value&lt;/li>
 &lt;/ol>
-&lt;h3 id="filter-阶段">Filter 阶段&lt;/h3>
-&lt;p>没有 Pod 的工作负载: 如果工作负载没有 Pod，无法进行算法分析&lt;/p>
-&lt;h3 id="recommend-推荐">Recommend 推荐&lt;/h3>
-&lt;p>采用 VPA 的滑动窗口（Moving Window）算法分别计算每个容器的 CPU 和 Memory 并给出对应的推荐值&lt;/p>
-&lt;h3 id="observe-推荐">Observe 推荐&lt;/h3>
-&lt;p>将推荐资源配置记录到 Metric：crane_analytics_replicas_recommendation&lt;/p>
-&lt;h2 id="支持的资源类型">支持的资源类型&lt;/h2>
-&lt;p>默认支持 StatefulSet 和 Deployment，但是支持所有实现了 Scale SubResource 的 Workload。&lt;/p>
-&lt;h2 id="参数配置">参数配置&lt;/h2>
+&lt;h3 id="filter-phase">Filter Phase&lt;/h3>
+&lt;p>Workloads that have no Pods: If the workload does not have Pods, analysis cannot be performed&lt;/p>
+&lt;h3 id="recommend-phase">Recommend Phase&lt;/h3>
+&lt;p>Adopt VPA Moving Window algorithm to calculate CPU and Memory for every container and give recommendation config.&lt;/p>
+&lt;h3 id="observe-phase">Observe Phase&lt;/h3>
+&lt;p>Record recommended resource to Metric：crane_analytics_replicas_recommendation&lt;/p>
+&lt;h2 id="accepted-resources">Accepted Resources&lt;/h2>
+&lt;p>Support StatefulSet and Deployment by default，but all workloads that support &lt;code>Scale SubResource&lt;/code> are supported.&lt;/p>
+&lt;h2 id="configuration">Configuration&lt;/h2>
 &lt;table>
 &lt;thead>
 &lt;tr>
-&lt;th>配置项&lt;/th>
-&lt;th>默认值&lt;/th>
-&lt;th>描述&lt;/th>
+&lt;th>Configuration items&lt;/th>
+&lt;th>Default&lt;/th>
+&lt;th>Description&lt;/th>
 &lt;/tr>
 &lt;/thead>
 &lt;tbody>
 &lt;tr>
 &lt;td>cpu-sample-interval&lt;/td>
 &lt;td>1m&lt;/td>
-&lt;td>请求 CPU 监控数据的 Metric 采样点时间间隔&lt;/td>
+&lt;td>Metric sampling interval for requesting CPU monitoring data&lt;/td>
 &lt;/tr>
 &lt;tr>
 &lt;td>cpu-request-percentile&lt;/td>
 &lt;td>0.99&lt;/td>
-&lt;td>CPU 百分位值&lt;/td>
+&lt;td>Target CPU Percentile that used for VPA&lt;/td>
 &lt;/tr>
 &lt;tr>
 &lt;td>cpu-request-margin-fraction&lt;/td>
 &lt;td>0.15&lt;/td>
-&lt;td>CPU 推荐值扩大系数，0.15指推荐值乘以 1.15&lt;/td>
+&lt;td>CPU recommend value margin factor，0.15 means recommended value = recommended value * 1.15&lt;/td>
 &lt;/tr>
 &lt;tr>
 &lt;td>cpu-target-utilization&lt;/td>
 &lt;td>1&lt;/td>
-&lt;td>CPU 目标利用率，0.8 指推荐值除以 0.8&lt;/td>
+&lt;td>CPU target utilization，0.8 means recommended value = recommended value / 0.8&lt;/td>
 &lt;/tr>
 &lt;tr>
 &lt;td>cpu-model-history-length&lt;/td>
 &lt;td>168h&lt;/td>
-&lt;td>CPU 历史监控数据的时间&lt;/td>
+&lt;td>Historical length for CPU monitoring data&lt;/td>
 &lt;/tr>
 &lt;tr>
 &lt;td>mem-sample-interval&lt;/td>
 &lt;td>1m&lt;/td>
-&lt;td>请求 Memory 监控数据的 Metric 采样点时间间隔&lt;/td>
+&lt;td>Metric sampling interval for requesting Memory monitoring data&lt;/td>
 &lt;/tr>
 &lt;tr>
 &lt;td>mem-request-percentile&lt;/td>
 &lt;td>0.99&lt;/td>
-&lt;td>Memory 百分位值&lt;/td>
+&lt;td>Target Memory Percentile that used for VPA&lt;/td>
 &lt;/tr>
 &lt;tr>
 &lt;td>mem-request-margin-fraction&lt;/td>
 &lt;td>0.15&lt;/td>
-&lt;td>Memory 推荐值扩大系数，0.15指推荐值乘以 1.15&lt;/td>
+&lt;td>Memory recommend value margin factor，0.15 means recommended value = recommended value * 1.15&lt;/td>
 &lt;/tr>
 &lt;tr>
 &lt;td>mem-target-utilization&lt;/td>
 &lt;td>1&lt;/td>
-&lt;td>Memory 目标利用率，0.8 指推荐值除以 0.8&lt;/td>
+&lt;td>Memory target utilization，0.8 means recommended value = recommended value / 0.8&lt;/td>
 &lt;/tr>
 &lt;tr>
 &lt;td>mem-model-history-length&lt;/td>
 &lt;td>168h&lt;/td>
-&lt;td>Memory 历史监控数据的时间&lt;/td>
+&lt;td>Historical length for Memory monitoring data&lt;/td>
 &lt;/tr>
 &lt;/tbody>
-&lt;/table></description></item><item><title>Docs: 如何开发 Recommender</title><link>/zh-cn/docs/tutorials/recommendation/how-to-develop-recommender/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/recommendation/how-to-develop-recommender/</guid><description>
-&lt;p>Recommendation Framework 提供了一套可扩展的 Recommender 框架并支持了内置的 Recommender，用户可以实现一个自定义的 Recommender，或者修改一个已有的 Recommender。&lt;/p>
+&lt;/table></description></item><item><title>Docs: How to develop Recommender</title><link>/docs/tutorials/recommendation/how-to-develop-recommender/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/how-to-develop-recommender/</guid><description>
+&lt;p>Recommendation Framework provides an extensible framework for Recommender and supports several built-in Recommender. Users can implement a self-defined Recommender or modify the existing Recommenders.&lt;/p>
 &lt;h2 id="recommender-interface">Recommender Interface&lt;/h2>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">Recommender&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> {
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">Name&lt;/span>() &lt;span style="color:#66d9ef">string&lt;/span>
@@ -330,17 +330,17 @@
 &lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">Observe&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> {
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">Observe&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">RecommendationContext&lt;/span>) &lt;span style="color:#66d9ef">error&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Recommender 接口定义了一次推荐需要实现的四个阶段和八个扩展点。这些扩展点会在推荐过程中按顺序被调用。这些扩展点中的的一些可以改变推荐决策，而另一些仅用来提供信息。&lt;/p>
-&lt;h2 id="架构">架构&lt;/h2>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Recommender interface defines four stages and eight extension points that need to be implemented in recommender. These extension points are called sequentially during the recommendation process. Some of these extension points can change recommendation decisions, while others are only give information.&lt;/p>
+&lt;h2 id="architecture">Architecture&lt;/h2>
 &lt;p>&lt;img src="/images/recommendation-framework.png" alt="">&lt;/p>
-&lt;h2 id="阶段">阶段&lt;/h2>
-&lt;p>整个推荐过程分成了四个阶段：Filter，Prepare，Recommend，Observe。阶段的输入是需要分析的 Kubernetes 资源，输出是推荐的优化建议。 下面开始介绍每个阶段的输入、输出和能力。&lt;/p>
-&lt;p>&lt;code>RecommendationContext&lt;/code> 保存了一次推荐过程中的上下文，包括推荐目标，RecommendationConfiguration 等，用户可以按需增加更多的内容。&lt;/p>
+&lt;h2 id="phases">Phases&lt;/h2>
+&lt;p>The whole recommendation process is divided into four phases: Filter，Prepare，Recommend，Observe。Phase&amp;rsquo;s input is the Kubernetes resource to analysis，output is the recommendation advise. Let&amp;rsquo;s begin to introduce the inputs, outputs, and capabilities of each phase.&lt;/p>
+&lt;p>&lt;code>RecommendationContext&lt;/code> saved the context for a recommended process, including recommended target, RecommendationConfiguration etc., the user can add more content as needed.&lt;/p>
 &lt;h3 id="filter">Filter&lt;/h3>
-&lt;p>Filter 阶段用于预处理推荐数据。通常，在预处理时需判断推荐目标是否和 Recommender 匹配，比如，Resource Recommender 只支持处理 Workload（Deployment，StatefulSet）。除此之外，还可以判断推荐目标状态是否适合推荐，比如是否删除中，是否刚创建等。当返回 error 会终止此次推荐。BaseRecommender 实现了基本的预处理功能，用户可以调用它继承相关功能。&lt;/p>
+&lt;p>The Filter phase is used to preprocess the recommendation data. In general, it is necessary to decide whether the recommendation target matches Recommender during preprocessing. For example, the Resource Recommender only supports handling Workload (Deployment, StatefulSet). In addition, it can also determine whether the recommended target state is suitable for recommendation, such as whether it is being deleted or just created. The recommendation will be terminated when return error. BaseRecommender implements basic preprocessing functions and users can call it to inherit related functions.&lt;/p>
 &lt;h3 id="prepare">Prepare&lt;/h3>
-&lt;p>Prepare 阶段用于数据准备，请求外部监控系统并将时序数据保存在上下文中。PrePrepare 扩展点用于检测监控系统的链接情况。Prepare 扩展点用于查询时序数据。PostPrepare 扩展点用于对时序数据的数据处理，比如：应用冷启动的异常数据，部分数据的缺失，数据聚合，异常数据清理等。&lt;/p>
+&lt;p>The Prepare phase is used for data preparation, requesting an external monitoring system and saving the timing data in the context. PrePrepare extension point used to check the connection status of the monitoring system. Prepare extension point used to query time series data. The PostPrepare extension point is used to process time series data, such as abnormal cold start data, partial data loss, data aggregation, and clearing abnormal data.&lt;/p>
 &lt;h3 id="recommend">Recommend&lt;/h3>
-&lt;p>Recommend 阶段用于基于时序数据和资源配置进行优化建议。优化建议的类型取决于推荐的类型。比如，如果是资源推荐，那么输出就是 kubernetes workload 的资源配置。Recommend 扩展点用于采用 Crane 的算法模块对数据进行分析计算，PostRecommend 阶段对分析结果进行最后处理。用户可以自定义 Recommend 阶段实现自定义的推荐结果。&lt;/p>
+&lt;p>The Recommend phase is used to optimize recommendations based on timing data and resource allocation. The type of optimization recommendation depends on the type of recommendation. For example, if it is a resource recommendation, then the output is the resource configuration for the kubernetes workload. The Recommend extension point is used to analyze and calculate the data using Crane&amp;rsquo;s algorithm module, and the analysis result is finally processed in the PostRecommend stage. Users can customize it by implement their Recommend phase.&lt;/p>
 &lt;h3 id="observe">Observe&lt;/h3>
-&lt;p>Observe 阶段用于推荐结果的可观测。比如，在资源推荐时，将优化建议的信息通过 Metric 保存到监控系统，再通过 Dashboard 观测优化建议带来的收益。&lt;/p></description></item></channel></rss>
+&lt;p>The Observe phase is used to observe the recommendation result. For example, when recommending a resource, the information about the optimization proposal is saved to the monitoring system via Metric, and the revenue generated by the optimization proposal is observed through the Dashboard.&lt;/p></description></item></channel></rss>
