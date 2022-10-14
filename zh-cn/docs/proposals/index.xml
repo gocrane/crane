@@ -103,7 +103,7 @@ users in form of policies, and the detection process is executed in a policy dec
 general-purpose policy engine.&lt;/p>
 &lt;h2 id="motivation">Motivation&lt;/h2>
 &lt;p>The criteria of abnormality or interference are not that always as simple as something like a metric value is higher than a threshold.
-Different users may have different QOS requirements on different applications in different environments. The rule of
+Different users may have different QoS requirements on different applications in different environments. The rule of
 abnormality detection varies, and it is impossible to implement all of them in code in advance.&lt;/p>
 &lt;h3 id="goals">Goals&lt;/h3>
 &lt;ol>
@@ -120,10 +120,10 @@ out of scope.&lt;/li>
 &lt;h3 id="user-stories">User Stories&lt;/h3>
 &lt;h4 id="story-1">Story 1&lt;/h4>
 &lt;p>A user has a critical online application which is latency sensitive running in the cluster, and he wants to use both
-the 99th percentile response time and the error code rate as the application QOS indicators. If either of these 2 indicators
+the 99th percentile response time and the error code rate as the application QoS indicators. If either of these 2 indicators
 deteriorates, the application is thought of being in abnormal status.&lt;/p>
 &lt;h4 id="story-2">Story 2&lt;/h4>
-&lt;p>The SRE team finds that if the node CPU utilization is more than 60%, the QOS of some latency sensitive applications
+&lt;p>The SRE team finds that if the node CPU utilization is more than 60%, the QoS of some latency sensitive applications
 running on it are likely to decline. So they want to keep the node CPU utilization lower than 60%.
 If the utilization is higher than this threshold, the BE applications should be suppressed
 accordingly.&lt;/p>
@@ -390,21 +390,21 @@ But the recommendations have some limitations now:&lt;/p>
 &lt;/ul>
 &lt;!-- /TOC -->
 &lt;h2 id="motivation">Motivation&lt;/h2>
-&lt;p>当前在crane-agent中，当超过NodeQOS中指定的水位线后，执行evict，throttle等操作时先对低优先级的pod进行排序，当前排序的依据是pod的ProrityClass，然后在排序的pod进行throttle或者evict操作；&lt;/p>
+&lt;p>当前在crane-agent中，当超过NodeQOSEnsurancePolicy中指定的水位线后，执行evict，throttle等操作时先对低优先级的pod进行排序，当前排序的依据是pod的ProrityClass，然后在排序的pod进行throttle或者evict操作；&lt;/p>
 &lt;p>目前存在的问题有：&lt;/p>
 &lt;ol>
 &lt;li>
 &lt;p>排序只参考ProrityClass，无法满足基于其他特性的排序；同时也无法满足按照水位线精确操作对灵活排序的需求，无法满足尽快让节点达到指定的水位线的要求。例如我们希望尽快降低低优先级业务的cpu使用量时，应该选出cpu使用量较多的pod，这样能够更快地降低cpu用量，保障高优业务不受影响。&lt;/p>
 &lt;/li>
 &lt;li>
-&lt;p>在触发NodeQOS中指定的水位线后，会对于节点上的所有低于指定ProrityClass的pod进行操作；例如，当前节点上有10个pod低于指定ProrityClass，在触发水位线后，会对这10个pod都进行操作，但是实际上可能在操作完成对第一个pod的操作后就可以低于NodeQOS中的指标值了，对剩下的pod的操作，属于过度操作，是可以避免的。如果能以NodeQOS中的指标值作为水位线对pod进行精确的操作，操作到刚好低于水位线是更为合适的，就能避免对低优先级服务的过度影响。&lt;/p>
+&lt;p>在触发NodeQOSEnsurancePolicy中指定的水位线后，会对于节点上的所有低于指定ProrityClass的pod进行操作；例如，当前节点上有10个pod低于指定ProrityClass，在触发水位线后，会对这10个pod都进行操作，但是实际上可能在操作完成对第一个pod的操作后就可以低于NodeQOSEnsurancePolicy中的指标值了，对剩下的pod的操作，属于过度操作，是可以避免的。如果能以NodeQOSEnsurancePolicy中的指标值作为水位线对pod进行精确的操作，操作到刚好低于水位线是更为合适的，就能避免对低优先级服务的过度影响。&lt;/p>
 &lt;/li>
 &lt;/ol>
 &lt;h3 id="goals">Goals&lt;/h3>
 &lt;ul>
 &lt;li>丰富了crane-agent的排序策略，包括以pod cpu用量为主要参照的排序，以pod内存用量为主要参照的排序，基于运行时间的排序，基于扩展资源使用率的排序。&lt;/li>
 &lt;li>实现一套包含排序和精确操作的框架，支持对不同的指标丰富排序规则，并且实现精确操作。&lt;/li>
-&lt;li>实现针对cpu usage和memmory usage的精确操作，当整机负载超过NodeQOS中指定的水位线后，会先对低优先级的pod进行排序，然后按照顺序操作到刚好低于水位线为止。&lt;/li>
+&lt;li>实现针对cpu usage和memmory usage的精确操作，当整机负载超过NodeQOSEnsurancePolicy中指定的水位线后，会先对低优先级的pod进行排序，然后按照顺序操作到刚好低于水位线为止。&lt;/li>
 &lt;/ul>
 &lt;h2 id="proposal">Proposal&lt;/h2>
 &lt;h3 id="丰富pod的排序策略">丰富pod的排序策略&lt;/h3>
@@ -439,7 +439,7 @@ But the recommendations have some limitations now:&lt;/p>
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/li>
 &lt;/ul>
 &lt;h3 id="metric属性的定义">metric属性的定义&lt;/h3>
-&lt;p>为了更好的基于NodeQOS配置的metric进行排序和精准控制，对metric引入属性的概念。&lt;/p>
+&lt;p>为了更好的基于NodeQOSEnsurancePolicy配置的metric进行排序和精准控制，对metric引入属性的概念。&lt;/p>
 &lt;p>metric的属性包含如下几个：&lt;/p>
 &lt;ol>
 &lt;li>Name 表明了metric的名称，需要同collector模块中收集到的指标名称一致&lt;/li>
@@ -474,10 +474,10 @@ But the recommendations have some limitations now:&lt;/p>
 &lt;h3 id="如何根据水位线进行精准控制">如何根据水位线进行精准控制&lt;/h3>
 &lt;ul>
 &lt;li>
-&lt;p>根据多个NodeQOS及其中的objectiveEnsurances构建多条水位线:&lt;/p>
+&lt;p>根据多个NodeQOSEnsurancePolicy及其中的objectiveEnsurances构建多条水位线:&lt;/p>
 &lt;ol>
 &lt;li>
-&lt;p>按照objectiveEnsurances对应的action进行分类，目前crane-agent有3个针对节点QOS进行保障的操作，分别是Evict，ThtottleDown（当前用量高于objectiveEnsurances中的值时对pod进行用量压制）和ThrottleUp（当前用量低于objectiveEnsurances中的值时对pod的用量进行放宽恢复），因此会有三个水位线集合，分别是
+&lt;p>按照objectiveEnsurances对应的action进行分类，目前crane-agent有3个针对节点Qos进行保障的操作，分别是Evict，ThtottleDown（当前用量高于objectiveEnsurances中的值时对pod进行用量压制）和ThrottleUp（当前用量低于objectiveEnsurances中的值时对pod的用量进行放宽恢复），因此会有三个水位线集合，分别是
 ThrottleDownWaterLine，ThrottleUpWaterLine和EvictWaterLine&lt;/p>
 &lt;/li>
 &lt;li>
@@ -512,7 +512,7 @@ ThrottleDownWaterLine，ThrottleUpWaterLine和EvictWaterLine&lt;/p>
 &lt;p>在analyzer阶段构造针对不同操作（驱逐，压制等）和不同metric的水位线，将原先的排序逻辑删除，后移到需要进行正式操作的executor阶段，并且可能会需要进行多轮排序；&lt;/p>
 &lt;p>在executor阶段，根据水位线中的涉及的指标进行其相应的排序，获取最新用量，构造GapToWaterLines，并进行精确操作&lt;/p>
 &lt;h4 id="analyzer阶段">analyzer阶段&lt;/h4>
-&lt;p>在该阶段进行NodeQOS到WaterLines的转换，并对相同actionName和metricrule的规则进行合并，具体内容上文已经介绍过了&lt;/p>
+&lt;p>在该阶段进行NodeQOSEnsurancePolicy到WaterLines的转换，并对相同actionName和metricrule的规则进行合并，具体内容上文已经介绍过了&lt;/p>
 &lt;h4 id="executor阶段">executor阶段&lt;/h4>
 &lt;p>压制过程：&lt;/p>
 &lt;ol>
@@ -521,7 +521,7 @@ ThrottleDownWaterLine，ThrottleUpWaterLine和EvictWaterLine&lt;/p>
 &lt;/li>
 &lt;li>
 &lt;p>通过getStateFunc()获取当前节点和workload的最新用量，依据ThrottoleDownGapToWaterLines和实时用量构造GapToWaterLine（需要注意的是，在构造GapToWaterLine时，会以注册过的metric进行遍历，所以最终构造出来的GapToWaterLine中的metrics，会是ThrottoleDownGapToWaterLines
-中注册过的metric，避免了在NodeQOS中配置错误不存在或未注册metric的情况）&lt;/p>
+中注册过的metric，避免了在NodeQOSEnsurancePolicy中配置错误不存在或未注册metric的情况）&lt;/p>
 &lt;/li>
 &lt;li>
 &lt;p>如果GapToWaterLine中有metric的实时用量无法获取（HasUsageMissedMetric），则通过GetHighestPriorityThrottleAbleMetric获取具有最高ActionPriority的一个throttleAble（具有throttleFunc）的metric对所选择的所有pod进行压制操作，因为如果存在metric实时用量无法获取，就无法获知和水位线的gap，也就无法进行精确的操作&lt;/p>
@@ -613,6 +613,6 @@ ThrottleDownWaterLine，ThrottleUpWaterLine和EvictWaterLine&lt;/p>
 &lt;/ul>
 &lt;h3 id="user-stories">User Stories&lt;/h3>
 &lt;ul>
-&lt;li>用户可以使用crane-agent进行更好的QOS保障。支持更快速的降低节点负载，以保障高优先级业务不受影响。同时对低优先级业务的压制/驱逐动作，进行精确控制，避免过度操作。&lt;/li>
-&lt;li>用户可以借助实现的精准操作(压制/驱逐)的框架，在无需关心细节的情况下，通过实现自定义metric相关的属性和方法，即可方便地实现以自定义metric为核心的具有精确操作和排序能力的QOS功能。&lt;/li>
+&lt;li>用户可以使用crane-agent进行更好的QoS保障。支持更快速的降低节点负载，以保障高优先级业务不受影响。同时对低优先级业务的压制/驱逐动作，进行精确控制，避免过度操作。&lt;/li>
+&lt;li>用户可以借助实现的精准操作(压制/驱逐)的框架，在无需关心细节的情况下，通过实现自定义metric相关的属性和方法，即可方便地实现以自定义metric为核心的具有精确操作和排序能力的QoS功能。&lt;/li>
 &lt;/ul></description></item></channel></rss>

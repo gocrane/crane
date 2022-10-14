@@ -22,8 +22,7 @@ scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="tru
 &lt;p>EffectiveHorizontalPodAutoscaler supports prediction-driven autoscaling. With this capability, user can forecast the incoming peak flow and scale up their application ahead, also user can know when the peak flow will end and scale down their application gracefully. &lt;a href="/docs/tutorials/using-effective-hpa-to-scaling-with-effectiveness">learn more&lt;/a>.&lt;/p>
 &lt;p>&lt;strong>Load-Aware Scheduling&lt;/strong>&lt;/p>
 &lt;p>Provide a simple but efficient scheduler that schedule pods based on actual node utilization data，and filters out those nodes with high load to balance the cluster. &lt;a href="/docs/tutorials/scheduling-pods-based-on-actual-node-load">learn more&lt;/a>.&lt;/p>
-&lt;p>&lt;strong>Colocation with Enhanced QOS&lt;/strong>&lt;/p>
-&lt;p>QOS-related capabilities ensure the running stability of Pods on Kubernetes. It has the ability of interference detection and active avoidance under the condition of multi-dimensional metrics, and supports reasonable operation and custom metrics access; it has the ability to oversell elastic resources enhanced by the prediction algorithm, reuse and limit the idle resources in the cluster; it has the enhanced bypass cpuset Management capabilities, improve resource utilization efficiency while binding cores. &lt;a href="/docs/tutorials/using-qos-ensurance">learn more&lt;/a>.&lt;/p>
+&lt;p>&lt;strong>Colocation with Enhanced QoS&lt;/strong>&lt;/p>
 &lt;h2 id="architecture">Architecture&lt;/h2>
 &lt;p>The overall architecture of Crane is shown as below:&lt;/p>
 &lt;p>&lt;img src="/images/crane-arch.png" alt="Crane Arch&amp;quot;">&lt;/p>
