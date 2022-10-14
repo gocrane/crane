@@ -422,7 +422,8 @@ scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="tru
 &lt;p>EffectiveHorizontalPodAutoscaler 支持了预测驱动的弹性。它基于社区 HPA 做底层的弹性控制，支持更丰富的弹性触发策略（预测，观测，周期），让弹性更加高效，并保障了服务的质量。&lt;a href="/zh-cn/docs/tutorials/using-effective-hpa-to-scaling-with-effectiveness">了解更多&lt;/a>。&lt;/p>
 &lt;p>&lt;strong>负载感知的调度器&lt;/strong>&lt;/p>
 &lt;p>动态调度器根据实际的节点利用率构建了一个简单但高效的模型，并过滤掉那些负载高的节点来平衡集群。&lt;a href="/zh-cn/docs/tutorials/scheduling-pods-based-on-actual-node-load">了解更多&lt;/a>。&lt;/p>
-&lt;p>&lt;strong>基于 QoS 的混部&lt;/strong>&lt;/p>
+&lt;p>&lt;strong>基于 QOS 的混部&lt;/strong>&lt;/p>
+&lt;p>QOS相关能力保证了运行在 Kubernetes 上的 Pod 的稳定性。具有多维指标条件下的干扰检测和主动回避能力，支持精确操作和自定义指标接入；具有预测算法增强的弹性资源超卖能力，复用和限制集群内的空闲资源；具备增强的旁路cpuset管理能力，在绑核的同时提升资源利用效率。&lt;a href="/zh-cn/docs/tutorials/using-qos-ensurance">了解更多&lt;/a>。&lt;/p>
 &lt;h2 id="架构">架构&lt;/h2>
 &lt;p>Crane 的整体架构如下：&lt;/p>
 &lt;p>&lt;img src="/images/crane-arch.png" alt="Crane Arch&amp;quot;">&lt;/p>
@@ -611,7 +612,7 @@ users in form of policies, and the detection process is executed in a policy dec
 general-purpose policy engine.&lt;/p>
 &lt;h2 id="motivation">Motivation&lt;/h2>
 &lt;p>The criteria of abnormality or interference are not that always as simple as something like a metric value is higher than a threshold.
-Different users may have different QoS requirements on different applications in different environments. The rule of
+Different users may have different QOS requirements on different applications in different environments. The rule of
 abnormality detection varies, and it is impossible to implement all of them in code in advance.&lt;/p>
 &lt;h3 id="goals">Goals&lt;/h3>
 &lt;ol>
@@ -628,10 +629,10 @@ out of scope.&lt;/li>
 &lt;h3 id="user-stories">User Stories&lt;/h3>
 &lt;h4 id="story-1">Story 1&lt;/h4>
 &lt;p>A user has a critical online application which is latency sensitive running in the cluster, and he wants to use both
-the 99th percentile response time and the error code rate as the application QoS indicators. If either of these 2 indicators
+the 99th percentile response time and the error code rate as the application QOS indicators. If either of these 2 indicators
 deteriorates, the application is thought of being in abnormal status.&lt;/p>
 &lt;h4 id="story-2">Story 2&lt;/h4>
-&lt;p>The SRE team finds that if the node CPU utilization is more than 60%, the QoS of some latency sensitive applications
+&lt;p>The SRE team finds that if the node CPU utilization is more than 60%, the QOS of some latency sensitive applications
 running on it are likely to decline. So they want to keep the node CPU utilization lower than 60%.
 If the utilization is higher than this threshold, the BE applications should be suppressed
 accordingly.&lt;/p>
@@ -791,7 +792,7 @@ make decisions based on input and policies.&lt;/p>
 &lt;h3 id="020released">0.2.0：[released]&lt;/h3>
 &lt;ul>
 &lt;li>Multiple Metric Adaptor support&lt;/li>
-&lt;li>Node QoS Ensurance for CPU&lt;/li>
+&lt;li>Node QOS Ensurance for CPU&lt;/li>
 &lt;li>Operation Metrics about R3 and EPA applied ratio&lt;/li>
 &lt;/ul>
 &lt;h3 id="030-released">0.3.0 [released]&lt;/h3>
@@ -799,7 +800,7 @@ make decisions based on input and policies.&lt;/p>
 &lt;li>UI with cost visibility and usage optimizations.&lt;/li>
 &lt;li>Request Recommendation adapts with Virtual Kubelet&lt;/li>
 &lt;li>Multiple Triggers for EPA&lt;/li>
-&lt;li>Node QoS Ensurance for Mem&lt;/li>
+&lt;li>Node QOS Ensurance for Mem&lt;/li>
 &lt;li>Prediction with CPU, Memory, and Business Metrics&lt;/li>
 &lt;li>Scalability to support 1K TSP and 1K EPA&lt;/li>
 &lt;/ul>
@@ -815,7 +816,7 @@ make decisions based on input and policies.&lt;/p>
 &lt;h3 id="060-released">0.6.0 [released]&lt;/h3>
 &lt;ul>
 &lt;li>Scalability to support 3k TSP and 3k EPA&lt;/li>
-&lt;li>Algorithm and QoS Documentation&lt;/li>
+&lt;li>Algorithm and QOS Documentation&lt;/li>
 &lt;li>EHPA grafana dashboard&lt;/li>
 &lt;li>DSP Algorithm Optimization&lt;/li>
 &lt;li>Support remote adapter for external metric&lt;/li>
@@ -1448,21 +1449,21 @@ kubectl apply -f deploy/metric-adapter&lt;/code>&lt;/pre>&lt;/div>
 &lt;/ul>
 &lt;!-- /TOC -->
 &lt;h2 id="motivation">Motivation&lt;/h2>
-&lt;p>当前在crane-agent中，当超过NodeQOSEnsurancePolicy中指定的水位线后，执行evict，throttle等操作时先对低优先级的pod进行排序，当前排序的依据是pod的ProrityClass，然后在排序的pod进行throttle或者evict操作；&lt;/p>
+&lt;p>当前在crane-agent中，当超过NodeQOS中指定的水位线后，执行evict，throttle等操作时先对低优先级的pod进行排序，当前排序的依据是pod的ProrityClass，然后在排序的pod进行throttle或者evict操作；&lt;/p>
 &lt;p>目前存在的问题有：&lt;/p>
 &lt;ol>
 &lt;li>
 &lt;p>排序只参考ProrityClass，无法满足基于其他特性的排序；同时也无法满足按照水位线精确操作对灵活排序的需求，无法满足尽快让节点达到指定的水位线的要求。例如我们希望尽快降低低优先级业务的cpu使用量时，应该选出cpu使用量较多的pod，这样能够更快地降低cpu用量，保障高优业务不受影响。&lt;/p>
 &lt;/li>
 &lt;li>
-&lt;p>在触发NodeQOSEnsurancePolicy中指定的水位线后，会对于节点上的所有低于指定ProrityClass的pod进行操作；例如，当前节点上有10个pod低于指定ProrityClass，在触发水位线后，会对这10个pod都进行操作，但是实际上可能在操作完成对第一个pod的操作后就可以低于NodeQOSEnsurancePolicy中的指标值了，对剩下的pod的操作，属于过度操作，是可以避免的。如果能以NodeQOSEnsurancePolicy中的指标值作为水位线对pod进行精确的操作，操作到刚好低于水位线是更为合适的，就能避免对低优先级服务的过度影响。&lt;/p>
+&lt;p>在触发NodeQOS中指定的水位线后，会对于节点上的所有低于指定ProrityClass的pod进行操作；例如，当前节点上有10个pod低于指定ProrityClass，在触发水位线后，会对这10个pod都进行操作，但是实际上可能在操作完成对第一个pod的操作后就可以低于NodeQOS中的指标值了，对剩下的pod的操作，属于过度操作，是可以避免的。如果能以NodeQOS中的指标值作为水位线对pod进行精确的操作，操作到刚好低于水位线是更为合适的，就能避免对低优先级服务的过度影响。&lt;/p>
 &lt;/li>
 &lt;/ol>
 &lt;h3 id="goals">Goals&lt;/h3>
 &lt;ul>
 &lt;li>丰富了crane-agent的排序策略，包括以pod cpu用量为主要参照的排序，以pod内存用量为主要参照的排序，基于运行时间的排序，基于扩展资源使用率的排序。&lt;/li>
 &lt;li>实现一套包含排序和精确操作的框架，支持对不同的指标丰富排序规则，并且实现精确操作。&lt;/li>
-&lt;li>实现针对cpu usage和memmory usage的精确操作，当整机负载超过NodeQOSEnsurancePolicy中指定的水位线后，会先对低优先级的pod进行排序，然后按照顺序操作到刚好低于水位线为止。&lt;/li>
+&lt;li>实现针对cpu usage和memmory usage的精确操作，当整机负载超过NodeQOS中指定的水位线后，会先对低优先级的pod进行排序，然后按照顺序操作到刚好低于水位线为止。&lt;/li>
 &lt;/ul>
 &lt;h2 id="proposal">Proposal&lt;/h2>
 &lt;h3 id="丰富pod的排序策略">丰富pod的排序策略&lt;/h3>
@@ -1497,7 +1498,7 @@ kubectl apply -f deploy/metric-adapter&lt;/code>&lt;/pre>&lt;/div>
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/li>
 &lt;/ul>
 &lt;h3 id="metric属性的定义">metric属性的定义&lt;/h3>
-&lt;p>为了更好的基于NodeQOSEnsurancePolicy配置的metric进行排序和精准控制，对metric引入属性的概念。&lt;/p>
+&lt;p>为了更好的基于NodeQOS配置的metric进行排序和精准控制，对metric引入属性的概念。&lt;/p>
 &lt;p>metric的属性包含如下几个：&lt;/p>
 &lt;ol>
 &lt;li>Name 表明了metric的名称，需要同collector模块中收集到的指标名称一致&lt;/li>
@@ -1532,10 +1533,10 @@ kubectl apply -f deploy/metric-adapter&lt;/code>&lt;/pre>&lt;/div>
 &lt;h3 id="如何根据水位线进行精准控制">如何根据水位线进行精准控制&lt;/h3>
 &lt;ul>
 &lt;li>
-&lt;p>根据多个NodeQOSEnsurancePolicy及其中的objectiveEnsurances构建多条水位线:&lt;/p>
+&lt;p>根据多个NodeQOS及其中的objectiveEnsurances构建多条水位线:&lt;/p>
 &lt;ol>
 &lt;li>
-&lt;p>按照objectiveEnsurances对应的action进行分类，目前crane-agent有3个针对节点Qos进行保障的操作，分别是Evict，ThtottleDown（当前用量高于objectiveEnsurances中的值时对pod进行用量压制）和ThrottleUp（当前用量低于objectiveEnsurances中的值时对pod的用量进行放宽恢复），因此会有三个水位线集合，分别是
+&lt;p>按照objectiveEnsurances对应的action进行分类，目前crane-agent有3个针对节点QOS进行保障的操作，分别是Evict，ThtottleDown（当前用量高于objectiveEnsurances中的值时对pod进行用量压制）和ThrottleUp（当前用量低于objectiveEnsurances中的值时对pod的用量进行放宽恢复），因此会有三个水位线集合，分别是
 ThrottleDownWaterLine，ThrottleUpWaterLine和EvictWaterLine&lt;/p>
 &lt;/li>
 &lt;li>
@@ -1570,7 +1571,7 @@ ThrottleDownWaterLine，ThrottleUpWaterLine和EvictWaterLine&lt;/p>
 &lt;p>在analyzer阶段构造针对不同操作（驱逐，压制等）和不同metric的水位线，将原先的排序逻辑删除，后移到需要进行正式操作的executor阶段，并且可能会需要进行多轮排序；&lt;/p>
 &lt;p>在executor阶段，根据水位线中的涉及的指标进行其相应的排序，获取最新用量，构造GapToWaterLines，并进行精确操作&lt;/p>
 &lt;h4 id="analyzer阶段">analyzer阶段&lt;/h4>
-&lt;p>在该阶段进行NodeQOSEnsurancePolicy到WaterLines的转换，并对相同actionName和metricrule的规则进行合并，具体内容上文已经介绍过了&lt;/p>
+&lt;p>在该阶段进行NodeQOS到WaterLines的转换，并对相同actionName和metricrule的规则进行合并，具体内容上文已经介绍过了&lt;/p>
 &lt;h4 id="executor阶段">executor阶段&lt;/h4>
 &lt;p>压制过程：&lt;/p>
 &lt;ol>
@@ -1579,7 +1580,7 @@ ThrottleDownWaterLine，ThrottleUpWaterLine和EvictWaterLine&lt;/p>
 &lt;/li>
 &lt;li>
 &lt;p>通过getStateFunc()获取当前节点和workload的最新用量，依据ThrottoleDownGapToWaterLines和实时用量构造GapToWaterLine（需要注意的是，在构造GapToWaterLine时，会以注册过的metric进行遍历，所以最终构造出来的GapToWaterLine中的metrics，会是ThrottoleDownGapToWaterLines
-中注册过的metric，避免了在NodeQOSEnsurancePolicy中配置错误不存在或未注册metric的情况）&lt;/p>
+中注册过的metric，避免了在NodeQOS中配置错误不存在或未注册metric的情况）&lt;/p>
 &lt;/li>
 &lt;li>
 &lt;p>如果GapToWaterLine中有metric的实时用量无法获取（HasUsageMissedMetric），则通过GetHighestPriorityThrottleAbleMetric获取具有最高ActionPriority的一个throttleAble（具有throttleFunc）的metric对所选择的所有pod进行压制操作，因为如果存在metric实时用量无法获取，就无法获知和水位线的gap，也就无法进行精确的操作&lt;/p>
@@ -1671,8 +1672,8 @@ ThrottleDownWaterLine，ThrottleUpWaterLine和EvictWaterLine&lt;/p>
 &lt;/ul>
 &lt;h3 id="user-stories">User Stories&lt;/h3>
 &lt;ul>
-&lt;li>用户可以使用crane-agent进行更好的QoS保障。支持更快速的降低节点负载，以保障高优先级业务不受影响。同时对低优先级业务的压制/驱逐动作，进行精确控制，避免过度操作。&lt;/li>
-&lt;li>用户可以借助实现的精准操作(压制/驱逐)的框架，在无需关心细节的情况下，通过实现自定义metric相关的属性和方法，即可方便地实现以自定义metric为核心的具有精确操作和排序能力的QoS功能。&lt;/li>
+&lt;li>用户可以使用crane-agent进行更好的QOS保障。支持更快速的降低节点负载，以保障高优先级业务不受影响。同时对低优先级业务的压制/驱逐动作，进行精确控制，避免过度操作。&lt;/li>
+&lt;li>用户可以借助实现的精准操作(压制/驱逐)的框架，在无需关心细节的情况下，通过实现自定义metric相关的属性和方法，即可方便地实现以自定义metric为核心的具有精确操作和排序能力的QOS功能。&lt;/li>
 &lt;/ul></description></item><item><title>Docs: 副本数推荐</title><link>/zh-cn/docs/tutorials/recommendation/replicas-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/recommendation/replicas-recommendation/</guid><description>
 &lt;p>Kubernetes 用户在创建应用资源时常常是基于经验值来设置副本数。通过副本数推荐的算法分析应用的真实用量推荐更合适的副本配置，您可以参考并采纳它提升集群的资源利用率。&lt;/p>
 &lt;h2 id="实现原理">实现原理&lt;/h2>
@@ -2439,8 +2440,8 @@ targetReplicas: 80
 &lt;p>通过 EHPA，用户可以同时配置 &lt;code>CronMetric&lt;/code>、&lt;code>PredictionMetric&lt;/code>、&lt;code>OriginalMetric&lt;/code>。&lt;/p>
 &lt;p>&lt;strong>我们强烈建议你配置所有维度的指标。它们分别代表 cron 副本、先前预测的副本、后观察的副本。&lt;/strong>&lt;/p>
 &lt;p>这是一个强大的功能。因为 HPA 总是选择由所有维度&lt;code>metrics&lt;/code>计算的最大副本进行扩展。&lt;/p>
-&lt;p>这将保证你工作负载的 QoS，当你同时配置三种类型的自动缩放时，根据实际观察到的指标计算的副本最大，然后它将使用最大的一个。&lt;/p>
-&lt;p>尽管由于某些意想不到的原因，导致由&lt;code>PredictionMetric&lt;/code>计算的副本更小。因此，你不必担心 QoS。&lt;/p>
+&lt;p>这将保证你工作负载的 QOS，当你同时配置三种类型的自动缩放时，根据实际观察到的指标计算的副本最大，然后它将使用最大的一个。&lt;/p>
+&lt;p>尽管由于某些意想不到的原因，导致由&lt;code>PredictionMetric&lt;/code>计算的副本更小。因此，你不必担心 QOS。&lt;/p>
 &lt;h4 id="mechanism">Mechanism&lt;/h4>
 &lt;p>当&lt;code>metrics adapter&lt;/code>处理&lt;code>external cron metrics&lt;/code>请求时，&lt;code>metrics adapter&lt;/code>将执行以下步骤。&lt;/p>
 &lt;pre tabindex="0">&lt;code class="language-mermaid" data-lang="mermaid">graph LR
@@ -2518,19 +2519,23 @@ F[Result workload replicas];
 &lt;ul>
 &lt;li>等一段时间再看。预测算法 &lt;code>DSP&lt;/code> 需要一定时间的数据才能进行预测。希望了解算法细节的可以查看算法的文档。&lt;/li>
 &lt;li>EffectiveHorizontalPodAutoscaler 提供一种保护机制，当预测失效时依然能通过实际的 CPU 使用率工作。&lt;/li>
-&lt;/ul></description></item><item><title>Docs: QoS Ensurance</title><link>/zh-cn/docs/tutorials/using-qos-ensurance/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/using-qos-ensurance/</guid><description>
-&lt;p>Qos Ensurance 保证了运行在 Kubernetes 上的 Pod 的稳定性。&lt;/p>
-&lt;p>具有干扰检测和主动回避能力，当较高优先级的 Pod 受到资源竞争的影响时，Disable Schedule、Throttle以及Evict 将应用于低优先级的 Pod，支持自定义指标干扰检测和自定义操作；&lt;/p>
-&lt;p>同时具备增强的旁路cpuset管理能力，在绑核的同时提升资源利用效率。&lt;/p>
-&lt;p>具有预测算法增强的动态资源超卖能力，将空闲资源复用起来，同时结合crane的预测能力，更好地复用闲置资源。同时具有弹性资源限制功能，限制复用空闲资源的workload。&lt;/p>
-&lt;h2 id="qos-ensurance-架构">Qos Ensurance 架构&lt;/h2>
-&lt;p>Qos ensurance 的架构如下图所示。它包含三个模块。&lt;/p>
+&lt;/ul></description></item><item><title>Docs: 基于 QOS 的混部</title><link>/zh-cn/docs/tutorials/colocation-with-enhanced-qos/using-qos-ensurance.zh/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/colocation-with-enhanced-qos/using-qos-ensurance.zh/</guid><description>
+&lt;h1 id="基于-qos-的混部">基于 QOS 的混部&lt;/h1>
+&lt;p>QOS 相关能力保证了运行在 Kubernetes 上的 Pod 的稳定性。&lt;/p>
+&lt;p>具有干扰检测和主动回避能力，当较高优先级的 Pod 受到资源竞争的影响时，Disable Schedule、Throttle以及Evict 将应用于低优先级的 Pod，以保证节点整体的稳定，
+目前已经支持节点的cpu/mem负载绝对值/百分比作为水位线，具体可以参考qos-interference-detection-and-active-avoidance.zh.md
+在发生干扰进行驱逐或压制时，会进行精确计算，将负载降低到略低于水位线即停止操作，防止误伤和过渡操作，具体内容可以参照qos-accurately-perform-avoidance-actions.zh.md。&lt;/p>
+&lt;p>同时，crane支持自定义指标适配整个干扰检测框架，只需要完成排序定义等一些操作，即可复用包含精确操作在内的干扰检测和回避流程，具体内容可以参照qos-customized-metrics-interference-detection-avoidance-and-sorting.zh.md。&lt;/p>
+&lt;p>具有预测算法增强的弹性资源超卖能力，将集群内的空闲资源复用起来，同时结合crane的预测能力，更好地复用闲置资源，当前已经支持cpu和mem的空闲资源回收。同时具有弹性资源限制功能，限制使用弹性资源的workload最大和最小资源使用量，避免对高优业务的影响和饥饿问题。具体内容可以参照qos-dynamic-resource-oversold-and-limit.zh.md。&lt;/p>
+&lt;p>同时具备增强的旁路cpuset管理能力，在绑核的同时提升资源利用效率，具体内容可以参照qos-enhanced-bypass-cpuset-management.zh.md。&lt;/p></description></item><item><title>Docs: 干扰检测和主动回避</title><link>/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-interference-detection-and-active-avoidance.zh/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-interference-detection-and-active-avoidance.zh/</guid><description>
+&lt;h2 id="qos-ensurance-架构">QOS Ensurance 架构&lt;/h2>
+&lt;p>QOS ensurance 的架构如下图所示。它包含三个模块。&lt;/p>
 &lt;ol>
 &lt;li>&lt;code>State Collector&lt;/code>：定期收集指标&lt;/li>
 &lt;li>&lt;code>Anomaly Analyzer&lt;/code>：使用收集指标，以分析节点是否发生异常&lt;/li>
 &lt;li>&lt;code>Action Executor&lt;/code>：执行回避动作，包括 Disable Scheduling、Throttle 和 Eviction。&lt;/li>
 &lt;/ol>
-&lt;p>&lt;img src="/images/crane-qos-ensurance.png" alt="crane-qos-enurance">&lt;/p>
+&lt;p>&lt;img src="/images/crane-qos-ensurance.png" alt="">&lt;/p>
 &lt;p>主要流程：&lt;/p>
 &lt;ol>
 &lt;li>&lt;code>State Collector&lt;/code> 从 kube-apiserver 同步策略。&lt;/li>
@@ -2542,8 +2547,13 @@ F[Result workload replicas];
 &lt;li>&lt;code>Action Executor&lt;/code>根据分析结果执行动作。&lt;/li>
 &lt;/ol>
 &lt;h2 id="干扰检测和主动回避">干扰检测和主动回避&lt;/h2>
+&lt;h3 id="相关cr">相关CR&lt;/h3>
+&lt;p>AvoidanceAction主要定义了检测到干扰后需要执行的操作，包含了Disable Scheduling, throttle, eviction等几个操作，并且定义了其相关的一些参数。&lt;/p>
+&lt;p>NodeQOS主要定义了指标采集方式和参数，水位线指标相关参数，以及指标异常时关联的回避操作，同时通过label selector将上面的内容关联到指定的节点。&lt;/p>
+&lt;p>PodQOS定义了指定pod可以被执行的AvoidanceAction，通常和NodeQOS搭配起来，从节点和pod的维度共同限制执行动作的范围，PodQOS支持的seletor包含label selector,
+还支持筛选特定QOSClass(&amp;ldquo;BestEffort&amp;rdquo;,&amp;ldquo;Guaranteed&amp;quot;等)，特定Priority，特定Namespace的pod，并且之间采用与的方式关联。&lt;/p>
 &lt;h3 id="disable-scheduling">Disable Scheduling&lt;/h3>
-&lt;p>定义 &lt;code>AvoidanceAction&lt;/code> 和 &lt;code>NodeQOSEnsurancePolicy&lt;/code>。&lt;/p>
+&lt;p>定义 &lt;code>AvoidanceAction&lt;/code>, &lt;code>PodQOS&lt;/code>和 &lt;code>NodeQOS&lt;/code>。&lt;/p>
 &lt;p>当节点 CPU 使用率触发回避阈值时，将该节点设置为禁用调度。&lt;/p>
 &lt;p>示例 YAML 如下所示：&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">ensurance.crane.io/v1alpha1&lt;/span>
@@ -2559,9 +2569,9 @@ F[Result workload replicas];
 &lt;li>节点从禁止调度状态到正常状态的最小等待时间&lt;/li>
 &lt;/ol>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">ensurance.crane.io/v1alpha1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">NodeQOSEnsurancePolicy&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">NodeQOS&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;waterline1&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;watermark1&amp;#34;&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labels&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">app&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;system&amp;#34;&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
@@ -2569,7 +2579,7 @@ F[Result workload replicas];
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">timeoutSeconds&lt;/span>: &lt;span style="color:#ae81ff">10&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">nodeLocalGet&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">localCacheTTLSeconds&lt;/span>: &lt;span style="color:#ae81ff">60&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">objectiveEnsurances&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">rules&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;cpu-usage&amp;#34;&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">avoidanceThreshold&lt;/span>: &lt;span style="color:#ae81ff">2&lt;/span> &lt;span style="color:#75715e">#(1) &lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">restoreThreshold&lt;/span>: &lt;span style="color:#ae81ff">2&lt;/span> &lt;span style="color:#75715e">#(2)&lt;/span>
@@ -2586,10 +2596,24 @@ F[Result workload replicas];
 &lt;li>指标名称&lt;/li>
 &lt;li>指标的阈值&lt;/li>
 &lt;/ol>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">ensurance.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">PodQOS&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">all-elastic-pods&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">allowedActions&lt;/span>: &lt;span style="color:#75715e">#(1) &lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">eviction &lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labelSelector&lt;/span>: &lt;span style="color:#75715e">#(2) &lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">matchLabels&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">preemptible_job&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;true&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ol>
+&lt;li>被该PodQOS关联的pod允许被执行的action为eviction&lt;/li>
+&lt;li>通过label selector关联具有preemptible_job: &amp;ldquo;true&amp;quot;的pod&lt;/li>
+&lt;/ol>
 &lt;p>请观看视频以了解更多&lt;code>Disable Scheduling&lt;/code>的细节。&lt;/p>
 &lt;script id="asciicast-480735" src="https://asciinema.org/a/480735.js" async>&lt;/script>
 &lt;h3 id="throttle">Throttle&lt;/h3>
-&lt;p>定义 &lt;code>AvoidanceAction&lt;/code> 和 &lt;code>NodeQOSEnsurancePolicy&lt;/code>。&lt;/p>
+&lt;p>定义 &lt;code>AvoidanceAction&lt;/code> 和 &lt;code>NodeQOS&lt;/code>。&lt;/p>
 &lt;p>当节点 CPU 使用率触发回避阈值时，将执行节点的&lt;code>Throttle Action&lt;/code>。&lt;/p>
 &lt;p>示例 YAML 如下所示：&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">ensurance.crane.io/v1alpha1&lt;/span>
@@ -2614,9 +2638,9 @@ F[Result workload replicas];
 &lt;/li>
 &lt;/ol>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">ensurance.crane.io/v1alpha1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">NodeQOSEnsurancePolicy&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">NodeQOS&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;waterline2&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;watermark2&amp;#34;&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labels&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">app&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;system&amp;#34;&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
@@ -2624,7 +2648,7 @@ F[Result workload replicas];
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">timeoutSeconds&lt;/span>: &lt;span style="color:#ae81ff">10&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">nodeLocalGet&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">localCacheTTLSeconds&lt;/span>: &lt;span style="color:#ae81ff">60&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">objectiveEnsurances&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">rules&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;cpu-usage&amp;#34;&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">avoidanceThreshold&lt;/span>: &lt;span style="color:#ae81ff">2&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">restoredThreshold&lt;/span>: &lt;span style="color:#ae81ff">2&lt;/span>
@@ -2633,6 +2657,19 @@ F[Result workload replicas];
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">metricRule&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;cpu_total_usage&amp;#34;&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">value&lt;/span>: &lt;span style="color:#ae81ff">6000&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">ensurance.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">PodQOS&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">all-be-pods&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">allowedActions&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">throttle&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">scopeSelector&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">matchExpressions&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">operator&lt;/span>: &lt;span style="color:#ae81ff">In&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">scopeName&lt;/span>: &lt;span style="color:#ae81ff">QOSClass&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">values&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">BestEffort&lt;/span>
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="eviction">Eviction&lt;/h3>
 &lt;p>下面的 YAML 是另一种情况，当节点 CPU 使用率触发阈值时，节点上的低优先级 pod 将被驱逐。&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">ensurance.crane.io/v1alpha1&lt;/span>
@@ -2648,9 +2685,9 @@ F[Result workload replicas];
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">description&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;evict low priority pods&amp;#34;&lt;/span>
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>pod 需要优雅终止的持续时间（以秒为单位）。&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">ensurance.crane.io/v1alpha1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">NodeQOSEnsurancePolicy&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">NodeQOS&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;waterline3&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;watermark3&amp;#34;&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labels&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">app&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;system&amp;#34;&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
@@ -2658,7 +2695,7 @@ F[Result workload replicas];
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">timeoutSeconds&lt;/span>: &lt;span style="color:#ae81ff">10&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">nodeLocalGet&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">localCacheTTLSeconds&lt;/span>: &lt;span style="color:#ae81ff">60&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">objectiveEnsurances&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">rules&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;cpu-usage&amp;#34;&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">avoidanceThreshold&lt;/span>: &lt;span style="color:#ae81ff">2&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">restoreThreshold&lt;/span>: &lt;span style="color:#ae81ff">2&lt;/span>
@@ -2667,8 +2704,18 @@ F[Result workload replicas];
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">metricRule&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;cpu_total_usage&amp;#34;&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">value&lt;/span>: &lt;span style="color:#ae81ff">6000&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">ensurance.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">PodQOS&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">all-elastic-pods&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">allowedActions&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">eviction &lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labelSelector&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">matchLabels&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">preemptible_job&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;true&amp;#34;&lt;/span>
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>回避动作策略。当设置为&lt;code>Preview&lt;/code>时，将不会被实际执行&lt;/p>
-&lt;h3 id="supported-metrics">Supported Metrics&lt;/h3>
+&lt;h3 id="支持的水位线指标">支持的水位线指标&lt;/h3>
 &lt;table>
 &lt;thead>
 &lt;tr>
@@ -2683,105 +2730,28 @@ F[Result workload replicas];
 &lt;/tr>
 &lt;tr>
 &lt;td>cpu_total_utilization&lt;/td>
-&lt;td>node cpu utilization&lt;/td>
+&lt;td>node cpu utilization percent&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>memory_total_usage&lt;/td>
+&lt;td>node mem usage&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>memory_total_utilization&lt;/td>
+&lt;td>node mem utilization percent&lt;/td>
 &lt;/tr>
 &lt;/tbody>
 &lt;/table>
-&lt;h3 id="精确执行回避动作">精确执行回避动作&lt;/h3>
-&lt;p>通过如下两点进行，避免了对于低优pod的过度操作的同时能够更快地降低指标到指定水位线的差距，保障高优业务不受影响&lt;/p>
-&lt;ol>
-&lt;li>排序pod&lt;/li>
-&lt;/ol>
-&lt;p>crane实现了一些通用的排序方法（之后会更多地完善）：&lt;/p>
-&lt;p>classAndPriority： 比较两个pod的QOSClass和class value，优先比较QOSClass，再比较class value；priority高的排在后面优先级更高&lt;/p>
-&lt;p>runningTime：比较两个pod的运行时间，运行时间长的排在后面优先级更高&lt;/p>
-&lt;p>如果仅需使用这两个排序策略，使用默认的排序方法即可：会首先比较pod的优先级，之后比较pod对应指标的用量，之后比较pod的运行时长，有一个维度可以比较出结果即为pod的排序结果&lt;/p>
-&lt;p>以cpu usage指标的排序为例，还扩展了一些与自身指标相关的排序策略， 如cpu usage 使用量的排序，会依次比较两个pod的优先级，如果优先级相同的情况下，再比较cpu用量，如果cpu用量也相同的情况下继续比较扩展cpu资源用量, 最后比较pod的运行时长，当某一个指标存在差异时即可返回比较结果：&lt;code>orderedBy(classAndPriority, cpuUsage, extCpuUsage, runningTime).Sort(pods)&lt;/code>&lt;/p>
-&lt;ol start="2">
-&lt;li>参考水位线和pod用量执行回避动作
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">//将所有触发水位线的metrics根据其Quantified属性区分为两部分
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#a6e22e">metricsQuantified&lt;/span>, &lt;span style="color:#a6e22e">MetricsNotQuantified&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> &lt;span style="color:#a6e22e">ThrottleDownWaterLine&lt;/span>.&lt;span style="color:#a6e22e">DivideMetricsByQuantified&lt;/span>()
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// 如果存在不可Quantified的metric，获取具有最高ActionPriority的一个throttleAble的metric对所选择的所有pod进行操作
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">if&lt;/span> len(&lt;span style="color:#a6e22e">MetricsNotThrottleQuantified&lt;/span>) &lt;span style="color:#f92672">!=&lt;/span> &lt;span style="color:#ae81ff">0&lt;/span> {
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">highestPrioriyMetric&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> &lt;span style="color:#a6e22e">GetHighestPriorityThrottleAbleMetric&lt;/span>()
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">t&lt;/span>.&lt;span style="color:#a6e22e">throttlePods&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span>, &lt;span style="color:#f92672">&amp;amp;&lt;/span>&lt;span style="color:#a6e22e">totalReleased&lt;/span>, &lt;span style="color:#a6e22e">highestPrioriyMetric&lt;/span>)
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>} &lt;span style="color:#66d9ef">else&lt;/span> {
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">//获取节点和workload的最新用量，构造和水位线差距
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">ThrottoleDownGapToWaterLines&lt;/span> = &lt;span style="color:#a6e22e">buildGapToWaterLine&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span>.&lt;span style="color:#a6e22e">getStateFunc&lt;/span>())
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">//如果触发水位线中存在metric的实时用量无法获取，则获取具有最高ActionPriority的一个throttleAble的metric对所选择的所有pod进行压制操作
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#66d9ef">if&lt;/span> &lt;span style="color:#a6e22e">ThrottoleDownGapToWaterLines&lt;/span>.&lt;span style="color:#a6e22e">HasUsageMissedMetric&lt;/span>() {
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">highestPrioriyMetric&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> &lt;span style="color:#a6e22e">ThrottleDownWaterLine&lt;/span>.&lt;span style="color:#a6e22e">GetHighestPriorityThrottleAbleMetric&lt;/span>()
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">errPodKeys&lt;/span> = &lt;span style="color:#a6e22e">throttlePods&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span>, &lt;span style="color:#f92672">&amp;amp;&lt;/span>&lt;span style="color:#a6e22e">totalReleased&lt;/span>, &lt;span style="color:#a6e22e">highestPrioriyMetric&lt;/span>)
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> } &lt;span style="color:#66d9ef">else&lt;/span> {
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">var&lt;/span> &lt;span style="color:#a6e22e">released&lt;/span> &lt;span style="color:#a6e22e">ReleaseResource&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">//遍历触发水位线的metric中可以量化的metric：如果metric具有排序方法则直接使用其SortFunc对pod进行排序，否则使用GeneralSorter排序；
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#75715e">//之后使用其对应的操作方法对pod执行操作，并计算释放出来的对应metric的资源量，直到对应metric到水位线的差距已不存在
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#66d9ef">for&lt;/span> &lt;span style="color:#a6e22e">_&lt;/span>, &lt;span style="color:#a6e22e">m&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> &lt;span style="color:#66d9ef">range&lt;/span> &lt;span style="color:#a6e22e">metricsQuantified&lt;/span> {
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">if&lt;/span> &lt;span style="color:#a6e22e">m&lt;/span>.&lt;span style="color:#a6e22e">SortAble&lt;/span> {
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">m&lt;/span>.&lt;span style="color:#a6e22e">SortFunc&lt;/span>(&lt;span style="color:#a6e22e">ThrottleDownPods&lt;/span>)
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> } &lt;span style="color:#66d9ef">else&lt;/span> {
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">GeneralSorter&lt;/span>(&lt;span style="color:#a6e22e">ThrottleDownPods&lt;/span>)
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">for&lt;/span> !&lt;span style="color:#a6e22e">ThrottoleDownGapToWaterLines&lt;/span>.&lt;span style="color:#a6e22e">TargetGapsRemoved&lt;/span>(&lt;span style="color:#a6e22e">m&lt;/span>) {
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">for&lt;/span> &lt;span style="color:#a6e22e">index&lt;/span>, &lt;span style="color:#a6e22e">_&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> &lt;span style="color:#66d9ef">range&lt;/span> &lt;span style="color:#a6e22e">ThrottleDownPods&lt;/span> {
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">released&lt;/span> = &lt;span style="color:#a6e22e">m&lt;/span>.&lt;span style="color:#a6e22e">ThrottleFunc&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span>, &lt;span style="color:#a6e22e">index&lt;/span>, &lt;span style="color:#a6e22e">ThrottleDownPods&lt;/span>, &lt;span style="color:#f92672">&amp;amp;&lt;/span>&lt;span style="color:#a6e22e">totalReleased&lt;/span>)
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">ThrottoleDownGapToWaterLines&lt;/span>[&lt;span style="color:#a6e22e">m&lt;/span>] &lt;span style="color:#f92672">-=&lt;/span> &lt;span style="color:#a6e22e">released&lt;/span>[&lt;span style="color:#a6e22e">m&lt;/span>]
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/li>
-&lt;/ol>
-&lt;p>关于扩展自定义指标和排序参考 &amp;ldquo;自定义指标干扰检测回避和自定义排序&amp;rdquo; 部分&lt;/p>
-&lt;h2 id="增强的旁路cpuset管理能力">增强的旁路cpuset管理能力&lt;/h2>
-&lt;p>kubelet支持static的cpu manager策略，当guaranteed pod运行在节点上时，kebelet会为该pod分配指定的专属cpu，其他进程无法占用，这保证了guaranteed pod的cpu独占，但是也造成了cpu和节点的的利用率较低，造成了一定的浪费。
-crane agent为cpuset管理提供了新的策略，允许pod和其他pod共享cpu当其指定了cpu绑核时，可以在利用绑核更少的上下文切换和更高的缓存亲和性的优点的前提下，还能让其他workload部署共用，提升资源利用率。&lt;/p>
-&lt;ol>
-&lt;li>提供了3种pod cpuset类型：&lt;/li>
-&lt;/ol>
-&lt;ul>
-&lt;li>
-&lt;p>exclusive：绑核后其他container不能再使用该cpu，独占cpu&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>share：绑核后其他container可以使用该cpu&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>none：选择没有被exclusive pod的container占用的cpu，可以使用share类型的绑核&lt;/p>
-&lt;p>share类型的绑核策略可以在利用绑核更少的上下文切换和更高的缓存亲和性的优点的前提下，还能让其他workload部署共用，提升资源利用率&lt;/p>
-&lt;/li>
-&lt;/ul>
-&lt;ol start="2">
-&lt;li>
-&lt;p>放宽了kubelet中绑核的限制&lt;/p>
-&lt;p>原先需要所有container的CPU limit与CPU request相等 ，这里只需要任意container的CPU limit大于或等于1且等于CPU request即可为该container设置绑核&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>支持在pod运行过程中修改pod的 cpuset policy，会立即生效&lt;/p>
-&lt;p>pod的cpu manager policy从none转换到share，从exclusive转换到share，均无需重启&lt;/p>
-&lt;/li>
-&lt;/ol>
-&lt;p>使用方法：&lt;/p>
-&lt;ol>
-&lt;li>
-&lt;p>设置kubelet的cpuset manager为&amp;quot;none&amp;quot;&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>通过pod annotation设置cpu manager policy&lt;/p>
-&lt;p>&lt;code>qos.gocrane.io/cpu-manager: none/exclusive/share&lt;/code>&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">v1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Pod&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">annotations&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">qos.gocrane.io/cpu-manager&lt;/span>: &lt;span style="color:#ae81ff">none/exclusive/share&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/li>
-&lt;/ol>
+&lt;p>具体可以参考examples/ensurance下的例子&lt;/p>
+&lt;h3 id="与弹性资源搭配使用">与弹性资源搭配使用&lt;/h3>
+&lt;p>为了避免主动回避操作对于高优先级业务的影响，比如误驱逐了重要业务，建议使用PodQOS关联使用了弹性资源的workload，这样在执行动作的时候只会影响这些使用了空闲资源的workload，
+保证了节点上的核心业务的稳定。&lt;/p>
+&lt;p>弹性资源的内容可以参见qos-dynamic-resource-oversold-and-limit.zh.md。&lt;/p></description></item><item><title>Docs: 弹性资源超卖和限制</title><link>/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-dynamic-resource-oversold-and-limit.zh/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-dynamic-resource-oversold-and-limit.zh/</guid><description>
 &lt;h2 id="预测算法增强的动态资源超卖">预测算法增强的动态资源超卖&lt;/h2>
 &lt;p>为了提高稳定性，通常用户在部署应用的时候会设置高于实际使用量的Request值，造成资源的浪费，为了提高节点的资源利用率，用户会搭配部署一些BestEffort的应用，利用闲置资源，实现超卖；
 但是这些应用由于缺乏资源limit和request的约束和相关信息，调度器依旧可能将这些pod调度到负载较高的节点上去，这与我们的初衷是不符的，所以最好能依据节点的空闲资源量进行调度。&lt;/p>
 &lt;p>crane通过如下两种方式收集了节点的空闲资源量，综合后作为节点的空闲资源量，增强了资源评估的准确性：&lt;/p>
+&lt;p>这里以cpu为例，同时也支持内存的空闲资源回收和计算。&lt;/p>
 &lt;ol>
 &lt;li>
 &lt;p>通过本地收集的cpu用量信息&lt;br>
@@ -2829,15 +2799,69 @@ crane agent为cpuset管理提供了新的策略，允许pod和其他pod共享cpu
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resources&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">limits&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">gocrane.io/cpu&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">gocrane.io/memory&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2000Mi&amp;#34;&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">requests&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">gocrane.io/cpu&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">gocrane.io/memory&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2000Mi&amp;#34;&lt;/span>
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="弹性资源限制功能">弹性资源限制功能&lt;/h2>
 &lt;p>原生的BestEffort应用缺乏资源用量的公平保证，Crane保证使用动态资源的BestEffort pod其cpu使用量被限制在其允许使用的合理范围内，agent保证使用扩展资源的pod实际用量也不会超过其声明限制，同时在cpu竞争时也能按照各自声明量公平竞争；同时使用弹性资源的pod也会受到水位线功能的管理。&lt;/p>
 &lt;p>使用方法：
 部署pod时limit和request使用&lt;code>gocrane.io/&amp;lt;$ResourceName&amp;gt;：&amp;lt;$value&amp;gt;&lt;/code>即可&lt;/p>
+&lt;h2 id="适配场景">适配场景&lt;/h2>
+&lt;p>为了提升节点的负载，可以将一些离线作业或者重要性较低的作业通过使用弹性资源的方式调度部署到集群中，这类作业会使用空闲的弹性资源，
+搭配QOS的水位线保障，在节点出现负载较高的时候，也会优先被驱逐和压制，在保证高优先级业务稳定的前提下提升节点利用率。
+可以参见qos-interference-detection-and-active-avoidance.zh.md中&amp;quot;与弹性资源搭配使用&amp;quot;部分的内容。&lt;/p></description></item><item><title>Docs: 精确执行回避动作</title><link>/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-accurately-perform-avoidance-actions.zh/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-accurately-perform-avoidance-actions.zh/</guid><description>
+&lt;h2 id="精确执行回避动作">精确执行回避动作&lt;/h2>
+&lt;p>通过如下两点进行，避免了对于低优pod的过度操作的同时能够更快地降低指标到指定水位线的差距，保障高优业务不受影响&lt;/p>
+&lt;ol>
+&lt;li>排序pod&lt;/li>
+&lt;/ol>
+&lt;p>crane实现了一些通用的排序方法（之后会更多地完善）：&lt;/p>
+&lt;p>classAndPriority： 比较两个pod的QOSClass和class value，优先比较QOSClass，再比较class value；priority高的排在后面优先级更高&lt;/p>
+&lt;p>runningTime：比较两个pod的运行时间，运行时间长的排在后面优先级更高&lt;/p>
+&lt;p>如果仅需使用这两个排序策略，使用默认的排序方法即可：会首先比较pod的优先级，之后比较pod对应指标的用量，之后比较pod的运行时长，有一个维度可以比较出结果即为pod的排序结果&lt;/p>
+&lt;p>以cpu usage指标的排序为例，还扩展了一些与自身指标相关的排序策略， 如cpu usage 使用量的排序，会依次比较两个pod的优先级，如果优先级相同的情况下，再比较cpu用量，如果cpu用量也相同的情况下继续比较扩展cpu资源用量, 最后比较pod的运行时长，当某一个指标存在差异时即可返回比较结果：&lt;code>orderedBy(classAndPriority, cpuUsage, extCpuUsage, runningTime).Sort(pods)&lt;/code>&lt;/p>
+&lt;ol start="2">
+&lt;li>参考水位线和pod用量执行回避动作
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">//将所有触发水位线的metrics根据其Quantified属性区分为两部分
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#a6e22e">metricsQuantified&lt;/span>, &lt;span style="color:#a6e22e">MetricsNotQuantified&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> &lt;span style="color:#a6e22e">ThrottleDownWaterLine&lt;/span>.&lt;span style="color:#a6e22e">DivideMetricsByQuantified&lt;/span>()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// 如果存在不可Quantified的metric，获取具有最高ActionPriority的一个throttleAble的metric对所选择的所有pod进行操作
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">if&lt;/span> len(&lt;span style="color:#a6e22e">MetricsNotThrottleQuantified&lt;/span>) &lt;span style="color:#f92672">!=&lt;/span> &lt;span style="color:#ae81ff">0&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">highestPrioriyMetric&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> &lt;span style="color:#a6e22e">GetHighestPriorityThrottleAbleMetric&lt;/span>()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">t&lt;/span>.&lt;span style="color:#a6e22e">throttlePods&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span>, &lt;span style="color:#f92672">&amp;amp;&lt;/span>&lt;span style="color:#a6e22e">totalReleased&lt;/span>, &lt;span style="color:#a6e22e">highestPrioriyMetric&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>} &lt;span style="color:#66d9ef">else&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">//获取节点和workload的最新用量，构造和水位线差距
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">ThrottoleDownGapToWaterLines&lt;/span> = &lt;span style="color:#a6e22e">buildGapToWaterLine&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span>.&lt;span style="color:#a6e22e">getStateFunc&lt;/span>())
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">//如果触发水位线中存在metric的实时用量无法获取，则获取具有最高ActionPriority的一个throttleAble的metric对所选择的所有pod进行压制操作
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#66d9ef">if&lt;/span> &lt;span style="color:#a6e22e">ThrottoleDownGapToWaterLines&lt;/span>.&lt;span style="color:#a6e22e">HasUsageMissedMetric&lt;/span>() {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">highestPrioriyMetric&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> &lt;span style="color:#a6e22e">ThrottleDownWaterLine&lt;/span>.&lt;span style="color:#a6e22e">GetHighestPriorityThrottleAbleMetric&lt;/span>()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">errPodKeys&lt;/span> = &lt;span style="color:#a6e22e">throttlePods&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span>, &lt;span style="color:#f92672">&amp;amp;&lt;/span>&lt;span style="color:#a6e22e">totalReleased&lt;/span>, &lt;span style="color:#a6e22e">highestPrioriyMetric&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> } &lt;span style="color:#66d9ef">else&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">var&lt;/span> &lt;span style="color:#a6e22e">released&lt;/span> &lt;span style="color:#a6e22e">ReleaseResource&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">//遍历触发水位线的metric中可以量化的metric：如果metric具有排序方法则直接使用其SortFunc对pod进行排序，否则使用GeneralSorter排序；
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#75715e">//之后使用其对应的操作方法对pod执行操作，并计算释放出来的对应metric的资源量，直到对应metric到水位线的差距已不存在
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#66d9ef">for&lt;/span> &lt;span style="color:#a6e22e">_&lt;/span>, &lt;span style="color:#a6e22e">m&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> &lt;span style="color:#66d9ef">range&lt;/span> &lt;span style="color:#a6e22e">metricsQuantified&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">if&lt;/span> &lt;span style="color:#a6e22e">m&lt;/span>.&lt;span style="color:#a6e22e">SortAble&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">m&lt;/span>.&lt;span style="color:#a6e22e">SortFunc&lt;/span>(&lt;span style="color:#a6e22e">ThrottleDownPods&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> } &lt;span style="color:#66d9ef">else&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">GeneralSorter&lt;/span>(&lt;span style="color:#a6e22e">ThrottleDownPods&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">for&lt;/span> !&lt;span style="color:#a6e22e">ThrottoleDownGapToWaterLines&lt;/span>.&lt;span style="color:#a6e22e">TargetGapsRemoved&lt;/span>(&lt;span style="color:#a6e22e">m&lt;/span>) {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">for&lt;/span> &lt;span style="color:#a6e22e">index&lt;/span>, &lt;span style="color:#a6e22e">_&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> &lt;span style="color:#66d9ef">range&lt;/span> &lt;span style="color:#a6e22e">ThrottleDownPods&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">released&lt;/span> = &lt;span style="color:#a6e22e">m&lt;/span>.&lt;span style="color:#a6e22e">ThrottleFunc&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span>, &lt;span style="color:#a6e22e">index&lt;/span>, &lt;span style="color:#a6e22e">ThrottleDownPods&lt;/span>, &lt;span style="color:#f92672">&amp;amp;&lt;/span>&lt;span style="color:#a6e22e">totalReleased&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">ThrottoleDownGapToWaterLines&lt;/span>[&lt;span style="color:#a6e22e">m&lt;/span>] &lt;span style="color:#f92672">-=&lt;/span> &lt;span style="color:#a6e22e">released&lt;/span>[&lt;span style="color:#a6e22e">m&lt;/span>]
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/li>
+&lt;/ol>
+&lt;p>关于扩展自定义指标和排序参考 &amp;ldquo;自定义指标干扰检测回避和自定义排序&amp;rdquo; 部分&lt;/p></description></item><item><title>Docs: 定义自己的水位线指标</title><link>/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-customized-metrics-interference-detection-avoidance-and-sorting.zh/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-customized-metrics-interference-detection-avoidance-and-sorting.zh/</guid><description>
 &lt;h2 id="自定义指标干扰检测回避和自定义排序">自定义指标干扰检测回避和自定义排序&lt;/h2>
 &lt;p>自定义指标干扰检测回避和自定义排序的使用同 精确执行回避动作 部分中介绍的流程，此处介绍如何自定义自己的指标参与干扰检测回避流程&lt;/p>
-&lt;p>为了更好的基于NodeQOSEnsurancePolicy配置的metric进行排序和精准控制，对metric引入属性的概念。&lt;/p>
+&lt;p>为了更好的基于NodeQOS配置的metric进行排序和精准控制，对metric引入属性的概念。&lt;/p>
 &lt;p>metric的属性包含如下几个，自定义的指标实现这些字段即可：&lt;/p>
 &lt;ol>
 &lt;li>Name 表明了metric的名称，需要同collector模块中收集到的指标名称一致&lt;/li>
@@ -2874,7 +2898,50 @@ crane agent为cpuset管理提供了新的策略，允许pod和其他pod共享cpu
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">orderedBy(classAndPriority, &amp;lt;metric-sort-func&amp;gt;, runningTime).Sort(pods)&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>其中&lt;code>&amp;lt;metric-sort-func&amp;gt;&lt;/code>需要实现如下的排序方法
-&lt;code>func (p1, p2 podinfo.PodContext) int32&lt;/code>&lt;/p></description></item><item><title>Docs: TimeSeriesPrediction</title><link>/zh-cn/docs/tutorials/using-time-series-prediction/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/using-time-series-prediction/</guid><description>
+&lt;code>func (p1, p2 podinfo.PodContext) int32&lt;/code>&lt;/p></description></item><item><title>Docs: 增强的旁路cpuset管理能力</title><link>/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-enhanced-bypass-cpuset-management.zh/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-enhanced-bypass-cpuset-management.zh/</guid><description>
+&lt;h2 id="增强的旁路cpuset管理能力">增强的旁路cpuset管理能力&lt;/h2>
+&lt;p>kubelet支持static的cpu manager策略，当guaranteed pod运行在节点上时，kebelet会为该pod分配指定的专属cpu，其他进程无法占用，这保证了guaranteed pod的cpu独占，但是也造成了cpu和节点的的利用率较低，造成了一定的浪费。
+crane agent为cpuset管理提供了新的策略，允许pod和其他pod共享cpu当其指定了cpu绑核时，可以在利用绑核更少的上下文切换和更高的缓存亲和性的优点的前提下，还能让其他workload部署共用，提升资源利用率。&lt;/p>
+&lt;ol>
+&lt;li>提供了3种pod cpuset类型：&lt;/li>
+&lt;/ol>
+&lt;ul>
+&lt;li>
+&lt;p>exclusive：绑核后其他container不能再使用该cpu，独占cpu&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>share：绑核后其他container可以使用该cpu&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>none：选择没有被exclusive pod的container占用的cpu，可以使用share类型的绑核&lt;/p>
+&lt;p>share类型的绑核策略可以在利用绑核更少的上下文切换和更高的缓存亲和性的优点的前提下，还能让其他workload部署共用，提升资源利用率&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;ol start="2">
+&lt;li>
+&lt;p>放宽了kubelet中绑核的限制&lt;/p>
+&lt;p>原先需要所有container的CPU limit与CPU request相等 ，这里只需要任意container的CPU limit大于或等于1且等于CPU request即可为该container设置绑核&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>支持在pod运行过程中修改pod的 cpuset policy，会立即生效&lt;/p>
+&lt;p>pod的cpu manager policy从none转换到share，从exclusive转换到share，均无需重启&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;p>使用方法：&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>设置kubelet的cpuset manager为&amp;quot;none&amp;quot;&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>通过pod annotation设置cpu manager policy&lt;/p>
+&lt;p>&lt;code>qos.gocrane.io/cpu-manager: none/exclusive/share&lt;/code>&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Pod&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">annotations&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">qos.gocrane.io/cpu-manager&lt;/span>: &lt;span style="color:#ae81ff">none/exclusive/share&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/li>
+&lt;/ol></description></item><item><title>Docs: TimeSeriesPrediction</title><link>/zh-cn/docs/tutorials/using-time-series-prediction/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/using-time-series-prediction/</guid><description>
 &lt;p>Knowing the future makes things easier for us.&lt;/p>
 &lt;hr>
 &lt;p>许多业务在时间序列上天然存在周期性的，尤其是对于那些直接或间接为“人”服务的业务。这种周期性是由人们日常活动的规律性决定的。例如，人们习惯于中午和晚上点外卖；早晚总有交通高峰；即使是搜索等模式不那么明显的服务，夜间的请求量也远低于白天时间。对于这类业务相关的应用来说，从过去几天的历史数据中推断出次日的指标，或者从上周一的数据中推断出下周一的访问量是很自然的想法。通过预测未来 24 小时内的指标或流量模式，我们可以更好地管理我们的应用程序实例，稳定我们的系统，同时降低成本。&lt;/p>

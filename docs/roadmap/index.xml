@@ -11,7 +11,7 @@
 &lt;h3 id="020released">0.2.0：[released]&lt;/h3>
 &lt;ul>
 &lt;li>Multiple Metric Adaptor support&lt;/li>
-&lt;li>Node QoS Ensurance for CPU&lt;/li>
+&lt;li>Node QOS Ensurance for CPU&lt;/li>
 &lt;li>Operation Metrics about R3 and EPA applied ratio&lt;/li>
 &lt;/ul>
 &lt;h3 id="030-released">0.3.0 [released]&lt;/h3>
@@ -19,7 +19,7 @@
 &lt;li>UI with cost visibility and usage optimizations.&lt;/li>
 &lt;li>Request Recommendation adapts with Virtual Kubelet&lt;/li>
 &lt;li>Multiple Triggers for EPA&lt;/li>
-&lt;li>Node QoS Ensurance for Mem&lt;/li>
+&lt;li>Node QOS Ensurance for Mem&lt;/li>
 &lt;li>Prediction with CPU, Memory, and Business Metrics&lt;/li>
 &lt;li>Scalability to support 1K TSP and 1K EPA&lt;/li>
 &lt;/ul>
@@ -35,7 +35,7 @@
 &lt;h3 id="060-released">0.6.0 [released]&lt;/h3>
 &lt;ul>
 &lt;li>Scalability to support 3k TSP and 3k EPA&lt;/li>
-&lt;li>Algorithm and QoS Documentation&lt;/li>
+&lt;li>Algorithm and QOS Documentation&lt;/li>
 &lt;li>EHPA grafana dashboard&lt;/li>
 &lt;li>DSP Algorithm Optimization&lt;/li>
 &lt;li>Support remote adapter for external metric&lt;/li>
