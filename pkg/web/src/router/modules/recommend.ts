@@ -38,7 +38,7 @@ export const useRecommendRouteConfig = () => {
           path: 'idleNode',
           Component: lazy(() => import('pages/Recommend/IdleNode')),
           meta: {
-            title: t('闭置节点'),
+            title: t('闲置节点'),
           },
         },
       ],
