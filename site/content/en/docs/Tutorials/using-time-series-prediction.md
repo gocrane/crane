@@ -1,7 +1,7 @@
 ---
 title: "TimeSeriesPrediction"
 description: "Introduction for TimeSeriesPrediction"
-weight: 19
+weight: 24
 ---
 
 Knowing the future makes things easier for us.

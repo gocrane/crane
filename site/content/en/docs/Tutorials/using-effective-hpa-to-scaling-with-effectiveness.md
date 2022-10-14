@@ -329,7 +329,7 @@ With EHPA, users can configure CronMetric、PredictionMetric、OriginalMetric at
 
 **We highly recomend you configure metrics of all dimensions. They are represtenting the cron replicas, prior predicted replicas, posterior observed replicas.**
 
-This is a powerful feature. Because HPA always pick the largest replicas calculated by all dimensional metrics to scale. Which will gurantee your workload's QoS, when you configure three types of autoscaling at the same time, the replicas caculated by real metric observed is largest, then it will use the max one. Although the replicas caculated by prediction metric is smaller for some unexpected reason. So you don't be worried about the QoS.
+This is a powerful feature. Because HPA always pick the largest replicas calculated by all dimensional metrics to scale. Which will gurantee your workload's QOS, when you configure three types of autoscaling at the same time, the replicas caculated by real metric observed is largest, then it will use the max one. Although the replicas caculated by prediction metric is smaller for some unexpected reason. So you don't be worried about the QOS.
 
 
 #### Mechanism

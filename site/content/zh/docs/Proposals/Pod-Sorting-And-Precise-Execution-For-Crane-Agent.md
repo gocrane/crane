@@ -31,19 +31,19 @@ weight: 13
 
 <!-- /TOC -->
 ## Motivation
-当前在crane-agent中，当超过NodeQOSEnsurancePolicy中指定的水位线后，执行evict，throttle等操作时先对低优先级的pod进行排序，当前排序的依据是pod的ProrityClass，然后在排序的pod进行throttle或者evict操作；
+当前在crane-agent中，当超过NodeQOS中指定的水位线后，执行evict，throttle等操作时先对低优先级的pod进行排序，当前排序的依据是pod的ProrityClass，然后在排序的pod进行throttle或者evict操作；
 
 目前存在的问题有：
 
 1. 排序只参考ProrityClass，无法满足基于其他特性的排序；同时也无法满足按照水位线精确操作对灵活排序的需求，无法满足尽快让节点达到指定的水位线的要求。例如我们希望尽快降低低优先级业务的cpu使用量时，应该选出cpu使用量较多的pod，这样能够更快地降低cpu用量，保障高优业务不受影响。
 
-2. 在触发NodeQOSEnsurancePolicy中指定的水位线后，会对于节点上的所有低于指定ProrityClass的pod进行操作；例如，当前节点上有10个pod低于指定ProrityClass，在触发水位线后，会对这10个pod都进行操作，但是实际上可能在操作完成对第一个pod的操作后就可以低于NodeQOSEnsurancePolicy中的指标值了，对剩下的pod的操作，属于过度操作，是可以避免的。如果能以NodeQOSEnsurancePolicy中的指标值作为水位线对pod进行精确的操作，操作到刚好低于水位线是更为合适的，就能避免对低优先级服务的过度影响。
+2. 在触发NodeQOS中指定的水位线后，会对于节点上的所有低于指定ProrityClass的pod进行操作；例如，当前节点上有10个pod低于指定ProrityClass，在触发水位线后，会对这10个pod都进行操作，但是实际上可能在操作完成对第一个pod的操作后就可以低于NodeQOS中的指标值了，对剩下的pod的操作，属于过度操作，是可以避免的。如果能以NodeQOS中的指标值作为水位线对pod进行精确的操作，操作到刚好低于水位线是更为合适的，就能避免对低优先级服务的过度影响。
 
 ### Goals
 
 - 丰富了crane-agent的排序策略，包括以pod cpu用量为主要参照的排序，以pod内存用量为主要参照的排序，基于运行时间的排序，基于扩展资源使用率的排序。
 - 实现一套包含排序和精确操作的框架，支持对不同的指标丰富排序规则，并且实现精确操作。
-- 实现针对cpu usage和memmory usage的精确操作，当整机负载超过NodeQOSEnsurancePolicy中指定的水位线后，会先对低优先级的pod进行排序，然后按照顺序操作到刚好低于水位线为止。
+- 实现针对cpu usage和memmory usage的精确操作，当整机负载超过NodeQOS中指定的水位线后，会先对低优先级的pod进行排序，然后按照顺序操作到刚好低于水位线为止。
 
 ## Proposal
 
@@ -91,7 +91,7 @@ weight: 13
 
 ### metric属性的定义
 
-为了更好的基于NodeQOSEnsurancePolicy配置的metric进行排序和精准控制，对metric引入属性的概念。
+为了更好的基于NodeQOS配置的metric进行排序和精准控制，对metric引入属性的概念。
 
 metric的属性包含如下几个：
 
@@ -131,8 +131,8 @@ type metric struct {
 
 ### 如何根据水位线进行精准控制
 
-- 根据多个NodeQOSEnsurancePolicy及其中的objectiveEnsurances构建多条水位线:
-    1. 按照objectiveEnsurances对应的action进行分类，目前crane-agent有3个针对节点Qos进行保障的操作，分别是Evict，ThtottleDown（当前用量高于objectiveEnsurances中的值时对pod进行用量压制）和ThrottleUp（当前用量低于objectiveEnsurances中的值时对pod的用量进行放宽恢复），因此会有三个水位线集合，分别是
+- 根据多个NodeQOS及其中的objectiveEnsurances构建多条水位线:
+    1. 按照objectiveEnsurances对应的action进行分类，目前crane-agent有3个针对节点QOS进行保障的操作，分别是Evict，ThtottleDown（当前用量高于objectiveEnsurances中的值时对pod进行用量压制）和ThrottleUp（当前用量低于objectiveEnsurances中的值时对pod的用量进行放宽恢复），因此会有三个水位线集合，分别是
        ThrottleDownWaterLine，ThrottleUpWaterLine和EvictWaterLine
 
     2. 再对同一操作种类中的水位线按照其metric rule（图中以metric A，metric Z作为示意）进行分类，并记录每个objectiveEnsurances水位线的值，记为waterLine；
@@ -172,7 +172,7 @@ type metric struct {
 在executor阶段，根据水位线中的涉及的指标进行其相应的排序，获取最新用量，构造GapToWaterLines，并进行精确操作
 
 #### analyzer阶段
-在该阶段进行NodeQOSEnsurancePolicy到WaterLines的转换，并对相同actionName和metricrule的规则进行合并，具体内容上文已经介绍过了
+在该阶段进行NodeQOS到WaterLines的转换，并对相同actionName和metricrule的规则进行合并，具体内容上文已经介绍过了
 
 #### executor阶段
 压制过程：
@@ -180,7 +180,7 @@ type metric struct {
 1. 首先分析ThrottoleDownGapToWaterLines中涉及的metrics，将这些metrics根据其Quantified属性区分为两部分，如果存在不可Quantified的metric，则通过GetHighestPriorityThrottleAbleMetric获取具有最高ActionPriority的一个throttleAble（具有throttleFunc）的metric对所选择的所有pod进行压制操作，因为但凡存在一个不可Quantified的metric，就无法进行精确的操作
 
 2. 通过getStateFunc()获取当前节点和workload的最新用量，依据ThrottoleDownGapToWaterLines和实时用量构造GapToWaterLine（需要注意的是，在构造GapToWaterLine时，会以注册过的metric进行遍历，所以最终构造出来的GapToWaterLine中的metrics，会是ThrottoleDownGapToWaterLines
-   中注册过的metric，避免了在NodeQOSEnsurancePolicy中配置错误不存在或未注册metric的情况）
+   中注册过的metric，避免了在NodeQOS中配置错误不存在或未注册metric的情况）
 
 3. 如果GapToWaterLine中有metric的实时用量无法获取（HasUsageMissedMetric），则通过GetHighestPriorityThrottleAbleMetric获取具有最高ActionPriority的一个throttleAble（具有throttleFunc）的metric对所选择的所有pod进行压制操作，因为如果存在metric实时用量无法获取，就无法获知和水位线的gap，也就无法进行精确的操作
 
@@ -275,5 +275,5 @@ if len(MetricsNotEvcitQuantified) != 0 {
 
 ### User Stories
 
-- 用户可以使用crane-agent进行更好的QoS保障。支持更快速的降低节点负载，以保障高优先级业务不受影响。同时对低优先级业务的压制/驱逐动作，进行精确控制，避免过度操作。
-- 用户可以借助实现的精准操作(压制/驱逐)的框架，在无需关心细节的情况下，通过实现自定义metric相关的属性和方法，即可方便地实现以自定义metric为核心的具有精确操作和排序能力的QoS功能。
+- 用户可以使用crane-agent进行更好的QOS保障。支持更快速的降低节点负载，以保障高优先级业务不受影响。同时对低优先级业务的压制/驱逐动作，进行精确控制，避免过度操作。
+- 用户可以借助实现的精准操作(压制/驱逐)的框架，在无需关心细节的情况下，通过实现自定义metric相关的属性和方法，即可方便地实现以自定义metric为核心的具有精确操作和排序能力的QOS功能。

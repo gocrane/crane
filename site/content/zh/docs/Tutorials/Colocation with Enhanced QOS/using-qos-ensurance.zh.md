@@ -1,5 +1,11 @@
-# Qos Ensurance
-Qos Ensurance 保证了运行在 Kubernetes 上的 Pod 的稳定性。
+---
+title: "基于 QOS 的混部"
+description: "基于 QOS 的混部总体介绍"
+weight: 18
+---
+
+# 基于 QOS 的混部
+QOS 相关能力保证了运行在 Kubernetes 上的 Pod 的稳定性。
 
 具有干扰检测和主动回避能力，当较高优先级的 Pod 受到资源竞争的影响时，Disable Schedule、Throttle以及Evict 将应用于低优先级的 Pod，以保证节点整体的稳定，
 目前已经支持节点的cpu/mem负载绝对值/百分比作为水位线，具体可以参考qos-interference-detection-and-active-avoidance.zh.md

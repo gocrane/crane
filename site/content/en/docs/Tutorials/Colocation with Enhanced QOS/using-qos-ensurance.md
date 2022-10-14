@@ -1,5 +1,11 @@
-# Qos Ensurance
-QoS ensurance guarantees the stability of the pods running on Kubernetes.
+---
+title: "Colocation with Enhanced QOS"
+description: "Colocation with Enhanced QOS General introduction"
+weight: 18
+---
+
+# Colocation with Enhanced QOS
+QOS ensurance guarantees the stability of the pods running on Kubernetes.
 
 It has the ability of interference detection and active avoidance. When pod with higher priority is affected by resource competition, disable schedule, throttle and evict will be applied to pod with lower priority to ensure the overall stability of the node. Currently, the absolute value/percentage of the node's cpu/mem is supported as a watermark. For details, please refer to qos-interference-detection-and-active-avoidance.md.
 When there is interference for eviction or throttle, accurate calculation will be performed, and the operation will be stopped when the load is lowered to slightly below the watermark to prevent accidental injury and transitional operation. For details, please refer to qos-accurately-perform-avoidance-actions.md.
