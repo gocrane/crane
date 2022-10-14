@@ -8,12 +8,12 @@ metadata:
 spec:
   containers:
     - command:
-        - stress-nga
+        - stress-ng
         - -c
         - "2"
         - --cpu-method
         - cpuid
-      image: ccr.ccs.tencentyun.com/tkeimages/stress-ng:v0.12.09.ln
+      image: docker.io/gocrane/stress-ng:v0.12.09
       imagePullPolicy: IfNotPresent
       name: low
       resources:

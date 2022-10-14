@@ -11,51 +11,51 @@ import (
 	"github.com/gocrane/crane/pkg/ensurance/executor/podinfo"
 )
 
-func TestCpuUsageSorter(t *testing.T) {
+func TestMemUsageSorter(t *testing.T) {
 	now := metav1.NewTime(time.Unix(1000, 0).UTC())
 	later := metav1.NewTime(time.Unix(2000, 0).UTC())
-	// orderedBy(UseElasticCPU, ComparePodQOSClass, ComparePriority, CompareCPUUsage, CompareElasticCPU, CompareRunningTime).Sort(pods)
+
 	pods := []podinfo.PodContext{
 		{
-			Key:             types.NamespacedName{Name: "elastic-cpu-2"},
-			ElasticCPULimit: 2,
+			Key:             types.NamespacedName{Name: "elastic-mem-2"},
+			ElasticMemLimit: 2,
 			QOSClass:        v1.PodQOSBestEffort,
 		},
 		{
-			Key:             types.NamespacedName{Name: "elastic-cpu-4"},
-			ElasticCPULimit: 4,
+			Key:             types.NamespacedName{Name: "elastic-mem-4"},
+			ElasticMemLimit: 4,
 			QOSClass:        v1.PodQOSBestEffort,
 		},
 		{
-			Key:         types.NamespacedName{Name: "cpu-1"},
-			PodCPUUsage: 1,
+			Key:         types.NamespacedName{Name: "mem-1"},
+			PodMemUsage: 1,
 			QOSClass:    v1.PodQOSGuaranteed,
 		},
 		{
-			Key:         types.NamespacedName{Name: "cpu-2"},
-			PodCPUUsage: 2,
+			Key:         types.NamespacedName{Name: "mem-2"},
+			PodMemUsage: 2,
 			QOSClass:    v1.PodQOSBurstable,
 		},
 		{
 			Key:         types.NamespacedName{Name: "guarantee-1"},
-			PodCPUUsage: 1,
+			PodMemUsage: 1,
 			QOSClass:    v1.PodQOSGuaranteed,
 		},
 		{
 			Key:         types.NamespacedName{Name: "burstable-2"},
-			PodCPUUsage: 1,
+			PodMemUsage: 1,
 			QOSClass:    v1.PodQOSBurstable,
 		},
 		{
 			Key:         types.NamespacedName{Name: "prioirty-2"},
 			Priority:    2,
-			PodCPUUsage: 1,
+			PodMemUsage: 1,
 			QOSClass:    v1.PodQOSBurstable,
 		},
 		{
 			Key:         types.NamespacedName{Name: "prioirty-2-2"},
 			Priority:    2,
-			PodCPUUsage: 2,
+			PodMemUsage: 2,
 			QOSClass:    v1.PodQOSBurstable,
 		},
 		{
@@ -74,9 +74,9 @@ func TestCpuUsageSorter(t *testing.T) {
 			QOSClass:  v1.PodQOSGuaranteed,
 		},
 	}
-	CpuUsageSort(pods)
+	MemUsageSort(pods)
 	t.Logf("sorted pods:")
 	for _, p := range pods {
-		t.Logf("key %s, useElasticCPU %v, qosClass %s, priority %d, usage %f, elasticCPUUsage %d, startTime %v", p.Key, (p.ElasticCPULimit != 0), p.QOSClass, p.Priority, p.PodCPUUsage, p.ElasticCPULimit, p.StartTime)
+		t.Logf("key %s, useElasticMem %v, qosClass %s, priority %d, usage %f, elasticMemUsage %d, startTime %v", p.Key, (p.ElasticMemLimit != 0), p.QOSClass, p.Priority, p.PodMemUsage, p.ElasticMemLimit, p.StartTime)
 	}
 }

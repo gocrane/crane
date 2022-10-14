@@ -25,6 +25,7 @@ const (
 
 	MetricNameMemoryTotalUsage       MetricName = "memory_total_usage"
 	MetricNameMemoryTotalUtilization MetricName = "memory_total_utilization"
+	MetricNameMemoryTotal            MetricName = "memory_total"
 
 	MetricDiskReadKiBPS   MetricName = "disk_read_kibps"
 	MetricDiskWriteKiBPS  MetricName = "disk_write_kibps"
