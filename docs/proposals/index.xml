@@ -103,7 +103,7 @@ users in form of policies, and the detection process is executed in a policy dec
 general-purpose policy engine.&lt;/p>
 &lt;h2 id="motivation">Motivation&lt;/h2>
 &lt;p>The criteria of abnormality or interference are not that always as simple as something like a metric value is higher than a threshold.
-Different users may have different QoS requirements on different applications in different environments. The rule of
+Different users may have different QOS requirements on different applications in different environments. The rule of
 abnormality detection varies, and it is impossible to implement all of them in code in advance.&lt;/p>
 &lt;h3 id="goals">Goals&lt;/h3>
 &lt;ol>
@@ -120,10 +120,10 @@ out of scope.&lt;/li>
 &lt;h3 id="user-stories">User Stories&lt;/h3>
 &lt;h4 id="story-1">Story 1&lt;/h4>
 &lt;p>A user has a critical online application which is latency sensitive running in the cluster, and he wants to use both
-the 99th percentile response time and the error code rate as the application QoS indicators. If either of these 2 indicators
+the 99th percentile response time and the error code rate as the application QOS indicators. If either of these 2 indicators
 deteriorates, the application is thought of being in abnormal status.&lt;/p>
 &lt;h4 id="story-2">Story 2&lt;/h4>
-&lt;p>The SRE team finds that if the node CPU utilization is more than 60%, the QoS of some latency sensitive applications
+&lt;p>The SRE team finds that if the node CPU utilization is more than 60%, the QOS of some latency sensitive applications
 running on it are likely to decline. So they want to keep the node CPU utilization lower than 60%.
 If the utilization is higher than this threshold, the BE applications should be suppressed
 accordingly.&lt;/p>
@@ -423,7 +423,7 @@ But the recommendations have some limitations now:&lt;/p>
 &lt;ul>
 &lt;li>
 &lt;p>The proposal implements some general sorting methods (which will be improved later):&lt;/p>
-&lt;p>classAndPriority： Compare the Qos class and class value of two pods. Compare Qos class first and then class value; Those with high priority are ranked later and have higher priority&lt;/p>
+&lt;p>classAndPriority： Compare the QOS class and class value of two pods. Compare QOS class first and then class value; Those with high priority are ranked later and have higher priority&lt;/p>
 &lt;p>runningTime：Compare the running time of two pods. The one with a long running time is ranked later and has a higher priority&lt;/p>
 &lt;p>If you only need to use these two sorting strategies, you can use the default sorting method: you will first compare the priority of the pod, then compare the usage of the corresponding indicators of the pod, and then compare the running time of the pod. There is a dimension that can compare the results, that is, the sorting results of the pod&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">func&lt;/span> &lt;span style="color:#a6e22e">GeneralSorter&lt;/span>(&lt;span style="color:#a6e22e">pods&lt;/span> []&lt;span style="color:#a6e22e">podinfo&lt;/span>.&lt;span style="color:#a6e22e">PodContext&lt;/span>) {
@@ -489,7 +489,7 @@ For example, the CPU usage can be suppressed by limiting the CGroup usage, and t
 &lt;p>Build multiple waterlines according to multiple nodeqosensurancepolicies and objectiveinsurances:&lt;/p>
 &lt;ol>
 &lt;li>
-&lt;p>Classified according to the actions corresponding to objectiveinsurances, the crane agent currently has three operations to guarantee node QoS, namely, evict, thtottledown (to suppress pod usage when the current usage is higher than the value in objectiveinsurances) and throttleup (to relax and recover pod usage when the current usage is lower than the value in objectiveinsurances). Therefore, there will be three waterline sets, namely, throttledownwaterline, Throttleupwaterline and evictwaterline&lt;/p>
+&lt;p>Classified according to the actions corresponding to objectiveinsurances, the crane agent currently has three operations to guarantee node QOS, namely, evict, thtottledown (to suppress pod usage when the current usage is higher than the value in objectiveinsurances) and throttleup (to relax and recover pod usage when the current usage is lower than the value in objectiveinsurances). Therefore, there will be three waterline sets, namely, throttledownwaterline, Throttleupwaterline and evictwaterline&lt;/p>
 &lt;/li>
 &lt;li>
 &lt;p>Then classify the waterlines in the same operation category according to their metric rules (metric A and metric Z are used as schematic in the figure), and record the value of each objectiveinsurances water level line, which is recorded as waterline;&lt;/p>
@@ -618,6 +618,6 @@ The following data structure is constructed by combining the difference between 
 &lt;/ul>
 &lt;h3 id="user-stories">User Stories&lt;/h3>
 &lt;ul>
-&lt;li>Users can use crane agent for better QoS guarantees. Support faster node load reduction to ensure that high priority services are not affected. At the same time, the throttle/eviction of low priority services is precisely controlled to avoid excessive operation.&lt;/li>
-&lt;li>With the help of the framework of precise operation (throttle/eviction), users can easily realize the QoS function with precise operation and sorting capability based on the user-defined metric without paying attention to details by implementing the attributes and methods related to the user-defined metric.&lt;/li>
+&lt;li>Users can use crane agent for better QOS guarantees. Support faster node load reduction to ensure that high priority services are not affected. At the same time, the throttle/eviction of low priority services is precisely controlled to avoid excessive operation.&lt;/li>
+&lt;li>With the help of the framework of precise operation (throttle/eviction), users can easily realize the QOS function with precise operation and sorting capability based on the user-defined metric without paying attention to details by implementing the attributes and methods related to the user-defined metric.&lt;/li>
 &lt;/ul></description></item></channel></rss>

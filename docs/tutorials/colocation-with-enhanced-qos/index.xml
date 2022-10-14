@@ -1,0 +1,402 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Crane – Colocation with Enhanced QOS</title><link>/docs/tutorials/colocation-with-enhanced-qos/</link><description>Recent content in Colocation with Enhanced QOS on Crane</description><generator>Hugo -- gohugo.io</generator><atom:link href="/docs/tutorials/colocation-with-enhanced-qos/index.xml" rel="self" type="application/rss+xml"/><item><title>Docs: Colocation with Enhanced QOS</title><link>/docs/tutorials/colocation-with-enhanced-qos/using-qos-ensurance/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/colocation-with-enhanced-qos/using-qos-ensurance/</guid><description>
+&lt;h1 id="colocation-with-enhanced-qos">Colocation with Enhanced QOS&lt;/h1>
+&lt;p>QOS ensurance guarantees the stability of the pods running on Kubernetes.&lt;/p>
+&lt;p>It has the ability of interference detection and active avoidance. When pod with higher priority is affected by resource competition, disable schedule, throttle and evict will be applied to pod with lower priority to ensure the overall stability of the node. Currently, the absolute value/percentage of the node&amp;rsquo;s cpu/mem is supported as a watermark. For details, please refer to qos-interference-detection-and-active-avoidance.md.
+When there is interference for eviction or throttle, accurate calculation will be performed, and the operation will be stopped when the load is lowered to slightly below the watermark to prevent accidental injury and transitional operation. For details, please refer to qos-accurately-perform-avoidance-actions.md.&lt;/p>
+&lt;p>At the same time, Crane supports custom metrics to adapt to the entire interference detection framework. Users only need to complete some operations such as sorting definition, and can reuse the interference detection and avoidance processes including precise operations.For details, please refer to qos-customized-metrics-interference-detection-avoidance-and-sorting.md.&lt;/p>
+&lt;p>Crane has the dynamic resource oversold ability enhanced by the prediction algorithm, and reuses the idle resources. At the same time, it combines the prediction ability of the crane to better reuse the idle resources. Currently, idle resource recycling of cpu and mem is supported. At the same time, it has the elastic resource limitation function to limit the workload of reusing idle resources, and avoid impact on high-quality business and starvation issues. For details, please refer to qos-dynamic-resource-oversold-and-limit.md.&lt;/p>
+&lt;p>At the same time, it has enhanced bypass cpuset management capability to improve resource utilization efficiency while binding cores. For details, please refer to qos-enhanced-bypass-cpuset-management.md.&lt;/p></description></item><item><title>Docs: Interference Detection and Active Avoidance</title><link>/docs/tutorials/colocation-with-enhanced-qos/qos-interference-detection-and-active-avoidance/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/colocation-with-enhanced-qos/qos-interference-detection-and-active-avoidance/</guid><description>
+&lt;h2 id="qos-ensurance-architecture">QOS Ensurance Architecture&lt;/h2>
+&lt;p>QOS ensurance&amp;rsquo;s architecture is shown as below. It contains three modules.&lt;/p>
+&lt;ol>
+&lt;li>state collector: collect metrics periodically&lt;/li>
+&lt;li>anomaly analyzer: analyze the node triggered anomaly used collected metrics&lt;/li>
+&lt;li>action executor: execute avoidance actions, include disable scheduling, throttle and eviction.&lt;/li>
+&lt;/ol>
+&lt;p>&lt;img src="/images/crane-qos-ensurance.png" alt="">&lt;/p>
+&lt;p>The main process:&lt;/p>
+&lt;ol>
+&lt;li>State collector synchronizes policies from kube-apiserver.&lt;/li>
+&lt;li>If the policies are changed, the state collector updates the collectors.&lt;/li>
+&lt;li>State collector collects metrics periodically.&lt;/li>
+&lt;li>State collector transmits metrics to anomaly analyzer.&lt;/li>
+&lt;li>Anomaly analyzer ranges all rules to analyze the avoidance threshold or the restored threshold reached.&lt;/li>
+&lt;li>Anomaly analyzer merges the analyzed results and notices the avoidance actions.&lt;/li>
+&lt;li>Action executor executes actions based on the analyzed results.&lt;/li>
+&lt;/ol>
+&lt;h2 id="interference-detection-and-active-avoidance">Interference Detection and Active Avoidance&lt;/h2>
+&lt;h3 id="related-cr">Related CR&lt;/h3>
+&lt;p>AvoidanceAction mainly defines the operations that need to be performed after interference is detected, including several operations such as Disable Scheduling, throttle, and eviction, and defines some related parameters.&lt;/p>
+&lt;p>NodeQOS mainly defines the metrics collection method and parameters, the related parameters of the watermark, and the associated avoidance operation when metrics are abnormal.
+At the same time, the above content is associated to the specified nodes through a series of selectors.&lt;/p>
+&lt;p>PodQOS defines the AvoidanceAction that a specified pod can be executed, and is usually paired with NodeQOS to limit the scope of execution actions from the dimensions of nodes and pods.
+The selector supported by PodQOS includes label selector, and also supports filtering of specific QOSClass (&amp;ldquo;BestEffort&amp;rdquo;, &amp;ldquo;Guaranteed&amp;rdquo;, etc.),
+specific Priority, and specific Namespace of pods, above selectors are associated with each other in the manner of &amp;ldquo;AND&amp;rdquo;.&lt;/p>
+&lt;h3 id="disable-scheduling">Disable Scheduling&lt;/h3>
+&lt;p>The following AvoidanceAction and NodeQOS can be defined. As a result, when the node CPU usage triggers the threshold, disable schedule action for the node will be executed.&lt;/p>
+&lt;p>The sample YAML looks like below:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">ensurance.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">AvoidanceAction&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labels&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">app&lt;/span>: &lt;span style="color:#ae81ff">system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">disablescheduling&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">description&lt;/span>: &lt;span style="color:#ae81ff">disable schedule new pods to the node&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">coolDownSeconds&lt;/span>: &lt;span style="color:#ae81ff">300&lt;/span> &lt;span style="color:#75715e"># The minimum wait time of the node from scheduling disable status to normal status&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">ensurance.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">NodeQOS&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;watermark1&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">nodeQualityProbe&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">timeoutSeconds&lt;/span>: &lt;span style="color:#ae81ff">10&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">nodeLocalGet&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">localCacheTTLSeconds&lt;/span>: &lt;span style="color:#ae81ff">60&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">rules&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;cpu-usage&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">avoidanceThreshold&lt;/span>: &lt;span style="color:#ae81ff">2&lt;/span> &lt;span style="color:#75715e">#(1) &lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">restoreThreshold&lt;/span>: &lt;span style="color:#ae81ff">2&lt;/span> &lt;span style="color:#75715e">#(2)&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">actionName&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;disablescheduling&amp;#34;&lt;/span> &lt;span style="color:#75715e">#(3) &lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">strategy&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;None&amp;#34;&lt;/span> &lt;span style="color:#75715e">#(4) &lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">metricRule&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;cpu_total_usage&amp;#34;&lt;/span> &lt;span style="color:#75715e">#(5) &lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">value&lt;/span>: &lt;span style="color:#ae81ff">4000&lt;/span> &lt;span style="color:#75715e">#(6) &lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ol>
+&lt;li>We consider the rule is triggered, when the threshold reached continued so many times&lt;/li>
+&lt;li>We consider the rule is restored, when the threshold not reached continued so many times&lt;/li>
+&lt;li>Name of AvoidanceAction which be associated&lt;/li>
+&lt;li>Strategy for the action, you can set it &amp;ldquo;Preview&amp;rdquo; to not perform actually&lt;/li>
+&lt;li>Name of metric&lt;/li>
+&lt;li>Threshold of metric&lt;/li>
+&lt;/ol>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">ensurance.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">PodQOS&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">all-elastic-pods&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">allowedActions&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">disablescheduling&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labelSelector&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">matchLabels&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">preemptible_job&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;true&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ol>
+&lt;li>The action allowed to be executed by the pod associated with the PodQOS is eviction&lt;/li>
+&lt;li>Associate pods with preemptible_job: &amp;ldquo;true&amp;rdquo; via label selector&lt;/li>
+&lt;/ol>
+&lt;p>Please check the video to learn more about the scheduling disable actions.&lt;/p>
+&lt;script id="asciicast-480735" src="https://asciinema.org/a/480735.js" async>&lt;/script>
+&lt;h3 id="throttle">Throttle&lt;/h3>
+&lt;p>The following AvoidanceAction and NodeQOS can be defined. As a result, when the node CPU usage triggers the threshold, throttle action for the node will be executed.&lt;/p>
+&lt;p>The sample YAML looks like below:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">ensurance.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">AvoidanceAction&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">throttle&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labels&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">app&lt;/span>: &lt;span style="color:#ae81ff">system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">coolDownSeconds&lt;/span>: &lt;span style="color:#ae81ff">300&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">throttle&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">cpuThrottle&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">minCPURatio&lt;/span>: &lt;span style="color:#ae81ff">10&lt;/span> &lt;span style="color:#75715e">#(1)&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">stepCPURatio&lt;/span>: &lt;span style="color:#ae81ff">10&lt;/span> &lt;span style="color:#75715e">#(2) &lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">description&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;throttle low priority pods&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ol>
+&lt;li>The minimal ratio of the CPU quota, if the pod is throttled lower than this ratio, it will be set to this.&lt;/li>
+&lt;li>The step for throttle action. It will reduce this percentage of CPU quota in each avoidance triggered.It will increase this percentage of CPU quota in each restored.&lt;/li>
+&lt;/ol>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">ensurance.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">NodeQOS&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;watermark2&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">nodeQualityProbe&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">timeoutSeconds&lt;/span>: &lt;span style="color:#ae81ff">10&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">nodeLocalGet&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">localCacheTTLSeconds&lt;/span>: &lt;span style="color:#ae81ff">60&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">rules&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;cpu-usage&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">avoidanceThreshold&lt;/span>: &lt;span style="color:#ae81ff">2&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">restoredThreshold&lt;/span>: &lt;span style="color:#ae81ff">2&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">actionName&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;throttle&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">strategy&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;None&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">metricRule&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;cpu_total_usage&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">value&lt;/span>: &lt;span style="color:#ae81ff">6000&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">ensurance.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">PodQOS&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">all-be-pods&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">allowedActions&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">throttle&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">scopeSelector&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">matchExpressions&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">operator&lt;/span>: &lt;span style="color:#ae81ff">In&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">scopeName&lt;/span>: &lt;span style="color:#ae81ff">QOSClass&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">values&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">BestEffort&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="eviction">Eviction&lt;/h3>
+&lt;p>The following YAML is another case, low priority pods on the node will be evicted, when the node CPU usage trigger the threshold.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">ensurance.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">AvoidanceAction&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">eviction&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labels&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">app&lt;/span>: &lt;span style="color:#ae81ff">system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">coolDownSeconds&lt;/span>: &lt;span style="color:#ae81ff">300&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">eviction&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">terminationGracePeriodSeconds&lt;/span>: &lt;span style="color:#ae81ff">30&lt;/span> &lt;span style="color:#75715e">#(1) &lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">description&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;evict low priority pods&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ol>
+&lt;li>Duration in seconds the pod needs to terminate gracefully.&lt;/li>
+&lt;/ol>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">ensurance.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">NodeQOS&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;watermark3&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labels&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">app&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;system&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">nodeQualityProbe&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">timeoutSeconds&lt;/span>: &lt;span style="color:#ae81ff">10&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">nodeLocalGet&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">localCacheTTLSeconds&lt;/span>: &lt;span style="color:#ae81ff">60&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">rules&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;cpu-usage&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">avoidanceThreshold&lt;/span>: &lt;span style="color:#ae81ff">2&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">restoreThreshold&lt;/span>: &lt;span style="color:#ae81ff">2&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">actionName&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;eviction&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">strategy&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;Preview&amp;#34;&lt;/span> &lt;span style="color:#75715e">#(1) &lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">metricRule&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;cpu_total_usage&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">value&lt;/span>: &lt;span style="color:#ae81ff">6000&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ol>
+&lt;li>Strategy for the action, &amp;ldquo;Preview&amp;rdquo; to not perform actually&lt;/li>
+&lt;/ol>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">ensurance.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">PodQOS&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">all-elastic-pods&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">allowedActions&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">eviction &lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labelSelector&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">matchLabels&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">preemptible_job&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;true&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="supported-metrics">Supported Metrics&lt;/h3>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>Name&lt;/th>
+&lt;th>Description&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>cpu_total_usage&lt;/td>
+&lt;td>node cpu usage&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>cpu_total_utilization&lt;/td>
+&lt;td>node cpu utilization percent&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>memory_total_usage&lt;/td>
+&lt;td>node mem usage&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>memory_total_utilization&lt;/td>
+&lt;td>node mem utilization percent&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>For details, please refer to the examples under examples/ensurance.&lt;/p>
+&lt;h3 id="used-with-dynamic-resources">Used with dynamic resources&lt;/h3>
+&lt;p>In order to avoid the impact of active avoidance operations on high-priority services, such as the wrongful eviction of important services,
+it is recommended to use PodQOS to associate workloads that use dynamic resources, so that only those workloads that use idle resources are affected when executing actions,
+ensuring that The stability of the core business on the node.&lt;/p>
+&lt;p>For the content of dymamic resources, see qos-dynamic-resource-oversold-and-limit.md.&lt;/p></description></item><item><title>Docs: Dynamic resource oversold and limit</title><link>/docs/tutorials/colocation-with-enhanced-qos/qos-dynamic-resource-oversold-and-limit/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/colocation-with-enhanced-qos/qos-dynamic-resource-oversold-and-limit/</guid><description>
+&lt;h2 id="dynamic-resource-oversold-enhanced-by-prediction-algorithm">Dynamic resource oversold enhanced by prediction algorithm&lt;/h2>
+&lt;p>In order to improve the stability, users usually set the request value higher than the actual usage when deploying applications, resulting in a waste of resources. In order to improve the resource utilization of nodes, users will deploy some besteffort applications in combination, using idle resources to realize oversold;
+However, due to the lack of resource limit and request constraints and related information in these applications, scheduler may still schedule these pods to nodes with high load, which is inconsistent with our original intention, so it is best to schedule based on the free resources of nodes.&lt;/p>
+&lt;p>Crane collects the idle resources of nodes in the following two ways, and takes them as the idle resources of nodes after synthesis, which enhances the accuracy of resource evaluation:&lt;/p>
+&lt;p>Take cpu as an example, crane also supports the recovery of memory idle resources.&lt;/p>
+&lt;ol>
+&lt;li>CPU usage information collected locally&lt;/li>
+&lt;/ol>
+&lt;p>&lt;code>nodeCpuCannotBeReclaimed := nodeCpuUsageTotal + exclusiveCPUIdle - extResContainerCpuUsageTotal&lt;/code>&lt;/p>
+&lt;p>ExclusiveCPUIdle refers to the idle amount of CPU occupied by the pod whose CPU manager policy is exclusive. Although this part of resources is idle, it cannot be reused because of monopoly, so it is counted as used&lt;/p>
+&lt;p>ExtResContainerCpuUsageTotal refers to the CPU consumption used as dynamic resources, which needs to be subtracted to avoid secondary calculation&lt;/p>
+&lt;ol start="2">
+&lt;li>Create a TSP of node CPU usage, which is automatically created by default, and will predict node CPU usage based on history&lt;/li>
+&lt;/ol>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">data&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">spec&lt;/span>: |&lt;span style="color:#e6db74">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> predictionMetrics:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - algorithm:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> algorithmType: dsp
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> dsp:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> estimators:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> fft:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - highFrequencyThreshold: &amp;#34;0.05&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> lowAmplitudeThreshold: &amp;#34;1.0&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> marginFraction: &amp;#34;0.2&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> maxNumOfSpectrumItems: 20
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> minNumOfSpectrumItems: 10
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> historyLength: 3d
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> sampleInterval: 60s
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> resourceIdentifier: cpu
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> type: ExpressionQuery
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> expressionQuery:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> expression: &amp;#39;sum(count(node_cpu_seconds_total{mode=&amp;#34;idle&amp;#34;,instance=~&amp;#34;({{.metadata.name}})(:\\d+)?&amp;#34;}) by (mode, cpu)) - sum(irate(node_cpu_seconds_total{mode=&amp;#34;idle&amp;#34;,instance=~&amp;#34;({{.metadata.name}})(:\\d+)?&amp;#34;}[5m]))&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> predictionWindowSeconds: 3600&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">ConfigMap&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">noderesource-tsp-template&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Combine the prediction algorithm with the current actual consumption to calculate the remaining available resources of the node, and give it to the node as an extended resource. Pod can indicate that the extended resource is used as an offline job to use the idle resources, so as to improve the resource utilization rate of the node;&lt;/p>
+&lt;p>How to use:
+When deploying pod, limit and request use &lt;code>gocrane.io/&amp;lt;$resourcename&amp;gt;:&amp;lt;$value&amp;gt;&lt;/code>, as follows&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">containers&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">image&lt;/span>: &lt;span style="color:#ae81ff">nginx&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">imagePullPolicy&lt;/span>: &lt;span style="color:#ae81ff">Always&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">extended-resource-demo-ctr&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resources&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">limits&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">gocrane.io/cpu&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">gocrane.io/memory&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2000Mi&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">requests&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">gocrane.io/cpu&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">gocrane.io/memory&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2000Mi&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="elastic-resource-restriction-function">Elastic resource restriction function&lt;/h2>
+&lt;p>The native besteffort application lacks a fair guarantee of resource usage. Crane guarantees that the CPU usage of the besteffort pod using dynamic resources is limited within the reasonable range of its allowable use. The agent guarantees that the actual consumption of the pod using extended resources will not exceed its stated limit. At the same time, when the CPU competes, it can also compete fairly according to its stated amount; At the same time, pod using elastic resources will also be managed by the watermark function.&lt;/p>
+&lt;p>How to use:
+When deploying pod, limit and request use &lt;code>gocrane.io/&amp;lt;$resourcename&amp;gt;:&amp;lt;$value&amp;gt;&lt;/code>&lt;/p>
+&lt;h2 id="suitable-scene">suitable scene&lt;/h2>
+&lt;p>In order to increase the load of nodes, some offline jobs or less important jobs can be scheduled and deployed to the cluster by using dynamic resources. Such jobs will use idle elastic resources.
+With the watermark guarantee of QOS, when the node has a high load, it will be evicted and throttled first, and the utilization of the node will be improved on the premise of ensuring the stability of high-priority services.
+See the section &amp;ldquo;Used with dynamic resources&amp;rdquo; in qos-interference-detection-and-active-avoidance.md.&lt;/p></description></item><item><title>Docs: Accurately Perform Avoidance Actions</title><link>/docs/tutorials/colocation-with-enhanced-qos/qos-accurately-perform-avoidance-actions/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/colocation-with-enhanced-qos/qos-accurately-perform-avoidance-actions/</guid><description>
+&lt;h2 id="accurately-perform-avoidance-actions">Accurately Perform Avoidance Actions&lt;/h2>
+&lt;p>Through the following two points, the excessive operation of low-quality pod can be avoided, and the gap between the metrics and the specified watermark can be reduced faster, so as to ensure that the high-priority service is not affected&lt;/p>
+&lt;ol>
+&lt;li>Sort pod&lt;/li>
+&lt;/ol>
+&lt;p>Crane implements some general sorting methods (which will be improved later):&lt;/p>
+&lt;p>ClassAndPriority: compare the QOSClass and class value of two pods, compare QOSClass first, and then class value; Those with high priority are ranked later and have higher priority&lt;/p>
+&lt;p>runningTime: compare the running time of two pods. The one with long running time is ranked later and has higher priority&lt;/p>
+&lt;p>If you only need to use these two sorting strategies, you can use the default sorting method: you will first compare the priority of the pod, then compare the consumption of the corresponding indicators of the pod, and then compare the running time of the pod. There is a dimension that can compare the results, that is, the sorting results of the pod&lt;/p>
+&lt;p>Taking the ranking of CPU usage metric as an example, it also extends some ranking strategies related to its own metric, such as the ranking of CPU usage, which will compare the priority of two pods in turn. If the priority is the same, then compare the CPU consumption. If the CPU consumption is also the same, continue to compare the extended CPU resource consumption, and finally compare the running time of pod, when there is a difference in an indicator, the comparison result can be returned: &lt;code>orderedby (classandpriority, CpuUsage, extcpuusage, runningtime) Sort(pods)&lt;/code>&lt;/p>
+&lt;ol start="2">
+&lt;li>Refer to the watermark and pod usage to perform avoidance action&lt;/li>
+&lt;/ol>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">//Divide all the metrics that trigger the watermark threshold into two parts according to their quantified attribute
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#a6e22e">metricsQuantified&lt;/span>, &lt;span style="color:#a6e22e">MetricsNotQuantified&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> &lt;span style="color:#a6e22e">ThrottleDownWaterLine&lt;/span>.&lt;span style="color:#a6e22e">DivideMetricsByQuantified&lt;/span>()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// If there is a metric that cannot be quantified, obtain the metric of a throttleable with the highest actionpriority to operate on all selected pods
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">if&lt;/span> len(&lt;span style="color:#a6e22e">MetricsNotThrottleQuantified&lt;/span>) &lt;span style="color:#f92672">!=&lt;/span> &lt;span style="color:#ae81ff">0&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">highestPrioriyMetric&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> &lt;span style="color:#a6e22e">GetHighestPriorityThrottleAbleMetric&lt;/span>()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">t&lt;/span>.&lt;span style="color:#a6e22e">throttlePods&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span>, &lt;span style="color:#f92672">&amp;amp;&lt;/span>&lt;span style="color:#a6e22e">totalReleased&lt;/span>, &lt;span style="color:#a6e22e">highestPrioriyMetric&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>} &lt;span style="color:#66d9ef">else&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">//Get the latest usage, get the gap to watermark
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">ThrottoleDownGapToWaterLines&lt;/span> = &lt;span style="color:#a6e22e">buildGapToWaterLine&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span>.&lt;span style="color:#a6e22e">getStateFunc&lt;/span>())
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">//If the real-time consumption of metric in the trigger watermark threshold cannot be obtained, chose the metric which is throttleable with the highest actionpriority to suppress all selected pods
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#66d9ef">if&lt;/span> &lt;span style="color:#a6e22e">ThrottoleDownGapToWaterLines&lt;/span>.&lt;span style="color:#a6e22e">HasUsageMissedMetric&lt;/span>() {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">highestPrioriyMetric&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> &lt;span style="color:#a6e22e">ThrottleDownWaterLine&lt;/span>.&lt;span style="color:#a6e22e">GetHighestPriorityThrottleAbleMetric&lt;/span>()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">errPodKeys&lt;/span> = &lt;span style="color:#a6e22e">throttlePods&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span>, &lt;span style="color:#f92672">&amp;amp;&lt;/span>&lt;span style="color:#a6e22e">totalReleased&lt;/span>, &lt;span style="color:#a6e22e">highestPrioriyMetric&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> } &lt;span style="color:#66d9ef">else&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">var&lt;/span> &lt;span style="color:#a6e22e">released&lt;/span> &lt;span style="color:#a6e22e">ReleaseResource&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">//Traverse the quantifiable metrics in the metrics that trigger the watermark: if the metric has a sorting method, use its sortfunc to sort the pod directly,
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#75715e">//otherwise use generalsorter to sort; Then use its corresponding operation method to operate the pod, and calculate the amount of resources released from the corresponding metric until the gap between the corresponding metric and the watermark no longer exists
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#66d9ef">for&lt;/span> &lt;span style="color:#a6e22e">_&lt;/span>, &lt;span style="color:#a6e22e">m&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> &lt;span style="color:#66d9ef">range&lt;/span> &lt;span style="color:#a6e22e">metricsQuantified&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">if&lt;/span> &lt;span style="color:#a6e22e">m&lt;/span>.&lt;span style="color:#a6e22e">SortAble&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">m&lt;/span>.&lt;span style="color:#a6e22e">SortFunc&lt;/span>(&lt;span style="color:#a6e22e">ThrottleDownPods&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> } &lt;span style="color:#66d9ef">else&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">GeneralSorter&lt;/span>(&lt;span style="color:#a6e22e">ThrottleDownPods&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">for&lt;/span> !&lt;span style="color:#a6e22e">ThrottoleDownGapToWaterLines&lt;/span>.&lt;span style="color:#a6e22e">TargetGapsRemoved&lt;/span>(&lt;span style="color:#a6e22e">m&lt;/span>) {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">for&lt;/span> &lt;span style="color:#a6e22e">index&lt;/span>, &lt;span style="color:#a6e22e">_&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> &lt;span style="color:#66d9ef">range&lt;/span> &lt;span style="color:#a6e22e">ThrottleDownPods&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">released&lt;/span> = &lt;span style="color:#a6e22e">m&lt;/span>.&lt;span style="color:#a6e22e">ThrottleFunc&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span>, &lt;span style="color:#a6e22e">index&lt;/span>, &lt;span style="color:#a6e22e">ThrottleDownPods&lt;/span>, &lt;span style="color:#f92672">&amp;amp;&lt;/span>&lt;span style="color:#a6e22e">totalReleased&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">ThrottoleDownGapToWaterLines&lt;/span>[&lt;span style="color:#a6e22e">m&lt;/span>] &lt;span style="color:#f92672">-=&lt;/span> &lt;span style="color:#a6e22e">released&lt;/span>[&lt;span style="color:#a6e22e">m&lt;/span>]
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>About extending user-defined metrics and sorting, it is introduced in &amp;ldquo;User-defined metrics interference detection avoidance and user-defined sorting&amp;rdquo;.&lt;/p></description></item><item><title>Docs: Define your watermark</title><link>/docs/tutorials/colocation-with-enhanced-qos/qos-customized-metrics-interference-detection-avoidance-and-sorting/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/colocation-with-enhanced-qos/qos-customized-metrics-interference-detection-avoidance-and-sorting/</guid><description>
+&lt;h2 id="user-defined-metrics-interference-detection-avoidance-and-user-defined-sorting">User-defined metrics interference detection avoidance and user-defined sorting&lt;/h2>
+&lt;p>The use of user-defined metrics interference detection avoidance and user-defined sorting is the same as the process described in the &amp;ldquo;Accurately Perform Avoidance Actions&amp;rdquo;. Here is how to customize your own metrics to participate in the interference detection avoidance process&lt;/p>
+&lt;p>In order to better sort and accurately control metrics configured based on NodeQOS, the concept of attributes is introduced into metrics.&lt;/p>
+&lt;p>The attributes of metric include the following, and these fields can be realized by customized indicators:&lt;/p>
+&lt;ol>
+&lt;li>Name Indicates the name of metric, which should be consistent with the metric name collected in the collector module&lt;/li>
+&lt;li>ActionPriority Indicates the priority of the metric. 0 is the lowest and 10 is the highest&lt;/li>
+&lt;li>SortAble Indicates whether the metric can be sorted. If it is true, the corresponding SortFunc needs to be implemented&lt;/li>
+&lt;li>SortFunc The corresponding sorting method. The sorting method can be arranged and combined with some general methods, and then combined with the sorting of the metric itself, which will be introduced in detail below&lt;/li>
+&lt;li>ThrottleAble Indicates whether pod can be suppressed for this metric. For example, for the metric of CPU usage, there are corresponding suppression methods, but for the metric of memory usage, pod can only be evicted, and effective suppression cannot be carried out&lt;/li>
+&lt;li>ThrottleQuantified Indicates whether the amount of resources corresponding to metric released after suppressing (restoring) a pod can be accurately calculated. We call the metric that can be accurately quantified as quantifiable, otherwise it is not quantifiable;
+For example, the CPU usage can be suppressed by limiting the CGroup usage, and the CPU usage released after suppression can be calculated by the current running value and the value after suppression; Memory usage does not belong to suppression quantifiable metric, because memory has no corresponding throttle implementation, so it is impossible to accurately measure the specific amount of memory resources released after suppressing a pod;&lt;/li>
+&lt;li>ThrottleFunc The specific method of executing throttle action. If throttle is not available, the returned released is null&lt;/li>
+&lt;li>RestoreFunc After being throttled, the specific method of performing the recovery action. If restore is not allowed, the returned released is null&lt;/li>
+&lt;li>Evictable, EvictQuantified and EvictFunc The relevant definitions of evict action are similar to those of throttle action&lt;/li>
+&lt;/ol>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">metric&lt;/span> &lt;span style="color:#66d9ef">struct&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">Name&lt;/span> &lt;span style="color:#a6e22e">WaterLineMetric&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">ActionPriority&lt;/span> &lt;span style="color:#66d9ef">int&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">SortAble&lt;/span> &lt;span style="color:#66d9ef">bool&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">SortFunc&lt;/span> &lt;span style="color:#66d9ef">func&lt;/span>(&lt;span style="color:#a6e22e">pods&lt;/span> []&lt;span style="color:#a6e22e">podinfo&lt;/span>.&lt;span style="color:#a6e22e">PodContext&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">ThrottleAble&lt;/span> &lt;span style="color:#66d9ef">bool&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">ThrottleQuantified&lt;/span> &lt;span style="color:#66d9ef">bool&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">ThrottleFunc&lt;/span> &lt;span style="color:#66d9ef">func&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">ExecuteContext&lt;/span>, &lt;span style="color:#a6e22e">index&lt;/span> &lt;span style="color:#66d9ef">int&lt;/span>, &lt;span style="color:#a6e22e">ThrottleDownPods&lt;/span> &lt;span style="color:#a6e22e">ThrottlePods&lt;/span>, &lt;span style="color:#a6e22e">totalReleasedResource&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">ReleaseResource&lt;/span>) (&lt;span style="color:#a6e22e">errPodKeys&lt;/span> []&lt;span style="color:#66d9ef">string&lt;/span>, &lt;span style="color:#a6e22e">released&lt;/span> &lt;span style="color:#a6e22e">ReleaseResource&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">RestoreFunc&lt;/span> &lt;span style="color:#66d9ef">func&lt;/span>(&lt;span style="color:#a6e22e">ctx&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">ExecuteContext&lt;/span>, &lt;span style="color:#a6e22e">index&lt;/span> &lt;span style="color:#66d9ef">int&lt;/span>, &lt;span style="color:#a6e22e">ThrottleUpPods&lt;/span> &lt;span style="color:#a6e22e">ThrottlePods&lt;/span>, &lt;span style="color:#a6e22e">totalReleasedResource&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">ReleaseResource&lt;/span>) (&lt;span style="color:#a6e22e">errPodKeys&lt;/span> []&lt;span style="color:#66d9ef">string&lt;/span>, &lt;span style="color:#a6e22e">released&lt;/span> &lt;span style="color:#a6e22e">ReleaseResource&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">EvictAble&lt;/span> &lt;span style="color:#66d9ef">bool&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">EvictQuantified&lt;/span> &lt;span style="color:#66d9ef">bool&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">EvictFunc&lt;/span> &lt;span style="color:#66d9ef">func&lt;/span>(&lt;span style="color:#a6e22e">wg&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">sync&lt;/span>.&lt;span style="color:#a6e22e">WaitGroup&lt;/span>, &lt;span style="color:#a6e22e">ctx&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">ExecuteContext&lt;/span>, &lt;span style="color:#a6e22e">index&lt;/span> &lt;span style="color:#66d9ef">int&lt;/span>, &lt;span style="color:#a6e22e">totalReleasedResource&lt;/span> &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">ReleaseResource&lt;/span>, &lt;span style="color:#a6e22e">EvictPods&lt;/span> &lt;span style="color:#a6e22e">EvictPods&lt;/span>) (&lt;span style="color:#a6e22e">errPodKeys&lt;/span> []&lt;span style="color:#66d9ef">string&lt;/span>, &lt;span style="color:#a6e22e">released&lt;/span> &lt;span style="color:#a6e22e">ReleaseResource&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>After the construction is completed, register the metric through registerMetricMap()&lt;/p>
+&lt;p>For the metrics that need to be customized, you can easily realize the flexible customized sorting of pod by combining the following methods with general sorting methods to represent the customized metric indicators, &lt;metric-sort-func> represents the customized sorting strategy&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">func &amp;lt;metric&amp;gt;Sorter(pods []podinfo.PodContext) {&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">orderedBy(classAndPriority, &amp;lt;metric-sort-func&amp;gt;, runningTime).Sort(pods)&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Among them, the following sorting method &lt;code>&amp;lt;metric-sort-func&amp;gt;&lt;/code> needs to be implemented
+&lt;code>func (p1, p2 podinfo.PodContext) int32&lt;/code>&lt;/p></description></item><item><title>Docs: Enhanced bypass cpuset management capability</title><link>/docs/tutorials/colocation-with-enhanced-qos/qos-enhanced-bypass-cpuset-management/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/colocation-with-enhanced-qos/qos-enhanced-bypass-cpuset-management/</guid><description>
+&lt;h2 id="enhanced-bypass-cpuset-management-capability">Enhanced bypass cpuset management capability&lt;/h2>
+&lt;p>Kubelet supports the static CPU manager strategy. When the guaranteed pod runs on the node, kebelet will allocate the specified dedicated CPU for the pod, which cannot be occupied by other processes. This ensures the CPU monopoly of the guaranteed pod, but also causes the low utilization of CPU and nodes, resulting in a certain waste.
+Crane agent provides a new strategy for cpuset management, allowing pod and other pod to share CPU. When it specifies CPU binding core, it can make use of the advantages of less context switching and higher cache affinity of binding core, and also allow other workload to deploy and share, so as to improve resource utilization.&lt;/p>
+&lt;ol>
+&lt;li>Three types of pod cpuset are provided:&lt;/li>
+&lt;/ol>
+&lt;ul>
+&lt;li>Exclusive: after binding the core, other containers can no longer use the CPU and monopolize the CPU&lt;/li>
+&lt;li>Share: other containers can use the CPU after binding the core&lt;/li>
+&lt;li>None: select the CPU that is not occupied by the container of exclusive pod, can use the binding core of share type&lt;/li>
+&lt;/ul>
+&lt;p>Share type binding strategy can make use of the advantages of less context switching and higher cache affinity, and can also be shared by other workload deployments to improve resource utilization&lt;/p>
+&lt;ol start="2">
+&lt;li>Relax the restrictions on binding cores in kubelet&lt;/li>
+&lt;/ol>
+&lt;p>Originally, it was required that the CPU limit of all containers be equal to the CPU request. Here, it is only required that the CPU limit of any container be greater than or equal to 1 and equal to the CPU request to set the binding core for the container&lt;/p>
+&lt;ol start="3">
+&lt;li>Support modifying the cpuset policy of pod during the running of pod, which will take effect immediately&lt;/li>
+&lt;/ol>
+&lt;p>The CPU manager policy of pod is converted from none to share and from exclusive to share without restart&lt;/p>
+&lt;p>How to use:&lt;/p>
+&lt;ol>
+&lt;li>Set the cpuset manager of kubelet to &amp;ldquo;None&amp;rdquo;&lt;/li>
+&lt;li>Set CPU manager policy through pod annotation
+&lt;code>qos.gocrane.io/cpu-manager: none/exclusive/share&lt;/code>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Pod&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">annotations&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">qos.gocrane.io/cpu-manager&lt;/span>: &lt;span style="color:#ae81ff">none/exclusive/share&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/li>
+&lt;/ol></description></item></channel></rss>
