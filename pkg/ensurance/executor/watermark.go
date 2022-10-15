@@ -19,6 +19,7 @@ const (
 	CpuUsage        = WatermarkMetric(types.MetricNameCpuTotalUsage)
 	CpuUsagePercent = WatermarkMetric(types.MetricNameCpuTotalUtilization)
 	MemUsage        = WatermarkMetric(types.MetricNameMemoryTotalUsage)
+	MemUsagePercent = WatermarkMetric(types.MetricNameMemoryTotalUtilization)
 )
 
 const (
@@ -171,8 +172,18 @@ func calculateGaps(stateMap map[string][]common.TimeSeries,
 					} else {
 						cpuPercentToUsage := (1 + executeExcessPercent) * (maxUsed - float64(evictWatermark.PopSmallest().Value())) * cpuCoreNums[0].Samples[0].Value * 1000 / types.MaxPercentage
 						result[m.Name] = cpuPercentToUsage
-						klog.V(6).Infof("maxUsed is %f, watermark is %f, cpuPercentToUsageGap is %f", maxUsed, float64(evictWatermark.PopSmallest().Value()), cpuPercentToUsage)
+						klog.V(6).Infof("cpuPercent maxUsed is %f, watermark is %f, cpuPercentToUsageGap is %f", maxUsed, float64(evictWatermark.PopSmallest().Value()), cpuPercentToUsage)
 					}
+				} else if m.Name == MemUsagePercent {
+					totalMem, ok := stateMap[string(types.MetricNameMemoryTotal)]
+					if !ok {
+						klog.Warningf("Can't get MetricNameMemoryTotal")
+					} else {
+						memPercentToUsage := (1 + executeExcessPercent) * (maxUsed - float64(evictWatermark.PopSmallest().Value())) * totalMem[0].Samples[0].Value / types.MaxPercentage
+						result[m.Name] = memPercentToUsage
+						klog.V(6).Infof("memPercent maxUsed is %f, watermark is %f, memPercentToUsageGap is %f", maxUsed, float64(evictWatermark.PopSmallest().Value()), memPercentToUsage)
+					}
+
 				} else {
 					result[m.Name] = (1 + executeExcessPercent) * (maxUsed - float64(evictWatermark.PopSmallest().Value()))
 				}

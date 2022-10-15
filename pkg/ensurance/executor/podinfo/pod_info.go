@@ -85,9 +85,13 @@ type PodContext struct {
 	StartTime                  *metav1.Time
 	DeletionGracePeriodSeconds *int32
 
-	ElasticCPU                                                                      int64
+	ElasticCPULimit int64
+	ElasticMemLimit int64
+
 	PodCPUUsage, PodCPUShare, PodCPUQuota, PodCPUPeriod                             float64
 	ContainerCPUUsages, ContainerCPUShares, ContainerCPUQuotas, ContainerCPUPeriods []ContainerState
+
+	PodMemUsage float64
 
 	ActionType  ActionType
 	CPUThrottle CPURatio
@@ -124,7 +128,11 @@ func BuildPodActionContext(pod *v1.Pod, stateMap map[string][]common.TimeSeries,
 	podContext.PodCPUShare, podContext.ContainerCPUShares = GetPodUsage(string(stypes.MetricNameContainerCpuLimit), stateMap, pod)
 	podContext.PodCPUQuota, podContext.ContainerCPUQuotas = GetPodUsage(string(stypes.MetricNameContainerCpuQuota), stateMap, pod)
 	podContext.PodCPUPeriod, podContext.ContainerCPUPeriods = GetPodUsage(string(stypes.MetricNameContainerCpuPeriod), stateMap, pod)
-	podContext.ElasticCPU = utils.GetElasticResourceLimit(pod, v1.ResourceCPU)
+	podContext.ElasticCPULimit = utils.GetElasticResourceLimit(pod, v1.ResourceCPU)
+
+	podContext.ElasticMemLimit = utils.GetElasticResourceLimit(pod, v1.ResourceMemory)
+	podContext.PodMemUsage, _ = GetPodUsage(string(stypes.MetricNameContainerMemTotalUsage), stateMap, pod)
+
 	podContext.StartTime = pod.Status.StartTime
 
 	if action.Spec.Throttle != nil {

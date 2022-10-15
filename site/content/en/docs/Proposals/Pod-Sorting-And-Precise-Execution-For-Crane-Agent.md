@@ -55,7 +55,7 @@ The existing problems are:
 
 - The proposal implements some general sorting methods (which will be improved later):
 
-  classAndPriority： Compare the Qos class and class value of two pods. Compare Qos class first and then class value; Those with high priority are ranked later and have higher priority
+  classAndPriority： Compare the QOS class and class value of two pods. Compare QOS class first and then class value; Those with high priority are ranked later and have higher priority
 
   runningTime：Compare the running time of two pods. The one with a long running time is ranked later and has a higher priority
 
@@ -136,7 +136,7 @@ You can define your own metric. After the construction is completed, you can reg
 ### How to control accurately according to the water level
 
 - Build multiple waterlines according to multiple nodeqosensurancepolicies and objectiveinsurances:
-    1. Classified according to the actions corresponding to objectiveinsurances, the crane agent currently has three operations to guarantee node QoS, namely, evict, thtottledown (to suppress pod usage when the current usage is higher than the value in objectiveinsurances) and throttleup (to relax and recover pod usage when the current usage is lower than the value in objectiveinsurances). Therefore, there will be three waterline sets, namely, throttledownwaterline, Throttleupwaterline and evictwaterline
+    1. Classified according to the actions corresponding to objectiveinsurances, the crane agent currently has three operations to guarantee node QOS, namely, evict, thtottledown (to suppress pod usage when the current usage is higher than the value in objectiveinsurances) and throttleup (to relax and recover pod usage when the current usage is lower than the value in objectiveinsurances). Therefore, there will be three waterline sets, namely, throttledownwaterline, Throttleupwaterline and evictwaterline
 
     2. Then classify the waterlines in the same operation category according to their metric rules (metric A and metric Z are used as schematic in the figure), and record the value of each objectiveinsurances water level line, which is recorded as waterline;
 
@@ -274,5 +274,5 @@ if len(MetricsNotEvcitQuantified) != 0 {
 
 ### User Stories
 
-- Users can use crane agent for better QoS guarantees. Support faster node load reduction to ensure that high priority services are not affected. At the same time, the throttle/eviction of low priority services is precisely controlled to avoid excessive operation.
-- With the help of the framework of precise operation (throttle/eviction), users can easily realize the QoS function with precise operation and sorting capability based on the user-defined metric without paying attention to details by implementing the attributes and methods related to the user-defined metric.
+- Users can use crane agent for better QOS guarantees. Support faster node load reduction to ensure that high priority services are not affected. At the same time, the throttle/eviction of low priority services is precisely controlled to avoid excessive operation.
+- With the help of the framework of precise operation (throttle/eviction), users can easily realize the QOS function with precise operation and sorting capability based on the user-defined metric without paying attention to details by implementing the attributes and methods related to the user-defined metric.

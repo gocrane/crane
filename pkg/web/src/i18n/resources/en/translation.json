@@ -157,5 +157,8 @@
   "当前副本数": "Current Replicas",
   "更新时间": "Update Time",
   "当前资源(容器/CPU/Memory)": "Current Resource(Container/CPU/Memory)",
-  "成本分布": "Cost by Dimension"
+  "成本分布": "Cost by Dimension",
+  "最近1小时": "Last 1 Hour",
+  "节点名": "Node Name",
+  "闲置节点": "Idle Node"
 }

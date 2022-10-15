@@ -39,6 +39,7 @@ func collectMemory(_ *nodeLocalContext) (map[string][]common.TimeSeries, error) 
 	var data = make(map[string][]common.TimeSeries, 2)
 	data[string(types.MetricNameMemoryTotalUsage)] = []common.TimeSeries{{Samples: []common.Sample{{Value: float64(usage), Timestamp: now.Unix()}}}}
 	data[string(types.MetricNameMemoryTotalUtilization)] = []common.TimeSeries{{Samples: []common.Sample{{Value: usagePercent, Timestamp: now.Unix()}}}}
+	data[string(types.MetricNameMemoryTotal)] = []common.TimeSeries{{Samples: []common.Sample{{Value: float64(stat.Total), Timestamp: now.Unix()}}}}
 
 	return data, nil
 }

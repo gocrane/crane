@@ -36,18 +36,19 @@ Crane Dashboard **在线 Demo**: http://dashboard.gocrane.io/
 
 **推荐框架**
 
-提供了一个可扩展的推荐框架以支持多种云资源的分析，内置了多种推荐器：资源推荐，副本推荐，闲置资源推荐。
+提供了一个可扩展的推荐框架以支持多种云资源的分析，内置了多种推荐器：资源推荐，副本推荐，闲置资源推荐。[了解更多](https://gocrane.io/zh-cn/docs/tutorials/recommendation/)
 
 **基于预测的水平弹性器**
 
-EffectiveHorizontalPodAutoscaler 支持了预测驱动的弹性。它基于社区 HPA 做底层的弹性控制，支持更丰富的弹性触发策略（预测，观测，周期），让弹性更加高效，并保障了服务的质量。[了解更多](docs/tutorials/using-effective-hpa-to-scaling-with-effectiveness.zh.md)。
+EffectiveHorizontalPodAutoscaler 支持了预测驱动的弹性。它基于社区 HPA 做底层的弹性控制，支持更丰富的弹性触发策略（预测，观测，周期），让弹性更加高效，并保障了服务的质量。[了解更多](https://gocrane.io/zh-cn/docs/tutorials/using-effective-hpa-to-scaling-with-effectiveness/)
 
 **负载感知的调度器**
 
-动态调度器根据实际的节点利用率构建了一个简单但高效的模型，并过滤掉那些负载高的节点来平衡集群。[了解更多](docs/tutorials/scheduling-pods-based-on-actual-node-load.zh.md)。
+动态调度器根据实际的节点利用率构建了一个简单但高效的模型，并过滤掉那些负载高的节点来平衡集群。[了解更多](https://gocrane.io/zh-cn/docs/tutorials/scheduling-pods-based-on-actual-node-load/)
 
-**基于 QoS 的混部**
+**基于 QOS 的混部**
 
+QOS相关能力保证了运行在 Kubernetes 上的 Pod 的稳定性。具有多维指标条件下的干扰检测和主动回避能力，支持精确操作和自定义指标接入；具有预测算法增强的弹性资源超卖能力，复用和限制集群内的空闲资源；具备增强的旁路cpuset管理能力，在绑核的同时提升资源利用效率。[了解更多](docs/tutorials/using-qos-ensurance.zh.md)。
 
 ## 架构
 

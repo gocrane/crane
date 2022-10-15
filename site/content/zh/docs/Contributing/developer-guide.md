@@ -7,6 +7,10 @@ description: "指导如何进行 Crane 的开发"
 First, please make sure you've got a working [Go environment](https://golang.org/doc/install)
 and [Docker environment](https://docs.docker.com/engine).
 
+## Prepare local crane environment
+
+Please referring to [quick start](/docs/getting-started/quick-start)
+
 ## Clone crane
 
 Clone the repository,

@@ -17,14 +17,14 @@ func TestCpuUsageSorter(t *testing.T) {
 	// orderedBy(UseElasticCPU, ComparePodQOSClass, ComparePriority, CompareCPUUsage, CompareElasticCPU, CompareRunningTime).Sort(pods)
 	pods := []podinfo.PodContext{
 		{
-			Key:        types.NamespacedName{Name: "elastic-cpu-2"},
-			ElasticCPU: 2,
-			QOSClass:   v1.PodQOSBestEffort,
+			Key:             types.NamespacedName{Name: "elastic-cpu-2"},
+			ElasticCPULimit: 2,
+			QOSClass:        v1.PodQOSBestEffort,
 		},
 		{
-			Key:        types.NamespacedName{Name: "elastic-cpu-4"},
-			ElasticCPU: 4,
-			QOSClass:   v1.PodQOSBestEffort,
+			Key:             types.NamespacedName{Name: "elastic-cpu-4"},
+			ElasticCPULimit: 4,
+			QOSClass:        v1.PodQOSBestEffort,
 		},
 		{
 			Key:         types.NamespacedName{Name: "cpu-1"},
@@ -77,6 +77,6 @@ func TestCpuUsageSorter(t *testing.T) {
 	CpuUsageSort(pods)
 	t.Logf("sorted pods:")
 	for _, p := range pods {
-		t.Logf("key %s, useElasticCPU %v, qosClass %s, priority %d, usage %f, elasticCPUUsage %d, startTime %v", p.Key, (p.ElasticCPU != 0), p.QOSClass, p.Priority, p.PodCPUUsage, p.ElasticCPU, p.StartTime)
+		t.Logf("key %s, useElasticCPU %v, qosClass %s, priority %d, usage %f, elasticCPUUsage %d, startTime %v", p.Key, (p.ElasticCPULimit != 0), p.QOSClass, p.Priority, p.PodCPUUsage, p.ElasticCPULimit, p.StartTime)
 	}
 }
