@@ -227,6 +227,7 @@ data:
             proxy_pass http://$upstream_grafana:8082;
             rewrite /grafana/(.*) /$1 break;
             include conf.d/common_params;
+            add_header Access-Control-Allow-Origin *;
         }
         # merge /api/v1/cluster /api/v1/namespaces
         location /api {
