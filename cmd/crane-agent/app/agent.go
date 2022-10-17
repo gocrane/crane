@@ -107,24 +107,15 @@ func Run(ctx context.Context, opts *options.Options) error {
 
 	nrtInformerFactory := craneinformers.NewSharedInformerFactoryWithOptions(craneClient, informerSyncPeriod,
 		craneinformers.WithTweakListOptions(func(options *metav1.ListOptions) {
-<<<<<<< HEAD
 			options.FieldSelector = fields.OneTermEqualSelector(metav1.ObjectNameField, hostname).String()
-=======
-			options.FieldSelector = fields.OneTermEqualSelector(nodeNameField, hostname).String()
->>>>>>> support prom-adapter regexp
 		}),
 	)
 	nrtInformer := nrtInformerFactory.Topology().V1alpha1().NodeResourceTopologies()
 
-<<<<<<< HEAD
 	newAgent, err := agent.NewAgent(ctx, hostname, opts.RuntimeEndpoint, opts.CgroupDriver, opts.SysPath,
 		opts.KubeletRootPath, kubeClient, craneClient, podInformer, nodeInformer, nodeQOSInformer, podQOSInformer,
 		actionInformer, tspInformer, nrtInformer, opts.NodeResourceReserved, opts.Ifaces, healthCheck,
 		opts.CollectInterval, opts.ExecuteExcess, opts.CPUManagerReconcilePeriod, opts.DefaultCPUPolicy)
-=======
-	newAgent, err := agent.NewAgent(ctx, hostname, opts.RuntimeEndpoint, opts.CgroupDriver, opts.SysPath, kubeClient, craneClient, podInformer, nodeInformer,
-		nodeQOSInformer, podQOSInformer, actionInformer, tspInformer, nrtInformer, opts.NodeResourceReserved, opts.Ifaces, healthCheck, opts.CollectInterval, opts.ExecuteExcess)
->>>>>>> support prom-adapter regexp
 
 	if err != nil {
 		return err

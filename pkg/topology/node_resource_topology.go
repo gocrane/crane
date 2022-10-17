@@ -3,10 +3,7 @@ package topology
 import (
 	"sort"
 
-<<<<<<< HEAD
 	topologyapi "github.com/gocrane/api/topology/v1alpha1"
-=======
->>>>>>> support prom-adapter regexp
 	"github.com/jaypipes/ghw"
 	"github.com/jaypipes/ghw/pkg/topology"
 	corev1 "k8s.io/api/core/v1"
@@ -14,11 +11,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 
-<<<<<<< HEAD
-=======
-	topologyapi "github.com/gocrane/api/topology/v1alpha1"
-
->>>>>>> support prom-adapter regexp
 	"github.com/gocrane/crane/pkg/utils"
 )
 
@@ -29,11 +21,7 @@ type NRTBuilder struct {
 	cpuManagerPolicy      topologyapi.CPUManagerPolicy
 	topologyManagerPolicy topologyapi.TopologyManagerPolicy
 	reserved              corev1.ResourceList
-<<<<<<< HEAD
 	reservedCPUs          int
-=======
-	reservedCPUs          int32
->>>>>>> support prom-adapter regexp
 	topologyInfo          *topology.Info
 }
 
@@ -62,14 +50,11 @@ func (b *NRTBuilder) WithReserved(reserved corev1.ResourceList) {
 	b.reserved = reserved
 }
 
-<<<<<<< HEAD
 // WithReservedCPUs sets the reserved property of a Builder.
 func (b *NRTBuilder) WithReservedCPUs(reservedCPUs int) {
 	b.reservedCPUs = reservedCPUs
 }
 
-=======
->>>>>>> support prom-adapter regexp
 // WithTopologyInfo sets the topologyInfo property of a Builder.
 func (b *NRTBuilder) WithTopologyInfo(topologyInfo *topology.Info) {
 	sort.Slice(topologyInfo.Nodes, func(i, j int) bool {
@@ -136,11 +121,7 @@ func buildCostsPerNUMANode(node *ghw.TopologyNode) []topologyapi.CostInfo {
 	return nodeCosts
 }
 
-<<<<<<< HEAD
 func buildNodeResource(node *ghw.TopologyNode, reserved corev1.ResourceList, reservedCPUs *int) *topologyapi.ResourceInfo {
-=======
-func buildNodeResource(node *ghw.TopologyNode, reserved corev1.ResourceList, reservedCPUs *int32) *topologyapi.ResourceInfo {
->>>>>>> support prom-adapter regexp
 	logicalCores := 0
 	for _, core := range node.Cores {
 		logicalCores += len(core.LogicalProcessors)
@@ -151,7 +132,6 @@ func buildNodeResource(node *ghw.TopologyNode, reserved corev1.ResourceList, res
 		capacity[corev1.ResourceMemory] = *resource.NewQuantity(node.Memory.TotalUsableBytes, resource.BinarySI)
 	}
 	allocatable := getNodeAllocatable(capacity, reserved)
-<<<<<<< HEAD
 	var reservedCPUNums int
 	if logicalCores >= *reservedCPUs {
 		reservedCPUNums = *reservedCPUs
@@ -159,24 +139,11 @@ func buildNodeResource(node *ghw.TopologyNode, reserved corev1.ResourceList, res
 	} else {
 		reservedCPUNums = logicalCores
 		*reservedCPUs -= logicalCores
-=======
-	var reservedCPUNums int32
-	if int32(logicalCores) >= *reservedCPUs {
-		reservedCPUNums = *reservedCPUs
-		*reservedCPUs = 0
-	} else {
-		reservedCPUNums = int32(logicalCores)
-		*reservedCPUs -= int32(logicalCores)
->>>>>>> support prom-adapter regexp
 	}
 	return &topologyapi.ResourceInfo{
 		Capacity:        capacity,
 		Allocatable:     allocatable,
-<<<<<<< HEAD
 		ReservedCPUNums: int32(reservedCPUNums),
-=======
-		ReservedCPUNums: reservedCPUNums,
->>>>>>> support prom-adapter regexp
 	}
 }
 

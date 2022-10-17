@@ -49,8 +49,8 @@ func GetPodNameReg(resourceName string, resourceType string) string {
 	return fmt.Sprintf("^%s-%s", resourceName, `.*`)
 }
 
-func GetCustumerExpression(metricName string, labels string) string {
-	return fmt.Sprintf(CustumerExprTemplate, metricName, labels)
+func GetCustomerExpression(metricName string, labels string) string {
+	return fmt.Sprintf(CustomerExprTemplate, metricName, labels)
 }
 
 func GetWorkloadCpuUsageExpression(namespace string, name string, kind string) string {

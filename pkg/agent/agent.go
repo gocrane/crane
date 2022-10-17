@@ -59,11 +59,7 @@ type Agent struct {
 }
 
 func NewAgent(ctx context.Context,
-<<<<<<< HEAD
 	nodeName, runtimeEndpoint, cgroupDriver, sysPath, kubeletRootPath string,
-=======
-	nodeName, runtimeEndpoint, cgroupDriver, sysPath string,
->>>>>>> support prom-adapter regexp
 	kubeClient kubernetes.Interface,
 	craneClient craneclientset.Interface,
 	podInformer coreinformers.PodInformer,
@@ -113,10 +109,7 @@ func NewAgent(ctx context.Context,
 			managers = appendManagerIfNotNil(managers, cpuManager)
 		}
 	}
-<<<<<<< HEAD
 
-=======
->>>>>>> support prom-adapter regexp
 	stateCollector := collector.NewStateCollector(nodeName, sysPath, kubeClient, craneClient, nodeQOSInformer.Lister(), nrtInformer.Lister(), podInformer.Lister(), nodeInformer.Lister(), ifaces, healthCheck, collectInterval, exclusiveCPUSet, cadvisorManager)
 	managers = appendManagerIfNotNil(managers, stateCollector)
 	analyzerManager := analyzer.NewAnomalyAnalyzer(kubeClient, nodeName, podInformer, nodeInformer, nodeQOSInformer, podQOSInformer, actionInformer, stateCollector.AnalyzerChann, noticeCh)
