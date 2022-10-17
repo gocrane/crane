@@ -9,11 +9,8 @@ CRANE_CLUSTER_NAME="crane"
 
 echo "Step1: Create local cluster: " ${CRANE_KUBECONFIG}
 kind delete cluster --name="${CRANE_CLUSTER_NAME}" 2>&1
-<<<<<<< HEAD
 kind create cluster --kubeconfig "${CRANE_KUBECONFIG}" --name "${CRANE_CLUSTER_NAME}" --image kindest/node:v1.21.1
-=======
-kind create cluster --kubeconfig "${CRANE_KUBECONFIG}" --name "${CRANE_CLUSTER_NAME}"
->>>>>>> support prom-adapter regexp
+
 export KUBECONFIG="${CRANE_KUBECONFIG}"
 echo "Step1: Create local cluster finished."
 
@@ -43,12 +40,8 @@ helm install fadvisor -n crane-system --create-namespace crane/fadvisor
 echo "Step4: Installing Crane finished."
 
 kubectl get deploy -n crane-system
-<<<<<<< HEAD
 echo "Please wait for all pods ready"
 echo "After all pods ready, Get the Crane Dashboard URL to visit by running these commands in the same shell:"
 echo "    export KUBECONFIG=${HOME}/.kube/config_crane"
 echo "    kubectl -n crane-system port-forward service/craned 9090:9090"
 
-=======
-echo "Please wait for all pods ready"
->>>>>>> support prom-adapter regexp

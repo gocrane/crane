@@ -138,13 +138,10 @@ archived_version = false
 # current doc set.
 version = "0.8.0"
 
-<<<<<<< HEAD
 [[params.versions]]
   version = "main"
   url = "https://gocrane.io"
 
-=======
->>>>>>> support prom-adapter regexp
 # Repository configuration (URLs for in-page links to opening issues and suggesting changes)
 github_repo = "https://github.com/gocrane/crane"
 # An optional link to a related project repo. For example, the sibling repository where your product code lives.
