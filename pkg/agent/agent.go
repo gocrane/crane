@@ -131,12 +131,6 @@ func NewAgent(ctx context.Context,
 		managers = appendManagerIfNotNil(managers, podResourceManager)
 	}
 
-	if utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResourceTopology) {
-		if err := agent.CreateNodeResourceTopology(sysPath); err != nil {
-			return agent, err
-		}
-	}
-
 	agent.managers = managers
 
 	return agent, nil

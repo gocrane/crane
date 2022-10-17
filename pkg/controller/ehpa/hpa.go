@@ -246,9 +246,9 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 			//get expressionQuery
 			var expressionQuery string
 
-			//first get annocation
+			//first get annotation
 			expressionQuery = utils.GetExpressionQueryAnnotation(metricIdentifier, ehpa.Annotations)
-			//if annocation not matched, build expressionQuery by metric and ehpa.TargetName
+			//if annotation not matched, build expressionQuery by metric and ehpa.TargetName
 			if expressionQuery == "" {
 				// second get prometheus-adapter expressionQuery
 				switch metric.Type {

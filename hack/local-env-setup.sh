@@ -10,7 +10,6 @@ CRANE_CLUSTER_NAME="crane"
 echo "Step1: Create local cluster: " ${CRANE_KUBECONFIG}
 kind delete cluster --name="${CRANE_CLUSTER_NAME}" 2>&1
 kind create cluster --kubeconfig "${CRANE_KUBECONFIG}" --name "${CRANE_CLUSTER_NAME}" --image kindest/node:v1.21.1
-
 export KUBECONFIG="${CRANE_KUBECONFIG}"
 echo "Step1: Create local cluster finished."
 

@@ -158,7 +158,7 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 
 		//get expressionQuery
 		var expressionQuery string
-		//first get annocation expressionQuery
+		//first get annotation expressionQuery
 		expressionQuery = utils.GetExpressionQueryAnnotation(metricIdentifier, ehpa.Annotations)
 		if expressionQuery == "" {
 			// second get prometheus-adapter expressionQuery
