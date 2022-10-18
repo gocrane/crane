@@ -33,7 +33,7 @@ const (
 
 const (
 	PostRegMatchesPodDeployment  = `[a-z0-9]+-[a-z0-9]{5}$`
-	PostRegMatchesPodReplicaset  = `[a-z0-9]+$`
+	PostRegMatchesPodReplicaset  = `[a-z0-9]{5}$`
 	PostRegMatchesPodStatefulset = `[0-9]+$`
 )
 

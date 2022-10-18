@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
@@ -295,7 +294,7 @@ func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.O
 				klog.Exit(err, "unable to create controller", "controller", "PromAdapterConfigMapController")
 			}
 		} else if opts.DataSourcePromConfig.AdapterConfig != "" {
-			go promAdapterConfigDaemonReload(ehpaController, opts.DataSourcePromConfig.AdapterConfig, mgr.GetRESTMapper())
+			go promAdapterConfigDaemonReload(ehpaController, opts.DataSourcePromConfig.AdapterConfig)
 		}
 
 		if err := (ehpaController).SetupWithManager(mgr); err != nil {
@@ -446,7 +445,7 @@ func runAll(ctx context.Context, mgr ctrl.Manager, predictorMgr predictor.Manage
 }
 
 // if set promAdapterConfig, daemon reload by config's md5
-func promAdapterConfigDaemonReload(ehpaController *ehpa.EffectiveHPAController, filePath string, restMapper meta.RESTMapper) {
+func promAdapterConfigDaemonReload(ehpaController *ehpa.EffectiveHPAController, filePath string) {
 	var md5Cache string
 	for {
 		md5Now, err := utils.GetFileMd5(filePath)
@@ -458,14 +457,7 @@ func promAdapterConfigDaemonReload(ehpaController *ehpa.EffectiveHPAController, 
 			if err != nil {
 				klog.Errorf("Got metricsDiscoveryConfig failed[%s] %v", filePath, err)
 			} else {
-				metricRulesResource, metricRulesCustomer, metricRulesExternal, err := utils.GetMetricRules(*metricsDiscoveryConfig, restMapper)
-				if err != nil {
-					klog.Errorf("Got metricRules failed[%s] %v", filePath, err)
-				} else {
-					ehpaController.MetricRulesResource = metricRulesResource
-					ehpaController.MetricRulesCustomer = metricRulesCustomer
-					ehpaController.MetricRulesExternal = metricRulesExternal
-				}
+				ehpaController.UpdateMetricRules(*metricsDiscoveryConfig)
 			}
 		}
 		time.Sleep(time.Duration(30) * time.Second)
