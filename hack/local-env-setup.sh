@@ -34,7 +34,7 @@ echo "Step3: Installing Grafana finished."
 echo "Step4: Installing Crane "
 helm repo add crane https://gocrane.github.io/helm-charts
 helm repo update
-helm install crane -n crane-system --create-namespace crane/crane
+helm install crane -n crane-system --set craneAgent.enable=false --create-namespace crane/crane
 helm install fadvisor -n crane-system --create-namespace crane/fadvisor
 echo "Step4: Installing Crane finished."
 
