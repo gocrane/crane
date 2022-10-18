@@ -153,7 +153,9 @@ func (c *Controller) analyze(ctx context.Context, analytics *analysisv1alph1.Ana
 	var currRecommendations []*analysisv1alph1.Recommendation
 	labelSet := labels.Set{}
 	labelSet[known.AnalyticsUidLabel] = string(analytics.UID)
+	klog.V(4).Infof("List current recommendations, name %s ns %s selector %s.", analytics.Name, analytics.Namespace, labelSet.String())
 	currRecommendations, err = c.recommLister.Recommendations(analytics.Namespace).List(labels.SelectorFromSet(labelSet))
+	klog.V(4).Infof("List current recommendations result length %d, error %v", len(currRecommendations), err)
 	if err != nil {
 		c.Recorder.Event(analytics, corev1.EventTypeNormal, "FailedSelectResource", err.Error())
 		msg := fmt.Sprintf("Failed to get recomendations, Analytics %s error %v", klog.KObj(analytics), err)
