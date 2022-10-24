@@ -146,6 +146,7 @@ export const recommendationApi = createApi({
             }
           }
           if (value?.metadata?.name) value.name = value?.metadata?.name;
+          if (value?.metadata?.managedFields) delete value.metadata.managedFields;
           if (value?.spec.targetRef?.namespace) value.namespace = value?.spec.targetRef?.namespace;
           if (value?.spec.targetRef?.kind) value.workloadType = value?.spec.targetRef?.kind;
           return value;

@@ -89,6 +89,7 @@ export const recommendationRuleApi = createApi({
           res.data.items.map((value) => {
             if (value?.spec?.recommenders[0]?.name) value.recommenderType = value.spec.recommenders[0].name;
             if (value?.metadata?.name) value.name = value.metadata.name;
+            if (value?.metadata?.managedFields) delete value.metadata.managedFields;
             return value;
           });
           res.emptyData = false;
