@@ -11,7 +11,7 @@
 scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true" width="1000" height="600">&lt;/iframe>
 &lt;p>Crane Dashboard &lt;strong>在线 Demo&lt;/strong>: &lt;a href="http://dashboard.gocrane.io/">http://dashboard.gocrane.io/&lt;/a>&lt;/p>
 &lt;h2 id="main-features">Main Features&lt;/h2>
-&lt;p>&lt;img src="/images/crane-overview.png" alt="Crane Overview&amp;quot;">&lt;/p>
+&lt;p>&lt;img src="/images/crane-overview.png" alt="Crane Overview">&lt;/p>
 &lt;p>&lt;strong>成本可视化和优化评估&lt;/strong>&lt;/p>
 &lt;ul>
 &lt;li>提供一组 Exporter 计算集群云资源的计费和账单数据并存储到你的监控系统，比如 Prometheus。&lt;/li>
@@ -23,11 +23,13 @@ scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="tru
 &lt;p>EffectiveHorizontalPodAutoscaler 支持了预测驱动的弹性。它基于社区 HPA 做底层的弹性控制，支持更丰富的弹性触发策略（预测，观测，周期），让弹性更加高效，并保障了服务的质量。&lt;a href="/zh-cn/docs/tutorials/using-effective-hpa-to-scaling-with-effectiveness">了解更多&lt;/a>。&lt;/p>
 &lt;p>&lt;strong>负载感知的调度器&lt;/strong>&lt;/p>
 &lt;p>动态调度器根据实际的节点利用率构建了一个简单但高效的模型，并过滤掉那些负载高的节点来平衡集群。&lt;a href="/zh-cn/docs/tutorials/scheduling-pods-based-on-actual-node-load">了解更多&lt;/a>。&lt;/p>
+&lt;p>&lt;strong>拓扑感知的调度器&lt;/strong>&lt;/p>
+&lt;p>Crane Scheduler与Crane Agent配合工作，支持更为精细化的资源拓扑感知调度和多种绑核策略，可解决复杂场景下“吵闹的邻居问题&amp;quot;，使得资源得到更合理高效的利用。&lt;a href="/zh-cn/docs/tutorials/node-resource-tpolology-scheduler-plugins.md">了解更多&lt;/a>。&lt;/p>
 &lt;p>&lt;strong>基于 QOS 的混部&lt;/strong>&lt;/p>
 &lt;p>QOS相关能力保证了运行在 Kubernetes 上的 Pod 的稳定性。具有多维指标条件下的干扰检测和主动回避能力，支持精确操作和自定义指标接入；具有预测算法增强的弹性资源超卖能力，复用和限制集群内的空闲资源；具备增强的旁路cpuset管理能力，在绑核的同时提升资源利用效率。&lt;a href="/zh-cn/docs/tutorials/using-qos-ensurance">了解更多&lt;/a>。&lt;/p>
 &lt;h2 id="架构">架构&lt;/h2>
 &lt;p>Crane 的整体架构如下：&lt;/p>
-&lt;p>&lt;img src="/images/crane-arch.png" alt="Crane Arch&amp;quot;">&lt;/p>
+&lt;p>&lt;img src="/images/crane-arch.png" alt="Crane Arch">&lt;/p>
 &lt;p>&lt;strong>Craned&lt;/strong>&lt;/p>
 &lt;p>Craned 是 Crane 的最核心组件，它管理了 CRDs 的生命周期以及API。Craned 通过 &lt;code>Deployment&lt;/code> 方式部署且由两个容器组成：&lt;/p>
 &lt;ul>
