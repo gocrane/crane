@@ -31,6 +31,8 @@ type Config struct {
 
 	PredictorMgr predictormgr.Manager
 	Api          promapiv1.API
+
+	DashboardControl bool `json:"dashboardControl"`
 }
 
 func NewServerConfig() *Config {

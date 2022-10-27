@@ -16,7 +16,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	unstructuredv1 "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -291,38 +290,21 @@ func (c *RecommendationRuleController) getIdentities(ctx context.Context, recomm
 			return nil, fmt.Errorf("empty kind")
 		}
 
-		resList, err := c.discoveryClient.ServerResourcesForGroupVersion(rs.APIVersion)
+		gvr, err := utils.GetGroupVersionResource(c.discoveryClient, rs.APIVersion, rs.Kind)
 		if err != nil {
 			return nil, err
 		}
-
-		var resName string
-		for _, res := range resList.APIResources {
-			if rs.Kind == res.Kind {
-				resName = res.Name
-				break
-			}
-		}
-		if resName == "" {
-			return nil, fmt.Errorf("invalid kind %s", rs.Kind)
-		}
-
-		gv, err := schema.ParseGroupVersion(rs.APIVersion)
-		if err != nil {
-			return nil, err
-		}
-		gvr := gv.WithResource(resName)
 
 		var unstructureds []unstructuredv1.Unstructured
 		if recommendationRule.Spec.NamespaceSelector.Any {
-			unstructuredList, err := c.dynamicClient.Resource(gvr).List(ctx, metav1.ListOptions{})
+			unstructuredList, err := c.dynamicClient.Resource(*gvr).List(ctx, metav1.ListOptions{})
 			if err != nil {
 				return nil, err
 			}
 			unstructureds = append(unstructureds, unstructuredList.Items...)
 		} else {
 			for _, namespace := range recommendationRule.Spec.NamespaceSelector.MatchNames {
-				unstructuredList, err := c.dynamicClient.Resource(gvr).Namespace(namespace).List(ctx, metav1.ListOptions{})
+				unstructuredList, err := c.dynamicClient.Resource(*gvr).Namespace(namespace).List(ctx, metav1.ListOptions{})
 				if err != nil {
 					return nil, err
 				}

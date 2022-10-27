@@ -5,22 +5,35 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	patchtypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/dynamic"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
 
+	"github.com/gocrane/crane/pkg/recommendation/recommender"
 	"github.com/gocrane/crane/pkg/server/config"
 	"github.com/gocrane/crane/pkg/server/ginwrapper"
+	"github.com/gocrane/crane/pkg/utils"
 )
 
 type Handler struct {
-	client client.Client
+	client          client.Client
+	dynamicClient   dynamic.Interface
+	discoveryClient discovery.DiscoveryInterface
 }
 
 func NewRecommendationHandler(config *config.Config) *Handler {
+	dynamicClient := dynamic.NewForConfigOrDie(config.KubeConfig)
+	discoveryClient := discovery.NewDiscoveryClientForConfigOrDie(config.KubeConfig)
+
 	return &Handler{
-		client: config.Client,
+		client:          config.Client,
+		dynamicClient:   dynamicClient,
+		discoveryClient: discoveryClient,
 	}
 }
 
@@ -91,6 +104,35 @@ func (h *Handler) UpdateRecommendationRule(c *gin.Context) {
 	}
 
 	ginwrapper.WriteResponse(c, nil, nil)
+}
+
+// AdoptRecommendation adopt a recommendation from request.
+func (h *Handler) AdoptRecommendation(c *gin.Context) {
+	recommendationExist := &analysisapi.Recommendation{}
+	if err := h.client.Get(context.TODO(), types.NamespacedName{Namespace: c.Param("namespace"), Name: c.Param("recommendationName")}, recommendationExist); err != nil {
+		ginwrapper.WriteResponse(c, err, nil)
+		return
+	}
+
+	if string(recommendationExist.Spec.Type) == recommender.ReplicasRecommender ||
+		string(recommendationExist.Spec.Type) == recommender.ResourceRecommender {
+		gvr, err := utils.GetGroupVersionResource(h.discoveryClient, recommendationExist.Spec.TargetRef.APIVersion, recommendationExist.Spec.TargetRef.Kind)
+		if err != nil {
+			ginwrapper.WriteResponse(c, err, nil)
+			return
+		}
+
+		_, err = h.dynamicClient.Resource(*gvr).Namespace(recommendationExist.Spec.TargetRef.Namespace).Patch(context.TODO(), recommendationExist.Spec.TargetRef.Name, patchtypes.StrategicMergePatchType, []byte(recommendationExist.Status.RecommendedInfo), metav1.PatchOptions{})
+		if err != nil {
+			ginwrapper.WriteResponse(c, err, nil)
+			return
+		}
+
+		ginwrapper.WriteResponse(c, nil, nil)
+	} else {
+		ginwrapper.WriteResponse(c, fmt.Errorf("Recommendation type %s is not supported for adoption ", string(recommendationExist.Spec.Type)), nil)
+		return
+	}
 }
 
 // DeleteRecommendationRule delete a recommendationRules from request.
