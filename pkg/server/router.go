@@ -47,7 +47,7 @@ func (s *apiServer) initRouter() {
 		recommendv1 := v1.Group("/recommendation")
 		{
 			recommendv1.GET("", recommendationHandler.ListRecommendations)
-			recommendv1.GET("/adopt/:namespace/:recommendationName", recommendationHandler.AdoptRecommendation)
+			recommendv1.POST("/adopt/:namespace/:recommendationName", recommendationHandler.AdoptRecommendation)
 		}
 
 		// recommendationRules

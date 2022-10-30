@@ -2,10 +2,11 @@ import CommonStyle from '../../../styles/common.module.less';
 import SearchForm from '../ReplicaRecommend/components/SearchForm';
 import './index.module.less';
 import classnames from 'classnames';
-import { useCraneUrl } from 'hooks';
+import { useCraneUrl, useDashboardControl } from 'hooks';
 import React, { memo, useState } from 'react';
 import { Button, Col, Dialog, Divider, MessagePlugin, Row, Space, Table, Tag } from 'tdesign-react';
 import {
+  recommendationApi,
   RecommendationSimpleInfo,
   RecommendationType,
   useFetchRecommendationListQuery,
@@ -13,6 +14,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import JsYaml from 'js-yaml';
 import { useTranslation } from 'react-i18next';
+import { useDispatch } from 'react-redux';
 import { Prism } from '@mantine/prism';
 import { copyToClipboard } from '../../../utils/copyToClipboard';
 import { K8SUNIT, transformK8sUnit } from 'utils/transformK8sUnit';
@@ -21,6 +23,7 @@ const Editor = React.lazy(() => import('components/common/Editor'));
 
 export const SelectTable = () => {
   const { t } = useTranslation();
+  const dispatch = useDispatch();
   const [yamlDialogVisible, setYamlDialogVisible] = useState<boolean>(false);
   const [currentSelection, setCurrentSelection] = useState<RecommendationSimpleInfo | null>(null);
   const [commandDialogVisible, setCommandDialogVisible] = useState<boolean>(false);
@@ -29,6 +32,7 @@ export const SelectTable = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<(string | number)[]>([0, 1]);
   const [visible, setVisible] = useState(false);
   const craneUrl: any = useCraneUrl();
+  const dashboardControl: any = useDashboardControl();
 
   const [filterParams, setFilterParams] = useState({
     namespace: undefined,
@@ -93,7 +97,7 @@ export const SelectTable = () => {
     return yaml;
   };
 
-  return (
+    return (
     <>
       <Row>
         <Button onClick={() => navigate('/recommend/recommendationRule')}>{t('查看推荐规则')}</Button>
@@ -208,17 +212,31 @@ export const SelectTable = () => {
             colKey: 'op',
             title: t('操作'),
             cell(record) {
-              return (
+              return dashboardControl ? (
                 <>
                   <Button
                     theme='primary'
                     variant='text'
                     onClick={() => {
-                      setCurrentSelection(record.row as RecommendationSimpleInfo);
-                      setCommandDialogVisible(true);
+                      const result: any = dispatch(recommendationApi.endpoints.adoptRecommendation.initiate({
+                        craneUrl: craneUrl,
+                        namespace: record.row.namespace,
+                        name: record.row.name,
+                      }));
+                      result.unwrap()
+                        .then(() => MessagePlugin.success(t('采纳推荐成功')))
+                        .catch(() =>
+                          MessagePlugin.error(
+                            {
+                              content: t('采纳推荐失败'),
+                              closeBtn: true,
+                            },
+                            10000,
+                          ),
+                        )
                     }}
                   >
-                    {t('采纳建议')}
+                    {t('采纳推荐')}
                   </Button>
                   <Button
                     theme='primary'
@@ -231,7 +249,31 @@ export const SelectTable = () => {
                     {t('查看YAML')}
                   </Button>
                 </>
-              );
+              ) :
+                (
+                  <>
+                    <Button
+                      theme='primary'
+                      variant='text'
+                      onClick={() => {
+                        setCurrentSelection(record.row as RecommendationSimpleInfo);
+                        setCommandDialogVisible(true);
+                      }}
+                    >
+                      {t('查看采纳命令')}
+                    </Button>
+                    <Button
+                      theme='primary'
+                      variant='text'
+                      onClick={() => {
+                        setCurrentSelection(record.row as RecommendationSimpleInfo);
+                        setYamlDialogVisible(true);
+                      }}
+                    >
+                      {t('查看YAML')}
+                    </Button>
+                  </>
+                );
             },
           },
         ]}

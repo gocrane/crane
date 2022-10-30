@@ -85,4 +85,5 @@ export interface ClusterSimpleInfo {
   craneUrl: string;
   grafanaUrl?: string;
   discount?: number;
+  dashboardControl?: boolean;
 }
