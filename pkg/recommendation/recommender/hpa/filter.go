@@ -6,6 +6,8 @@ import (
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
+
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/recommendation/framework"
 )
@@ -32,9 +34,28 @@ func (rr *HPARecommender) Filter(ctx *framework.RecommendationContext) error {
 		}
 
 		if hpa.Spec.ScaleTargetRef.Name == ctx.Recommendation.Spec.TargetRef.Name &&
-			hpa.Spec.ScaleTargetRef.Kind == ctx.Recommendation.Spec.TargetRef.APIVersion &&
+			hpa.Spec.ScaleTargetRef.Kind == ctx.Recommendation.Spec.TargetRef.Kind &&
 			hpa.Spec.ScaleTargetRef.APIVersion == ctx.Recommendation.Spec.TargetRef.APIVersion {
 			ctx.HPA = &hpa
+			break
+		}
+	}
+
+	ehpaList := &autoscalingapi.EffectiveHorizontalPodAutoscalerList{}
+	opts = []client.ListOption{
+		client.InNamespace(ctx.Recommendation.Spec.TargetRef.Namespace),
+	}
+	err = ctx.Client.List(context.TODO(), ehpaList, opts...)
+	if err != nil {
+		return err
+	}
+
+	for _, ehpa := range ehpaList.Items {
+		if ehpa.Spec.ScaleTargetRef.Name == ctx.Recommendation.Spec.TargetRef.Name &&
+			ehpa.Spec.ScaleTargetRef.Kind == ctx.Recommendation.Spec.TargetRef.Kind &&
+			ehpa.Spec.ScaleTargetRef.APIVersion == ctx.Recommendation.Spec.TargetRef.APIVersion {
+			ctx.EHPA = &ehpa
+			break
 		}
 	}
 

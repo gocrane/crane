@@ -27,7 +27,7 @@ func (rr *HPARecommender) Name() string {
 
 // NewHPARecommender create a new hpa recommender.
 func NewHPARecommender(recommender apis.Recommender) (*HPARecommender, error) {
-	predictable, exists := recommender.Config["replicas.predictable"]
+	predictable, exists := recommender.Config["predictable"]
 	if !exists {
 		predictable = "false"
 	}
@@ -36,7 +36,7 @@ func NewHPARecommender(recommender apis.Recommender) (*HPARecommender, error) {
 		return nil, err
 	}
 
-	referenceHPA, exists := recommender.Config["replicas.reference-hpa"]
+	referenceHPA, exists := recommender.Config["reference-hpa"]
 	if !exists {
 		referenceHPA = "true"
 	}

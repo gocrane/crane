@@ -17,3 +17,9 @@ recommenders:
     acceptedResources:
       - kind: Node
         apiVersion: v1
+  - name: HPA
+    acceptedResources:
+      - kind: Deployment
+        apiVersion: apps/v1
+      - kind: StatefulSet
+        apiVersion: apps/v1
