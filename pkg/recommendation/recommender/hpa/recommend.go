@@ -1,6 +1,7 @@
 package hpa
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 	"github.com/montanaflynn/stats"
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 
@@ -57,10 +59,12 @@ func (rr *HPARecommender) Policy(ctx *framework.RecommendationContext) error {
 		}
 	}
 
-	for _, sample := range ctx.ResultValues[0].Samples {
-		cpuUsages = append(cpuUsages, sample.Value)
-		if sample.Value > cpuMax {
-			cpuMax = sample.Value
+	if len(ctx.ResultValues) >= 1 {
+		for _, sample := range ctx.ResultValues[0].Samples {
+			cpuUsages = append(cpuUsages, sample.Value)
+			if sample.Value > cpuMax {
+				cpuMax = sample.Value
+			}
 		}
 	}
 
@@ -157,7 +161,61 @@ func (rr *HPARecommender) Policy(ctx *framework.RecommendationContext) error {
 	}
 
 	ctx.Recommendation.Status.RecommendedValue = string(resultBytes)
-	// TODO: Implement recommend info
+	if ctx.EHPA == nil {
+		ctx.Recommendation.Status.Action = "Create"
+
+		newEhpa := &autoscalingapi.EffectiveHorizontalPodAutoscaler{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "EffectiveHorizontalPodAutoscaler",
+				APIVersion: autoscalingapi.GroupVersion.String(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ctx.Recommendation.Spec.TargetRef.Namespace,
+				Name:      ctx.Recommendation.Spec.TargetRef.Name,
+			},
+			Spec: autoscalingapi.EffectiveHorizontalPodAutoscalerSpec{
+				MinReplicas:   proposedEHPA.MinReplicas,
+				MaxReplicas:   *proposedEHPA.MaxReplicas,
+				Metrics:       proposedEHPA.Metrics,
+				ScaleStrategy: autoscalingapi.ScaleStrategyPreview,
+				Prediction:    proposedEHPA.Prediction,
+				ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
+					Kind:       ctx.Recommendation.Spec.TargetRef.Kind,
+					APIVersion: ctx.Recommendation.Spec.TargetRef.APIVersion,
+					Name:       ctx.Recommendation.Spec.TargetRef.Name,
+				},
+			},
+		}
+
+		newEhpaBytes, err := json.Marshal(newEhpa)
+		if err != nil {
+			return fmt.Errorf("marshal ehpa failed %s. ", err)
+		}
+		ctx.Recommendation.Status.RecommendedInfo = string(newEhpaBytes)
+	} else {
+		ctx.Recommendation.Status.Action = "Patch"
+
+		patchEhpa := &autoscalingapi.EffectiveHorizontalPodAutoscaler{
+			Spec: autoscalingapi.EffectiveHorizontalPodAutoscalerSpec{
+				MinReplicas: proposedEHPA.MinReplicas,
+				MaxReplicas: *proposedEHPA.MaxReplicas,
+				Metrics:     proposedEHPA.Metrics,
+			},
+		}
+
+		patchEhpaBytes, err := json.Marshal(patchEhpa)
+		if err != nil {
+			return fmt.Errorf("marshal ehpa failed %s. ", err)
+		}
+		ctx.Recommendation.Status.RecommendedInfo = string(patchEhpaBytes)
+		ctx.Recommendation.Status.TargetRef = corev1.ObjectReference{
+			Namespace:  ctx.Recommendation.Spec.TargetRef.Namespace,
+			Name:       ctx.Recommendation.Spec.TargetRef.Name,
+			Kind:       "EffectiveHorizontalPodAutoscaler",
+			APIVersion: autoscalingapi.GroupVersion.String(),
+		}
+	}
+
 	return nil
 }
 

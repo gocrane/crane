@@ -17,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/gocrane/api/analysis/v1alpha1"
+	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/metricnaming"
@@ -64,6 +65,8 @@ type RecommendationContext struct {
 	Pods []corev1.Pod
 	// HPA Object
 	HPA *autoscalingv2.HorizontalPodAutoscaler
+	// HPA Object
+	EHPA *autoscalingapi.EffectiveHorizontalPodAutoscaler
 }
 
 func NewRecommendationContext(context context.Context, identity ObjectIdentity, predictorMgr predictormgr.Manager, dataProviders map[providers.DataSourceType]providers.History, recommendation *v1alpha1.Recommendation, client client.Client, scaleClient scale.ScalesGetter) RecommendationContext {
