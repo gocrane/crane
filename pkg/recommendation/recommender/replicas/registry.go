@@ -65,6 +65,7 @@ func NewReplicasRecommender(recommender apis.Recommender) (*ReplicasRecommender,
 	if err != nil {
 		return nil, err
 	}
+	cpuPercentileFloat = cpuPercentileFloat * 100
 
 	defaultMinReplicas, exists := recommender.Config["default-min-replicas"]
 	if !exists {

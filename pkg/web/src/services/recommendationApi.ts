@@ -1,5 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { parse } from 'yaml';
+import {RecommendationRuleSimpleInfo} from "./recommendationRuleApi";
 
 interface ownerReference {
   apiVersion: string;
@@ -103,6 +104,12 @@ export interface RecommendationSimpleInfo {
   namespace: string;
 }
 
+interface AdoptRecommendationArgs {
+  craneUrl: string;
+  namespace?: string
+  name?: string
+}
+
 interface FetchRecommendationArgs {
   craneUrl: string;
   recommendationType: RecommendationType;
@@ -130,6 +137,13 @@ export const recommendationApi = createApi({
     },
   }),
   endpoints: (builder) => ({
+    adoptRecommendation: builder.mutation<any, AdoptRecommendationArgs>({
+      invalidatesTags: ['recommendation'],
+      query: (args) => ({
+        method: 'post',
+        url: `${args.craneUrl}${URI}/adopt/${args.namespace}/${args.name}`,
+      }),
+    }),
     fetchRecommendationList: builder.query<FetchRecommendationResult, FetchRecommendationArgs>({
       providesTags: ['recommendation'],
       query: (args) => ({
@@ -157,4 +171,4 @@ export const recommendationApi = createApi({
   }),
 });
 
-export const { useFetchRecommendationListQuery, useLazyFetchRecommendationListQuery } = recommendationApi;
+export const { useFetchRecommendationListQuery, useLazyFetchRecommendationListQuery, useAdoptRecommendationMutation } = recommendationApi;

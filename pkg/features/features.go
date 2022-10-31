@@ -30,6 +30,9 @@ const (
 
 	// CraneCPUManager enables the cpu manger features.
 	CraneCPUManager featuregate.Feature = "CraneCPUManager"
+
+	// CraneDashboardControl enables the control from Dashboard.
+	CraneDashboardControl featuregate.Feature = "DashboardControl"
 )
 
 var defaultFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
@@ -41,6 +44,7 @@ var defaultFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	CraneClusterNodePrediction: {Default: false, PreRelease: featuregate.Alpha},
 	CraneTimeSeriesPrediction:  {Default: true, PreRelease: featuregate.Alpha},
 	CraneCPUManager:            {Default: false, PreRelease: featuregate.Alpha},
+	CraneDashboardControl:      {Default: false, PreRelease: featuregate.Alpha},
 }
 
 func init() {

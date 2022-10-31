@@ -21,6 +21,8 @@ type Cluster struct {
 	Discount int `json:"discount"`
 	// Preinstall recommendation for the cluster
 	PreinstallRecommendation bool `json:"preinstallRecommendation"`
+	// Control from dashboard
+	DashboardControl bool `json:"dashboardControl"`
 }
 
 type ClusterList struct {

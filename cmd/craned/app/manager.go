@@ -186,7 +186,7 @@ func initScheme() {
 	if utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResource) || utilfeature.DefaultFeatureGate.Enabled(features.CraneClusterNodePrediction) {
 		utilruntime.Must(ensuranceapi.AddToScheme(scheme))
 	}
-	if utilfeature.DefaultMutableFeatureGate.Enabled(features.CraneAnalysis) {
+	if utilfeature.DefaultFeatureGate.Enabled(features.CraneAnalysis) {
 		utilruntime.Must(analysisapi.AddToScheme(scheme))
 	}
 	if utilfeature.DefaultFeatureGate.Enabled(features.CraneTimeSeriesPrediction) {
@@ -240,7 +240,7 @@ func initWebhooks(mgr ctrl.Manager, opts *options.Options) {
 		utilfeature.DefaultFeatureGate.Enabled(features.CraneAutoscaling),
 		utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResource),
 		utilfeature.DefaultFeatureGate.Enabled(features.CraneClusterNodePrediction),
-		utilfeature.DefaultMutableFeatureGate.Enabled(features.CraneAnalysis),
+		utilfeature.DefaultFeatureGate.Enabled(features.CraneAnalysis),
 		utilfeature.DefaultFeatureGate.Enabled(features.CraneTimeSeriesPrediction)); err != nil {
 		klog.Exit(err, "unable to create webhook", "webhook", "TimeSeriesPrediction")
 	}
@@ -373,7 +373,7 @@ func initControllers(ctx context.Context, mgr ctrl.Manager, opts *options.Option
 	}
 
 	// TODO(qmhu), change feature gate from analysis to recommendation
-	if utilfeature.DefaultMutableFeatureGate.Enabled(features.CraneAnalysis) {
+	if utilfeature.DefaultFeatureGate.Enabled(features.CraneAnalysis) {
 		if err := (&analytics.Controller{
 			Client: mgr.GetClient(),
 			/*Scheme:        mgr.GetScheme(),
@@ -451,6 +451,7 @@ func runAll(ctx context.Context, mgr ctrl.Manager, predictorMgr predictor.Manage
 		serverConfig.Scheme = mgr.GetScheme()
 		serverConfig.RestMapper = mgr.GetRESTMapper()
 		serverConfig.PredictorMgr = predictorMgr
+		serverConfig.DashboardControl = utilfeature.DefaultFeatureGate.Enabled(features.CraneDashboardControl)
 		if promProvider, ok := provider.(prom.Provider); ok {
 			serverConfig.Api = promProvider.GetPromClient()
 		}

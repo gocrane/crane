@@ -67,15 +67,17 @@ type AddClustersRequest struct {
 }
 
 type ClusterHandler struct {
-	clusterSrv cluster.Service
-	client     client.Client
+	clusterSrv       cluster.Service
+	client           client.Client
+	dashboardControl bool
 }
 
 // Note: cluster service is just used by front end to list clusters which added by user in frontend
 func NewClusterHandler(srv cluster.Service, config *config.Config) *ClusterHandler {
 	return &ClusterHandler{
-		clusterSrv: srv,
-		client:     config.Client,
+		clusterSrv:       srv,
+		client:           config.Client,
+		dashboardControl: config.DashboardControl,
 	}
 }
 
@@ -85,6 +87,10 @@ func (ch *ClusterHandler) ListClusters(c *gin.Context) {
 	if err != nil {
 		ginwrapper.WriteResponse(c, err, nil)
 		return
+	}
+	// set dashboardControl based on serverConfig
+	for index := range clusterList.Items {
+		clusterList.Items[index].DashboardControl = ch.dashboardControl
 	}
 	ginwrapper.WriteResponse(c, nil, clusterList)
 }
@@ -223,6 +229,8 @@ func (ch *ClusterHandler) GetCluster(c *gin.Context) {
 		ginwrapper.WriteResponse(c, err, nil)
 		return
 	}
+	// set dashboardControl based on serverConfig
+	getCluster.DashboardControl = ch.dashboardControl
 	ginwrapper.WriteResponse(c, nil, getCluster)
 }
 
