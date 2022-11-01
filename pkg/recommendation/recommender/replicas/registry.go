@@ -46,12 +46,12 @@ func NewReplicasRecommender(recommender apis.Recommender) (*ReplicasRecommender,
 		return nil, err
 	}
 
-	availbleRatio, exists := recommender.Config["pod-available-ratio"]
+	availableRatio, exists := recommender.Config["pod-available-ratio"]
 	if !exists {
-		availbleRatio = "0.5"
+		availableRatio = "0.5"
 	}
 
-	podAvailableRatio, err := strconv.ParseFloat(availbleRatio, 64)
+	podAvailableRatio, err := strconv.ParseFloat(availableRatio, 64)
 	if err != nil {
 		return nil, err
 	}
