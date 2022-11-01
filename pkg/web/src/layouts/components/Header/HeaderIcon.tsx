@@ -14,7 +14,7 @@ export default memo(() => {
   const navigate = useNavigate();
 
   const gotoWiki = () => {
-    window.open('https://docs.gocrane.io');
+    window.open('https://gocrane.io/docs');
   };
 
   const gotoGitHub = () => {
