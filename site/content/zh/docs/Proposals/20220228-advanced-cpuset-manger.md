@@ -27,7 +27,7 @@ This proposal provides a new mechanism to manage cpusets, which allows sharing c
 
 <!-- /TOC -->
 ## Motivation
-Some latency-sensitive applications have lower lantency and cpu usage when running with specific cores, which results in fewer context switchs and higer cache affinity.
+Some latency-sensitive applications have lower lantency and cpu usage when running with specific cores, which results in fewer context switches and higer cache affinity.
 But kubelet will always exclude assigned cores in shared cores, which may waste resources.Offline and other online pods can running on the cores actually. In our experiment, for the most part, it is barely noticeable for performance of service.
 
 ### Goals

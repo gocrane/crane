@@ -18,7 +18,7 @@ In order to solve the above problems, we hope the whole recommendation process i
 ## Goals
 
 - Define the architecture of Recommendation Framework.
-- Define the interfaces of Recomendation Framework Internal modules.
+- Define the interfaces of Recommendation Framework Internal modules.
 
 ## Non-Goals
 
