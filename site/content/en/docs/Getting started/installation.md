@@ -85,6 +85,55 @@ helm install fadvisor -n crane-system --create-namespace crane/fadvisor
 {{< /tab >}}
 {{% /tabpane %}}
 
+### Using Existing Prometheus（Optional）
+
+Normally in a production environment offen already have a specified Prometheus. You can modify the Crane Chart Release configuration by using the following command or modify the Craned Deployment container Args directly.
+
+```bash
+helm upgrade crane -n crane-system --set craned.containerArgs.prometheus-address=http://{prometheus-ip}:{port} --create-namespace crane/crane
+```
+
+At the same time, the cost analytics of the Crane Dashboard need to deploy [kube-state-metrics](https://github.com/kubernetes/kube-state-metrics) (Prometheus Chart Will install it by default), also you need to config additional extraScrapeConfigs in your Prometheus, You can refer to [here](https://github.com/gocrane/helm-charts/blob/main/integration/prometheus/override_values.yaml#L56).
+
+Finally, fadvisor needs to configure recording rules to aggregate cost data, You can refer to [here](https://github.com/gocrane/helm-charts/blob/main/integration/prometheus/override_values.yaml#L6) to configuration in your Prometheus.
+
+### Using Existing Grafana（Optional）
+
+The Crane Dashboard supports the Grafana report embedded with the Iframe to show the cost distribution. If you want to use an external Grafana to embed into the Crane Dashboard, you need to modify the nginx configuration in the configmap at first.
+
+```bash
+kubectl edit configmap -n monitor grafana
+```
+
+Change `grafana.{{ .Release.Namespace }}.svc.cluster.local` to be existing Grafana server address，Change `http://$upstream_grafana:8082` to be the existing Grafana server port。
+
+```yaml
+ location /grafana {
+    set $upstream_grafana grafana.{{ .Release.Namespace }}.svc.cluster.local;
+    proxy_connect_timeout       180;
+    proxy_send_timeout          180;
+    proxy_read_timeout          180;
+    proxy_pass http://$upstream_grafana:8082;
+    proxy_redirect off;
+    rewrite /grafana/(.*) /$1 break;
+    proxy_http_version 1.1;
+    proxy_set_header  Host $http_host;
+    proxy_set_header  Upgrade $http_upgrade;
+    proxy_set_header  Connection $connection_upgrade;
+    proxy_set_header  X-Real-IP  $remote_addr;
+    proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+
+```
+
+Next up you need to config your grafana based on [here](https://github.com/gocrane/helm-charts/blob/main/integration/grafana/override_values.yaml), The idea was that Grafana supported embedding panels, but required that the corresponding permission configuration be turned on.
+
+- Make sure Service configuration is the same as nginx 
+- Config datasources
+- Config dashboardProviders
+- Config dashboards
+- Config grafana.ini
+
 ### Deploying Crane-scheduler(optional)
 ```bash
 helm install scheduler -n crane-system --create-namespace crane/scheduler
@@ -175,7 +224,6 @@ echo "Dashboard link: http://${NODE_IP}:${PORT}"
 ```
 
 ### LoadBalancer
-
 
 #### Quick Start
 

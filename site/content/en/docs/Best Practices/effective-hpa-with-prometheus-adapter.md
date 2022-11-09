@@ -36,7 +36,7 @@ Since Crane is installed, the result is as follows.
 ```sh
 NAME                                   SERVICE                           AVAILABLE   AGE
 v1beta1.batch                          Local                             True        35d
-v1beta1.custom.metrics.k8s.io          crane-system/metric-adapter       True        18d
+v1beta1.custom.metrics.k8s.io          Local                             True        18d
 v1beta1.discovery.k8s.io               Local                             True        35d
 v1beta1.events.k8s.io                  Local                             True        35d
 v1beta1.external.metrics.k8s.io        crane-system/metric-adapter       True        18d
@@ -47,7 +47,6 @@ v1beta1.metrics.k8s.io                 kube-system/metrics-service       True   
 Remove the installed ApiService by crane
 
 ```bash
-kubectl delete apiservice v1beta1.custom.metrics.k8s.io
 kubectl delete apiservice v1beta1.external.metrics.k8s.io
 ```
 
@@ -98,7 +97,7 @@ spec:
 
 #### RemoteAdapter Capabilities
 
-![](/images/remote-adapter.png)
+![remote adapter](/images/remote-adapter.png)
 
 Kubernetes restricts an ApiService to configure only one backend service, so in order to use the Metric provided by Crane and the Metric provided by PrometheusAdapter within a cluster, Crane supports a RemoteAdapter to solve this problem
 
@@ -241,8 +240,8 @@ Annotation in the Effective HPA adds the configuration according to the followin
 
 ```yaml
 annotations:
-  # metric-query.autoscaling.crane.io 是固定的前缀，后面是 Metric 名字，需跟 spec.metrics 中的 Metric.name 相同，支持 Pods 类型和 External 类型
-  metric-query.autoscaling.crane.io/http_requests: "sum(rate(http_requests_total[5m])) by (pod)"
+  # metric-query.autoscaling.crane.io is a static prefix，after that should be the Metric Type and Metric Name，It should be the same as your spec.metrics's Metric.name，Supported Metric type are Pods(pods) and External (external)
+  metric-query.autoscaling.crane.io/pods.http_requests: "sum(rate(http_requests_total[5m])) by (pod)"
 ```
 
 <summary>sample-app-hpa.yaml</summary>
@@ -253,8 +252,8 @@ kind: EffectiveHorizontalPodAutoscaler
 metadata:
   name: php-apache
   annotations:
-    # metric-query.autoscaling.crane.io 是固定的前缀，后面是 Metric 名字，需跟 spec.metrics 中的 Metric.name 相同，支持 Pods 类型和 External 类型
-    metric-query.autoscaling.crane.io/http_requests: "sum(rate(http_requests_total[5m])) by (pod)"
+    # metric-query.autoscaling.crane.io 是固定的前缀，后面是 Metric 的 type 和 名字，需跟 spec.metrics 中的 Metric.name 相同，支持 Pods 类型(pods)和 External 类型(external)
+    metric-query.autoscaling.crane.io/pods.http_requests: "sum(rate(http_requests_total[5m])) by (pod)"
 spec:
   # ScaleTargetRef is the reference to the workload that should be scaled.
   scaleTargetRef:
@@ -328,7 +327,7 @@ spec:
           sampleInterval: 60s
       expressionQuery:
         expression: sum(rate(http_requests_total[5m])) by (pod)
-      resourceIdentifier: crane_custom.pods_http_requests
+      resourceIdentifier: pods.http_requests
       type: ExpressionQuery
   predictionWindowSeconds: 3600
   targetRef:
@@ -357,7 +356,7 @@ status:
               value: "0.01683"
             ......
       ready: true
-      resourceIdentifier: crane_custom.pods_http_requests  
+      resourceIdentifier: pods.http_requests  
 ```
 
 Looking at the HPA object created by Effective HPA, you can observe that a Metric has been created based on custom metrics predictions: ``crane_custom.pods_http_requests``.
@@ -386,7 +385,7 @@ spec:
     type: Pods
   - pods:
       metric:
-        name: crane_custom.pods_http_requests
+        name: pods.http_requests
         selector:
           matchLabels:
             autoscaling.crane.io/effective-hpa-uid: 1322c5ac-a1c6-4c71-98d6-e85d07b22da0
