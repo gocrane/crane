@@ -95,6 +95,55 @@ helm install fadvisor -n crane-system --create-namespace crane/fadvisor
 {{< /tab >}}
 {{% /tabpane %}}
 
+### 使用外部的 Prometheus（可选）
+
+通常在生产环境，安装时需要配置外部的 Prometheus，你可以通过以下命令修改 Crane 的 Chart Release 配置或者直接修改 Craned Deployment 的容器 Args。
+
+```bash
+helm upgrade crane -n crane-system --set craned.containerArgs.prometheus-address=http://{prometheus-ip}:{port} --create-namespace crane/crane
+```
+
+同时，Crane Dashboard 的成本展示需要部署[kube-state-metrics](https://github.com/kubernetes/kube-state-metrics)（Prometheus Chart 中默认会安装），并且需要在你的 Prometheus 中配置额外的 extraScrapeConfigs，可以参考[这里](https://github.com/gocrane/helm-charts/blob/main/integration/prometheus/override_values.yaml#L56)。
+
+最后，Fadvisor 需要配置 recording rules 来实现成本数据的聚合，可以参考[这里](https://github.com/gocrane/helm-charts/blob/main/integration/prometheus/override_values.yaml#L6)配置到你的 Prometheus 中。
+
+### 使用外部的 Grafana（可选）
+
+Crane Dashboard 支持通过 Iframe 内嵌 Grafana 报表展示成本分布。如果希望使用外部的 Grafana 内嵌到 Crane Dashboard，首先需要修改 configmap 中的 nginx 配置。
+
+```bash
+kubectl edit configmap -n monitor grafana
+```
+
+配置 `grafana.{{ .Release.Namespace }}.svc.cluster.local` 成外部的 Grafana 服务地址，配置 `http://$upstream_grafana:8082` 成外部的 Grafana 服务端口。
+
+```yaml
+ location /grafana {
+    set $upstream_grafana grafana.{{ .Release.Namespace }}.svc.cluster.local;
+    proxy_connect_timeout       180;
+    proxy_send_timeout          180;
+    proxy_read_timeout          180;
+    proxy_pass http://$upstream_grafana:8082;
+    proxy_redirect off;
+    rewrite /grafana/(.*) /$1 break;
+    proxy_http_version 1.1;
+    proxy_set_header  Host $http_host;
+    proxy_set_header  Upgrade $http_upgrade;
+    proxy_set_header  Connection $connection_upgrade;
+    proxy_set_header  X-Real-IP  $remote_addr;
+    proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+
+```
+
+接下来需要参考[这里](https://github.com/gocrane/helm-charts/blob/main/integration/grafana/override_values.yaml)进行配置，原理是 Grafana 支持前端图表的内嵌，但是需要把对应的权限配置打开。
+
+- 确定 Service 和 nginx 配置一致
+- 配置 datasources
+- 配置 dashboardProviders
+- 配置 dashboards
+- 配置 grafana.ini
+
 ### 安装 Crane-scheduler（可选）
 ```console
 helm install scheduler -n crane-system --create-namespace crane/scheduler
