@@ -19,15 +19,14 @@ Prometheus is a popular open source monitoring system today, through which user-
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Since Crane is installed, the result is as follows.&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-sh" data-lang="sh">&lt;span style="display:flex;">&lt;span>NAME SERVICE AVAILABLE AGE
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>v1beta1.batch Local True 35d
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>v1beta1.custom.metrics.k8s.io crane-system/metric-adapter True 18d
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>v1beta1.custom.metrics.k8s.io Local True 18d
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>v1beta1.discovery.k8s.io Local True 35d
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>v1beta1.events.k8s.io Local True 35d
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>v1beta1.external.metrics.k8s.io crane-system/metric-adapter True 18d
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>v1beta1.flowcontrol.apiserver.k8s.io Local True 35d
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>v1beta1.metrics.k8s.io kube-system/metrics-service True 35d
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Remove the installed ApiService by crane&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>kubectl delete apiservice v1beta1.custom.metrics.k8s.io
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>kubectl delete apiservice v1beta1.external.metrics.k8s.io
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>kubectl delete apiservice v1beta1.external.metrics.k8s.io
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Install PrometheusAdapter via Helm&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>helm repo update
@@ -56,7 +55,7 @@ Prometheus is a popular open source monitoring system today, through which user-
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - --&lt;span style="color:#ae81ff">remote-adapter-service-name=prometheus-adapter&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - --&lt;span style="color:#ae81ff">remote-adapter-service-port=443&lt;/span>
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h4 id="remoteadapter-capabilities">RemoteAdapter Capabilities&lt;/h4>
-&lt;p>&lt;img src="/images/remote-adapter.png" alt="">&lt;/p>
+&lt;p>&lt;img src="/images/remote-adapter.png" alt="remote adapter">&lt;/p>
 &lt;p>Kubernetes restricts an ApiService to configure only one backend service, so in order to use the Metric provided by Crane and the Metric provided by PrometheusAdapter within a cluster, Crane supports a RemoteAdapter to solve this problem&lt;/p>
 &lt;ul>
 &lt;li>Crane Metric-Adapter supports the configuration of a Kubernetes Service as a Remote Adapter&lt;/li>
@@ -155,16 +154,16 @@ Prometheus is a popular open source monitoring system today, through which user-
 &lt;h4 id="how-to-define-a-custom-metric-to-enable-prediction">How to define a custom metric to enable prediction&lt;/h4>
 &lt;p>Annotation in the Effective HPA adds the configuration according to the following rules:&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">annotations&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e"># metric-query.autoscaling.crane.io 是固定的前缀，后面是 Metric 名字，需跟 spec.metrics 中的 Metric.name 相同，支持 Pods 类型和 External 类型&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">metric-query.autoscaling.crane.io/http_requests&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;sum(rate(http_requests_total[5m])) by (pod)&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e"># metric-query.autoscaling.crane.io is a static prefix，after that should be the Metric Type and Metric Name，It should be the same as your spec.metrics&amp;#39;s Metric.name，Supported Metric type are Pods(pods) and External (external)&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">metric-query.autoscaling.crane.io/pods.http_requests&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;sum(rate(http_requests_total[5m])) by (pod)&amp;#34;&lt;/span>
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;summary>sample-app-hpa.yaml&lt;/summary>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">autoscaling.crane.io/v1alpha1&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">EffectiveHorizontalPodAutoscaler&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">php-apache&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">annotations&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e"># metric-query.autoscaling.crane.io 是固定的前缀，后面是 Metric 名字，需跟 spec.metrics 中的 Metric.name 相同，支持 Pods 类型和 External 类型&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">metric-query.autoscaling.crane.io/http_requests&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;sum(rate(http_requests_total[5m])) by (pod)&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e"># metric-query.autoscaling.crane.io 是固定的前缀，后面是 Metric 的 type 和 名字，需跟 spec.metrics 中的 Metric.name 相同，支持 Pods 类型(pods)和 External 类型(external)&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">metric-query.autoscaling.crane.io/pods.http_requests&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;sum(rate(http_requests_total[5m])) by (pod)&amp;#34;&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e"># ScaleTargetRef is the reference to the workload that should be scaled.&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">scaleTargetRef&lt;/span>:
@@ -231,7 +230,7 @@ Prometheus is a popular open source monitoring system today, through which user-
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">sampleInterval&lt;/span>: &lt;span style="color:#ae81ff">60s&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">expressionQuery&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">expression&lt;/span>: &lt;span style="color:#ae81ff">sum(rate(http_requests_total[5m])) by (pod)&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceIdentifier&lt;/span>: &lt;span style="color:#ae81ff">crane_custom.pods_http_requests&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceIdentifier&lt;/span>: &lt;span style="color:#ae81ff">pods.http_requests&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">ExpressionQuery&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">predictionWindowSeconds&lt;/span>: &lt;span style="color:#ae81ff">3600&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>:
@@ -260,7 +259,7 @@ Prometheus is a popular open source monitoring system today, through which user-
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">value&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;0.01683&amp;#34;&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">......&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">ready&lt;/span>: &lt;span style="color:#66d9ef">true&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceIdentifier&lt;/span>: &lt;span style="color:#ae81ff">crane_custom.pods_http_requests &lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceIdentifier&lt;/span>: &lt;span style="color:#ae81ff">pods.http_requests &lt;/span>
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Looking at the HPA object created by Effective HPA, you can observe that a Metric has been created based on custom metrics predictions: &lt;code>crane_custom.pods_http_requests&lt;/code>.&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">autoscaling/v2beta2&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">HorizontalPodAutoscaler&lt;/span>
@@ -285,7 +284,7 @@ Prometheus is a popular open source monitoring system today, through which user-
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">Pods&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">pods&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">metric&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">crane_custom.pods_http_requests&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">pods.http_requests&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">selector&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">matchLabels&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">autoscaling.crane.io/effective-hpa-uid&lt;/span>: &lt;span style="color:#ae81ff">1322c5ac-a1c6-4c71-98d6-e85d07b22da0&lt;/span>

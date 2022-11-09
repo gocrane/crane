@@ -182,6 +182,38 @@ id="tabs-4-1" role="tabpanel" aria-labelled-by="tabs-4-1-tab">&lt;pre tabindex="
 helm install crane -n crane-system --create-namespace crane/crane
 helm install fadvisor -n crane-system --create-namespace crane/fadvisor&lt;/code>&lt;/pre>&lt;/div>
 &lt;/div>
+&lt;h3 id="using-existing-prometheusoptional">Using Existing Prometheus（Optional）&lt;/h3>
+&lt;p>Normally in a production environment offen already have a specified Prometheus. You can modify the Crane Chart Release configuration by using the following command or modify the Craned Deployment container Args directly.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>helm upgrade crane -n crane-system --set craned.containerArgs.prometheus-address&lt;span style="color:#f92672">=&lt;/span>http://&lt;span style="color:#f92672">{&lt;/span>prometheus-ip&lt;span style="color:#f92672">}&lt;/span>:&lt;span style="color:#f92672">{&lt;/span>port&lt;span style="color:#f92672">}&lt;/span> --create-namespace crane/crane
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>At the same time, the cost analytics of the Crane Dashboard need to deploy &lt;a href="https://github.com/kubernetes/kube-state-metrics">kube-state-metrics&lt;/a> (Prometheus Chart Will install it by default), also you need to config additional extraScrapeConfigs in your Prometheus, You can refer to &lt;a href="https://github.com/gocrane/helm-charts/blob/main/integration/prometheus/override_values.yaml#L56">here&lt;/a>.&lt;/p>
+&lt;p>Finally, fadvisor needs to configure recording rules to aggregate cost data, You can refer to &lt;a href="https://github.com/gocrane/helm-charts/blob/main/integration/prometheus/override_values.yaml#L6">here&lt;/a> to configuration in your Prometheus.&lt;/p>
+&lt;h3 id="using-existing-grafanaoptional">Using Existing Grafana（Optional）&lt;/h3>
+&lt;p>The Crane Dashboard supports the Grafana report embedded with the Iframe to show the cost distribution. If you want to use an external Grafana to embed into the Crane Dashboard, you need to modify the nginx configuration in the configmap at first.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>kubectl edit configmap -n monitor grafana
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Change &lt;code>grafana.{{ .Release.Namespace }}.svc.cluster.local&lt;/code> to be existing Grafana server address，Change &lt;code>http://$upstream_grafana:8082&lt;/code> to be the existing Grafana server port。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">location /grafana {&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">set $upstream_grafana grafana.{{ .Release.Namespace }}.svc.cluster.local;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">proxy_connect_timeout 180;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">proxy_send_timeout 180;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">proxy_read_timeout 180;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">proxy_pass http://$upstream_grafana:8082;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">proxy_redirect off;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">rewrite /grafana/(.*) /$1 break;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">proxy_http_version 1.1;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">proxy_set_header Host $http_host;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">proxy_set_header Upgrade $http_upgrade;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">proxy_set_header Connection $connection_upgrade;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">proxy_set_header X-Real-IP $remote_addr;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Next up you need to config your grafana based on &lt;a href="https://github.com/gocrane/helm-charts/blob/main/integration/grafana/override_values.yaml">here&lt;/a>, The idea was that Grafana supported embedding panels, but required that the corresponding permission configuration be turned on.&lt;/p>
+&lt;ul>
+&lt;li>Make sure Service configuration is the same as nginx&lt;/li>
+&lt;li>Config datasources&lt;/li>
+&lt;li>Config dashboardProviders&lt;/li>
+&lt;li>Config dashboards&lt;/li>
+&lt;li>Config grafana.ini&lt;/li>
+&lt;/ul>
 &lt;h3 id="deploying-crane-scheduleroptional">Deploying Crane-scheduler(optional)&lt;/h3>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>helm install scheduler -n crane-system --create-namespace crane/scheduler
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="verify-installation">Verify Installation&lt;/h3>

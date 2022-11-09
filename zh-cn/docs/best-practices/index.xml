@@ -19,15 +19,14 @@ Prometheus 是当下流行的开源监控系统，通过 Prometheus 可以获取
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>因为安装了 Crane， 结果如下：&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>NAME SERVICE AVAILABLE AGE
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>v1beta1.batch Local True 35d
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>v1beta1.custom.metrics.k8s.io crane-system/metric-adapter True 18d
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>v1beta1.custom.metrics.k8s.io Local True 18d
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>v1beta1.discovery.k8s.io Local True 35d
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>v1beta1.events.k8s.io Local True 35d
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>v1beta1.external.metrics.k8s.io crane-system/metric-adapter True 18d
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>v1beta1.flowcontrol.apiserver.k8s.io Local True 35d
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>v1beta1.metrics.k8s.io kube-system/metrics-service True 35d
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>删除 crane 安装的 ApiService&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>kubectl delete apiservice v1beta1.custom.metrics.k8s.io
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>kubectl delete apiservice v1beta1.external.metrics.k8s.io
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>kubectl delete apiservice v1beta1.external.metrics.k8s.io
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>通过 Helm 安装 PrometheusAdapter&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>helm repo update
@@ -56,7 +55,7 @@ Prometheus 是当下流行的开源监控系统，通过 Prometheus 可以获取
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - --&lt;span style="color:#ae81ff">remote-adapter-service-name=prometheus-adapter&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - --&lt;span style="color:#ae81ff">remote-adapter-service-port=443&lt;/span>
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h4 id="remoteadapter-能力">RemoteAdapter 能力&lt;/h4>
-&lt;p>&lt;img src="../images/remote-adapter.png" alt="">&lt;/p>
+&lt;p>&lt;img src="/images/remote-adapter.png" alt="remote adapter">&lt;/p>
 &lt;p>Kubernetes 限制一个 ApiService 只能配置一个后端服务，因此，为了在一个集群内使用 Crane 提供的 Metric 和 PrometheusAdapter 提供的 Metric，Crane 支持了 RemoteAdapter 解决此问题&lt;/p>
 &lt;ul>
 &lt;li>Crane Metric-Adapter 支持配置一个 Kubernetes Service 作为一个远程 Adapter&lt;/li>
@@ -155,16 +154,16 @@ Prometheus 是当下流行的开源监控系统，通过 Prometheus 可以获取
 &lt;h4 id="如何定义一个自定义指标开启预测功能">如何定义一个自定义指标开启预测功能&lt;/h4>
 &lt;p>在 Effective HPA 的 Annotation 按以下规则添加配置：&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">annotations&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e"># metric-query.autoscaling.crane.io 是固定的前缀，后面是 Metric 名字，需跟 spec.metrics 中的 Metric.name 相同，支持 Pods 类型和 External 类型&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">metric-query.autoscaling.crane.io/http_requests&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;sum(rate(http_requests_total[5m])) by (pod)&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e"># metric-query.autoscaling.crane.io 是固定的前缀，后面是 Metric 的 type 和 名字，需跟 spec.metrics 中的 Metric.name 相同，支持 Pods 类型(pods)和 External 类型(external)&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">metric-query.autoscaling.crane.io/pods.http_requests&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;sum(rate(http_requests_total[5m])) by (pod)&amp;#34;&lt;/span>
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;summary>sample-app-hpa.yaml&lt;/summary>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">autoscaling.crane.io/v1alpha1&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">EffectiveHorizontalPodAutoscaler&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">php-apache&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">annotations&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e"># metric-query.autoscaling.crane.io 是固定的前缀，后面是 Metric 名字，需跟 spec.metrics 中的 Metric.name 相同，支持 Pods 类型和 External 类型&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">metric-query.autoscaling.crane.io/http_requests&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;sum(rate(http_requests_total[5m])) by (pod)&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e"># metric-query.autoscaling.crane.io 是固定的前缀，后面是 Metric 的 type 和 名字，需跟 spec.metrics 中的 Metric.name 相同，支持 Pods 类型(pods)和 External 类型(external)&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">metric-query.autoscaling.crane.io/pods.http_requests&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;sum(rate(http_requests_total[5m])) by (pod)&amp;#34;&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e"># ScaleTargetRef is the reference to the workload that should be scaled.&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">scaleTargetRef&lt;/span>:
@@ -231,7 +230,7 @@ Prometheus 是当下流行的开源监控系统，通过 Prometheus 可以获取
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">sampleInterval&lt;/span>: &lt;span style="color:#ae81ff">60s&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">expressionQuery&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">expression&lt;/span>: &lt;span style="color:#ae81ff">sum(rate(http_requests_total[5m])) by (pod)&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceIdentifier&lt;/span>: &lt;span style="color:#ae81ff">crane_custom.pods_http_requests&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceIdentifier&lt;/span>: &lt;span style="color:#ae81ff">pods.http_requests&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">ExpressionQuery&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">predictionWindowSeconds&lt;/span>: &lt;span style="color:#ae81ff">3600&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>:
@@ -260,7 +259,7 @@ Prometheus 是当下流行的开源监控系统，通过 Prometheus 可以获取
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">value&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;0.01683&amp;#34;&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">......&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">ready&lt;/span>: &lt;span style="color:#66d9ef">true&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceIdentifier&lt;/span>: &lt;span style="color:#ae81ff">crane_custom.pods_http_requests &lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceIdentifier&lt;/span>: &lt;span style="color:#ae81ff">pods.http_requests &lt;/span>
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>查看 Effective HPA 创建的 HPA 对象，可以观测到已经创建出基于自定义指标预测的 Metric: &lt;code>crane_custom.pods_http_requests&lt;/code>&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">autoscaling/v2beta2&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">HorizontalPodAutoscaler&lt;/span>
@@ -285,7 +284,7 @@ Prometheus 是当下流行的开源监控系统，通过 Prometheus 可以获取
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">Pods&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">pods&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">metric&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">crane_custom.pods_http_requests&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">pods.http_requests&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">selector&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">matchLabels&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">autoscaling.crane.io/effective-hpa-uid&lt;/span>: &lt;span style="color:#ae81ff">1322c5ac-a1c6-4c71-98d6-e85d07b22da0&lt;/span>
