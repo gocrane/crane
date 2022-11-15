@@ -102,7 +102,7 @@ Finally, fadvisor needs to configure recording rules to aggregate cost data, You
 The Crane Dashboard supports the Grafana report embedded with the Iframe to show the cost distribution. If you want to use an external Grafana to embed into the Crane Dashboard, you need to modify the nginx configuration in the configmap at first.
 
 ```bash
-kubectl edit configmap -n monitor grafana
+kubectl edit configmap -n crane-system nginx-conf
 ```
 
 Change `grafana.{{ .Release.Namespace }}.svc.cluster.local` to be existing Grafana server address，Change `http://$upstream_grafana:8082` to be the existing Grafana server port。
@@ -128,11 +128,17 @@ Change `grafana.{{ .Release.Namespace }}.svc.cluster.local` to be existing Grafa
 
 Next up you need to config your grafana based on [here](https://github.com/gocrane/helm-charts/blob/main/integration/grafana/override_values.yaml), The idea was that Grafana supported embedding panels, but required that the corresponding permission configuration be turned on.
 
+```bash
+kubectl edit configmap -n monitor grafana
+```
+
 - Make sure Service configuration is the same as nginx 
-- Config datasources
+- Config datasources to be your prometheus address
 - Config dashboardProviders
 - Config dashboards
 - Config grafana.ini
+
+Finally, you should make sure your craned pods and grafana pods are restarted to reload configurations.
 
 ### Deploying Crane-scheduler(optional)
 ```bash

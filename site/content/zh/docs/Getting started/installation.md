@@ -112,7 +112,7 @@ helm upgrade crane -n crane-system --set craned.containerArgs.prometheus-address
 Crane Dashboard 支持通过 Iframe 内嵌 Grafana 报表展示成本分布。如果希望使用外部的 Grafana 内嵌到 Crane Dashboard，首先需要修改 configmap 中的 nginx 配置。
 
 ```bash
-kubectl edit configmap -n monitor grafana
+kubectl edit configmap -n crane-system nginx-conf
 ```
 
 配置 `grafana.{{ .Release.Namespace }}.svc.cluster.local` 成外部的 Grafana 服务地址，配置 `http://$upstream_grafana:8082` 成外部的 Grafana 服务端口。
@@ -138,11 +138,17 @@ kubectl edit configmap -n monitor grafana
 
 接下来需要参考[这里](https://github.com/gocrane/helm-charts/blob/main/integration/grafana/override_values.yaml)进行配置，原理是 Grafana 支持前端图表的内嵌，但是需要把对应的权限配置打开。
 
+```bash
+kubectl edit configmap -n monitor grafana
+```
+
 - 确定 Service 和 nginx 配置一致
-- 配置 datasources
+- 配置 datasources 中的 prometheus 与你的环境一致
 - 配置 dashboardProviders
 - 配置 dashboards
 - 配置 grafana.ini
+
+最后，你需要确保 craned 和 grafana pods 已经重建并重新加载新的配置。
 
 ### 安装 Crane-scheduler（可选）
 ```console
