@@ -31,6 +31,7 @@ type Recorder interface {
 }
 
 type OOMRecord struct {
+	Namespace string
 	Pod       string
 	Container string
 	Memory    resource.Quantity
@@ -63,17 +64,19 @@ func (r *PodOOMRecorder) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 						// don't handle if request is not set
 						if mem, ok := container.Resources.Requests[v1.ResourceMemory]; ok {
 							labels := map[string]string{
+								"namespace": pod.Namespace,
 								"pod":       pod.Name,
 								"container": cs.Name,
 							}
 							metrics.OOMCount.With(labels).Inc()
 							r.queue.Add(OOMRecord{
+								Namespace: pod.Namespace,
 								Pod:       pod.Name,
 								Container: cs.Name,
 								Memory:    mem,
 								OOMAt:     cs.LastTerminationState.Terminated.FinishedAt.Time,
 							})
-							klog.V(2).Infof("pod name %s, container name %s, memory %v,oom happens!", pod.Name, cs.Name, mem)
+							klog.V(2).Infof("pod namespace %s, name %s, container name %s, memory %v,oom happens!", pod.Namespace, pod.Name, cs.Name, mem)
 						}
 					}
 				}
@@ -143,7 +146,7 @@ func (r *PodOOMRecorder) updateOOMRecord(oomRecord OOMRecord, saved []OOMRecord)
 		saved = []OOMRecord{}
 	}
 	for index := range saved {
-		if saved[index].Pod == oomRecord.Pod && saved[index].Container == oomRecord.Container {
+		if saved[index].Pod == oomRecord.Pod && saved[index].Container == oomRecord.Container && saved[index].Namespace == oomRecord.Namespace {
 			isFound = true
 			if oomRecord.Memory.Value() > saved[index].Memory.Value() {
 				saved[index].Memory = oomRecord.Memory
