@@ -1146,7 +1146,7 @@ helm install fadvisor -n crane-system --create-namespace crane/fadvisor&lt;/code
 &lt;p>最后，Fadvisor 需要配置 recording rules 来实现成本数据的聚合，可以参考&lt;a href="https://github.com/gocrane/helm-charts/blob/main/integration/prometheus/override_values.yaml#L6">这里&lt;/a>配置到你的 Prometheus 中。&lt;/p>
 &lt;h3 id="使用外部的-grafana可选">使用外部的 Grafana（可选）&lt;/h3>
 &lt;p>Crane Dashboard 支持通过 Iframe 内嵌 Grafana 报表展示成本分布。如果希望使用外部的 Grafana 内嵌到 Crane Dashboard，首先需要修改 configmap 中的 nginx 配置。&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>kubectl edit configmap -n monitor grafana
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>kubectl edit configmap -n crane-system nginx-conf
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>配置 &lt;code>grafana.{{ .Release.Namespace }}.svc.cluster.local&lt;/code> 成外部的 Grafana 服务地址，配置 &lt;code>http://$upstream_grafana:8082&lt;/code> 成外部的 Grafana 服务端口。&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">location /grafana {&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">set $upstream_grafana grafana.{{ .Release.Namespace }}.svc.cluster.local;&lt;/span>
@@ -1164,13 +1164,15 @@ helm install fadvisor -n crane-system --create-namespace crane/fadvisor&lt;/code
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>接下来需要参考&lt;a href="https://github.com/gocrane/helm-charts/blob/main/integration/grafana/override_values.yaml">这里&lt;/a>进行配置，原理是 Grafana 支持前端图表的内嵌，但是需要把对应的权限配置打开。&lt;/p>
-&lt;ul>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>kubectl edit configmap -n monitor grafana
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ul>
 &lt;li>确定 Service 和 nginx 配置一致&lt;/li>
-&lt;li>配置 datasources&lt;/li>
+&lt;li>配置 datasources 中的 prometheus 与你的环境一致&lt;/li>
 &lt;li>配置 dashboardProviders&lt;/li>
 &lt;li>配置 dashboards&lt;/li>
 &lt;li>配置 grafana.ini&lt;/li>
 &lt;/ul>
+&lt;p>最后，你需要确保 craned 和 grafana pods 已经重建并重新加载新的配置。&lt;/p>
 &lt;h3 id="安装-crane-scheduler可选">安装 Crane-scheduler（可选）&lt;/h3>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-console" data-lang="console">&lt;span style="display:flex;">&lt;span>helm install scheduler -n crane-system --create-namespace crane/scheduler
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="验证安装是否成功">验证安装是否成功&lt;/h2>

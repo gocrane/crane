@@ -189,7 +189,7 @@ helm install fadvisor -n crane-system --create-namespace crane/fadvisor&lt;/code
 &lt;p>Finally, fadvisor needs to configure recording rules to aggregate cost data, You can refer to &lt;a href="https://github.com/gocrane/helm-charts/blob/main/integration/prometheus/override_values.yaml#L6">here&lt;/a> to configuration in your Prometheus.&lt;/p>
 &lt;h3 id="using-existing-grafanaoptional">Using Existing Grafana（Optional）&lt;/h3>
 &lt;p>The Crane Dashboard supports the Grafana report embedded with the Iframe to show the cost distribution. If you want to use an external Grafana to embed into the Crane Dashboard, you need to modify the nginx configuration in the configmap at first.&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>kubectl edit configmap -n monitor grafana
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>kubectl edit configmap -n crane-system nginx-conf
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Change &lt;code>grafana.{{ .Release.Namespace }}.svc.cluster.local&lt;/code> to be existing Grafana server address，Change &lt;code>http://$upstream_grafana:8082&lt;/code> to be the existing Grafana server port。&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">location /grafana {&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">set $upstream_grafana grafana.{{ .Release.Namespace }}.svc.cluster.local;&lt;/span>
@@ -207,13 +207,15 @@ helm install fadvisor -n crane-system --create-namespace crane/fadvisor&lt;/code
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Next up you need to config your grafana based on &lt;a href="https://github.com/gocrane/helm-charts/blob/main/integration/grafana/override_values.yaml">here&lt;/a>, The idea was that Grafana supported embedding panels, but required that the corresponding permission configuration be turned on.&lt;/p>
-&lt;ul>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>kubectl edit configmap -n monitor grafana
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ul>
 &lt;li>Make sure Service configuration is the same as nginx&lt;/li>
-&lt;li>Config datasources&lt;/li>
+&lt;li>Config datasources to be your prometheus address&lt;/li>
 &lt;li>Config dashboardProviders&lt;/li>
 &lt;li>Config dashboards&lt;/li>
 &lt;li>Config grafana.ini&lt;/li>
 &lt;/ul>
+&lt;p>Finally, you should make sure your craned pods and grafana pods are restarted to reload configurations.&lt;/p>
 &lt;h3 id="deploying-crane-scheduleroptional">Deploying Crane-scheduler(optional)&lt;/h3>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>helm install scheduler -n crane-system --create-namespace crane/scheduler
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="verify-installation">Verify Installation&lt;/h3>
