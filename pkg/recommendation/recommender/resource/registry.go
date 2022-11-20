@@ -4,6 +4,7 @@ import (
 	"github.com/gocrane/crane/pkg/recommendation/recommender"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/apis"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/base"
+	"strconv"
 )
 
 var _ recommender.Recommender = &ResourceRecommender{}
@@ -20,6 +21,7 @@ type ResourceRecommender struct {
 	MemMarginFraction        string
 	MemTargetUtilization     string
 	MemHistoryLength         string
+	MemTovCPURatioBool       bool
 }
 
 func (rr *ResourceRecommender) Name() string {
@@ -27,7 +29,7 @@ func (rr *ResourceRecommender) Name() string {
 }
 
 // NewResourceRecommender create a new resource recommender.
-func NewResourceRecommender(recommender apis.Recommender) *ResourceRecommender {
+func NewResourceRecommender(recommender apis.Recommender) (*ResourceRecommender, error) {
 	if recommender.Config == nil {
 		recommender.Config = map[string]string{}
 	}
@@ -73,6 +75,15 @@ func NewResourceRecommender(recommender apis.Recommender) *ResourceRecommender {
 	if !exists {
 		memHistoryLength = "168h"
 	}
+	memTovCPURatio, exists := recommender.Config["memory-to-vCPU-ratio"]
+	if !exists {
+		memTovCPURatio = "true"
+	}
+
+	memTovCPURatioBool, err := strconv.ParseBool(memTovCPURatio)
+	if err != nil {
+		return nil, err
+	}
 
 	return &ResourceRecommender{
 		*base.NewBaseRecommender(recommender),
@@ -86,5 +97,6 @@ func NewResourceRecommender(recommender apis.Recommender) *ResourceRecommender {
 		memMarginFraction,
 		memTargetUtilization,
 		memHistoryLength,
-	}
+		memTovCPURatioBool,
+	}, nil
 }
