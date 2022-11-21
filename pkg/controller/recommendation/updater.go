@@ -19,6 +19,7 @@ import (
 
 	"github.com/gocrane/crane/pkg/known"
 	recommendtypes "github.com/gocrane/crane/pkg/recommend/types"
+	"github.com/gocrane/crane/pkg/recommendation/recommender"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
@@ -49,8 +50,8 @@ func (c *RecommendationController) UpdateRecommendation(ctx context.Context, rec
 			annotation = map[string]string{}
 		}
 
-		switch recommendation.Spec.Type {
-		case analysisapi.AnalysisTypeResource:
+		switch string(recommendation.Spec.Type) {
+		case recommender.ResourceRecommender:
 			if proposedRecommendation.ResourceRequest != nil {
 				resourceValue, err := yaml.Marshal(proposedRecommendation.ResourceRequest)
 				if err != nil {
@@ -62,7 +63,7 @@ func (c *RecommendationController) UpdateRecommendation(ctx context.Context, rec
 					needUpdate = true
 				}
 			}
-		case analysisapi.AnalysisTypeReplicas:
+		case recommender.ReplicasRecommender:
 			if proposedRecommendation.ReplicasRecommendation != nil {
 				replicasValue, err := yaml.Marshal(proposedRecommendation.ReplicasRecommendation)
 				if err != nil {
@@ -74,7 +75,7 @@ func (c *RecommendationController) UpdateRecommendation(ctx context.Context, rec
 					needUpdate = true
 				}
 			}
-
+		case recommender.HPARecommender:
 			if proposedRecommendation.EffectiveHPA != nil {
 				ehpaValue, err := yaml.Marshal(proposedRecommendation.EffectiveHPA)
 				if err != nil {

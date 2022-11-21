@@ -41,6 +41,7 @@ var (
 			Help:      "The count of pod oom event",
 		},
 		[]string{
+			"namespace",
 			"pod",
 			"container",
 		},

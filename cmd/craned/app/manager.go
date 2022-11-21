@@ -120,17 +120,31 @@ func Run(ctx context.Context, opts *options.Options) error {
 	realtimeDataSources, historyDataSources, dataSourceProviders := initDataSources(mgr, opts)
 	predictorMgr := initPredictorManager(opts, realtimeDataSources, historyDataSources)
 
-	recommenders, err := initRecommenders(opts)
+	initScheme()
+	initFieldIndexer(mgr)
+	initWebhooks(mgr, opts)
+
+	podOOMRecorder := &oom.PodOOMRecorder{
+		Client:             mgr.GetClient(),
+		OOMRecordMaxNumber: opts.OOMRecordMaxNumber,
+	}
+	if err := podOOMRecorder.SetupWithManager(mgr); err != nil {
+		klog.Exit(err, "Unable to create controller", "PodOOMRecorder")
+	}
+	go func() {
+		if err := podOOMRecorder.Run(ctx.Done()); err != nil {
+			klog.Warningf("Run oom recorder failed: %v", err)
+		}
+	}()
+
+	recommenders, err := initRecommenders(opts, podOOMRecorder)
 	if err != nil {
 		klog.ErrorS(err, "failed to init recommenders")
 		return err
 	}
 	recommenderMgr := initRecommenderManager(recommenders, realtimeDataSources, historyDataSources)
 
-	initScheme()
-	initFieldIndexer(mgr)
-	initWebhooks(mgr, opts)
-	initControllers(ctx, mgr, opts, predictorMgr, recommenderMgr, historyDataSources[providers.PrometheusDataSource])
+	initControllers(podOOMRecorder, mgr, opts, predictorMgr, recommenderMgr, historyDataSources[providers.PrometheusDataSource])
 	// initialize custom collector metrics
 	initMetricCollector(mgr)
 	runAll(ctx, mgr, predictorMgr, dataSourceProviders[providers.PrometheusDataSource], opts)
@@ -138,7 +152,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 	return nil
 }
 
-func initRecommenders(opts *options.Options) (map[string]recommender.Recommender, error) {
+func initRecommenders(opts *options.Options, oomRecorder oom.Recorder) (map[string]recommender.Recommender, error) {
 	apiRecommenders, err := config.GetRecommendersFromConfiguration(opts.RecommendationConfiguration)
 	if err != nil {
 		return nil, err
@@ -160,7 +174,11 @@ func initRecommenders(opts *options.Options) (map[string]recommender.Recommender
 			}
 			recommenders[recommender.HPARecommender] = hpaRecommender
 		case recommender.ResourceRecommender:
-			recommenders[recommender.ResourceRecommender] = resource.NewResourceRecommender(r)
+			resourceRecommender, err := resource.NewResourceRecommender(r, oomRecorder)
+			if err != nil {
+				return nil, err
+			}
+			recommenders[recommender.ResourceRecommender] = resourceRecommender
 		case recommender.IdleNodeRecommender:
 			idleNodeRecommender, err := idlenode.NewIdleNodeRecommender(r)
 			if err != nil {
@@ -288,7 +306,7 @@ func initPredictorManager(opts *options.Options, realtimeDataSources map[provide
 }
 
 // initControllers setup controllers with manager
-func initControllers(ctx context.Context, mgr ctrl.Manager, opts *options.Options, predictorMgr predictor.Manager, recommenderMgr recommendation.RecommenderManager, historyDataSource providers.History) {
+func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.Options, predictorMgr predictor.Manager, recommenderMgr recommendation.RecommenderManager, historyDataSource providers.History) {
 	discoveryClientSet, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
 	if err != nil {
 		klog.Exit(err, "Unable to create discover client")
@@ -302,18 +320,6 @@ func initControllers(ctx context.Context, mgr ctrl.Manager, opts *options.Option
 	)
 
 	targetSelectorFetcher := target.NewSelectorFetcher(mgr.GetScheme(), mgr.GetRESTMapper(), scaleClient, mgr.GetClient())
-
-	podOOMRecorder := &oom.PodOOMRecorder{
-		Client: mgr.GetClient(),
-	}
-	if err := podOOMRecorder.SetupWithManager(mgr); err != nil {
-		klog.Exit(err, "Unable to create controller", "PodOOMRecorder")
-	}
-	go func() {
-		if err := podOOMRecorder.Run(ctx.Done()); err != nil {
-			klog.Warningf("Run oom recorder failed: %v", err)
-		}
-	}()
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.CraneAutoscaling) {
 		if err := (&ehpa.EffectiveHPAController{
@@ -350,7 +356,7 @@ func initControllers(ctx context.Context, mgr ctrl.Manager, opts *options.Option
 			Client:        mgr.GetClient(),
 			Scheme:        mgr.GetScheme(),
 			Recorder:      mgr.GetEventRecorderFor("effective-vpa-controller"),
-			OOMRecorder:   podOOMRecorder,
+			OOMRecorder:   oomRecorder,
 			Predictor:     predictorMgr.GetPredictor(predictionapi.AlgorithmTypePercentile),
 			TargetFetcher: targetSelectorFetcher,
 		}).SetupWithManager(mgr); err != nil {

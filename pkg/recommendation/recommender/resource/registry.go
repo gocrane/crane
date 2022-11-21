@@ -1,6 +1,10 @@
 package resource
 
 import (
+	"strconv"
+	"time"
+
+	"github.com/gocrane/crane/pkg/oom"
 	"github.com/gocrane/crane/pkg/recommendation/recommender"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/apis"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/base"
@@ -20,6 +24,10 @@ type ResourceRecommender struct {
 	MemMarginFraction        string
 	MemTargetUtilization     string
 	MemHistoryLength         string
+	oomRecorder              oom.Recorder
+	OOMProtection            bool
+	OOMHistoryLength         time.Duration
+	OOMBumpRatio             float64
 }
 
 func (rr *ResourceRecommender) Name() string {
@@ -27,7 +35,7 @@ func (rr *ResourceRecommender) Name() string {
 }
 
 // NewResourceRecommender create a new resource recommender.
-func NewResourceRecommender(recommender apis.Recommender) *ResourceRecommender {
+func NewResourceRecommender(recommender apis.Recommender, oomRecorder oom.Recorder) (*ResourceRecommender, error) {
 	if recommender.Config == nil {
 		recommender.Config = map[string]string{}
 	}
@@ -74,6 +82,36 @@ func NewResourceRecommender(recommender apis.Recommender) *ResourceRecommender {
 		memHistoryLength = "168h"
 	}
 
+	oomProtection, exists := recommender.Config["oom-protection"]
+	if !exists {
+		oomProtection = "true"
+	}
+
+	oomProtectionBool, err := strconv.ParseBool(oomProtection)
+	if err != nil {
+		return nil, err
+	}
+
+	oomHistoryLength, exists := recommender.Config["oom-history-length"]
+	if !exists {
+		oomHistoryLength = "168h"
+	}
+
+	oomHistoryLengthDuration, err := time.ParseDuration(oomHistoryLength)
+	if err != nil {
+		return nil, err
+	}
+
+	OOMBumpRatio, exists := recommender.Config["oom-bump-ratio"]
+	if !exists {
+		OOMBumpRatio = "1.2"
+	}
+
+	OOMBumpRatioFloat, err := strconv.ParseFloat(OOMBumpRatio, 64)
+	if err != nil {
+		return nil, err
+	}
+
 	return &ResourceRecommender{
 		*base.NewBaseRecommender(recommender),
 		cpuSampleInterval,
@@ -86,5 +124,9 @@ func NewResourceRecommender(recommender apis.Recommender) *ResourceRecommender {
 		memMarginFraction,
 		memTargetUtilization,
 		memHistoryLength,
-	}
+		oomRecorder,
+		oomProtectionBool,
+		oomHistoryLengthDuration,
+		OOMBumpRatioFloat,
+	}, nil
 }

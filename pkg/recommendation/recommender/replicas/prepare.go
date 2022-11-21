@@ -34,6 +34,7 @@ func (rr *ReplicasRecommender) CollectData(ctx *framework.RecommendationContext)
 	}
 	ctx.MetricNamer = metricNamer
 
+	// get workload cpu usage
 	klog.V(4).Infof("%s CpuQuery %s RecommendationRule %s", rr.Name(), ctx.MetricNamer.BuildUniqueKey(), klog.KObj(&ctx.RecommendationRule))
 	timeNow := time.Now()
 	tsList, err := ctx.DataProviders[providers.PrometheusDataSource].QueryTimeSeries(ctx.MetricNamer, timeNow.Add(-time.Hour*24*7), timeNow, time.Minute)
@@ -44,6 +45,18 @@ func (rr *ReplicasRecommender) CollectData(ctx *framework.RecommendationContext)
 		return fmt.Errorf("%s query historic metrics data is unexpected, List length is %d ", rr.Name(), len(tsList))
 	}
 	ctx.InputValues = tsList
+
+	resourceMemory := corev1.ResourceMemory
+	metricNamerMemory := metricnaming.ResourceToWorkloadMetricNamer(ctx.Recommendation.Spec.TargetRef.DeepCopy(), &resourceMemory, labelSelector, caller)
+	klog.V(4).Infof("%s MemoryQuery %s RecommendationRule %s", rr.Name(), metricNamerMemory.BuildUniqueKey(), klog.KObj(&ctx.RecommendationRule))
+	tsListMemory, err := ctx.DataProviders[providers.PrometheusDataSource].QueryTimeSeries(metricNamerMemory, timeNow.Add(-time.Hour*24*7), timeNow, time.Minute)
+	if err != nil {
+		return fmt.Errorf("%s query historic metrics failed: %v ", rr.Name(), err)
+	}
+	if len(tsListMemory) != 1 {
+		return fmt.Errorf("%s query historic metrics data is unexpected, List length is %d ", rr.Name(), len(tsListMemory))
+	}
+	ctx.InputValues2 = tsListMemory
 	return nil
 }
 

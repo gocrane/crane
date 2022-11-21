@@ -4,15 +4,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	recommendermodel "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/recommender/model"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/metricnaming"
+	"github.com/gocrane/crane/pkg/oom"
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/recommend/types"
 	"github.com/gocrane/crane/pkg/recommendation/framework"
@@ -90,6 +94,11 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 	var newContainers []corev1.Container
 	var oldContainers []corev1.Container
 
+	oomRecords, err := rr.oomRecorder.GetOOMRecord()
+	if err != nil {
+		return err
+	}
+
 	namespace := ctx.Object.GetNamespace()
 	for _, c := range ctx.Pods[0].Spec.Containers {
 		cr := types.ContainerRecommendation{
@@ -129,6 +138,15 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 			return fmt.Errorf("no enough metrics")
 		}
 		memQuantity := resource.NewQuantity(v, resource.BinarySI)
+
+		// Use oom protected memory if exist
+		if rr.OOMProtection {
+			oomProtectMem := rr.MemoryOOMProtection(oomRecords, namespace, ctx.Object.GetName(), c.Name)
+			if oomProtectMem != nil && !oomProtectMem.IsZero() && oomProtectMem.Cmp(*memQuantity) > 0 {
+				memQuantity = oomProtectMem
+			}
+		}
+
 		cr.Target[corev1.ResourceMemory] = memQuantity.String()
 
 		newContainerSpec := corev1.Container{
@@ -168,37 +186,6 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 
 	ctx.Recommendation.Status.RecommendedValue = string(valueBytes)
 
-	/*	var newContainerItems []interface{}
-		for _, container := range newContainers {
-			out, _ := runtime.DefaultUnstructuredConverter.ToUnstructured(&container)
-			newContainerItems = append(newContainerItems, out)
-		}
-
-		err = unstructured.SetNestedSlice(newObject.Object, newContainerItems, "spec", "template", "spec", "containers")
-		if err != nil {
-			return fmt.Errorf("%s set new patch containers failed: %v", rr.Name(), err)
-		}
-		newPatch, _, err := framework.ConvertToRecommendationInfos(ctx.Object, newObject.Object)
-		if err != nil {
-			return fmt.Errorf("convert to recommendation infos failed: %s. ", err)
-		}
-
-		var oldContainerItems []interface{}
-		for _, container := range oldContainers {
-			out, _ := runtime.DefaultUnstructuredConverter.ToUnstructured(&container)
-			oldContainerItems = append(oldContainerItems, out)
-		}
-
-		originObject := newObject.DeepCopy()
-		err = unstructured.SetNestedSlice(originObject.Object, oldContainerItems, "spec", "template", "spec", "containers")
-		if err != nil {
-			return fmt.Errorf("set old container failed: %s. ", err)
-		}
-		oldPatch, _, err := framework.ConvertToRecommendationInfos(newObject.Object, originObject.Object)
-		if err != nil {
-			return fmt.Errorf("convert to recommendation infos failed: %s. ", err)
-		}*/
-
 	var newPatch PatchResource
 	newPatch.Spec.Template.Spec.Containers = newContainers
 	newPatchBytes, err := json.Marshal(newPatch)
@@ -227,5 +214,29 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 
 // Policy add some logic for result of recommend phase.
 func (rr *ResourceRecommender) Policy(ctx *framework.RecommendationContext) error {
+	return nil
+}
+
+func (rr *ResourceRecommender) MemoryOOMProtection(oomRecords []oom.OOMRecord, namespace string, workloadName string, containerName string) *resource.Quantity {
+	var oomRecord *oom.OOMRecord
+	for _, record := range oomRecords {
+		// use oomRecord for all pods in workload
+		if strings.HasPrefix(record.Pod, workloadName) && containerName == record.Container && namespace == record.Namespace {
+			oomRecord = &record
+			break
+		}
+	}
+
+	// ignore too old oom events
+	if oomRecord != nil && time.Since(oomRecord.OOMAt) <= (time.Hour*24*7) {
+		memoryOOM := oomRecord.Memory.Value()
+		var memoryNeeded recommendermodel.ResourceAmount
+
+		memoryNeeded = recommendermodel.ResourceAmountMax(recommendermodel.ResourceAmount(memoryOOM)+recommendermodel.MemoryAmountFromBytes(recommendermodel.OOMMinBumpUp),
+			recommendermodel.ScaleResource(recommendermodel.ResourceAmount(memoryOOM), rr.OOMBumpRatio))
+
+		return resource.NewQuantity(int64(memoryNeeded), resource.BinarySI)
+	}
+
 	return nil
 }

@@ -35,6 +35,8 @@ type RecommendationContext struct {
 	Object client.Object
 	// Time series data from data source.
 	InputValues []*common.TimeSeries
+	// Time series data 2 from data source.
+	InputValues2 []*common.TimeSeries
 	// Result series from prediction
 	ResultValues []*common.TimeSeries
 	// DataProviders contains data source of your recommendation flow.
