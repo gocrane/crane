@@ -86,7 +86,7 @@ Crane Agent 通过 `DaemonSet` 部署在集群的节点上。
 
 ## 社区
 
-- Slack(English): [https://gocrane.slack.com](https://join.slack.com/t/gocrane/shared_invite/zt-1ehm9871y-Zgs5pXxSIhYg5hGSc5XZgQ)
+- Slack(English): [https://gocrane.slack.com](https://join.slack.com/t/gocrane/shared_invite/zt-1k3beos1i-ejN6sV0jx5_MAkKRbl~MFQ)
 
 - 微信群: 添加微信后回复 "Crane"，小助手会定期将您加入微信群。
 
