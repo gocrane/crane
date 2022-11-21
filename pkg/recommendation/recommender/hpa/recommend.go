@@ -48,30 +48,9 @@ func (rr *HPARecommender) Policy(ctx *framework.RecommendationContext) error {
 		return fmt.Errorf("ReplicasAdvisor cannot predict target")
 	}
 
-	// get max value of history and predicted data
-	var cpuMax float64
-	var cpuUsages []float64
-	// combine values from historic and prediction
-	for _, sample := range ctx.InputValues[0].Samples {
-		cpuUsages = append(cpuUsages, sample.Value)
-		if sample.Value > cpuMax {
-			cpuMax = sample.Value
-		}
-	}
-
-	if len(ctx.ResultValues) >= 1 {
-		for _, sample := range ctx.ResultValues[0].Samples {
-			cpuUsages = append(cpuUsages, sample.Value)
-			if sample.Value > cpuMax {
-				cpuMax = sample.Value
-			}
-		}
-	}
-
-	// apply policy for predicted values
-	percentileCpu, err := stats.Percentile(cpuUsages, rr.CpuPercentile)
+	minReplicas, cpuMax, percentileCpu, err := rr.GetMinReplicas(ctx)
 	if err != nil {
-		return fmt.Errorf("%s get percentileCpu failed: %v", rr.Name(), err)
+		return err
 	}
 
 	err = rr.checkMinCpuUsageThreshold(cpuMax)
@@ -92,16 +71,6 @@ func (rr *HPARecommender) Policy(ctx *framework.RecommendationContext) error {
 	targetUtilization, _, err := rr.proposeTargetUtilization(ctx)
 	if err != nil {
 		return fmt.Errorf("ReplicasAdvisor proposeTargetUtilization failed: %v", err)
-	}
-
-	requestTotal, err := utils.CalculatePodTemplateRequests(&ctx.PodTemplate, corev1.ResourceCPU)
-	if err != nil {
-		return fmt.Errorf("%s CalculatePodTemplateRequests failed: %v", rr.Name(), err)
-	}
-
-	minReplicas, err := rr.ReplicasRecommender.ProposeMinReplicas(percentileCpu, requestTotal)
-	if err != nil {
-		return fmt.Errorf("%s proposeMinReplicas failed: %v", rr.Name(), err)
 	}
 
 	maxReplicas, err := rr.proposeMaxReplicas(&ctx.PodTemplate, percentileCpu, targetUtilization, minReplicas)

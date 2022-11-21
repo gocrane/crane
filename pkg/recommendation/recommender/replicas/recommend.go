@@ -67,40 +67,9 @@ func (rr *ReplicasRecommender) Recommend(ctx *framework.RecommendationContext) e
 
 // Policy add some logic for result of recommend phase.
 func (rr *ReplicasRecommender) Policy(ctx *framework.RecommendationContext) error {
-	// get max value of history and predicted data
-	var cpuMax float64
-	var cpuUsages []float64
-	// combine values from historic and prediction
-	for _, sample := range ctx.InputValues[0].Samples {
-		cpuUsages = append(cpuUsages, sample.Value)
-		if sample.Value > cpuMax {
-			cpuMax = sample.Value
-		}
-	}
-
-	if len(ctx.ResultValues) >= 1 {
-		for _, sample := range ctx.ResultValues[0].Samples {
-			cpuUsages = append(cpuUsages, sample.Value)
-			if sample.Value > cpuMax {
-				cpuMax = sample.Value
-			}
-		}
-	}
-
-	// apply policy for predicted values
-	percentileCpu, err := stats.Percentile(cpuUsages, rr.CpuPercentile)
+	minReplicas, _, _, err := rr.GetMinReplicas(ctx)
 	if err != nil {
-		return fmt.Errorf("%s get percentileCpu failed: %v", rr.Name(), err)
-	}
-
-	requestTotal, err := utils.CalculatePodTemplateRequests(&ctx.PodTemplate, corev1.ResourceCPU)
-	if err != nil {
-		return fmt.Errorf("%s CalculatePodTemplateRequests failed: %v", rr.Name(), err)
-	}
-
-	minReplicas, err := rr.ProposeMinReplicas(percentileCpu, requestTotal)
-	if err != nil {
-		return fmt.Errorf("%s proposeMinReplicas failed: %v", rr.Name(), err)
+		return err
 	}
 
 	replicasRecommendation := &types.ReplicasRecommendation{
@@ -134,17 +103,13 @@ func (rr *ReplicasRecommender) Policy(ctx *framework.RecommendationContext) erro
 
 	ctx.Recommendation.Status.RecommendedInfo = string(newPatchBytes)
 	ctx.Recommendation.Status.CurrentInfo = string(oldPatchBytes)
-	if ctx.Scale.Spec.Replicas == minReplicas {
-		ctx.Recommendation.Status.Action = "None"
-	} else {
-		ctx.Recommendation.Status.Action = "Patch"
-	}
+	ctx.Recommendation.Status.Action = "Patch"
 
 	return nil
 }
 
 // ProposeMinReplicas calculate min replicas based on default-min-replicas
-func (rr *ReplicasRecommender) ProposeMinReplicas(workloadCpu float64, requestTotal int64) (int32, error) {
+func (rr *ReplicasRecommender) ProposeMinReplicas(resourceUsage float64, requestTotal int64, targetUtilization float64) (int32, error) {
 	minReplicas := int32(rr.DefaultMinReplicas)
 
 	// minReplicas should be larger than 0
@@ -152,10 +117,75 @@ func (rr *ReplicasRecommender) ProposeMinReplicas(workloadCpu float64, requestTo
 		minReplicas = 1
 	}
 
-	min := int32(math.Ceil(workloadCpu / (rr.TargetUtilization * float64(requestTotal) / 1000.)))
+	min := int32(math.Ceil(resourceUsage / (targetUtilization * float64(requestTotal) / 1000.)))
 	if min > minReplicas {
 		minReplicas = min
 	}
 
 	return minReplicas, nil
+}
+
+func (rr *ReplicasRecommender) GetMinReplicas(ctx *framework.RecommendationContext) (int32, float64, float64, error) {
+	var cpuUsages []float64
+	var cpuMax float64
+	// combine values from historic and prediction
+	for _, sample := range ctx.InputValues[0].Samples {
+		cpuUsages = append(cpuUsages, sample.Value)
+		if sample.Value > cpuMax {
+			cpuMax = sample.Value
+		}
+	}
+
+	if len(ctx.ResultValues) >= 1 {
+		for _, sample := range ctx.ResultValues[0].Samples {
+			cpuUsages = append(cpuUsages, sample.Value)
+			if sample.Value > cpuMax {
+				cpuMax = sample.Value
+			}
+		}
+	}
+
+	// apply policy for predicted values
+	percentileCpu, err := stats.Percentile(cpuUsages, rr.CpuPercentile)
+	if err != nil {
+		return 0, 0, 0, fmt.Errorf("%s get percentileCpu failed: %v", rr.Name(), err)
+	}
+
+	requestTotalCpu, err := utils.CalculatePodTemplateRequests(&ctx.PodTemplate, corev1.ResourceCPU)
+	if err != nil {
+		return 0, 0, 0, fmt.Errorf("%s CalculatePodTemplateRequests cpu failed: %v", rr.Name(), err)
+	}
+
+	minReplicasCpu, err := rr.ProposeMinReplicas(percentileCpu, requestTotalCpu, rr.CPUTargetUtilization)
+	if err != nil {
+		return 0, 0, 0, fmt.Errorf("%s proposeMinReplicas for cpu failed: %v", rr.Name(), err)
+	}
+
+	var memUsages []float64
+	// combine values from historic and prediction
+	for _, sample := range ctx.InputValues2[0].Samples {
+		memUsages = append(memUsages, sample.Value)
+	}
+
+	percentileMem, err := stats.Percentile(memUsages, rr.MemPercentile)
+	if err != nil {
+		return 0, 0, 0, fmt.Errorf("%s get percentileMem failed: %v", rr.Name(), err)
+	}
+
+	requestTotalMem, err := utils.CalculatePodTemplateRequests(&ctx.PodTemplate, corev1.ResourceMemory)
+	if err != nil {
+		return 0, 0, 0, fmt.Errorf("%s CalculatePodTemplateRequests failed: %v", rr.Name(), err)
+	}
+
+	minReplicasMem, err := rr.ProposeMinReplicas(percentileMem, requestTotalMem, rr.MemTargetUtilization)
+	if err != nil {
+		return 0, 0, 0, fmt.Errorf("%s proposeMinReplicas for cpu failed: %v", rr.Name(), err)
+	}
+
+	// use the larger replicas
+	if minReplicasMem > minReplicasCpu {
+		minReplicasCpu = minReplicasMem
+	}
+
+	return minReplicasCpu, cpuMax, percentileCpu, nil
 }

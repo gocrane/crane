@@ -12,12 +12,14 @@ var _ recommender.Recommender = &ReplicasRecommender{}
 
 type ReplicasRecommender struct {
 	base.BaseRecommender
-	WorkloadMinReplicas int64
-	PodMinReadySeconds  int64
-	PodAvailableRatio   float64
-	CpuPercentile       float64
-	DefaultMinReplicas  int64
-	TargetUtilization   float64
+	WorkloadMinReplicas  int64
+	PodMinReadySeconds   int64
+	PodAvailableRatio    float64
+	CpuPercentile        float64
+	MemPercentile        float64
+	DefaultMinReplicas   int64
+	CPUTargetUtilization float64
+	MemTargetUtilization float64
 }
 
 func (rr *ReplicasRecommender) Name() string {
@@ -67,6 +69,17 @@ func NewReplicasRecommender(recommender apis.Recommender) (*ReplicasRecommender,
 	}
 	cpuPercentileFloat = cpuPercentileFloat * 100
 
+	memPercentile, exists := recommender.Config["mem-percentile"]
+	if !exists {
+		memPercentile = "0.95"
+	}
+
+	memPercentileFloat, err := strconv.ParseFloat(memPercentile, 64)
+	if err != nil {
+		return nil, err
+	}
+	memPercentileFloat = memPercentileFloat * 100
+
 	defaultMinReplicas, exists := recommender.Config["default-min-replicas"]
 	if !exists {
 		defaultMinReplicas = "1"
@@ -77,12 +90,22 @@ func NewReplicasRecommender(recommender apis.Recommender) (*ReplicasRecommender,
 		return nil, err
 	}
 
-	targetUtilization, exists := recommender.Config["cpu-target-utilization"]
+	cpuTargetUtilization, exists := recommender.Config["cpu-target-utilization"]
 	if !exists {
-		targetUtilization = "0.5"
+		cpuTargetUtilization = "0.5"
 	}
 
-	targetUtilizationFloat, err := strconv.ParseFloat(targetUtilization, 64)
+	cpuTargetUtilizationFloat, err := strconv.ParseFloat(cpuTargetUtilization, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	memTargetUtilization, exists := recommender.Config["mem-target-utilization"]
+	if !exists {
+		memTargetUtilization = "0.5"
+	}
+
+	memTargetUtilizationFloat, err := strconv.ParseFloat(memTargetUtilization, 64)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +116,9 @@ func NewReplicasRecommender(recommender apis.Recommender) (*ReplicasRecommender,
 		podMinReadySeconds,
 		podAvailableRatio,
 		cpuPercentileFloat,
+		memPercentileFloat,
 		defaultMinReplicasInt,
-		targetUtilizationFloat,
+		cpuTargetUtilizationFloat,
+		memTargetUtilizationFloat,
 	}, nil
 }

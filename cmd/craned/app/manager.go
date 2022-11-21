@@ -125,7 +125,8 @@ func Run(ctx context.Context, opts *options.Options) error {
 	initWebhooks(mgr, opts)
 
 	podOOMRecorder := &oom.PodOOMRecorder{
-		Client: mgr.GetClient(),
+		Client:             mgr.GetClient(),
+		OOMRecordMaxNumber: opts.OOMRecordMaxNumber,
 	}
 	if err := podOOMRecorder.SetupWithManager(mgr); err != nil {
 		klog.Exit(err, "Unable to create controller", "PodOOMRecorder")

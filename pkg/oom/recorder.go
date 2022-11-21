@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"sort"
 	"sync"
 	"time"
 
@@ -43,8 +44,9 @@ type PodOOMRecorder struct {
 	mu sync.Mutex
 
 	client.Client
-	queue workqueue.Interface
-	cache []OOMRecord
+	OOMRecordMaxNumber int
+	queue              workqueue.Interface
+	cache              []OOMRecord
 }
 
 func (r *PodOOMRecorder) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -100,13 +102,26 @@ func (r *PodOOMRecorder) GetOOMRecord() ([]OOMRecord, error) {
 			return nil, err
 		}
 		var oomRecords []OOMRecord
-		return oomRecords, json.Unmarshal([]byte(oomConfigMap.Data[ConfigMapDataOOMRecord]), &oomRecords)
+		err = json.Unmarshal([]byte(oomConfigMap.Data[ConfigMapDataOOMRecord]), &oomRecords)
+		return oomRecords, err
 	}
 
 	return r.cache, nil
 }
 
 func (r *PodOOMRecorder) Run(stopCh <-chan struct{}) error {
+	// record cleaner, configmap can only store 1MB data, keep the overall oom record number not too large
+	cleanerTick := time.NewTicker(time.Duration(12) * time.Hour)
+	go func() {
+		for {
+			select {
+			case <-cleanerTick.C:
+				records, _ := r.GetOOMRecord()
+				r.cache = r.cleanOOMRecords(records)
+			}
+		}
+	}()
+
 	for {
 		select {
 		case <-stopCh:
@@ -132,6 +147,23 @@ func (r *PodOOMRecorder) Run(stopCh <-chan struct{}) error {
 			r.queue.Done(o)
 		}
 	}
+}
+
+func (r *PodOOMRecorder) cleanOOMRecords(oomRecords []OOMRecord) []OOMRecord {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if len(oomRecords) > r.OOMRecordMaxNumber {
+		records := oomRecords
+		sort.Slice(records, func(i, j int) bool {
+			return records[i].OOMAt.Before(records[j].OOMAt)
+		})
+
+		records = records[0:r.OOMRecordMaxNumber]
+		oomRecords = records
+	}
+
+	return oomRecords
 }
 
 func (r *PodOOMRecorder) updateOOMRecord(oomRecord OOMRecord, saved []OOMRecord) error {
