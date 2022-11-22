@@ -1,6 +1,7 @@
+import { buildRetryFetchBaseQuery } from './retryFetchBaseQuery';
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { parse } from 'yaml';
-import {RecommendationRuleSimpleInfo} from "./recommendationRuleApi";
+import { RecommendationRuleSimpleInfo } from './recommendationRuleApi';
 
 interface ownerReference {
   apiVersion: string;
@@ -106,8 +107,8 @@ export interface RecommendationSimpleInfo {
 
 interface AdoptRecommendationArgs {
   craneUrl: string;
-  namespace?: string
-  name?: string
+  namespace?: string;
+  name?: string;
 }
 
 interface FetchRecommendationArgs {
@@ -128,14 +129,17 @@ const URI = '/api/v1/recommendation';
 export const recommendationApi = createApi({
   reducerPath: 'recommendationApi',
   tagTypes: ['recommendation', 'idleNode'],
-  baseQuery: fetchBaseQuery({
-    cache: 'no-cache',
-    baseUrl: ``,
-    prepareHeaders: (headers, api) => {
-      headers.set('Content-Type', 'application/json');
-      return headers;
-    },
-  }),
+  baseQuery: buildRetryFetchBaseQuery(
+    fetchBaseQuery({
+      cache: 'no-cache',
+      baseUrl: ``,
+      timeout: 15000,
+      prepareHeaders: (headers, api) => {
+        headers.set('Content-Type', 'application/json');
+        return headers;
+      },
+    }),
+  ),
   endpoints: (builder) => ({
     adoptRecommendation: builder.mutation<any, AdoptRecommendationArgs>({
       invalidatesTags: ['recommendation'],
@@ -171,4 +175,5 @@ export const recommendationApi = createApi({
   }),
 });
 
-export const { useFetchRecommendationListQuery, useLazyFetchRecommendationListQuery, useAdoptRecommendationMutation } = recommendationApi;
+export const { useFetchRecommendationListQuery, useLazyFetchRecommendationListQuery, useAdoptRecommendationMutation } =
+  recommendationApi;

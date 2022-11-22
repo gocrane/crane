@@ -1,3 +1,4 @@
+import { buildRetryFetchBaseQuery } from './retryFetchBaseQuery';
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 export interface FetchNamespaceListArgs {
@@ -15,14 +16,17 @@ export interface FetchNamespaceListResult {
 export const namespaceApi = createApi({
   reducerPath: 'namespaceApi',
   tagTypes: ['namespaceList'],
-  baseQuery: fetchBaseQuery({
-    baseUrl: '/api/v1/namespaces',
-    prepareHeaders: (headers, api) => {
-      headers.set('Content-Type', 'application/json');
-      headers.set('Accept', 'application/json');
-      return headers;
-    },
-  }),
+  baseQuery: buildRetryFetchBaseQuery(
+    fetchBaseQuery({
+      baseUrl: '/api/v1/namespaces',
+      timeout: 15000,
+      prepareHeaders: (headers, api) => {
+        headers.set('Content-Type', 'application/json');
+        headers.set('Accept', 'application/json');
+        return headers;
+      },
+    }),
+  ),
   endpoints: (builder) => ({
     fetchNamespaceList: builder.query<FetchNamespaceListResult, FetchNamespaceListArgs>({
       query: (args) => ({

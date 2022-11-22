@@ -1,3 +1,4 @@
+import { buildRetryFetchBaseQuery } from './retryFetchBaseQuery';
 import { ClusterSimpleInfo } from '../models';
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
@@ -28,14 +29,17 @@ interface DeleteClusterArgs {
 export const clusterApi = createApi({
   reducerPath: 'clusterApi',
   tagTypes: ['clusterList'],
-  baseQuery: fetchBaseQuery({
-    cache: 'no-cache',
-    baseUrl: `/api/v1/cluster`,
-    prepareHeaders: (headers, api) => {
-      headers.set('Content-Type', 'application/json');
-      return headers;
-    },
-  }),
+  baseQuery: buildRetryFetchBaseQuery(
+    fetchBaseQuery({
+      cache: 'no-cache',
+      baseUrl: `/api/v1/cluster`,
+      timeout: 15000,
+      prepareHeaders: (headers, api) => {
+        headers.set('Content-Type', 'application/json');
+        return headers;
+      },
+    }),
+  ),
   endpoints: (builder) => ({
     deleteCluster: builder.mutation<any, DeleteClusterArgs>({
       invalidatesTags: ['clusterList'],
