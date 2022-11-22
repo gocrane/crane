@@ -1,3 +1,4 @@
+import { buildRetryFetchBaseQuery } from './retryFetchBaseQuery';
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 type FetchDashboardDetailArgs = {
@@ -11,11 +12,14 @@ interface FetchDashboardListArgs {
 
 export const grafanaApi = createApi({
   reducerPath: 'grafanaApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: '',
-    prepareHeaders: (headers, api) => headers,
-    fetchFn: (input, init) => fetch(input, { ...init }),
-  }),
+  baseQuery: buildRetryFetchBaseQuery(
+    fetchBaseQuery({
+      baseUrl: '',
+      timeout: 15000,
+      prepareHeaders: (headers, api) => headers,
+      fetchFn: (input, init) => fetch(input, { ...init }),
+    }),
+  ),
   endpoints: (builder) => ({
     fetchDashboardList: builder.query<any, FetchDashboardListArgs>({
       query: (args) => ({

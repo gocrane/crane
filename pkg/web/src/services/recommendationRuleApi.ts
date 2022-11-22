@@ -1,3 +1,4 @@
+import { buildRetryFetchBaseQuery } from './retryFetchBaseQuery';
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 type FetchRecommendationRuleListArgs = { craneUrl?: string };
@@ -46,14 +47,17 @@ const URI = '/api/v1/recommendationRule';
 export const recommendationRuleApi = createApi({
   reducerPath: 'recommendationRuleApi',
   tagTypes: ['recommendationRuleList'],
-  baseQuery: fetchBaseQuery({
-    cache: 'no-cache',
-    baseUrl: ``,
-    prepareHeaders: (headers, api) => {
-      headers.set('Content-Type', 'application/json');
-      return headers;
-    },
-  }),
+  baseQuery: buildRetryFetchBaseQuery(
+    fetchBaseQuery({
+      cache: 'no-cache',
+      baseUrl: ``,
+      timeout: 15000,
+      prepareHeaders: (headers, api) => {
+        headers.set('Content-Type', 'application/json');
+        return headers;
+      },
+    }),
+  ),
   endpoints: (builder) => ({
     deleteRecommendationRule: builder.mutation<any, DeleteRecommendationRuleArgs>({
       invalidatesTags: ['recommendationRuleList'],

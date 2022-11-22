@@ -1,3 +1,4 @@
+import { buildRetryFetchBaseQuery } from './retryFetchBaseQuery';
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { IBoardProps } from '../components/BoardChart';
 import queryString from 'query-string';
@@ -43,14 +44,17 @@ const URI = '/api/v1/prometheus';
 export const prometheusApi = createApi({
   reducerPath: 'prometheus',
   tagTypes: ['prometheus'],
-  baseQuery: fetchBaseQuery({
-    cache: 'no-cache',
-    baseUrl: ``,
-    prepareHeaders: (headers, api) => {
-      headers.set('Content-Type', 'application/json');
-      return headers;
-    },
-  }),
+  baseQuery: buildRetryFetchBaseQuery(
+    fetchBaseQuery({
+      cache: 'no-cache',
+      baseUrl: ``,
+      timeout: 15000,
+      prepareHeaders: (headers, api) => {
+        headers.set('Content-Type', 'application/json');
+        return headers;
+      },
+    }),
+  ),
   endpoints: (builder) => ({
     instantPrometheus: builder.query<QueryInstantPrometheusResult, QueryInstantPrometheusArgs>({
       providesTags: ['prometheus'],
