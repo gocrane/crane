@@ -29,7 +29,7 @@ func NewPrometheusClient(config *providers.PromConfig) (prometheus.Client, error
 				Timeout:   config.Timeout,
 				KeepAlive: config.KeepAlive,
 			}).DialContext,
-			TLSHandshakeTimeout: 10 * time.Second,
+			TLSHandshakeTimeout: 60 * time.Second,
 			TLSClientConfig:     tlsConfig,
 		},
 	}
