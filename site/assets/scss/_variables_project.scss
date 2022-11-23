@@ -28,3 +28,36 @@ svg {
 strong {
     font-weight: bold;
 }
+
+.used-by-section {
+  max-height: 4rem;
+  max-width: 100%;
+
+  h1 {
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+}
+
+.used-by__users {
+  display: flex;
+  flex-direction: row;
+  justify-content: between;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: -3rem;
+}
+
+.used-by__user {
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  padding-bottom: 3rem;
+}
+
+.used-by-logo {
+  max-height: 4rem;
+  max-width: 100%;
+}
+

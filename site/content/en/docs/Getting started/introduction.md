@@ -7,6 +7,10 @@ weight: 10
 
 Crane is a FinOps Platform for Cloud Resource Analytics and Economics in Kubernetes clusters. The goal is not only help user to manage cloud cost easier but also ensure the quality of applications.
 
+<img alt="fcs logo" height="200" src="/images/Crane-FinOps-Certified-Solution.png" title="FinOps Certified Solution" width="200"/>
+
+Crane is a [FinOps Certified Solution](https://www.finops.org/members/finops-certified-solution/) project of the [FinOps Foundation](https://www.finops.org/).
+
 **How to start a Cost-Saving journey on Crane?**
 
 1. **Understanding**: Cost insight for cloud assets and kubernetes resources(Deployments, StatefulSets).
