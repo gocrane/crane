@@ -3,11 +3,10 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/klog/v2"
+	"reflect"
 	"sigs.k8s.io/yaml"
 
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
@@ -132,10 +131,11 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 		cr.Target[corev1.ResourceMemory] = memQuantity.String()
 
 		//use memory-to-vCPU-ratio if exist
-		if rr.MemTovCPURatioBool {
-			cpu, mem := rr.getVMSpec(cpuQuantity, memQuantity)
+		if rr.ResourceSpecs != nil {
+			cpu, mem := rr.getVMSpec(cpuQuantity, memQuantity, ResourceSpecs)
 			*cpuQuantity = cpu
 			*memQuantity = mem
+			klog.V(4).Info("Load cpu/memory ratio for resource recommendation configuration set successfully.")
 		}
 
 		newContainerSpec := corev1.Container{
@@ -237,46 +237,31 @@ func (rr *ResourceRecommender) Policy(ctx *framework.RecommendationContext) erro
 	return nil
 }
 
-var cvmSpecList []float64
-var cvmSpecMap map[float64][]float64
-
-func (rr *ResourceRecommender) getVMSpec(cpu, mem *resource.Quantity) (resource.Quantity, resource.Quantity) {
-	cvmSpecList = []float64{0.25, 0.5, 1, 2, 4, 8, 16, 32, 64}
-
-	cvmSpecMap = map[float64][]float64{}
-	cvmSpecMap[0.25] = []float64{0.25, 0.5, 1}
-	cvmSpecMap[0.5] = []float64{0.5, 1}
-	cvmSpecMap[1] = []float64{1, 2, 4, 8}
-	cvmSpecMap[2] = []float64{2, 4, 8, 16}
-	cvmSpecMap[4] = []float64{4, 8, 16, 32}
-	cvmSpecMap[8] = []float64{8, 16, 32, 64}
-	cvmSpecMap[16] = []float64{32, 64, 128}
-	cvmSpecMap[32] = []float64{64, 128, 256}
-	cvmSpecMap[64] = []float64{128, 256}
+func (rr *ResourceRecommender) getVMSpec(cpu, mem *resource.Quantity, spec ResourceSpec) (resource.Quantity, resource.Quantity) {
 	var cpuCores float64
 	var memInGBi float64
 
 	val := float64(cpu.MilliValue()) / 1000.
-	for i := range cvmSpecList {
-		if val <= cvmSpecList[i] {
-			l := len(cvmSpecMap[cvmSpecList[i]])
-			if float64(mem.Value())/(1024.*1024.*1024.) <= cvmSpecMap[cvmSpecList[i]][l-1] {
-				cpuCores = cvmSpecList[i]
-				break
-			}
-		}
-	}
-
-	if cpuCores > 0.0 {
-		val = float64(mem.Value()) / (1024. * 1024. * 1024.)
-		memList := cvmSpecMap[cpuCores]
-		for i := range memList {
-			if val <= memList[i] {
-				memInGBi = memList[i]
-				break
-			}
-		}
-	}
+	//for i := range cvmSpecList {
+	//	if val <= cvmSpecList[i] {
+	//		l := len(cvmSpecMap[cvmSpecList[i]])
+	//		if float64(mem.Value())/(1024.*1024.*1024.) <= cvmSpecMap[cvmSpecList[i]][l-1] {
+	//			cpuCores = cvmSpecList[i]
+	//			break
+	//		}
+	//	}
+	//}
+	//
+	//if cpuCores > 0.0 {
+	//	val = float64(mem.Value()) / (1024. * 1024. * 1024.)
+	//	memList := cvmSpecMap[cpuCores]
+	//	for i := range memList {
+	//		if val <= memList[i] {
+	//			memInGBi = memList[i]
+	//			break
+	//		}
+	//	}
+	//}
 
 	return resource.MustParse(fmt.Sprintf("%.2f", cpuCores)), resource.MustParse(fmt.Sprintf("%.2fGi", memInGBi))
 }

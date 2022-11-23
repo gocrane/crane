@@ -1,14 +1,20 @@
 package resource
 
 import (
+	"fmt"
 	"github.com/gocrane/crane/pkg/recommendation/recommender"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/apis"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/base"
-	"strconv"
+	"sort"
+	"strings"
 )
 
 var _ recommender.Recommender = &ResourceRecommender{}
 
+type ResourceSpec struct {
+	CPU    string
+	Memory string
+}
 type ResourceRecommender struct {
 	base.BaseRecommender
 	CpuSampleInterval        string
@@ -21,7 +27,7 @@ type ResourceRecommender struct {
 	MemMarginFraction        string
 	MemTargetUtilization     string
 	MemHistoryLength         string
-	MemTovCPURatioBool       bool
+	ResourceSpecs            []ResourceSpec
 }
 
 func (rr *ResourceRecommender) Name() string {
@@ -75,12 +81,13 @@ func NewResourceRecommender(recommender apis.Recommender) (*ResourceRecommender,
 	if !exists {
 		memHistoryLength = "168h"
 	}
-	memTovCPURatio, exists := recommender.Config["memory-to-vCPU-ratio"]
+	//
+	resourceSpecification, exists := recommender.Config["resource-specification"]
 	if !exists {
-		memTovCPURatio = "true"
+		resourceSpecification = ""
 	}
-
-	memTovCPURatioBool, err := strconv.ParseBool(memTovCPURatio)
+	// format specs
+	specs, err := t(resourceSpecification)
 	if err != nil {
 		return nil, err
 	}
@@ -97,6 +104,29 @@ func NewResourceRecommender(recommender apis.Recommender) (*ResourceRecommender,
 		memMarginFraction,
 		memTargetUtilization,
 		memHistoryLength,
-		memTovCPURatioBool,
+		specs,
 	}, nil
+}
+
+func t(sc string) ([]ResourceSpec, error) {
+	var ResourceSpecs []ResourceSpec
+	//s := "5c11g,4c8g,4c5g"
+	////先把2c4g, 2c8g,4c4g,4c8g 切割
+	arr := strings.Split(sc, ",")
+	sort.Strings(arr)
+	fmt.Println(arr)
+	for i := 0; i < len(arr); i++ {
+		//需要用正则
+		arr1 := strings.Split(arr[i], "")
+		//fmt.Println(arr1[0:])
+		ResourceSpecs1 := &ResourceSpec{
+			CPU:    arr1[0],
+			Memory: arr1[2],
+		}
+
+		ResourceSpecs = append(ResourceSpecs, *ResourceSpecs1)
+		//fmt.Println(ResourceSpecs)
+		//fmt.Println(arr1)
+	}
+	return ResourceSpecs, nil
 }
