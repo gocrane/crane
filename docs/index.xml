@@ -417,6 +417,8 @@ Prometheus is a popular open source monitoring system today, through which user-
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="summary">Summary&lt;/h2>
 &lt;p>Due to the complexity of production environments, multi-metric-based autoscaling (CPU/Memory/custom metrics) is often a common choice for production applications, so Effective HPA achieves the effectiveness of helping more businesses land horizontal autoscaling in production environments by covering multi-metric autoscaling with predictive algorithms.&lt;/p></description></item><item><title>Docs: Introduction</title><link>/docs/getting-started/introduction/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/getting-started/introduction/</guid><description>
 &lt;p>Crane is a FinOps Platform for Cloud Resource Analytics and Economics in Kubernetes clusters. The goal is not only help user to manage cloud cost easier but also ensure the quality of applications.&lt;/p>
+&lt;img alt="fcs logo" height="200" src="/images/Crane-FinOps-Certified-Solution.png" title="FinOps Certified Solution" width="200"/>
+&lt;p>Crane is a &lt;a href="https://www.finops.org/members/finops-certified-solution/">FinOps Certified Solution&lt;/a> project of the &lt;a href="https://www.finops.org/">FinOps Foundation&lt;/a>.&lt;/p>
 &lt;p>&lt;strong>How to start a Cost-Saving journey on Crane?&lt;/strong>&lt;/p>
 &lt;ol>
 &lt;li>&lt;strong>Understanding&lt;/strong>: Cost insight for cloud assets and kubernetes resources(Deployments, StatefulSets).&lt;/li>

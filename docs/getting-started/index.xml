@@ -1,5 +1,7 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Crane – Getting Started</title><link>/docs/getting-started/</link><description>Recent content in Getting Started on Crane</description><generator>Hugo -- gohugo.io</generator><atom:link href="/docs/getting-started/index.xml" rel="self" type="application/rss+xml"/><item><title>Docs: Introduction</title><link>/docs/getting-started/introduction/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/getting-started/introduction/</guid><description>
 &lt;p>Crane is a FinOps Platform for Cloud Resource Analytics and Economics in Kubernetes clusters. The goal is not only help user to manage cloud cost easier but also ensure the quality of applications.&lt;/p>
+&lt;img alt="fcs logo" height="200" src="/images/Crane-FinOps-Certified-Solution.png" title="FinOps Certified Solution" width="200"/>
+&lt;p>Crane is a &lt;a href="https://www.finops.org/members/finops-certified-solution/">FinOps Certified Solution&lt;/a> project of the &lt;a href="https://www.finops.org/">FinOps Foundation&lt;/a>.&lt;/p>
 &lt;p>&lt;strong>How to start a Cost-Saving journey on Crane?&lt;/strong>&lt;/p>
 &lt;ol>
 &lt;li>&lt;strong>Understanding&lt;/strong>: Cost insight for cloud assets and kubernetes resources(Deployments, StatefulSets).&lt;/li>

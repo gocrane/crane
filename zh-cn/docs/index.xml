@@ -399,6 +399,8 @@ Prometheus 是当下流行的开源监控系统，通过 Prometheus 可以获取
 &lt;p>由于生产环境的复杂性，基于多指标的弹性（CPU/Memory/自定义指标）往往是生产应用的常见选择，因此 Effective HPA 通过预测算法覆盖了多指标的弹性，达到了帮助更多业务在生产环境落地水平弹性的成效。&lt;/p></description></item><item><title>Docs: 介绍</title><link>/zh-cn/docs/getting-started/introduction/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/getting-started/introduction/</guid><description>
 &lt;h2 id="crane-是什么">Crane 是什么&lt;/h2>
 &lt;p>Crane 是一个基于 FinOps 的云资源分析与成本优化平台。它的愿景是在保证客户应用运行质量的前提下实现极致的降本。&lt;/p>
+&lt;img alt="fcs logo" height="200" src="/images/Crane-FinOps-Certified-Solution.png" title="FinOps Certified Solution" width="200"/>
+&lt;p>Crane 是 &lt;a href="https://www.finops.org/">FinOps 基金会&lt;/a>认证的&lt;a href="https://www.finops.org/members/finops-certified-solution/">云优化方案&lt;/a>。&lt;/p>
 &lt;p>&lt;strong>如何在 Crane 中开启成本优化之旅？&lt;/strong>&lt;/p>
 &lt;ol>
 &lt;li>&lt;strong>成本展示&lt;/strong>: Kubernetes 资源( Deployments, StatefulSets )的多维度聚合与展示。&lt;/li>
