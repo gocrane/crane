@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"flag"
-	"fmt"
 	"os"
 	"strings"
 
@@ -48,12 +47,6 @@ import (
 	_ "github.com/gocrane/crane/pkg/querybuilder-providers/metricserver"
 	_ "github.com/gocrane/crane/pkg/querybuilder-providers/prometheus"
 	"github.com/gocrane/crane/pkg/recommendation"
-	"github.com/gocrane/crane/pkg/recommendation/config"
-	recommender "github.com/gocrane/crane/pkg/recommendation/recommender"
-	"github.com/gocrane/crane/pkg/recommendation/recommender/hpa"
-	"github.com/gocrane/crane/pkg/recommendation/recommender/idlenode"
-	"github.com/gocrane/crane/pkg/recommendation/recommender/replicas"
-	"github.com/gocrane/crane/pkg/recommendation/recommender/resource"
 	"github.com/gocrane/crane/pkg/server"
 	serverconfig "github.com/gocrane/crane/pkg/server/config"
 	"github.com/gocrane/crane/pkg/utils/target"
@@ -137,13 +130,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 		}
 	}()
 
-	recommenders, err := initRecommenders(opts, podOOMRecorder)
-	if err != nil {
-		klog.ErrorS(err, "failed to init recommenders")
-		return err
-	}
-	recommenderMgr := initRecommenderManager(recommenders, realtimeDataSources, historyDataSources)
-
+	recommenderMgr := initRecommenderManager(opts, podOOMRecorder, realtimeDataSources, historyDataSources)
 	initControllers(podOOMRecorder, mgr, opts, predictorMgr, recommenderMgr, historyDataSources[providers.PrometheusDataSource])
 	// initialize custom collector metrics
 	initMetricCollector(mgr)
@@ -152,48 +139,8 @@ func Run(ctx context.Context, opts *options.Options) error {
 	return nil
 }
 
-func initRecommenders(opts *options.Options, oomRecorder oom.Recorder) (map[string]recommender.Recommender, error) {
-	apiRecommenders, err := config.GetRecommendersFromConfiguration(opts.RecommendationConfiguration)
-	if err != nil {
-		return nil, err
-	}
-
-	recommenders := make(map[string]recommender.Recommender, len(apiRecommenders))
-	for _, r := range apiRecommenders {
-		switch r.Name {
-		case recommender.ReplicasRecommender:
-			replicasRecommender, err := replicas.NewReplicasRecommender(r)
-			if err != nil {
-				return nil, err
-			}
-			recommenders[recommender.ReplicasRecommender] = replicasRecommender
-		case recommender.HPARecommender:
-			hpaRecommender, err := hpa.NewHPARecommender(r)
-			if err != nil {
-				return nil, err
-			}
-			recommenders[recommender.HPARecommender] = hpaRecommender
-		case recommender.ResourceRecommender:
-			resourceRecommender, err := resource.NewResourceRecommender(r, oomRecorder)
-			if err != nil {
-				return nil, err
-			}
-			recommenders[recommender.ResourceRecommender] = resourceRecommender
-		case recommender.IdleNodeRecommender:
-			idleNodeRecommender, err := idlenode.NewIdleNodeRecommender(r)
-			if err != nil {
-				return nil, err
-			}
-			recommenders[recommender.IdleNodeRecommender] = idleNodeRecommender
-		default:
-			return nil, fmt.Errorf("unknown recommender name: %s", r.Name)
-		}
-	}
-	return recommenders, nil
-}
-
-func initRecommenderManager(recommenders map[string]recommender.Recommender, realtimeDataSources map[providers.DataSourceType]providers.RealTime, historyDataSources map[providers.DataSourceType]providers.History) recommendation.RecommenderManager {
-	return recommendation.NewRecommenderManager(recommenders, realtimeDataSources, historyDataSources)
+func initRecommenderManager(opts *options.Options, oomRecorder oom.Recorder, realtimeDataSources map[providers.DataSourceType]providers.RealTime, historyDataSources map[providers.DataSourceType]providers.History) recommendation.RecommenderManager {
+	return recommendation.NewRecommenderManager(opts.RecommendationConfiguration, oomRecorder, realtimeDataSources, historyDataSources)
 }
 
 func initScheme() {

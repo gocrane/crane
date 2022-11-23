@@ -363,9 +363,9 @@ func (c *RecommendationRuleController) executeMission(ctx context.Context, wg *s
 			recommendation = c.CreateRecommendationObject(recommendationRule, mission.TargetRef, id, mission.RecommenderRef.Name)
 		}
 
-		r := c.RecommenderMgr.GetRecommender(mission.RecommenderRef.Name)
-		if r == nil {
-			mission.Message = fmt.Sprintf("recommender %s not registered ", mission.RecommenderRef.Name)
+		r, err := c.RecommenderMgr.GetRecommender(mission.RecommenderRef.Name)
+		if err != nil {
+			mission.Message = fmt.Sprintf("get recommender %s failed, %v", mission.RecommenderRef.Name, err)
 			return
 		}
 		p := make(map[providers.DataSourceType]providers.History)
@@ -379,7 +379,7 @@ func (c *RecommendationRuleController) executeMission(ctx context.Context, wg *s
 			Object:     identities[k].Object,
 		}
 		recommendationContext := framework.NewRecommendationContext(ctx, identity, c.PredictorMgr, p, recommendation, c.Client, c.ScaleClient)
-		err := recommender.Run(&recommendationContext, r)
+		err = recommender.Run(&recommendationContext, r)
 		if err != nil {
 			mission.Message = fmt.Sprintf("Failed to run recommendation flow in recommender %s: %s", r.Name(), err.Error())
 			return
