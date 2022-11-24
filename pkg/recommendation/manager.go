@@ -29,10 +29,20 @@ func NewRecommenderManager(recommendationConfiguration string, oomRecorder oom.R
 		recommendationConfiguration: recommendationConfiguration,
 		oomRecorder:                 oomRecorder,
 	}
+
+	m.loadConfigFile() // nolint:errcheck
+
 	go m.watchConfigFile()
 
 	return m
 }
+
+type ResourceSpec struct {
+	CPU    string
+	Memory string
+}
+
+type ResourceSpecs []ResourceSpec
 
 type manager struct {
 	recommendationConfiguration string
@@ -136,56 +146,56 @@ func Run(ctx *framework.RecommendationContext, recommender recommender.Recommend
 	// 1. Filter phase
 	err := recommender.Filter(ctx)
 	if err != nil {
-		klog.Errorf("recommender %q failed at filter phase!", recommender.Name())
+		klog.Errorf("%s: recommender %q failed at filter phase!", ctx.String(), recommender.Name())
 		return err
 	}
 
 	// 2. PrePrepare phase
 	err = recommender.CheckDataProviders(ctx)
 	if err != nil {
-		klog.Errorf("recommender %q failed at prepare check data provider phase!", recommender.Name())
+		klog.Errorf("%s: recommender %q failed at prepare check data provider phase!", ctx.String(), recommender.Name())
 		return err
 	}
 
 	// 3. Prepare phase
 	err = recommender.CollectData(ctx)
 	if err != nil {
-		klog.Errorf("recommender %q failed at prepare collect data phase!", recommender.Name())
+		klog.Errorf("%s: recommender %q failed at prepare collect data phase!", ctx.String(), recommender.Name())
 		return err
 	}
 
 	// 4. PostPrepare phase
 	err = recommender.PostProcessing(ctx)
 	if err != nil {
-		klog.Errorf("recommender %q failed at prepare data post processing phase!", recommender.Name())
+		klog.Errorf("%s: recommender %q failed at prepare data post processing phase!", ctx.String(), recommender.Name())
 		return err
 	}
 
 	// 5. PreRecommend phase
 	err = recommender.PreRecommend(ctx)
 	if err != nil {
-		klog.Errorf("recommender %q failed at pre commend phase!", recommender.Name())
+		klog.Errorf("%s: recommender %q failed at pre commend phase!", ctx.String(), recommender.Name())
 		return err
 	}
 
 	// 6. Recommend phase
 	err = recommender.Recommend(ctx)
 	if err != nil {
-		klog.Errorf("recommender %q failed at recommend phase!", recommender.Name())
+		klog.Errorf("%s: recommender %q failed at recommend phase!", ctx.String(), recommender.Name())
 		return err
 	}
 
 	// 7. PostRecommend phase, add policy
 	err = recommender.Policy(ctx)
 	if err != nil {
-		klog.Errorf("recommender %q failed at recommend policy phase!", recommender.Name())
+		klog.Errorf("%s: recommender %q failed at recommend policy phase!", ctx.String(), recommender.Name())
 		return err
 	}
 
 	// 8. Observe phase
 	err = recommender.Observe(ctx)
 	if err != nil {
-		klog.Errorf("recommender %q failed at observe phase!", recommender.Name())
+		klog.Errorf("%s: recommender %q failed at observe phase!", ctx.String(), recommender.Name())
 		return err
 	}
 	return nil

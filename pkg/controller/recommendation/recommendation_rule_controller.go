@@ -16,11 +16,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	unstructuredv1 "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/scale"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -378,7 +380,7 @@ func (c *RecommendationRuleController) executeMission(ctx context.Context, wg *s
 			Labels:     identities[k].Labels,
 			Object:     identities[k].Object,
 		}
-		recommendationContext := framework.NewRecommendationContext(ctx, identity, c.PredictorMgr, p, recommendation, c.Client, c.ScaleClient)
+		recommendationContext := framework.NewRecommendationContext(ctx, identity, recommendationRule, c.PredictorMgr, p, recommendation, c.Client, c.ScaleClient)
 		err = recommender.Run(&recommendationContext, r)
 		if err != nil {
 			mission.Message = fmt.Sprintf("Failed to run recommendation flow in recommender %s: %s", r.Name(), err.Error())
@@ -414,17 +416,35 @@ func (c *RecommendationRuleController) executeMission(ctx context.Context, wg *s
 }
 
 func (c *RecommendationRuleController) UpdateStatus(ctx context.Context, recommendationRule *analysisv1alph1.RecommendationRule, newStatus *analysisv1alph1.RecommendationRuleStatus) {
-	if !equality.Semantic.DeepEqual(&recommendationRule.Status, newStatus) {
-		recommendationRule.Status = *newStatus
-		err := c.Update(ctx, recommendationRule)
-		if err != nil {
-			c.Recorder.Event(recommendationRule, corev1.EventTypeNormal, "FailedUpdateStatus", err.Error())
-			klog.Errorf("Failed to update status, RecommendationRule %s error %v", klog.KObj(recommendationRule), err)
-			return
+	klog.Infof("Updating RecommendationRule %s status", klog.KObj(recommendationRule))
+	recommendationRuleCopy := recommendationRule.DeepCopy()
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		if !equality.Semantic.DeepEqual(&recommendationRuleCopy.Status, newStatus) {
+			recommendationRuleCopy.Status = *newStatus
+			err := c.Update(ctx, recommendationRuleCopy)
+			if err == nil {
+				return nil
+			}
+
+			updated := &analysisv1alph1.RecommendationRule{}
+			errGet := c.Get(context.TODO(), types.NamespacedName{Namespace: recommendationRuleCopy.Namespace, Name: recommendationRuleCopy.Name}, updated)
+			if errGet == nil {
+				recommendationRuleCopy = updated
+			}
+
+			return err
 		}
 
-		klog.Infof("Update RecommendationRule status successful, RecommendationRule %s", klog.KObj(recommendationRule))
+		return nil
+	})
+
+	if err != nil {
+		c.Recorder.Event(recommendationRule, corev1.EventTypeNormal, "FailedUpdateStatus", err.Error())
+		klog.Errorf("Failed to update status, RecommendationRule %s error %v", klog.KObj(recommendationRule), err)
+		return
 	}
+
+	klog.Infof("Update RecommendationRule status successful, RecommendationRule %s", klog.KObj(recommendationRule))
 }
 
 type ObjectIdentity struct {

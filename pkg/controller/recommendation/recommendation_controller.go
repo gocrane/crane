@@ -61,21 +61,20 @@ func (c *RecommendationController) Reconcile(ctx context.Context, req ctrl.Reque
 		msg := fmt.Sprintf("Failed to update recommendation value, Recommendation %s: %v", klog.KObj(recommendation), err)
 		klog.Errorf(msg)
 		setReadyCondition(newStatus, metav1.ConditionFalse, "FailedUpdateRecommendationValue", msg)
-		c.UpdateStatus(ctx, recommendation, newStatus)
-		return ctrl.Result{}, err
+		return ctrl.Result{}, c.UpdateStatus(ctx, recommendation, newStatus)
 	}
 
 	if updated {
 		c.Recorder.Event(recommendation, v1.EventTypeNormal, "UpdatedRecommendationValue", "")
 
 		setReadyCondition(newStatus, metav1.ConditionTrue, "RecommendationReady", "Recommendation is ready")
-		c.UpdateStatus(ctx, recommendation, newStatus)
+		return ctrl.Result{}, c.UpdateStatus(ctx, recommendation, newStatus)
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func (c *RecommendationController) UpdateStatus(ctx context.Context, recommendation *analysisv1alph1.Recommendation, newStatus *analysisv1alph1.RecommendationStatus) {
+func (c *RecommendationController) UpdateStatus(ctx context.Context, recommendation *analysisv1alph1.Recommendation, newStatus *analysisv1alph1.RecommendationStatus) error {
 	if !equality.Semantic.DeepEqual(&recommendation.Status, newStatus) {
 		recommendation.Status = *newStatus
 		timeNow := metav1.Now()
@@ -85,11 +84,13 @@ func (c *RecommendationController) UpdateStatus(ctx context.Context, recommendat
 		if err != nil {
 			c.Recorder.Event(recommendation, v1.EventTypeWarning, "FailedUpdateStatus", err.Error())
 			klog.Errorf("Failed to update status, Recommendation %s error %v", klog.KObj(recommendation), err)
-			return
+			return err
 		}
 
 		klog.Infof("Update Recommendation status successful, Recommendation %s", klog.KObj(recommendation))
 	}
+
+	return nil
 }
 
 func (c *RecommendationController) SetupWithManager(mgr ctrl.Manager) error {

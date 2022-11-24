@@ -109,7 +109,7 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 		caller := fmt.Sprintf(callerFormat, klog.KObj(ctx.Recommendation), ctx.Recommendation.UID)
 		metricNamer := metricnaming.ResourceToContainerMetricNamer(namespace, ctx.Recommendation.Spec.TargetRef.APIVersion,
 			ctx.Recommendation.Spec.TargetRef.Kind, ctx.Recommendation.Spec.TargetRef.Name, c.Name, corev1.ResourceCPU, caller)
-		klog.V(6).Infof("CPU query for resource request recommendation: %s", metricNamer.BuildUniqueKey())
+		klog.Infof("%s: CPU query for resource request recommendation: %s", ctx.String(), metricNamer.BuildUniqueKey())
 		cpuConfig := rr.makeCpuConfig()
 		tsList, err := utils.QueryPredictedValuesOnce(ctx.Recommendation, predictor, caller, cpuConfig, metricNamer)
 		if err != nil {
@@ -121,10 +121,11 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 		v := int64(tsList[0].Samples[0].Value * 1000)
 		cpuQuantity := resource.NewMilliQuantity(v, resource.DecimalSI)
 		cr.Target[corev1.ResourceCPU] = cpuQuantity.String()
+		klog.Infof("%s: container %s recommended cpu %s", ctx.String(), c.Name, cpuQuantity.String())
 
 		metricNamer = metricnaming.ResourceToContainerMetricNamer(namespace, ctx.Recommendation.Spec.TargetRef.APIVersion,
 			ctx.Recommendation.Spec.TargetRef.Kind, ctx.Recommendation.Spec.TargetRef.Name, c.Name, corev1.ResourceMemory, caller)
-		klog.V(6).Infof("Memory query for resource request recommendation: %s", metricNamer.BuildUniqueKey())
+		klog.Infof("%s Memory query for resource request recommendation: %s", ctx.String(), metricNamer.BuildUniqueKey())
 		memConfig := rr.makeMemConfig()
 		tsList, err = utils.QueryPredictedValuesOnce(ctx.Recommendation, predictor, caller, memConfig, metricNamer)
 		if err != nil {
@@ -138,11 +139,13 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 			return fmt.Errorf("no enough metrics")
 		}
 		memQuantity := resource.NewQuantity(v, resource.BinarySI)
+		klog.Infof("%s: container %s recommended memory %s", ctx.String(), c.Name, memQuantity.String())
 
 		// Use oom protected memory if exist
 		if rr.OOMProtection {
 			oomProtectMem := rr.MemoryOOMProtection(oomRecords, namespace, ctx.Object.GetName(), c.Name)
 			if oomProtectMem != nil && !oomProtectMem.IsZero() && oomProtectMem.Cmp(*memQuantity) > 0 {
+				klog.Infof("%s: container %s using oomProtect Memory %s", ctx.String(), c.Name, oomProtectMem.String())
 				memQuantity = oomProtectMem
 			}
 		}

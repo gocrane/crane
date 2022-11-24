@@ -35,7 +35,7 @@ func (rr *ReplicasRecommender) CollectData(ctx *framework.RecommendationContext)
 	ctx.MetricNamer = metricNamer
 
 	// get workload cpu usage
-	klog.V(4).Infof("%s CpuQuery %s RecommendationRule %s", rr.Name(), ctx.MetricNamer.BuildUniqueKey(), klog.KObj(&ctx.RecommendationRule))
+	klog.Infof("%s: CpuQuery %s", ctx.String(), rr.Name(), ctx.MetricNamer.BuildUniqueKey())
 	timeNow := time.Now()
 	tsList, err := ctx.DataProviders[providers.PrometheusDataSource].QueryTimeSeries(ctx.MetricNamer, timeNow.Add(-time.Hour*24*7), timeNow, time.Minute)
 	if err != nil {
@@ -48,7 +48,7 @@ func (rr *ReplicasRecommender) CollectData(ctx *framework.RecommendationContext)
 
 	resourceMemory := corev1.ResourceMemory
 	metricNamerMemory := metricnaming.ResourceToWorkloadMetricNamer(ctx.Recommendation.Spec.TargetRef.DeepCopy(), &resourceMemory, labelSelector, caller)
-	klog.V(4).Infof("%s MemoryQuery %s RecommendationRule %s", rr.Name(), metricNamerMemory.BuildUniqueKey(), klog.KObj(&ctx.RecommendationRule))
+	klog.Infof("%s: %s MemoryQuery %s", ctx.String(), rr.Name(), metricNamerMemory.BuildUniqueKey())
 	tsListMemory, err := ctx.DataProviders[providers.PrometheusDataSource].QueryTimeSeries(metricNamerMemory, timeNow.Add(-time.Hour*24*7), timeNow, time.Minute)
 	if err != nil {
 		return fmt.Errorf("%s query historic metrics failed: %v ", rr.Name(), err)
