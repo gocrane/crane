@@ -19,7 +19,7 @@ require (
 	google.golang.org/grpc v1.43.0
 	google.golang.org/protobuf v1.27.1
 	k8s.io/api v0.22.3
-	k8s.io/apimachinery v0.22.3
+	k8s.io/apimachinery v0.25.4
 	k8s.io/apiserver v0.22.3
 	k8s.io/autoscaler/vertical-pod-autoscaler v0.10.0
 	k8s.io/client-go v0.22.3
