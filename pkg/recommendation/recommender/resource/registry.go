@@ -4,9 +4,11 @@ import (
 	"github.com/gocrane/crane/pkg/recommendation/recommender"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/apis"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/base"
+	"github.com/gocrane/crane/pkg/utils"
 )
 
 var _ recommender.Recommender = &ResourceRecommender{}
+var ResourceSpecs []utils.ResourceSpec
 
 type ResourceRecommender struct {
 	base.BaseRecommender
@@ -20,6 +22,7 @@ type ResourceRecommender struct {
 	MemMarginFraction        string
 	MemTargetUtilization     string
 	MemHistoryLength         string
+	ResourceSpecs            []utils.ResourceSpec
 }
 
 func (rr *ResourceRecommender) Name() string {
@@ -27,7 +30,7 @@ func (rr *ResourceRecommender) Name() string {
 }
 
 // NewResourceRecommender create a new resource recommender.
-func NewResourceRecommender(recommender apis.Recommender) *ResourceRecommender {
+func NewResourceRecommender(recommender apis.Recommender) (*ResourceRecommender, error) {
 	if recommender.Config == nil {
 		recommender.Config = map[string]string{}
 	}
@@ -73,6 +76,15 @@ func NewResourceRecommender(recommender apis.Recommender) *ResourceRecommender {
 	if !exists {
 		memHistoryLength = "168h"
 	}
+	//
+	resourceSpecification, exists := recommender.Config["resource-specification"]
+	if !exists {
+		resourceSpecification = ""
+	}
+	specs, err := utils.ToSpecStrurt(resourceSpecification)
+	if err != nil {
+		return nil, err
+	}
 
 	return &ResourceRecommender{
 		*base.NewBaseRecommender(recommender),
@@ -86,5 +98,6 @@ func NewResourceRecommender(recommender apis.Recommender) *ResourceRecommender {
 		memMarginFraction,
 		memTargetUtilization,
 		memHistoryLength,
-	}
+		specs,
+	}, nil
 }

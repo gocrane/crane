@@ -131,6 +131,13 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 		memQuantity := resource.NewQuantity(v, resource.BinarySI)
 		cr.Target[corev1.ResourceMemory] = memQuantity.String()
 
+		//use ResourceSpecs if exist
+		if rr.ResourceSpecs != nil {
+			cpu, mem := utils.GetVMSpec(cpuQuantity, memQuantity, ResourceSpecs)
+			*cpuQuantity = cpu
+			*memQuantity = mem
+			klog.V(4).Info("Load cpu/memory ratio for resource recommendation configuration set successfully cpu:%s,mem:%s.", cpu, mem)
+		}
 		newContainerSpec := corev1.Container{
 			Name: c.Name,
 			Resources: corev1.ResourceRequirements{
