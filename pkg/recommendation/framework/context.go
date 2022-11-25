@@ -46,7 +46,7 @@ type RecommendationContext struct {
 	// When cancel channel accept signal indicates that the context has been canceled. The recommendation should stop executing as soon as possible.
 	// CancelCh <-chan struct{}
 	// RecommendationRule for the context
-	RecommendationRule v1alpha1.RecommendationRule
+	RecommendationRule *v1alpha1.RecommendationRule
 	// metrics namer for datasource provider
 	MetricNamer metricnaming.MetricNamer
 	// Algorithm Config
@@ -71,19 +71,24 @@ type RecommendationContext struct {
 	EHPA *autoscalingapi.EffectiveHorizontalPodAutoscaler
 }
 
-func NewRecommendationContext(context context.Context, identity ObjectIdentity, predictorMgr predictormgr.Manager, dataProviders map[providers.DataSourceType]providers.History, recommendation *v1alpha1.Recommendation, client client.Client, scaleClient scale.ScalesGetter) RecommendationContext {
+func NewRecommendationContext(context context.Context, identity ObjectIdentity, recommendationRule *v1alpha1.RecommendationRule, predictorMgr predictormgr.Manager, dataProviders map[providers.DataSourceType]providers.History, recommendation *v1alpha1.Recommendation, client client.Client, scaleClient scale.ScalesGetter) RecommendationContext {
 	return RecommendationContext{
-		Identity:       identity,
-		Object:         &identity.Object,
-		Context:        context,
-		PredictorMgr:   predictorMgr,
-		DataProviders:  dataProviders,
-		Recommendation: recommendation,
-		Client:         client,
-		RestMapper:     client.RESTMapper(),
-		ScaleClient:    scaleClient,
+		Identity:           identity,
+		Object:             &identity.Object,
+		Context:            context,
+		PredictorMgr:       predictorMgr,
+		DataProviders:      dataProviders,
+		RecommendationRule: recommendationRule,
+		Recommendation:     recommendation,
+		Client:             client,
+		RestMapper:         client.RESTMapper(),
+		ScaleClient:        scaleClient,
 		//CancelCh:       context.Done(),
 	}
+}
+
+func (ctx RecommendationContext) String() string {
+	return fmt.Sprintf("RecommendationRule(%s) Target(%s/%s)", ctx.RecommendationRule.Name, ctx.Object.GetNamespace(), ctx.Object.GetName())
 }
 
 type ObjectIdentity struct {

@@ -44,7 +44,7 @@ func (rr *ReplicasRecommender) PreRecommend(ctx *framework.RecommendationContext
 func (rr *ReplicasRecommender) Recommend(ctx *framework.RecommendationContext) error {
 	p := ctx.PredictorMgr.GetPredictor(predictionapi.AlgorithmTypeDSP)
 	timeNow := time.Now()
-	caller := fmt.Sprintf(rr.Name(), klog.KObj(&ctx.RecommendationRule), ctx.RecommendationRule.UID)
+	caller := fmt.Sprintf(rr.Name(), klog.KObj(ctx.RecommendationRule), ctx.RecommendationRule.UID)
 
 	// get workload cpu usage
 	tsListPrediction, err := utils.QueryPredictedTimeSeriesOnce(p, caller,
@@ -156,6 +156,7 @@ func (rr *ReplicasRecommender) GetMinReplicas(ctx *framework.RecommendationConte
 		return 0, 0, 0, fmt.Errorf("%s CalculatePodTemplateRequests cpu failed: %v", rr.Name(), err)
 	}
 
+	klog.Infof("%s: WorkloadCpuUsage Percentile %f PodCpuRequest %d CPUTargetUtilization %f", ctx.String(), percentileCpu, requestTotalCpu, rr.CPUTargetUtilization)
 	minReplicasCpu, err := rr.ProposeMinReplicas(percentileCpu, requestTotalCpu, rr.CPUTargetUtilization)
 	if err != nil {
 		return 0, 0, 0, fmt.Errorf("%s proposeMinReplicas for cpu failed: %v", rr.Name(), err)
@@ -177,12 +178,12 @@ func (rr *ReplicasRecommender) GetMinReplicas(ctx *framework.RecommendationConte
 		return 0, 0, 0, fmt.Errorf("%s CalculatePodTemplateRequests failed: %v", rr.Name(), err)
 	}
 
+	klog.Infof("%s: WorkloadMemoryUsage Percentile %f PodMemoryRequest %f MemTargetUtilization %f", ctx.String(), percentileMem, float64(requestTotalMem)/1000, rr.MemTargetUtilization)
 	minReplicasMem, err := rr.ProposeMinReplicas(percentileMem, requestTotalMem, rr.MemTargetUtilization)
 	if err != nil {
 		return 0, 0, 0, fmt.Errorf("%s proposeMinReplicas for cpu failed: %v", rr.Name(), err)
 	}
 
-	// use the larger replicas
 	if minReplicasMem > minReplicasCpu {
 		minReplicasCpu = minReplicasMem
 	}

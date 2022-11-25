@@ -170,7 +170,7 @@ require (
 require (
 	cloud.google.com/go v0.84.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
-	github.com/fsnotify/fsnotify v1.5.1 // indirect
+	github.com/fsnotify/fsnotify v1.5.1
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/lithammer/fuzzysearch v1.1.5
 	github.com/mattn/go-isatty v0.0.14 // indirect
