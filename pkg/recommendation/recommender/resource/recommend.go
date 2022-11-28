@@ -120,7 +120,6 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 		}
 		v := int64(tsList[0].Samples[0].Value * 1000)
 		cpuQuantity := resource.NewMilliQuantity(v, resource.DecimalSI)
-		cr.Target[corev1.ResourceCPU] = cpuQuantity.String()
 		klog.Infof("%s: container %s recommended cpu %s", ctx.String(), c.Name, cpuQuantity.String())
 
 		metricNamer = metricnaming.ResourceToContainerMetricNamer(namespace, ctx.Recommendation.Spec.TargetRef.APIVersion,
@@ -150,6 +149,17 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 			}
 		}
 
+		// Resource Specification enabled
+		if rr.Specification {
+			normalizedCpu, normalizedMem := GetNormalizedResource(cpuQuantity, memQuantity, rr.SpecificationConfigs)
+			klog.Infof("GetNormalizedResource currentCpu %s normalizedCpu %s currentMem %s normalizedMem %s", cpuQuantity.String(), normalizedCpu.String(), memQuantity.String(), normalizedMem.String())
+			if normalizedCpu.Value() > 0 && normalizedMem.Value() > 0 {
+				cpuQuantity = &normalizedCpu
+				memQuantity = &normalizedMem
+			}
+		}
+
+		cr.Target[corev1.ResourceCPU] = cpuQuantity.String()
 		cr.Target[corev1.ResourceMemory] = memQuantity.String()
 
 		newContainerSpec := corev1.Container{

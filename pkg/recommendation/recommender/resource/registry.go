@@ -28,6 +28,8 @@ type ResourceRecommender struct {
 	OOMProtection            bool
 	OOMHistoryLength         time.Duration
 	OOMBumpRatio             float64
+	Specification            bool
+	SpecificationConfigs     []Specification
 }
 
 func (rr *ResourceRecommender) Name() string {
@@ -82,6 +84,23 @@ func NewResourceRecommender(recommender apis.Recommender, oomRecorder oom.Record
 		memHistoryLength = "168h"
 	}
 
+	specification, exists := recommender.Config["specification"]
+	if !exists {
+		specification = "false"
+	}
+	specificationBool, err := strconv.ParseBool(specification)
+	if err != nil {
+		return nil, err
+	}
+	specificationCofig, exists := recommender.Config["specification-config"]
+	if !exists {
+		specificationCofig = DefaultSpecs
+	}
+	specifications, err := GetResourceSpecifications(specificationCofig)
+	if err != nil {
+		return nil, err
+	}
+
 	oomProtection, exists := recommender.Config["oom-protection"]
 	if !exists {
 		oomProtection = "true"
@@ -128,5 +147,7 @@ func NewResourceRecommender(recommender apis.Recommender, oomRecorder oom.Record
 		oomProtectionBool,
 		oomHistoryLengthDuration,
 		OOMBumpRatioFloat,
+		specificationBool,
+		specifications,
 	}, nil
 }
