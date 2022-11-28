@@ -8,11 +8,9 @@ import (
 	"github.com/gocrane/crane/pkg/recommendation/recommender"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/apis"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/base"
-	"github.com/gocrane/crane/pkg/utils"
 )
 
 var _ recommender.Recommender = &ResourceRecommender{}
-var ResourceSpecs []utils.ResourceSpec
 
 type ResourceRecommender struct {
 	base.BaseRecommender
@@ -30,7 +28,8 @@ type ResourceRecommender struct {
 	OOMProtection            bool
 	OOMHistoryLength         time.Duration
 	OOMBumpRatio             float64
-	ResourceSpecs            []utils.ResourceSpec
+	Specification            bool
+	SpecificationConfigs     []Specification
 }
 
 func (rr *ResourceRecommender) Name() string {
@@ -84,12 +83,20 @@ func NewResourceRecommender(recommender apis.Recommender, oomRecorder oom.Record
 	if !exists {
 		memHistoryLength = "168h"
 	}
-	//
-	resourceSpecification, exists := recommender.Config["resource-specification"]
+
+	specification, exists := recommender.Config["specification"]
 	if !exists {
-		resourceSpecification = ""
+		specification = "false"
 	}
-	specs, err := utils.ToSpecStrurt(resourceSpecification)
+	specificationBool, err := strconv.ParseBool(specification)
+	if err != nil {
+		return nil, err
+	}
+	specificationCofig, exists := recommender.Config["specification-config"]
+	if !exists {
+		specificationCofig = DefaultSpecs
+	}
+	specifications, err := GetResourceSpecifications(specificationCofig)
 	if err != nil {
 		return nil, err
 	}
@@ -140,6 +147,7 @@ func NewResourceRecommender(recommender apis.Recommender, oomRecorder oom.Record
 		oomProtectionBool,
 		oomHistoryLengthDuration,
 		OOMBumpRatioFloat,
-		specs,
+		specificationBool,
+		specifications,
 	}, nil
 }
