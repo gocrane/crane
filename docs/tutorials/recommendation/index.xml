@@ -133,27 +133,92 @@ If you want to know how Crane makes Recommendations, or if you want to try to im
 &lt;h2 id="how-to-make-recommendations-more-accurate">How to make recommendations more accurate&lt;/h2>
 &lt;p>The more historical data stored in a monitoring system, such as Prometheus, the more accurate the recommendation will be. More than two weeks&amp;rsquo;s data is recommended for production. Predictions about new apps are often inaccurate.&lt;/p></description></item><item><title>Docs: Replicas Recommendation</title><link>/docs/tutorials/recommendation/replicas-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/replicas-recommendation/</guid><description>
 &lt;p>Kubernetes&amp;rsquo; users often set the replicas based on empirical values when creating application resources. Based on the replicas recommendation, you can analyze the actual application usage and recommend a more suitable replicas configuration. You can use it to improve the resource utilization of the cluster.&lt;/p>
+&lt;h2 id="motivation">Motivation&lt;/h2>
+&lt;p>Kubernetes workload replicas allows you to control the Pods for quick scaling. However, how to set a reasonable replicas has always been a problem for application administrators. Too large may lead to a lot of waste of resources, while too low may cause stability problems.&lt;/p>
+&lt;p>The HPA in community provides a dynamic autoscaling mechanism based on realtime metrics, meanwhile Crane&amp;rsquo;s EffectiveHPA supports prediction-driven autoscaling based on HPA. However, in the real world, only some workloads can scale horizontally all the time, many workloads require a fixed number of pods.&lt;/p>
+&lt;p>The figure below shows a workload with low utilization, it has 30% of the resource wasted between the Pod&amp;rsquo;s peak historical usage and its Request.&lt;/p>
+&lt;p>&lt;img src="/images/resource-waste.jpg" alt="Resource Waste">&lt;/p>
+&lt;p>Replica recommendation attempts to reduce the complexity of how to know the replicas of workloads by analyzing the historical usage.&lt;/p>
+&lt;h2 id="sample">Sample&lt;/h2>
+&lt;p>A Replicas recommendation sample yaml looks like below:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule-replicas-p84jv&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">kube-system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labels&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">addonmanager.kubernetes.io/mode&lt;/span>: &lt;span style="color:#ae81ff">Reconcile&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-recommender&lt;/span>: &lt;span style="color:#ae81ff">Replicas&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-uid&lt;/span>: &lt;span style="color:#ae81ff">18588495&lt;/span>-&lt;span style="color:#ae81ff">f325-4873-b45a-7acfe9f1ba94&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">k8s-app&lt;/span>: &lt;span style="color:#ae81ff">kube-dns&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kubernetes.io/cluster-service&lt;/span>: &lt;span style="color:#e6db74">&amp;#39;true&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kubernetes.io/name&lt;/span>: &lt;span style="color:#ae81ff">CoreDNS&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">ownerReferences&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">RecommendationRule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">18588495&lt;/span>-&lt;span style="color:#ae81ff">f325-4873-b45a-7acfe9f1ba94&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">controller&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">blockOwnerDeletion&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">kube-system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">coredns&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">Replicas&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategy&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategyType&lt;/span>: &lt;span style="color:#ae81ff">Once&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">adoptionType&lt;/span>: &lt;span style="color:#ae81ff">StatusAndAnnotation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">status&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommendedValue&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">replicasRecommendation&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">replicas&lt;/span>: &lt;span style="color:#ae81ff">1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>: { }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommendedInfo&lt;/span>: &lt;span style="color:#e6db74">&amp;#39;{&amp;#34;spec&amp;#34;:{&amp;#34;replicas&amp;#34;:1}}&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">currentInfo&lt;/span>: &lt;span style="color:#e6db74">&amp;#39;{&amp;#34;spec&amp;#34;:{&amp;#34;replicas&amp;#34;:2}}&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">action&lt;/span>: &lt;span style="color:#ae81ff">Patch&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">conditions&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">Ready&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">status&lt;/span>: &lt;span style="color:#e6db74">&amp;#39;True&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastTransitionTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#39;2022-11-28T08:07:36Z&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">reason&lt;/span>: &lt;span style="color:#ae81ff">RecommendationReady&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">message&lt;/span>: &lt;span style="color:#ae81ff">Recommendation is ready&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastUpdateTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#39;2022-11-29T11:07:45Z&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>In this sample：&lt;/p>
+&lt;ul>
+&lt;li>Recommendation TargetRef point to a Deployment in kube-system namespace：coredns&lt;/li>
+&lt;li>Recommendation type is Replicas&lt;/li>
+&lt;li>adoptionType is StatusAndAnnotation，indicated that put recommendation result in recommendation.status and Deployment 的 Annotation&lt;/li>
+&lt;li>recommendedInfo shows the recommended replicas（recommendedValue is deprecated），currentInfo shows the current replicas.The format is Json that can be updated for TargetRef by &lt;code>Kubectl Patch&lt;/code>
+TargetRef&lt;/li>
+&lt;/ul>
+&lt;p>How to create a Replicas recommendation please refer to：&lt;a href="/docs/tutorials/recommendation/recommendation-framework">&lt;strong>Recommendation Framework&lt;/strong>&lt;/a>&lt;/p>
 &lt;h2 id="implement">Implement&lt;/h2>
-&lt;p>Based on the historical Workload CPU loads, find the workload&amp;rsquo;s lowest CPU usage per hour in the past seven days, and calculate the replicas with 50% (configurable) cpu usage that should be configured&lt;/p>
-&lt;h3 id="filter-phase">Filter Phase&lt;/h3>
+&lt;p>The process for one Replicas recommendation:&lt;/p>
+&lt;ol>
+&lt;li>Query the historical CPU and Memory usage of the Workload for the past week by monitoring system.&lt;/li>
+&lt;li>Use DSP algorithm to predict the CPU usage in the future.&lt;/li>
+&lt;li>Calculate the replicas for both CPU and memory, then choose a larger one.&lt;/li>
+&lt;/ol>
+&lt;h3 id="algorithm">Algorithm&lt;/h3>
+&lt;p>Use cpu usage as an example. Assume that the P99 of the historical CPU usage of the workload is 10 cores, the Pod CPU Request is 5 cores, and the target peak utilization is 50%. Therefore, we know that 4(10 / 50% / 5) pods can meet the target peak utilization.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">replicas&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> int32(&lt;span style="color:#a6e22e">math&lt;/span>.&lt;span style="color:#a6e22e">Ceil&lt;/span>(&lt;span style="color:#a6e22e">workloadUsage&lt;/span> &lt;span style="color:#f92672">/&lt;/span> (&lt;span style="color:#a6e22e">TargetUtilization&lt;/span> &lt;span style="color:#f92672">*&lt;/span> float64(&lt;span style="color:#a6e22e">requestTotal&lt;/span>))))
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="abnormal-workloads">Abnormal workloads&lt;/h3>
+&lt;p>The following types of abnormal workloads are not recommended:&lt;/p>
 &lt;ol>
 &lt;li>workload with low replicas: If the replicas is too low, it may not have high recommendation demand. Associated configuration: &amp;lsquo;workload-min-replicas&amp;rsquo;&lt;/li>
 &lt;li>There is a certain percentage of the not running pods for workload: if the Pod of workload mostly can&amp;rsquo;t run normally, may not be suitable for recommendation, associated configuration: &lt;code>pod-min-ready-seconds&lt;/code> | &lt;code>pod-available-ratio&lt;/code>&lt;/li>
 &lt;/ol>
-&lt;h3 id="prepare-phase">Prepare Phase&lt;/h3>
-&lt;p>Query the workload cpu usage in the past week.&lt;/p>
-&lt;h3 id="recommend-phase">Recommend Phase&lt;/h3>
-&lt;ol>
-&lt;li>Calculate the lowest value of the median workload usage per hour in the past seven days (to prevent the impact of the minimum value): workload_cpu_usage_medium_min&lt;/li>
-&lt;li>The number of replicas corresponding to the target utilization:&lt;/li>
-&lt;/ol>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">replicas&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> int32(&lt;span style="color:#a6e22e">math&lt;/span>.&lt;span style="color:#a6e22e">Ceil&lt;/span>(&lt;span style="color:#a6e22e">workload_cpu_usage_medium_min&lt;/span> &lt;span style="color:#f92672">/&lt;/span> (&lt;span style="color:#a6e22e">rr&lt;/span>.&lt;span style="color:#a6e22e">TargetUtilization&lt;/span> &lt;span style="color:#f92672">*&lt;/span> float64(&lt;span style="color:#a6e22e">requestTotal&lt;/span>) &lt;span style="color:#f92672">/&lt;/span> &lt;span style="color:#ae81ff">1000.&lt;/span>)))
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ol start="3">
-&lt;li>In order to prevent too low replicas，replicas should be larger than or equal to default-min-replicas&lt;/li>
-&lt;/ol>
-&lt;h3 id="observe-phase">Observe Phase&lt;/h3>
+&lt;h3 id="prometheus-metrics">Prometheus Metrics&lt;/h3>
 &lt;p>Record recommended replicas to Metric: crane_analytics_replicas_recommendation&lt;/p>
-&lt;h2 id="accepted-resources">Accepted resources&lt;/h2>
+&lt;h2 id="how-to-verify-the-accuracy-of-recommendation-results">How to verify the accuracy of recommendation results&lt;/h2>
+&lt;p>Users can get the Workload resource usage through the following Prom-query, when you get the workload usage, put it into the algorithm above.&lt;/p>
+&lt;p>Taking Deployment Craned in crane-system as an example, you can use your container, namespace to replace it in following Prom-query.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>sum&lt;span style="color:#f92672">(&lt;/span>irate&lt;span style="color:#f92672">(&lt;/span>container_cpu_usage_seconds_total&lt;span style="color:#f92672">{&lt;/span>namespace&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;crane-system&amp;#34;&lt;/span>,pod&lt;span style="color:#f92672">=&lt;/span>~&lt;span style="color:#e6db74">&amp;#34;^craned-.*&lt;/span>$&lt;span style="color:#e6db74">&amp;#34;&lt;/span>,container!&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;&amp;#34;&lt;/span>&lt;span style="color:#f92672">}[&lt;/span>3m&lt;span style="color:#f92672">]))&lt;/span> &lt;span style="color:#75715e"># cpu usage&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>sum&lt;span style="color:#f92672">(&lt;/span>container_memory_working_set_bytes&lt;span style="color:#f92672">{&lt;/span>namespace&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;crane-system&amp;#34;&lt;/span>,pod&lt;span style="color:#f92672">=&lt;/span>~&lt;span style="color:#e6db74">&amp;#34;^craned-.*&lt;/span>$&lt;span style="color:#e6db74">&amp;#34;&lt;/span>,container!&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;&amp;#34;&lt;/span>&lt;span style="color:#f92672">})&lt;/span> &lt;span style="color:#75715e"># memory usage&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="accepted-resources">Accepted resources&lt;/h2>
 &lt;p>Support StatefulSet and Deployment by default，but all workloads that support &lt;code>Scale SubResource&lt;/code> are supported.&lt;/p>
 &lt;h2 id="configuration">Configuration&lt;/h2>
 &lt;table>
@@ -186,27 +251,137 @@ If you want to know how Crane makes Recommendations, or if you want to try to im
 &lt;td>default minReplicas&lt;/td>
 &lt;/tr>
 &lt;tr>
+&lt;td>cpu-percentile&lt;/td>
+&lt;td>0.95&lt;/td>
+&lt;td>Percentile for historical cpu usage&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>mem-percentile&lt;/td>
+&lt;td>0.95&lt;/td>
+&lt;td>Percentile for historical memory usage&lt;/td>
+&lt;/tr>
+&lt;tr>
 &lt;td>cpu-target-utilization&lt;/td>
 &lt;td>0.5&lt;/td>
-&lt;td>Calculate the minimum replicas based on this cpu utilization&lt;/td>
+&lt;td>Target of CPU peak historical usage&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>mem-target-utilization&lt;/td>
+&lt;td>0.5&lt;/td>
+&lt;td>Target of Memory peak historical usage&lt;/td>
 &lt;/tr>
 &lt;/tbody>
-&lt;/table></description></item><item><title>Docs: Resource Recommendation</title><link>/docs/tutorials/recommendation/resource-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/resource-recommendation/</guid><description>
+&lt;/table>
+&lt;p>How to update recommendation configuration please refer to：&lt;a href="/docs/tutorials/recommendation/recommendation-framework">&lt;strong>Recommendation Framework&lt;/strong>&lt;/a>&lt;/p></description></item><item><title>Docs: Resource Recommendation</title><link>/docs/tutorials/recommendation/resource-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/resource-recommendation/</guid><description>
 &lt;p>Kubernetes&amp;rsquo; users often config request and limit based on empirical values when creating application resources. Based on the resource recommendation algorithm, you can analyze the actual application usage and recommend more appropriate resource configurations. You can use the resource recommendation algorithm to improve the resource utilization of the cluster.&lt;/p>
+&lt;h2 id="motivation">Motivation&lt;/h2>
+&lt;p>In Kubernetes, Request defines the minimum amount of resources required by Pod, Limit defines the maximum amount of resources capability for Pod , and workload&amp;rsquo;s Utilization = Resource Usage / Request. There are two types of unreasonable resource utilization:&lt;/p>
+&lt;ul>
+&lt;li>Utilization too low: The Request is often set to a large value because user don&amp;rsquo;t know how many resource specifications can meet application requirements and choose to make it higher. It leads to a lot of resource waste.&lt;/li>
+&lt;li>Utilization too high: Due to the service pressure caused by peak traffic or incorrect resource configuration. If the CPU usage is too high, it might cause more delay. If the memory usage exceeds the Limit, the Container will be killed, which affects service stability.&lt;/li>
+&lt;/ul>
+&lt;p>The figure below shows a workload with low utilization, it has 30% of the resource wasted between the Pod&amp;rsquo;s peak historical usage and its Request.&lt;/p>
+&lt;p>&lt;img src="/images/resource-waste.jpg" alt="Resource Waste">&lt;/p>
+&lt;p>Resource recommendation attempts to reduce the complexity of how to know the fit request of workloads by analyzing the historical usage.&lt;/p>
+&lt;h2 id="sample">Sample&lt;/h2>
+&lt;p>A Resource recommendation sample yaml looks like below:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule-resource-flzbv&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">crane-system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labels&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-recommender&lt;/span>: &lt;span style="color:#ae81ff">Resource&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-uid&lt;/span>: &lt;span style="color:#ae81ff">18588495&lt;/span>-&lt;span style="color:#ae81ff">f325-4873-b45a-7acfe9f1ba94&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-name&lt;/span>: &lt;span style="color:#ae81ff">load-test&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-version&lt;/span>: &lt;span style="color:#ae81ff">v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">app&lt;/span>: &lt;span style="color:#ae81ff">craned&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">app.kubernetes.io/instance&lt;/span>: &lt;span style="color:#ae81ff">crane&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">app.kubernetes.io/managed-by&lt;/span>: &lt;span style="color:#ae81ff">Helm&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">app.kubernetes.io/name&lt;/span>: &lt;span style="color:#ae81ff">crane&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">app.kubernetes.io/version&lt;/span>: &lt;span style="color:#ae81ff">v0.7.0&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">helm.sh/chart&lt;/span>: &lt;span style="color:#ae81ff">crane-0.7.0&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">ownerReferences&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">RecommendationRule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">18588495&lt;/span>-&lt;span style="color:#ae81ff">f325-4873-b45a-7acfe9f1ba94&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">controller&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">blockOwnerDeletion&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">crane-system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">craned&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">Resource&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategy&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategyType&lt;/span>: &lt;span style="color:#ae81ff">Once&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">adoptionType&lt;/span>: &lt;span style="color:#ae81ff">StatusAndAnnotation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">status&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommendedValue&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceRequest&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">containers&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">containerName&lt;/span>: &lt;span style="color:#ae81ff">craned&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">target&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">cpu&lt;/span>: &lt;span style="color:#ae81ff">150m&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">memory&lt;/span>: &lt;span style="color:#ae81ff">256Mi&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">containerName&lt;/span>: &lt;span style="color:#ae81ff">dashboard&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">target&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">cpu&lt;/span>: &lt;span style="color:#ae81ff">150m&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">memory&lt;/span>: &lt;span style="color:#ae81ff">256Mi&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>: {}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommendedInfo&lt;/span>: &amp;gt;-&lt;span style="color:#e6db74">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> &lt;/span> {&lt;span style="color:#e6db74">&amp;#34;spec&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;template&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;spec&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;containers&amp;#34;&lt;/span>:[{&lt;span style="color:#e6db74">&amp;#34;name&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;craned&amp;#34;&lt;/span>,&lt;span style="color:#e6db74">&amp;#34;resources&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;requests&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;cpu&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;150m&amp;#34;&lt;/span>,&lt;span style="color:#e6db74">&amp;#34;memory&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;256Mi&amp;#34;&lt;/span>}}},{&lt;span style="color:#e6db74">&amp;#34;name&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;dashboard&amp;#34;&lt;/span>,&lt;span style="color:#e6db74">&amp;#34;resources&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;requests&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;cpu&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;150m&amp;#34;&lt;/span>,&lt;span style="color:#e6db74">&amp;#34;memory&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;256Mi&amp;#34;&lt;/span>}}}]}}}}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">currentInfo&lt;/span>: &amp;gt;-&lt;span style="color:#e6db74">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> &lt;/span> {&lt;span style="color:#e6db74">&amp;#34;spec&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;template&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;spec&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;containers&amp;#34;&lt;/span>:[{&lt;span style="color:#e6db74">&amp;#34;name&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;craned&amp;#34;&lt;/span>,&lt;span style="color:#e6db74">&amp;#34;resources&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;requests&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;cpu&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;500m&amp;#34;&lt;/span>,&lt;span style="color:#e6db74">&amp;#34;memory&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;512Mi&amp;#34;&lt;/span>}}},{&lt;span style="color:#e6db74">&amp;#34;name&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;dashboard&amp;#34;&lt;/span>,&lt;span style="color:#e6db74">&amp;#34;resources&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;requests&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;cpu&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;200m&amp;#34;&lt;/span>,&lt;span style="color:#e6db74">&amp;#34;memory&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;256Mi&amp;#34;&lt;/span>}}}]}}}}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">action&lt;/span>: &lt;span style="color:#ae81ff">Patch&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">conditions&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">Ready&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">status&lt;/span>: &lt;span style="color:#e6db74">&amp;#39;True&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastTransitionTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#39;2022-11-29T04:07:44Z&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">reason&lt;/span>: &lt;span style="color:#ae81ff">RecommendationReady&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">message&lt;/span>: &lt;span style="color:#ae81ff">Recommendation is ready&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastUpdateTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#39;2022-11-30T03:07:49Z&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>In this sample：&lt;/p>
+&lt;ul>
+&lt;li>Recommendation TargetRef point to a Deployment in namespace crane-system：craned&lt;/li>
+&lt;li>Recommendation type is Replicas&lt;/li>
+&lt;li>adoptionType is StatusAndAnnotation，indicated that put recommendation result in recommendation.status and Deployment 的 Annotation&lt;/li>
+&lt;li>recommendedInfo shows the recommended requests for containers（recommendedValue is deprecated），currentInfo shows the current request for containers. The format is Json that can be updated for TargetRef by &lt;code>Kubectl Patch&lt;/code>&lt;/li>
+&lt;/ul>
+&lt;p>How to create a Resource recommendation please refer to：&lt;a href="/docs/tutorials/recommendation/recommendation-framework">&lt;strong>Recommendation Framework&lt;/strong>&lt;/a>&lt;/p>
 &lt;h2 id="implement">Implement&lt;/h2>
-&lt;p>The algorithm model adopts VPA&amp;rsquo;s Moving Window algorithm for recommendation&lt;/p>
+&lt;p>The process for one Resource recommendation:&lt;/p>
 &lt;ol>
-&lt;li>By monitoring system, you can obtain the Workload (configurable) CPU and Memory usage history in the past week.&lt;/li>
-&lt;li>The algorithm considers the timeliness of data. The newer data sampling points will have higher weight.&lt;/li>
-&lt;li>The recommended CPU value is calculated based on the target percentile value that set by the user, and the recommended Memory value is calculated based on the maximum historical value&lt;/li>
+&lt;li>Query the historical CPU and Memory usage of the Workload for the past week by monitoring system.&lt;/li>
+&lt;li>Take the P99 percentile usage through VPA Histogram, and then multiply the amplification factor&lt;/li>
+&lt;li>OOM protection: If the container has a history of OOM events, it is recommended to increase the memory size based on the memory used when OOM happened.&lt;/li>
+&lt;li>Resource specifications: The recommended result is rounded up based on the specified pod specifications&lt;/li>
 &lt;/ol>
-&lt;h3 id="filter-phase">Filter Phase&lt;/h3>
-&lt;p>Workloads that have no Pods: If the workload does not have Pods, analysis cannot be performed&lt;/p>
-&lt;h3 id="recommend-phase">Recommend Phase&lt;/h3>
-&lt;p>Adopt VPA Moving Window algorithm to calculate CPU and Memory for every container and give recommendation config.&lt;/p>
-&lt;h3 id="observe-phase">Observe Phase&lt;/h3>
-&lt;p>Record recommended resource to Metric：crane_analytics_replicas_recommendation&lt;/p>
-&lt;h2 id="accepted-resources">Accepted Resources&lt;/h2>
+&lt;p>To sum up, based on the historical resource usage, set the Request value to slightly higher than the historical maximum and consider the OOM and Pod specifications.&lt;/p>
+&lt;h3 id="vpa-algorithm">VPA Algorithm&lt;/h3>
+&lt;p>The core algorithm of resource recommendation is to recommend reasonable resource request based on historical resource consumption. we adopt the community VPA Histogram algorithm to implement it. VPA algorithm puts the historical resource consumption into the histogram, finds the P99 percentage of resource consumption, and multiplies the percentage by the amplification factor as the recommended value.&lt;/p>
+&lt;p>The output of VPA algorithm is the P99 consumption of cpu and memory. In order to reserve buffer for the application, it will multiply the magnification factor. You can configure the amplification factor in either of the following ways:&lt;/p>
+&lt;ol>
+&lt;li>Margin fraction: Recommended result = P99 usage * (1 + margin fraction), corresponding configuration: cpu-request-margin-fraction and me-request-margin-fraction&lt;/li>
+&lt;li>Target utilization: The recommended result is P99 amount/target utilization, and the corresponding configurations are cpu-target-utilization and mem-target-utilization&lt;/li>
+&lt;/ol>
+&lt;p>When you have a target peak utilization target for the application, it is recommended to use the &lt;strong>target utilization&lt;/strong> way to amplify the recommendation results.&lt;/p>
+&lt;h3 id="oom-protection">OOM Protection&lt;/h3>
+&lt;p>Craned runs a component, OOMRecorder, which records the events of the container OOM in the cluster. The resource recommendation reads the events of the OOM Recorder to obtain the memory usage at OOM time. We make sure the recommended memory is larger than the value when OOM happened.&lt;/p>
+&lt;h3 id="resource-specification">Resource Specification&lt;/h3>
+&lt;p>In Serverless Kubernetes, the cpu and memory specifications of the Pod are predefined. The resource recommendation can be rounded up according to the predefined resource specifications. For example, the recommended cpu value based on the historical usage is 0.125 core, and are rounded up to 0.25 core. You can also modify the specifications to meet the specifications requirements of your environment.&lt;/p>
+&lt;h3 id="prometheus-metric">Prometheus Metric&lt;/h3>
+&lt;p>Record recommended resource to Metric：crane_analysis_resource_recommendation&lt;/p>
+&lt;h2 id="how-to-verify-the-accuracy-of-recommendation-results">How to verify the accuracy of recommendation results&lt;/h2>
+&lt;p>You can use the following Prom-query to obtain the Workload Container resource usage. The recommended value is slightly higher than the historical maximum, considering the OOM and Pod specifications.&lt;/p>
+&lt;p>Taking Deployment Craned in crane-system as an example, you can use your container, namespace to replace it in following Prom-query.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>irate&lt;span style="color:#f92672">(&lt;/span>container_cpu_usage_seconds_total&lt;span style="color:#f92672">{&lt;/span>container!&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;POD&amp;#34;&lt;/span>,namespace&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;crane-system&amp;#34;&lt;/span>,pod&lt;span style="color:#f92672">=&lt;/span>~&lt;span style="color:#e6db74">&amp;#34;^craned.*&lt;/span>$&lt;span style="color:#e6db74">&amp;#34;&lt;/span>,container&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;craned&amp;#34;&lt;/span>&lt;span style="color:#f92672">}[&lt;/span>3m&lt;span style="color:#f92672">])&lt;/span> &lt;span style="color:#75715e"># cpu usage&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>container_memory_working_set_bytes&lt;span style="color:#f92672">{&lt;/span>container!&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;POD&amp;#34;&lt;/span>,namespace&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;crane-system&amp;#34;&lt;/span>,pod&lt;span style="color:#f92672">=&lt;/span>~&lt;span style="color:#e6db74">&amp;#34;^craned.*&lt;/span>$&lt;span style="color:#e6db74">&amp;#34;&lt;/span>,container&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;craned&amp;#34;&lt;/span>&lt;span style="color:#f92672">}&lt;/span> &lt;span style="color:#75715e"># memory usage&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="accepted-resources">Accepted Resources&lt;/h2>
 &lt;p>Support StatefulSet and Deployment by default，but all workloads that support &lt;code>Scale SubResource&lt;/code> are supported.&lt;/p>
 &lt;h2 id="configuration">Configuration&lt;/h2>
 &lt;table>
@@ -268,12 +443,165 @@ If you want to know how Crane makes Recommendations, or if you want to try to im
 &lt;td>168h&lt;/td>
 &lt;td>Historical length for Memory monitoring data&lt;/td>
 &lt;/tr>
+&lt;tr>
+&lt;td>specification&lt;/td>
+&lt;td>false&lt;/td>
+&lt;td>Enable for resource rpecification&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>specification-config&lt;/td>
+&lt;td>&amp;quot;&amp;quot;&lt;/td>
+&lt;td>resource specifications configuration&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>oom-protection&lt;/td>
+&lt;td>true&lt;/td>
+&lt;td>Enable for OOM Prodection&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>oom-history-length&lt;/td>
+&lt;td>168h&lt;/td>
+&lt;td>OOM event history length, ignore too old events&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>oom-bump-ratio&lt;/td>
+&lt;td>1.2&lt;/td>
+&lt;td>OOM memory bump up ratio&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>How to update recommendation configuration please refer to：&lt;a href="/docs/tutorials/recommendation/recommendation-framework">&lt;strong>Recommendation Framework&lt;/strong>&lt;/a>&lt;/p>
+&lt;h2 id="default-resource-specifications-configuration">Default resource specifications configuration&lt;/h2>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>CPU（Cores）&lt;/th>
+&lt;th>Memory（GBi）&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>0.25&lt;/td>
+&lt;td>0.25&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>0.25&lt;/td>
+&lt;td>0.5&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>0.25&lt;/td>
+&lt;td>1&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>0.5&lt;/td>
+&lt;td>0.5&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>0.5&lt;/td>
+&lt;td>1&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>1&lt;/td>
+&lt;td>1&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>1&lt;/td>
+&lt;td>2&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>1&lt;/td>
+&lt;td>4&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>1&lt;/td>
+&lt;td>8&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>2&lt;/td>
+&lt;td>2&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>2&lt;/td>
+&lt;td>4&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>2&lt;/td>
+&lt;td>8&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>2&lt;/td>
+&lt;td>16&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>4&lt;/td>
+&lt;td>4&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>4&lt;/td>
+&lt;td>8&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>4&lt;/td>
+&lt;td>16&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>4&lt;/td>
+&lt;td>32&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>8&lt;/td>
+&lt;td>8&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>8&lt;/td>
+&lt;td>16&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>8&lt;/td>
+&lt;td>32&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>8&lt;/td>
+&lt;td>64&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>16&lt;/td>
+&lt;td>32&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>16&lt;/td>
+&lt;td>64&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>16&lt;/td>
+&lt;td>128&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>32&lt;/td>
+&lt;td>64&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>32&lt;/td>
+&lt;td>128&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>32&lt;/td>
+&lt;td>256&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>64&lt;/td>
+&lt;td>128&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>64&lt;/td>
+&lt;td>256&lt;/td>
+&lt;/tr>
 &lt;/tbody>
 &lt;/table></description></item><item><title>Docs: IdleNode Recommendation</title><link>/docs/tutorials/recommendation/idlenode-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/idlenode-recommendation/</guid><description>
 &lt;p>By scanning the status and utilization of nodes, the idle node recommendation helps users to find idle Kubernetes nodes.&lt;/p>
 &lt;h2 id="motivation">Motivation&lt;/h2>
 &lt;p>In Kubernetes cluster, some nodes often idle due to such factors as node taint, label selector, low packing rate and low utilization rate, which wastes a lot of costs. IdleNode recommendation tries to help users find these nodes to reduce cost.&lt;/p>
-&lt;h2 id="example">Example&lt;/h2>
+&lt;h2 id="sample">Sample&lt;/h2>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
@@ -307,17 +635,18 @@ If you want to know how Crane makes Recommendations, or if you want to try to im
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>: {}
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">action&lt;/span>: &lt;span style="color:#ae81ff">Delete&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastUpdateTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#39;2022-11-30T07:46:57Z&amp;#39;&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>In this example：&lt;/p>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>In this sample：&lt;/p>
 &lt;ul>
 &lt;li>Recommendation&amp;rsquo;s TargetRef Point to Node：worker-node-1&lt;/li>
 &lt;li>Recommendation type is IdleNode&lt;/li>
 &lt;li>action is Delete，but offline a node is a complicated operation, we only give recommended advise.&lt;/li>
 &lt;/ul>
+&lt;p>How to create a IdleNode recommendation please refer to：&lt;a href="/zh-cn/docs/tutorials/recommendation/recommendation-framework">&lt;strong>Recommendation Framework&lt;/strong>&lt;/a>&lt;/p>
 &lt;h2 id="implement">Implement&lt;/h2>
 &lt;p>Perform the following steps to complete a recommendation process for idle nodes:&lt;/p>
 &lt;ol>
 &lt;li>Scan all nodes and pods in the cluster&lt;/li>
-&lt;li>If all Pods on a node are DaemonSet, the node is considered to be idle&lt;/li>
+&lt;li>If all Pods on a node are DaemonSet pods, the node is considered to be idle&lt;/li>
 &lt;/ol></description></item><item><title>Docs: How to develop Recommender</title><link>/docs/tutorials/recommendation/how-to-develop-recommender/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/how-to-develop-recommender/</guid><description>
 &lt;p>Recommendation Framework provides an extensible framework for Recommender and supports several built-in Recommender. Users can implement a self-defined Recommender or modify the existing Recommenders.&lt;/p>
 &lt;h2 id="recommender-interface">Recommender Interface&lt;/h2>

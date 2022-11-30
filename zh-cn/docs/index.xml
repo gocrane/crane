@@ -1921,8 +1921,8 @@ TargetRef&lt;/li>
 &lt;li>分别计算 CPU 和 内存分别对应的副本数，取较大值&lt;/li>
 &lt;/ol>
 &lt;h3 id="计算副本算法">计算副本算法&lt;/h3>
-&lt;p>以 CPU 举例，假设工作负载 CPU 历史用量的 P99 是10核，Pod CPU Request 是5核，目标峰值利用率是50%，可知副本数是4个可以满足峰值利用率是50%。&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">replicas&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> int32(&lt;span style="color:#a6e22e">math&lt;/span>.&lt;span style="color:#a6e22e">Ceil&lt;/span>(&lt;span style="color:#a6e22e">workloadUsage&lt;/span> &lt;span style="color:#f92672">/&lt;/span> (&lt;span style="color:#a6e22e">TargetUtilization&lt;/span> &lt;span style="color:#f92672">*&lt;/span> float64(&lt;span style="color:#a6e22e">requestTotal&lt;/span>) &lt;span style="color:#f92672">/&lt;/span> &lt;span style="color:#ae81ff">1000.&lt;/span>)))
+&lt;p>以 CPU 举例，假设工作负载 CPU 历史用量的 P99 是10核，Pod CPU Request 是5核，目标峰值利用率是50%，可知副本数是4个可以满足峰值利用率不小于50%。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">replicas&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> int32(&lt;span style="color:#a6e22e">math&lt;/span>.&lt;span style="color:#a6e22e">Ceil&lt;/span>(&lt;span style="color:#a6e22e">workloadUsage&lt;/span> &lt;span style="color:#f92672">/&lt;/span> (&lt;span style="color:#a6e22e">TargetUtilization&lt;/span> &lt;span style="color:#f92672">*&lt;/span> float64(&lt;span style="color:#a6e22e">requestTotal&lt;/span>) )))
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="排除异常的工作负载">排除异常的工作负载&lt;/h3>
 &lt;p>以下类型的异常工作负载不进行推荐：&lt;/p>
 &lt;ol>
@@ -1993,7 +1993,7 @@ TargetRef&lt;/li>
 &lt;p>如何更新推荐的配置请参考：&lt;a href="/zh-cn/docs/tutorials/recommendation/recommendation-framework">&lt;strong>推荐框架&lt;/strong>&lt;/a>&lt;/p></description></item><item><title>Docs: 资源推荐</title><link>/zh-cn/docs/tutorials/recommendation/resource-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/recommendation/resource-recommendation/</guid><description>
 &lt;p>Kubernetes 用户在创建应用资源时常常是基于经验值来设置 request 和 limit。通过资源推荐的算法分析应用的真实用量推荐更合适的资源配置，您可以参考并采纳它提升集群的资源利用率。&lt;/p>
 &lt;h2 id="动机">动机&lt;/h2>
-&lt;p>Kubernetes 中 Request 定义了 Pod 运行需要的最小资源量，Limit 定义了 Pod 运行可使用的最大资源量，应用的资源利用率 Utilization = Request / 资源用量 Usage。不合理的资源利用率有以下两种情况：&lt;/p>
+&lt;p>Kubernetes 中 Request 定义了 Pod 运行需要的最小资源量，Limit 定义了 Pod 运行可使用的最大资源量，应用的资源利用率 Utilization = 资源用量 Usage / Request 。不合理的资源利用率有以下两种情况：&lt;/p>
 &lt;ul>
 &lt;li>利用率过低：因为不清楚配置多少资源规格可以满足应用需求，或者是为了应对高峰流量时的资源消耗诉求，常常将 Request 设置得较大，这样就导致了过低的利用率，造成了浪费。&lt;/li>
 &lt;li>利用率过高：由于高峰流量的业务压力，或者错误的资源配置，导致利用率过高，CPU 利用率过高时会引发更高的业务延时，内存利用率过高超过 Limit 会导致 Container 被 OOM Kill，影响业务的稳定。&lt;/li>
@@ -2083,10 +2083,10 @@ TargetRef&lt;/li>
 &lt;h3 id="vpa-算法">VPA 算法&lt;/h3>
 &lt;p>资源推荐的核心思想是基于历史资源用量推荐合理的资源配置，我们采用了社区 VPA Histogram 算法来实现。VPA 算法将历史的资源用量放到直方图中，找到资源用量的 P99 百分数，将百分数乘以放大系数作为推荐值。&lt;/p>
 &lt;p>VPA 算法的 output 是 cpu、内存指标的 P99 用量。为了给应用预留 buffer，推荐结果还会乘以放大系数。资源推荐支持两种方式配置放大系数：&lt;/p>
-&lt;ul>
+&lt;ol>
 &lt;li>扩大比例：推荐结果=P99用量 * (1 + 放大系数)，对应配置：cpu-request-margin-fraction 和 mem-request-margin-fraction&lt;/li>
-&lt;li>目标峰值利用率：以 P99用量为目标峰值用量计算，推荐结果=P99用量/目标峰值利用率，对应配置：cpu-target-utilization 和 mem-target-utilization&lt;/li>
-&lt;/ul>
+&lt;li>目标峰值利用率：推荐结果=P99用量/目标峰值利用率，对应配置：cpu-target-utilization 和 mem-target-utilization&lt;/li>
+&lt;/ol>
 &lt;p>在您有应用的目标峰值利用率目标时，推荐使用&lt;strong>目标峰值利用率&lt;/strong>方式放大推荐结果。&lt;/p>
 &lt;h3 id="oom-保护">OOM 保护&lt;/h3>
 &lt;p>Craned 运行了单独的组件 OOMRecorder ，它记录了集群中 container OOM 的事件，资源推荐会读取 OOM 事件获取 OOM 时刻的内存使用，将内存使用乘以放大系数后与 VPA 的内存推荐结果比较，取较大值&lt;/p>
@@ -2169,7 +2169,7 @@ TargetRef&lt;/li>
 &lt;tr>
 &lt;td>oom-protection&lt;/td>
 &lt;td>true&lt;/td>
-&lt;td>是否开启资源规格规整&lt;/td>
+&lt;td>是否开启 OOM 保护&lt;/td>
 &lt;/tr>
 &lt;tr>
 &lt;td>oom-history-length&lt;/td>
