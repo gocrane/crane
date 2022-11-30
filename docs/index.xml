@@ -566,6 +566,7 @@ If you want to know how Crane makes Recommendations, or if you want to try to im
 &lt;ul>
 &lt;li>&lt;a href="/docs/tutorials/recommendation/resource-recommendation">&lt;strong>Resource Recommendation&lt;/strong>&lt;/a>: Use the VPA algorithm to analyze the actual usage of applications and recommend more appropriate resource configurations.&lt;/li>
 &lt;li>&lt;a href="/docs/tutorials/recommendation/replicas-recommendation">&lt;strong>Replicas Recommendation&lt;/strong>&lt;/a>: Use the HPA algorithm to analyze the actual usage of applications and recommend more appropriate replicas configurations.&lt;/li>
+&lt;li>&lt;a href="/docs/tutorials/recommendation/idlenode-recommendation">&lt;strong>IdleNode Recommendation&lt;/strong>&lt;/a>: Find the idle nodes in cluster&lt;/li>
 &lt;/ul>
 &lt;h3 id="recommender-framework">Recommender Framework&lt;/h3>
 &lt;p>Recommender framework defines a set of workflow, The workflow execution sequence according to the process, the process is divided into four stages: Filter, Prepare, Recommend, Observe. Recommender performs recommends functions by implementing these four stages.&lt;/p>
@@ -2049,7 +2050,56 @@ Change &lt;code>crane-scheduler&lt;/code> to &lt;code>default-scheduler&lt;/code
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>Type Reason Age From Message
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>---- ------ ---- ---- -------
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>Normal Scheduled 28s crane-scheduler Successfully assigned default/cpu-stress-7669499b57-zmrgb to vm-162-247-ubuntu
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div></description></item><item><title>Docs: DSP Algorithm</title><link>/docs/tutorials/timeseriees-forecasting-by-dsp/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/timeseriees-forecasting-by-dsp/</guid><description>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div></description></item><item><title>Docs: IdleNode Recommendation</title><link>/docs/tutorials/recommendation/idlenode-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/idlenode-recommendation/</guid><description>
+&lt;p>By scanning the status and utilization of nodes, the idle node recommendation helps users to find idle Kubernetes nodes.&lt;/p>
+&lt;h2 id="motivation">Motivation&lt;/h2>
+&lt;p>In Kubernetes cluster, some nodes often idle due to such factors as node taint, label selector, low packing rate and low utilization rate, which wastes a lot of costs. IdleNode recommendation tries to help users find these nodes to reduce cost.&lt;/p>
+&lt;h2 id="example">Example&lt;/h2>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">idlenodes-rule-idlenode-5jxn9&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">crane-system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labels&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-name&lt;/span>: &lt;span style="color:#ae81ff">idlenodes-rule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-recommender&lt;/span>: &lt;span style="color:#ae81ff">IdleNode&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-uid&lt;/span>: &lt;span style="color:#ae81ff">8921a198-7082-11ed-8b7b-246e960a8d8c&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-kind&lt;/span>: &lt;span style="color:#ae81ff">Node&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-name&lt;/span>: &lt;span style="color:#ae81ff">worker-node-1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-version&lt;/span>: &lt;span style="color:#ae81ff">v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">beta.kubernetes.io/arch&lt;/span>: &lt;span style="color:#ae81ff">amd64&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">beta.kubernetes.io/instance-type&lt;/span>: &lt;span style="color:#ae81ff">bareMetal&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">beta.kubernetes.io/os&lt;/span>: &lt;span style="color:#ae81ff">linux&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">ownerReferences&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">RecommendationRule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">idlenodes-rule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">8921a198-7082-11ed-8b7b-246e960a8d8c&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">controller&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">blockOwnerDeletion&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Node&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">worker-node-1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">IdleNode&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategy&lt;/span>: {}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">status&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>: {}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">action&lt;/span>: &lt;span style="color:#ae81ff">Delete&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastUpdateTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#39;2022-11-30T07:46:57Z&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>In this example：&lt;/p>
+&lt;ul>
+&lt;li>Recommendation&amp;rsquo;s TargetRef Point to Node：worker-node-1&lt;/li>
+&lt;li>Recommendation type is IdleNode&lt;/li>
+&lt;li>action is Delete，but offline a node is a complicated operation, we only give recommended advise.&lt;/li>
+&lt;/ul>
+&lt;h2 id="implement">Implement&lt;/h2>
+&lt;p>Perform the following steps to complete a recommendation process for idle nodes:&lt;/p>
+&lt;ol>
+&lt;li>Scan all nodes and pods in the cluster&lt;/li>
+&lt;li>If all Pods on a node are DaemonSet, the node is considered to be idle&lt;/li>
+&lt;/ol></description></item><item><title>Docs: DSP Algorithm</title><link>/docs/tutorials/timeseriees-forecasting-by-dsp/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/timeseriees-forecasting-by-dsp/</guid><description>
 &lt;p>Crane使用在数字信号处理（Digital Signal Processing）领域中常用的的&lt;code>离散傅里叶变换&lt;/code>、&lt;code>自相关函数&lt;/code>等手段，识别、预测周期性的时间序列。&lt;/p>
 &lt;p>本文将介绍DSP算法的实现流程和参数设置，以便帮助大家了解算法背后的原理，并将它应用到实际场景中。 （相关代码位于&lt;code>pkg/prediction/dsp&lt;/code>目录下）&lt;/p>
 &lt;h2 id="流程">流程&lt;/h2>

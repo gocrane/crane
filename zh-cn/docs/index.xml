@@ -569,6 +569,7 @@ Make sure that you provide as much information as possible on how to reproduce t
 &lt;ul>
 &lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/resource-recommendation">&lt;strong>资源推荐&lt;/strong>&lt;/a>: 通过 VPA 算法分析应用的真实用量推荐更合适的资源配置&lt;/li>
 &lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/replicas-recommendation">&lt;strong>副本数推荐&lt;/strong>&lt;/a>: 通过 HPA 算法分析应用的真实用量推荐更合适的副本数量&lt;/li>
+&lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/idlenode-recommendation">&lt;strong>闲置节点推荐&lt;/strong>&lt;/a>: 扫描集群中的闲置节点&lt;/li>
 &lt;/ul>
 &lt;h3 id="recommender-框架">Recommender 框架&lt;/h3>
 &lt;p>Recommender 框架定义了一套工作流程，Recommender 按流程顺序执行，流程分为四个阶段：Filter,Prepare,Recommend,Observe，Recommender 通过实现这四个阶段完成推荐功能。&lt;/p>
@@ -1850,27 +1851,92 @@ ThrottleDownWaterLine，ThrottleUpWaterLine和EvictWaterLine&lt;/p>
 &lt;li>用户可以借助实现的精准操作(压制/驱逐)的框架，在无需关心细节的情况下，通过实现自定义metric相关的属性和方法，即可方便地实现以自定义metric为核心的具有精确操作和排序能力的QOS功能。&lt;/li>
 &lt;/ul></description></item><item><title>Docs: 副本数推荐</title><link>/zh-cn/docs/tutorials/recommendation/replicas-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/recommendation/replicas-recommendation/</guid><description>
 &lt;p>Kubernetes 用户在创建应用资源时常常是基于经验值来设置副本数。通过副本数推荐的算法分析应用的真实用量推荐更合适的副本配置，您可以参考并采纳它提升集群的资源利用率。&lt;/p>
+&lt;h2 id="动机">动机&lt;/h2>
+&lt;p>Kubernetes 工作负载的副本数可以控制 Pod 的数量进行快速的伸缩。然而，如何设置副本数量一直以来是困扰应用管理员的问题，副本数过多会导致大量的资源浪费，而过低的副本数又可能会存在稳定性问题。&lt;/p>
+&lt;p>社区的 HPA 提供了一种基于负载的动态伸缩机制，Crane 的 EHPA 基于 HPA 实现了基于预测的智能弹性。但是现实世界中，只有部分工作负载可以动态的水平伸缩，大量的工作负载需要在运行时保持固定的副本数。&lt;/p>
+&lt;p>下图展示了一个利用率过低的例子，该 Pod 的历史使用量的峰值与它的申请量 Request 之间，有30%的资源浪费。&lt;/p>
+&lt;p>&lt;img src="/images/resource-waste.jpg" alt="Resource Waste">&lt;/p>
+&lt;p>副本推荐尝试通过基于历史真实用量的分析降低用户配置工作负载副本数的复杂度。&lt;/p>
+&lt;h2 id="推荐示例">推荐示例&lt;/h2>
+&lt;p>一个简单的副本推荐 yaml 文件如下：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule-replicas-p84jv&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">kube-system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labels&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">addonmanager.kubernetes.io/mode&lt;/span>: &lt;span style="color:#ae81ff">Reconcile&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-recommender&lt;/span>: &lt;span style="color:#ae81ff">Replicas&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-uid&lt;/span>: &lt;span style="color:#ae81ff">18588495&lt;/span>-&lt;span style="color:#ae81ff">f325-4873-b45a-7acfe9f1ba94&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">k8s-app&lt;/span>: &lt;span style="color:#ae81ff">kube-dns&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kubernetes.io/cluster-service&lt;/span>: &lt;span style="color:#e6db74">&amp;#39;true&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kubernetes.io/name&lt;/span>: &lt;span style="color:#ae81ff">CoreDNS&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">ownerReferences&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">RecommendationRule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">18588495&lt;/span>-&lt;span style="color:#ae81ff">f325-4873-b45a-7acfe9f1ba94&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">controller&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">blockOwnerDeletion&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">kube-system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">coredns&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">Replicas&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategy&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategyType&lt;/span>: &lt;span style="color:#ae81ff">Once&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">adoptionType&lt;/span>: &lt;span style="color:#ae81ff">StatusAndAnnotation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">status&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommendedValue&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">replicasRecommendation&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">replicas&lt;/span>: &lt;span style="color:#ae81ff">1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>: { }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommendedInfo&lt;/span>: &lt;span style="color:#e6db74">&amp;#39;{&amp;#34;spec&amp;#34;:{&amp;#34;replicas&amp;#34;:1}}&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">currentInfo&lt;/span>: &lt;span style="color:#e6db74">&amp;#39;{&amp;#34;spec&amp;#34;:{&amp;#34;replicas&amp;#34;:2}}&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">action&lt;/span>: &lt;span style="color:#ae81ff">Patch&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">conditions&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">Ready&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">status&lt;/span>: &lt;span style="color:#e6db74">&amp;#39;True&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastTransitionTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#39;2022-11-28T08:07:36Z&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">reason&lt;/span>: &lt;span style="color:#ae81ff">RecommendationReady&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">message&lt;/span>: &lt;span style="color:#ae81ff">Recommendation is ready&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastUpdateTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#39;2022-11-29T11:07:45Z&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>在该示例中：&lt;/p>
+&lt;ul>
+&lt;li>推荐的 TargetRef 指向 kube-system 的 Deployment：coredns&lt;/li>
+&lt;li>推荐类型为副本推荐&lt;/li>
+&lt;li>adoptionType 是 StatusAndAnnotation，表示将推荐结果展示在 recommendation.status 和 Deployment 的 Annotation&lt;/li>
+&lt;li>recommendedInfo 显示了推荐的副本数（recommendedValue 已经 deprecated），currentInfo 显示了当前的副本数，格式是 Json ，可以通过 Kubectl Patch 将推荐结果更新到
+TargetRef&lt;/li>
+&lt;/ul>
+&lt;p>如何使用副本推荐请参考：&lt;a href="/zh-cn/docs/tutorials/recommendation/recommendation-framework">&lt;strong>推荐框架&lt;/strong>&lt;/a>&lt;/p>
 &lt;h2 id="实现原理">实现原理&lt;/h2>
-&lt;p>基于 Workload 历史 CPU 负载，找到过去七天内每小时负载最低的 CPU 用量，计算按50%（可配置）利用率和 Workload CPU Request 应配置的副本数&lt;/p>
-&lt;h3 id="filter-阶段">Filter 阶段&lt;/h3>
+&lt;p>副本推荐按以下步骤完成一次推荐过程：&lt;/p>
+&lt;ol>
+&lt;li>通过监控数据，获取 Workload 过去一周的 CPU 和 Memory 历史用量。&lt;/li>
+&lt;li>用 DSP 算法预测未来一周 CPU 用量&lt;/li>
+&lt;li>分别计算 CPU 和 内存分别对应的副本数，取较大值&lt;/li>
+&lt;/ol>
+&lt;h3 id="计算副本算法">计算副本算法&lt;/h3>
+&lt;p>以 CPU 举例，假设工作负载 CPU 历史用量的 P99 是10核，Pod CPU Request 是5核，目标峰值利用率是50%，可知副本数是4个可以满足峰值利用率是50%。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">replicas&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> int32(&lt;span style="color:#a6e22e">math&lt;/span>.&lt;span style="color:#a6e22e">Ceil&lt;/span>(&lt;span style="color:#a6e22e">workloadUsage&lt;/span> &lt;span style="color:#f92672">/&lt;/span> (&lt;span style="color:#a6e22e">TargetUtilization&lt;/span> &lt;span style="color:#f92672">*&lt;/span> float64(&lt;span style="color:#a6e22e">requestTotal&lt;/span>) &lt;span style="color:#f92672">/&lt;/span> &lt;span style="color:#ae81ff">1000.&lt;/span>)))
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="排除异常的工作负载">排除异常的工作负载&lt;/h3>
+&lt;p>以下类型的异常工作负载不进行推荐：&lt;/p>
 &lt;ol>
 &lt;li>低副本数的工作负载: 过低的副本数可能推荐需求不高，关联配置: &lt;code>workload-min-replicas&lt;/code>&lt;/li>
 &lt;li>存在一定比例非 Running Pod 的工作负载: 如果工作负载的 Pod 大多不能正常运行，可能不适合弹性，关联配置: &lt;code>pod-min-ready-seconds&lt;/code> | &lt;code>pod-available-ratio&lt;/code>&lt;/li>
 &lt;/ol>
-&lt;h3 id="prepare-阶段">Prepare 阶段&lt;/h3>
-&lt;p>查询过去一周的 CPU 使用量&lt;/p>
-&lt;h3 id="recommend-阶段">Recommend 阶段&lt;/h3>
-&lt;ol>
-&lt;li>计算过去7天 workload 每小时使用量中位数的最低值(防止极小值影响): workload_cpu_usage_medium_min&lt;/li>
-&lt;li>目标利用率对应的副本数:&lt;/li>
-&lt;/ol>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">replicas&lt;/span> &lt;span style="color:#f92672">:=&lt;/span> int32(&lt;span style="color:#a6e22e">math&lt;/span>.&lt;span style="color:#a6e22e">Ceil&lt;/span>(&lt;span style="color:#a6e22e">workloadCpu&lt;/span> &lt;span style="color:#f92672">/&lt;/span> (&lt;span style="color:#a6e22e">rr&lt;/span>.&lt;span style="color:#a6e22e">TargetUtilization&lt;/span> &lt;span style="color:#f92672">*&lt;/span> float64(&lt;span style="color:#a6e22e">requestTotal&lt;/span>) &lt;span style="color:#f92672">/&lt;/span> &lt;span style="color:#ae81ff">1000.&lt;/span>)))
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ol start="3">
-&lt;li>为了防止 replicas 过小，replicas 需要大于等于 default-min-replicas&lt;/li>
-&lt;/ol>
-&lt;h3 id="observe-阶段">Observe 阶段&lt;/h3>
-&lt;p>将推荐 replicas 记录到 Metric：crane_analytics_replicas_recommendation&lt;/p>
-&lt;h2 id="支持的资源类型">支持的资源类型&lt;/h2>
+&lt;h3 id="通过-prometheus-metric-监控推荐结果">通过 Prometheus Metric 监控推荐结果&lt;/h3>
+&lt;p>副本推荐结果会记录到 Metric：crane_analytics_replicas_recommendation&lt;/p>
+&lt;h2 id="如何验证推荐结果的准确性">如何验证推荐结果的准确性&lt;/h2>
+&lt;p>用户可以通过以下 Prom query 得到 Workload 的资源用量，将资源用量带入上面副本算法公式可验证推荐 TargetRef。&lt;/p>
+&lt;p>以 crane-system 的 Deployment Craned 为例，用户可以将 container, namespace, pod 换成希望验证的推荐结果。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>sum&lt;span style="color:#f92672">(&lt;/span>irate&lt;span style="color:#f92672">(&lt;/span>container_cpu_usage_seconds_total&lt;span style="color:#f92672">{&lt;/span>namespace&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;crane-system&amp;#34;&lt;/span>,pod&lt;span style="color:#f92672">=&lt;/span>~&lt;span style="color:#e6db74">&amp;#34;^craned-.*&lt;/span>$&lt;span style="color:#e6db74">&amp;#34;&lt;/span>,container!&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;&amp;#34;&lt;/span>&lt;span style="color:#f92672">}[&lt;/span>3m&lt;span style="color:#f92672">]))&lt;/span> &lt;span style="color:#75715e"># cpu usage&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>sum&lt;span style="color:#f92672">(&lt;/span>container_memory_working_set_bytes&lt;span style="color:#f92672">{&lt;/span>namespace&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;crane-system&amp;#34;&lt;/span>,pod&lt;span style="color:#f92672">=&lt;/span>~&lt;span style="color:#e6db74">&amp;#34;^craned-.*&lt;/span>$&lt;span style="color:#e6db74">&amp;#34;&lt;/span>,container!&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;&amp;#34;&lt;/span>&lt;span style="color:#f92672">})&lt;/span> &lt;span style="color:#75715e"># memory usage&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="支持的资源类型">支持的资源类型&lt;/h2>
 &lt;p>默认支持 StatefulSet 和 Deployment，但是支持所有实现了 Scale SubResource 的 Workload。&lt;/p>
 &lt;h2 id="参数配置">参数配置&lt;/h2>
 &lt;table>
@@ -1903,27 +1969,137 @@ ThrottleDownWaterLine，ThrottleUpWaterLine和EvictWaterLine&lt;/p>
 &lt;td>最小 minReplicas&lt;/td>
 &lt;/tr>
 &lt;tr>
+&lt;td>cpu-percentile&lt;/td>
+&lt;td>0.95&lt;/td>
+&lt;td>历史 CPU 用量的 Percentile&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>mem-percentile&lt;/td>
+&lt;td>0.95&lt;/td>
+&lt;td>历史内存用量的 Percentile&lt;/td>
+&lt;/tr>
+&lt;tr>
 &lt;td>cpu-target-utilization&lt;/td>
 &lt;td>0.5&lt;/td>
-&lt;td>按该值计算最小副本数&lt;/td>
+&lt;td>CPU 目标峰值利用率&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>mem-target-utilization&lt;/td>
+&lt;td>0.5&lt;/td>
+&lt;td>内存目标峰值利用率&lt;/td>
 &lt;/tr>
 &lt;/tbody>
-&lt;/table></description></item><item><title>Docs: 资源推荐</title><link>/zh-cn/docs/tutorials/recommendation/resource-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/recommendation/resource-recommendation/</guid><description>
+&lt;/table>
+&lt;p>如何更新推荐的配置请参考：&lt;a href="/zh-cn/docs/tutorials/recommendation/recommendation-framework">&lt;strong>推荐框架&lt;/strong>&lt;/a>&lt;/p></description></item><item><title>Docs: 资源推荐</title><link>/zh-cn/docs/tutorials/recommendation/resource-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/recommendation/resource-recommendation/</guid><description>
 &lt;p>Kubernetes 用户在创建应用资源时常常是基于经验值来设置 request 和 limit。通过资源推荐的算法分析应用的真实用量推荐更合适的资源配置，您可以参考并采纳它提升集群的资源利用率。&lt;/p>
+&lt;h2 id="动机">动机&lt;/h2>
+&lt;p>Kubernetes 中 Request 定义了 Pod 运行需要的最小资源量，Limit 定义了 Pod 运行可使用的最大资源量，应用的资源利用率 Utilization = Request / 资源用量 Usage。不合理的资源利用率有以下两种情况：&lt;/p>
+&lt;ul>
+&lt;li>利用率过低：因为不清楚配置多少资源规格可以满足应用需求，或者是为了应对高峰流量时的资源消耗诉求，常常将 Request 设置得较大，这样就导致了过低的利用率，造成了浪费。&lt;/li>
+&lt;li>利用率过高：由于高峰流量的业务压力，或者错误的资源配置，导致利用率过高，CPU 利用率过高时会引发更高的业务延时，内存利用率过高超过 Limit 会导致 Container 被 OOM Kill，影响业务的稳定。&lt;/li>
+&lt;/ul>
+&lt;p>下图展示了一个利用率过低的例子，该 Pod 的历史使用量的峰值与它的申请量 Request 之间，有30%的资源浪费。&lt;/p>
+&lt;p>&lt;img src="/images/resource-waste.jpg" alt="Resource Waste">&lt;/p>
+&lt;p>资源推荐尝试通过基于历史真实用量的分析降低用户配置容器规格的复杂度。&lt;/p>
+&lt;h2 id="推荐示例">推荐示例&lt;/h2>
+&lt;p>一个简单的资源推荐 yaml 文件如下：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule-resource-flzbv&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">crane-system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labels&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-recommender&lt;/span>: &lt;span style="color:#ae81ff">Resource&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-uid&lt;/span>: &lt;span style="color:#ae81ff">18588495&lt;/span>-&lt;span style="color:#ae81ff">f325-4873-b45a-7acfe9f1ba94&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-name&lt;/span>: &lt;span style="color:#ae81ff">load-test&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-version&lt;/span>: &lt;span style="color:#ae81ff">v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">app&lt;/span>: &lt;span style="color:#ae81ff">craned&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">app.kubernetes.io/instance&lt;/span>: &lt;span style="color:#ae81ff">crane&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">app.kubernetes.io/managed-by&lt;/span>: &lt;span style="color:#ae81ff">Helm&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">app.kubernetes.io/name&lt;/span>: &lt;span style="color:#ae81ff">crane&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">app.kubernetes.io/version&lt;/span>: &lt;span style="color:#ae81ff">v0.7.0&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">helm.sh/chart&lt;/span>: &lt;span style="color:#ae81ff">crane-0.7.0&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">ownerReferences&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">RecommendationRule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">18588495&lt;/span>-&lt;span style="color:#ae81ff">f325-4873-b45a-7acfe9f1ba94&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">controller&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">blockOwnerDeletion&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">crane-system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">craned&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">Resource&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategy&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategyType&lt;/span>: &lt;span style="color:#ae81ff">Once&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">adoptionType&lt;/span>: &lt;span style="color:#ae81ff">StatusAndAnnotation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">status&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommendedValue&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceRequest&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">containers&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">containerName&lt;/span>: &lt;span style="color:#ae81ff">craned&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">target&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">cpu&lt;/span>: &lt;span style="color:#ae81ff">150m&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">memory&lt;/span>: &lt;span style="color:#ae81ff">256Mi&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">containerName&lt;/span>: &lt;span style="color:#ae81ff">dashboard&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">target&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">cpu&lt;/span>: &lt;span style="color:#ae81ff">150m&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">memory&lt;/span>: &lt;span style="color:#ae81ff">256Mi&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>: {}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommendedInfo&lt;/span>: &amp;gt;-&lt;span style="color:#e6db74">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> &lt;/span> {&lt;span style="color:#e6db74">&amp;#34;spec&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;template&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;spec&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;containers&amp;#34;&lt;/span>:[{&lt;span style="color:#e6db74">&amp;#34;name&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;craned&amp;#34;&lt;/span>,&lt;span style="color:#e6db74">&amp;#34;resources&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;requests&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;cpu&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;150m&amp;#34;&lt;/span>,&lt;span style="color:#e6db74">&amp;#34;memory&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;256Mi&amp;#34;&lt;/span>}}},{&lt;span style="color:#e6db74">&amp;#34;name&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;dashboard&amp;#34;&lt;/span>,&lt;span style="color:#e6db74">&amp;#34;resources&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;requests&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;cpu&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;150m&amp;#34;&lt;/span>,&lt;span style="color:#e6db74">&amp;#34;memory&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;256Mi&amp;#34;&lt;/span>}}}]}}}}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">currentInfo&lt;/span>: &amp;gt;-&lt;span style="color:#e6db74">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> &lt;/span> {&lt;span style="color:#e6db74">&amp;#34;spec&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;template&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;spec&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;containers&amp;#34;&lt;/span>:[{&lt;span style="color:#e6db74">&amp;#34;name&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;craned&amp;#34;&lt;/span>,&lt;span style="color:#e6db74">&amp;#34;resources&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;requests&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;cpu&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;500m&amp;#34;&lt;/span>,&lt;span style="color:#e6db74">&amp;#34;memory&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;512Mi&amp;#34;&lt;/span>}}},{&lt;span style="color:#e6db74">&amp;#34;name&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;dashboard&amp;#34;&lt;/span>,&lt;span style="color:#e6db74">&amp;#34;resources&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;requests&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;cpu&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;200m&amp;#34;&lt;/span>,&lt;span style="color:#e6db74">&amp;#34;memory&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;256Mi&amp;#34;&lt;/span>}}}]}}}}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">action&lt;/span>: &lt;span style="color:#ae81ff">Patch&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">conditions&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">Ready&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">status&lt;/span>: &lt;span style="color:#e6db74">&amp;#39;True&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastTransitionTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#39;2022-11-29T04:07:44Z&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">reason&lt;/span>: &lt;span style="color:#ae81ff">RecommendationReady&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">message&lt;/span>: &lt;span style="color:#ae81ff">Recommendation is ready&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastUpdateTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#39;2022-11-30T03:07:49Z&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>在该示例中：&lt;/p>
+&lt;ul>
+&lt;li>推荐的 TargetRef 指向 crane-system 的 Deployment：craned&lt;/li>
+&lt;li>推荐类型为资源推荐&lt;/li>
+&lt;li>adoptionType 是 StatusAndAnnotation，表示将推荐结果展示在 recommendation.status 和 Deployment 的 Annotation&lt;/li>
+&lt;li>recommendedInfo 显示了推荐的资源配置（recommendedValue 已经 deprecated），currentInfo 显示了当前的资源配置，格式是 Json ，可以通过 Kubectl Patch 将推荐结果更新到 TargetRef&lt;/li>
+&lt;/ul>
+&lt;p>如何使用资源推荐请参考：&lt;a href="/zh-cn/docs/tutorials/recommendation/recommendation-framework">&lt;strong>推荐框架&lt;/strong>&lt;/a>&lt;/p>
 &lt;h2 id="实现原理">实现原理&lt;/h2>
-&lt;p>算法模型采用了 VPA 的滑动窗口（Moving Window）算法进行推荐&lt;/p>
+&lt;p>资源推荐按以下步骤完成一次推荐过程：&lt;/p>
 &lt;ol>
-&lt;li>通过监控数据，获取 Workload 过去一周（可配置）的 CPU 和 Memory 历史用量。&lt;/li>
-&lt;li>算法考虑数据的时效性，较新的数据采样点会拥有更高的权重。&lt;/li>
-&lt;li>CPU 推荐值基于用户设置的目标百分位值计算，Memory 推荐值基于历史数据的最大值&lt;/li>
+&lt;li>通过监控数据，获取 Workload 过去一周的 CPU 和 Memory 历史用量。&lt;/li>
+&lt;li>基于历史用量通过 VPA Histogram 取 P99 百分位后再乘以放大系数&lt;/li>
+&lt;li>OOM 保护：如果容器存在历史的 OOM 事件，则考虑 OOM 时的内存适量增大内存推荐结果&lt;/li>
+&lt;li>资源规格规整：按指定的容器规格对推荐结果向上取整&lt;/li>
 &lt;/ol>
-&lt;h3 id="filter-阶段">Filter 阶段&lt;/h3>
-&lt;p>没有 Pod 的工作负载: 如果工作负载没有 Pod，无法进行算法分析&lt;/p>
-&lt;h3 id="recommend-推荐">Recommend 推荐&lt;/h3>
-&lt;p>采用 VPA 的滑动窗口（Moving Window）算法分别计算每个容器的 CPU 和 Memory 并给出对应的推荐值&lt;/p>
-&lt;h3 id="observe-推荐">Observe 推荐&lt;/h3>
-&lt;p>将推荐资源配置记录到 Metric：crane_analytics_replicas_recommendation&lt;/p>
-&lt;h2 id="支持的资源类型">支持的资源类型&lt;/h2>
+&lt;p>基本原理是基于历史的资源用量，将 Request 配置成略高于历史用量的最大值并且考虑 OOM，Pod 规格等因素。&lt;/p>
+&lt;h3 id="vpa-算法">VPA 算法&lt;/h3>
+&lt;p>资源推荐的核心思想是基于历史资源用量推荐合理的资源配置，我们采用了社区 VPA Histogram 算法来实现。VPA 算法将历史的资源用量放到直方图中，找到资源用量的 P99 百分数，将百分数乘以放大系数作为推荐值。&lt;/p>
+&lt;p>VPA 算法的 output 是 cpu、内存指标的 P99 用量。为了给应用预留 buffer，推荐结果还会乘以放大系数。资源推荐支持两种方式配置放大系数：&lt;/p>
+&lt;ul>
+&lt;li>扩大比例：推荐结果=P99用量 * (1 + 放大系数)，对应配置：cpu-request-margin-fraction 和 mem-request-margin-fraction&lt;/li>
+&lt;li>目标峰值利用率：以 P99用量为目标峰值用量计算，推荐结果=P99用量/目标峰值利用率，对应配置：cpu-target-utilization 和 mem-target-utilization&lt;/li>
+&lt;/ul>
+&lt;p>在您有应用的目标峰值利用率目标时，推荐使用&lt;strong>目标峰值利用率&lt;/strong>方式放大推荐结果。&lt;/p>
+&lt;h3 id="oom-保护">OOM 保护&lt;/h3>
+&lt;p>Craned 运行了单独的组件 OOMRecorder ，它记录了集群中 container OOM 的事件，资源推荐会读取 OOM 事件获取 OOM 时刻的内存使用，将内存使用乘以放大系数后与 VPA 的内存推荐结果比较，取较大值&lt;/p>
+&lt;h3 id="资源规格规整">资源规格规整&lt;/h3>
+&lt;p>在 Kubernetes Serverless 中，Pod 的 cpu、内存规格是预设的，资源推荐支持对推荐结果按预设的资源规格向上取整，例如，基于历史用量的 cpu 推荐值为0.125核，资源规格规整后向上取整后为 0.25核。用户也可以通过修改规格配置来满足自己环境的规格需求。&lt;/p>
+&lt;h3 id="通过-prometheus-metric-监控推荐结果">通过 Prometheus Metric 监控推荐结果&lt;/h3>
+&lt;p>推荐资源的推荐结果会记录到 Metric：crane_analysis_resource_recommendation&lt;/p>
+&lt;h2 id="如何验证推荐结果的准确性">如何验证推荐结果的准确性&lt;/h2>
+&lt;p>用户可以通过以下 Prom query 得到 Workload Container 的资源用量，推荐值会略高于历史用量的最大值并且考虑 OOM，Pod 规格等因素。&lt;/p>
+&lt;p>以 crane-system 的 Deployment Craned 为例，用户可以将 container, namespace, pod 换成希望验证的推荐 TargetRef。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>irate&lt;span style="color:#f92672">(&lt;/span>container_cpu_usage_seconds_total&lt;span style="color:#f92672">{&lt;/span>container!&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;POD&amp;#34;&lt;/span>,namespace&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;crane-system&amp;#34;&lt;/span>,pod&lt;span style="color:#f92672">=&lt;/span>~&lt;span style="color:#e6db74">&amp;#34;^craned.*&lt;/span>$&lt;span style="color:#e6db74">&amp;#34;&lt;/span>,container&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;craned&amp;#34;&lt;/span>&lt;span style="color:#f92672">}[&lt;/span>3m&lt;span style="color:#f92672">])&lt;/span> &lt;span style="color:#75715e"># cpu usage&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>container_memory_working_set_bytes&lt;span style="color:#f92672">{&lt;/span>container!&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;POD&amp;#34;&lt;/span>,namespace&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;crane-system&amp;#34;&lt;/span>,pod&lt;span style="color:#f92672">=&lt;/span>~&lt;span style="color:#e6db74">&amp;#34;^craned.*&lt;/span>$&lt;span style="color:#e6db74">&amp;#34;&lt;/span>,container&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;craned&amp;#34;&lt;/span>&lt;span style="color:#f92672">}&lt;/span> &lt;span style="color:#75715e"># memory usage&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="支持推荐的资源类型">支持推荐的资源类型&lt;/h2>
 &lt;p>默认支持 StatefulSet 和 Deployment，但是支持所有实现了 Scale SubResource 的 Workload。&lt;/p>
 &lt;h2 id="参数配置">参数配置&lt;/h2>
 &lt;table>
@@ -1981,9 +2157,157 @@ ThrottleDownWaterLine，ThrottleUpWaterLine和EvictWaterLine&lt;/p>
 &lt;td>Memory 目标利用率，0.8 指推荐值除以 0.8&lt;/td>
 &lt;/tr>
 &lt;tr>
-&lt;td>mem-model-history-length&lt;/td>
+&lt;td>specification&lt;/td>
+&lt;td>false&lt;/td>
+&lt;td>是否开启资源规格规整&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>specification-config&lt;/td>
+&lt;td>&amp;quot;&amp;quot;&lt;/td>
+&lt;td>资源规格，注意格式，详细的默认配置请见下方表格&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>oom-protection&lt;/td>
+&lt;td>true&lt;/td>
+&lt;td>是否开启资源规格规整&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>oom-history-length&lt;/td>
 &lt;td>168h&lt;/td>
-&lt;td>Memory 历史监控数据的时间&lt;/td>
+&lt;td>OOM 历史事件的事件，过期事件会被忽略&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>oom-bump-ratio&lt;/td>
+&lt;td>1.2&lt;/td>
+&lt;td>OOM 内存放大系数&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>如何更新推荐的配置请参考：&lt;a href="/zh-cn/docs/tutorials/recommendation/recommendation-framework">&lt;strong>推荐框架&lt;/strong>&lt;/a>&lt;/p>
+&lt;h2 id="默认的资源机型规格配置">默认的资源机型规格配置&lt;/h2>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>CPU（核）&lt;/th>
+&lt;th>Memory（GBi）&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>0.25&lt;/td>
+&lt;td>0.25&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>0.25&lt;/td>
+&lt;td>0.5&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>0.25&lt;/td>
+&lt;td>1&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>0.5&lt;/td>
+&lt;td>0.5&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>0.5&lt;/td>
+&lt;td>1&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>1&lt;/td>
+&lt;td>1&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>1&lt;/td>
+&lt;td>2&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>1&lt;/td>
+&lt;td>4&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>1&lt;/td>
+&lt;td>8&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>2&lt;/td>
+&lt;td>2&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>2&lt;/td>
+&lt;td>4&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>2&lt;/td>
+&lt;td>8&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>2&lt;/td>
+&lt;td>16&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>4&lt;/td>
+&lt;td>4&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>4&lt;/td>
+&lt;td>8&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>4&lt;/td>
+&lt;td>16&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>4&lt;/td>
+&lt;td>32&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>8&lt;/td>
+&lt;td>8&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>8&lt;/td>
+&lt;td>16&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>8&lt;/td>
+&lt;td>32&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>8&lt;/td>
+&lt;td>64&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>16&lt;/td>
+&lt;td>32&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>16&lt;/td>
+&lt;td>64&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>16&lt;/td>
+&lt;td>128&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>32&lt;/td>
+&lt;td>64&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>32&lt;/td>
+&lt;td>128&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>32&lt;/td>
+&lt;td>256&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>64&lt;/td>
+&lt;td>128&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>64&lt;/td>
+&lt;td>256&lt;/td>
 &lt;/tr>
 &lt;/tbody>
 &lt;/table></description></item><item><title>Docs: Crane-scheduler</title><link>/zh-cn/docs/tutorials/scheduling-pods-based-on-actual-node-load/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/scheduling-pods-based-on-actual-node-load/</guid><description>
@@ -2196,7 +2520,56 @@ kubectl apply -f https://gitee.com/finops/crane-scheduler/raw/main/deploy/contro
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>Type Reason Age From Message
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>---- ------ ---- ---- -------
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>Normal Scheduled 28s crane-scheduler Successfully assigned default/cpu-stress-7669499b57-zmrgb to vm-162-247-ubuntu
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div></description></item><item><title>Docs: DSP 预测算法</title><link>/zh-cn/docs/tutorials/timeseriees-forecasting-by-dsp/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/timeseriees-forecasting-by-dsp/</guid><description>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div></description></item><item><title>Docs: 闲置节点推荐</title><link>/zh-cn/docs/tutorials/recommendation/idlenode-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/recommendation/idlenode-recommendation/</guid><description>
+&lt;p>闲置节点推荐通过扫描节点的状态和利用率，帮助用户找到闲置的 Kubernetes node。&lt;/p>
+&lt;h2 id="动机">动机&lt;/h2>
+&lt;p>在使用 Kubernetes 的过程中，常常由于污点配置、label selector、低装箱率、低利用率等因素导致部分节点出现闲置状态，浪费了大量成本，闲置节点推荐尝试帮助用户找到这部分节点来实现成本优化。&lt;/p>
+&lt;h2 id="推荐示例">推荐示例&lt;/h2>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">idlenodes-rule-idlenode-5jxn9&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">crane-system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labels&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-name&lt;/span>: &lt;span style="color:#ae81ff">idlenodes-rule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-recommender&lt;/span>: &lt;span style="color:#ae81ff">IdleNode&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-uid&lt;/span>: &lt;span style="color:#ae81ff">8921a198-7082-11ed-8b7b-246e960a8d8c&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-kind&lt;/span>: &lt;span style="color:#ae81ff">Node&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-name&lt;/span>: &lt;span style="color:#ae81ff">worker-node-1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-version&lt;/span>: &lt;span style="color:#ae81ff">v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">beta.kubernetes.io/arch&lt;/span>: &lt;span style="color:#ae81ff">amd64&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">beta.kubernetes.io/instance-type&lt;/span>: &lt;span style="color:#ae81ff">bareMetal&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">beta.kubernetes.io/os&lt;/span>: &lt;span style="color:#ae81ff">linux&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">ownerReferences&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">RecommendationRule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">idlenodes-rule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">8921a198-7082-11ed-8b7b-246e960a8d8c&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">controller&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">blockOwnerDeletion&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Node&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">worker-node-1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">IdleNode&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategy&lt;/span>: {}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">status&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>: {}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">action&lt;/span>: &lt;span style="color:#ae81ff">Delete&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastUpdateTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#39;2022-11-30T07:46:57Z&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>在该示例中：&lt;/p>
+&lt;ul>
+&lt;li>推荐的 TargetRef 指向了 Node：worker-node-1&lt;/li>
+&lt;li>推荐类型为闲置节点推荐&lt;/li>
+&lt;li>action 是 Delete，但是下线节点是复杂操作，这里只是给出建议&lt;/li>
+&lt;/ul>
+&lt;h2 id="实现原理">实现原理&lt;/h2>
+&lt;p>闲置节点推荐按以下步骤完成一次推荐过程：&lt;/p>
+&lt;ol>
+&lt;li>扫描集群中所有节点和节点上的 Pod&lt;/li>
+&lt;li>如果节点上所有 Pod 都属于 DaemonSet，则判定为闲置节点&lt;/li>
+&lt;/ol></description></item><item><title>Docs: DSP 预测算法</title><link>/zh-cn/docs/tutorials/timeseriees-forecasting-by-dsp/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/timeseriees-forecasting-by-dsp/</guid><description>
 &lt;p>Crane使用在数字信号处理（Digital Signal Processing）领域中常用的的&lt;code>离散傅里叶变换&lt;/code>、&lt;code>自相关函数&lt;/code>等手段，识别、预测周期性的时间序列。&lt;/p>
 &lt;p>本文将介绍DSP算法的实现流程和参数设置，以便帮助大家了解算法背后的原理，并将它应用到实际场景中。 （相关代码位于&lt;code>pkg/prediction/dsp&lt;/code>目录下）&lt;/p>
 &lt;h2 id="流程">流程&lt;/h2>
