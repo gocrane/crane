@@ -8,7 +8,7 @@ Kubernetes 用户在创建应用资源时常常是基于经验值来设置 reque
 
 ## 动机
 
-Kubernetes 中 Request 定义了 Pod 运行需要的最小资源量，Limit 定义了 Pod 运行可使用的最大资源量，应用的资源利用率 Utilization = Request / 资源用量 Usage。不合理的资源利用率有以下两种情况：
+Kubernetes 中 Request 定义了 Pod 运行需要的最小资源量，Limit 定义了 Pod 运行可使用的最大资源量，应用的资源利用率 Utilization = 资源用量 Usage / Request 。不合理的资源利用率有以下两种情况：
 
 - 利用率过低：因为不清楚配置多少资源规格可以满足应用需求，或者是为了应对高峰流量时的资源消耗诉求，常常将 Request 设置得较大，这样就导致了过低的利用率，造成了浪费。
 - 利用率过高：由于高峰流量的业务压力，或者错误的资源配置，导致利用率过高，CPU 利用率过高时会引发更高的业务延时，内存利用率过高超过 Limit 会导致 Container 被 OOM Kill，影响业务的稳定。
@@ -112,8 +112,8 @@ status:
 
 VPA 算法的 output 是 cpu、内存指标的 P99 用量。为了给应用预留 buffer，推荐结果还会乘以放大系数。资源推荐支持两种方式配置放大系数：
 
-- 扩大比例：推荐结果=P99用量 * (1 + 放大系数)，对应配置：cpu-request-margin-fraction 和 mem-request-margin-fraction 
-- 目标峰值利用率：以 P99用量为目标峰值用量计算，推荐结果=P99用量/目标峰值利用率，对应配置：cpu-target-utilization 和 mem-target-utilization
+1. 扩大比例：推荐结果=P99用量 * (1 + 放大系数)，对应配置：cpu-request-margin-fraction 和 mem-request-margin-fraction 
+2. 目标峰值利用率：推荐结果=P99用量/目标峰值利用率，对应配置：cpu-target-utilization 和 mem-target-utilization
 
 在您有应用的目标峰值利用率目标时，推荐使用**目标峰值利用率**方式放大推荐结果。
 
@@ -162,7 +162,7 @@ container_memory_working_set_bytes{container!="POD",namespace="crane-system",pod
 | mem-target-utilization      | 1                                                                                                                                                                                                 | Memory 目标利用率，0.8 指推荐值除以 0.8    |
 | specification   | false                                                                                                                                                                                             | 是否开启资源规格规整                     |
 | specification-config    | "" | 资源规格，注意格式，详细的默认配置请见下方表格        |
-| oom-protection    | true                                                                                                                                                                                              | 是否开启资源规格规整                     |
+| oom-protection    | true                                                                                                                                                                                              | 是否开启 OOM 保护                    |
 | oom-history-length    | 168h                                                                                                                                                                                              | OOM 历史事件的事件，过期事件会被忽略           |
 | oom-bump-ratio    | 1.2                                                                                                                                                                                               | OOM 内存放大系数                     |
 

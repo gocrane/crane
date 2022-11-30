@@ -90,10 +90,10 @@ status:
 
 ### 计算副本算法
 
-以 CPU 举例，假设工作负载 CPU 历史用量的 P99 是10核，Pod CPU Request 是5核，目标峰值利用率是50%，可知副本数是4个可以满足峰值利用率是50%。
+以 CPU 举例，假设工作负载 CPU 历史用量的 P99 是10核，Pod CPU Request 是5核，目标峰值利用率是50%，可知副本数是4个可以满足峰值利用率不小于50%。
 
 ```go
-    replicas := int32(math.Ceil(workloadUsage / (TargetUtilization * float64(requestTotal) / 1000.)))
+    replicas := int32(math.Ceil(workloadUsage / (TargetUtilization * float64(requestTotal) )))
 ```
 
 ### 排除异常的工作负载
