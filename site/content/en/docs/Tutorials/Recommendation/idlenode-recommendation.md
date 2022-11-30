@@ -1,16 +1,16 @@
 ---
-title: "闲置节点推荐"
-description: "闲置节点推荐功能介绍"
+title: "IdleNode Recommendation"
+description: "Introduce for IdleNode Recommendation"
 weight: 15
 ---
 
-闲置节点推荐通过扫描节点的状态和利用率，帮助用户找到闲置的 Kubernetes node。
+By scanning the status and utilization of nodes, the idle node recommendation helps users to find idle Kubernetes nodes.
 
-## 动机
+## Motivation
 
-在使用 Kubernetes 的过程中，常常由于污点配置、label selector、低装箱率、低利用率等因素导致部分节点出现闲置状态，浪费了大量成本，闲置节点推荐尝试帮助用户找到这部分节点来实现成本优化。
+In Kubernetes cluster, some nodes often idle due to such factors as node taint, label selector, low packing rate and low utilization rate, which wastes a lot of costs. IdleNode recommendation tries to help users find these nodes to reduce cost.
 
-## 推荐示例
+## Example
 
 ```yaml
 kind: Recommendation
@@ -48,16 +48,15 @@ status:
   lastUpdateTime: '2022-11-30T07:46:57Z'
 ```
 
-在该示例中：
+In this example：
 
-- 推荐的 TargetRef 指向了 Node：worker-node-1
-- 推荐类型为闲置节点推荐
-- action 是 Delete，但是下线节点是复杂操作，这里只是给出建议
+- Recommendation's TargetRef Point to Node：worker-node-1
+- Recommendation type is IdleNode 
+- action is Delete，but offline a node is a complicated operation, we only give recommended advise.
 
-## 实现原理
+## Implement
 
-闲置节点推荐按以下步骤完成一次推荐过程：
+Perform the following steps to complete a recommendation process for idle nodes:
 
-1. 扫描集群中所有节点和节点上的 Pod
-2. 如果节点上所有 Pod 都属于 DaemonSet，则判定为闲置节点
-
+1. Scan all nodes and pods in the cluster
+2. If all Pods on a node are DaemonSet, the node is considered to be idle

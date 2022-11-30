@@ -33,6 +33,9 @@ metadata:
     analysis.crane.io/recommendation-rule-name: workloads-rule
     analysis.crane.io/recommendation-rule-recommender: Resource
     analysis.crane.io/recommendation-rule-uid: 18588495-f325-4873-b45a-7acfe9f1ba94
+    analysis.crane.io/recommendation-target-kind: Deployment
+    analysis.crane.io/recommendation-target-name: load-test
+    analysis.crane.io/recommendation-target-version: v1
     app: craned
     app.kubernetes.io/instance: crane
     app.kubernetes.io/managed-by: Helm

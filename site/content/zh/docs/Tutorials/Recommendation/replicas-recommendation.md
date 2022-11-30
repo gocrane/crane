@@ -114,11 +114,11 @@ status:
 以 crane-system 的 Deployment Craned 为例，用户可以将 container, namespace, pod 换成希望验证的推荐结果。
 
 ```shell
-sum(irate(container_cpu_usage_seconds_total{namespace="crane-system",pod=~"^craned-.*$"}[3m]))  # cpu usage
+sum(irate(container_cpu_usage_seconds_total{namespace="crane-system",pod=~"^craned-.*$",container!=""}[3m]))  # cpu usage
 ```
 
 ```shell
-sum(container_memory_working_set_bytes{namespace="crane-system",pod=~"^craned-.*$"})  # memory usage
+sum(container_memory_working_set_bytes{namespace="crane-system",pod=~"^craned-.*$",container!=""})  # memory usage
 ```
 
 ## 支持的资源类型
