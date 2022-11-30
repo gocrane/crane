@@ -10,7 +10,7 @@ By scanning the status and utilization of nodes, the idle node recommendation he
 
 In Kubernetes cluster, some nodes often idle due to such factors as node taint, label selector, low packing rate and low utilization rate, which wastes a lot of costs. IdleNode recommendation tries to help users find these nodes to reduce cost.
 
-## Example
+## Sample
 
 ```yaml
 kind: Recommendation
@@ -48,15 +48,17 @@ status:
   lastUpdateTime: '2022-11-30T07:46:57Z'
 ```
 
-In this example：
+In this sample：
 
 - Recommendation's TargetRef Point to Node：worker-node-1
 - Recommendation type is IdleNode 
 - action is Delete，but offline a node is a complicated operation, we only give recommended advise.
+
+How to create a IdleNode recommendation please refer to：[**Recommendation Framework**](/zh-cn/docs/tutorials/recommendation/recommendation-framework)
 
 ## Implement
 
 Perform the following steps to complete a recommendation process for idle nodes:
 
 1. Scan all nodes and pods in the cluster
-2. If all Pods on a node are DaemonSet, the node is considered to be idle
+2. If all Pods on a node are DaemonSet pods, the node is considered to be idle
