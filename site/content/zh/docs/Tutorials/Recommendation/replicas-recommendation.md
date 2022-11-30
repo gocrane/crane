@@ -20,7 +20,7 @@ Kubernetes 工作负载的副本数可以控制 Pod 的数量进行快速的伸�
 
 ## 推荐示例
 
-一个简单的资源推荐 yaml 文件如下：
+一个简单的副本推荐 yaml 文件如下：
 
 ```yaml
 kind: Recommendation
@@ -31,7 +31,7 @@ metadata:
   labels:
     addonmanager.kubernetes.io/mode: Reconcile
     analysis.crane.io/recommendation-rule-name: workloads-rule
-    analysis.crane.io/recommendation-rule-recommender: Resource
+    analysis.crane.io/recommendation-rule-recommender: Replicas
     analysis.crane.io/recommendation-rule-uid: 18588495-f325-4873-b45a-7acfe9f1ba94
     k8s-app: kube-dns
     kubernetes.io/cluster-service: 'true'
@@ -78,7 +78,7 @@ status:
 - recommendedInfo 显示了推荐的副本数（recommendedValue 已经 deprecated），currentInfo 显示了当前的副本数，格式是 Json ，可以通过 Kubectl Patch 将推荐结果更新到
   TargetRef
 
-如何使用资源推荐请参考：[**推荐框架**](/zh-cn/docs/tutorials/recommendation/recommendation-framework)
+如何使用副本推荐请参考：[**推荐框架**](/zh-cn/docs/tutorials/recommendation/recommendation-framework)
 
 ## 实现原理
 
@@ -105,11 +105,11 @@ status:
 
 ### 通过 Prometheus Metric 监控推荐结果
 
-推荐资源的推荐结果会记录到 Metric：crane_analytics_replicas_recommendation
+副本推荐结果会记录到 Metric：crane_analytics_replicas_recommendation
 
 ## 如何验证推荐结果的准确性
 
-用户可以通过以下 Prom query 得到 Workload 的资源用量，将资源用量带入上面副本算法公式可验证推荐结果。
+用户可以通过以下 Prom query 得到 Workload 的资源用量，将资源用量带入上面副本算法公式可验证推荐 TargetRef。
 
 以 crane-system 的 Deployment Craned 为例，用户可以将 container, namespace, pod 换成希望验证的推荐结果。
 

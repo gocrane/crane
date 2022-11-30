@@ -1,7 +1,7 @@
 ---
 title: "闲置节点推荐"
 description: "闲置节点推荐功能介绍"
-weight: 14
+weight: 15
 ---
 
 闲置节点推荐通过扫描节点的状态和利用率，帮助用户找到闲置的 Kubernetes node。

@@ -27,23 +27,18 @@ Kubernetes 中 Request 定义了 Pod 运行需要的最小资源量，Limit 定�
 kind: Recommendation
 apiVersion: analysis.crane.io/v1alpha1
 metadata:
-  name: workloads-rule-replicas-p84jv
-  generateName: workloads-rule-replicas-
-  namespace: kube-system
-  selfLink: >-
-    /apis/analysis.crane.io/v1alpha1/namespaces/kube-system/recommendations/workloads-rule-replicas-p84jv
-  uid: 7ee5287f-21fe-4d49-a496-5dde90893528
-  resourceVersion: '4374534100'
-  generation: 127
-  creationTimestamp: '2022-09-16T03:22:39Z'
+  name: workloads-rule-resource-flzbv
+  namespace: crane-system
   labels:
-    addonmanager.kubernetes.io/mode: Reconcile
     analysis.crane.io/recommendation-rule-name: workloads-rule
     analysis.crane.io/recommendation-rule-recommender: Resource
     analysis.crane.io/recommendation-rule-uid: 18588495-f325-4873-b45a-7acfe9f1ba94
-    k8s-app: kube-dns
-    kubernetes.io/cluster-service: 'true'
-    kubernetes.io/name: CoreDNS
+    app: craned
+    app.kubernetes.io/instance: crane
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: crane
+    app.kubernetes.io/version: v0.7.0
+    helm.sh/chart: crane-0.7.0
   ownerReferences:
     - apiVersion: analysis.crane.io/v1alpha1
       kind: RecommendationRule
@@ -54,33 +49,43 @@ metadata:
 spec:
   targetRef:
     kind: Deployment
-    namespace: kube-system
-    name: coredns
+    namespace: crane-system
+    name: craned
     apiVersion: apps/v1
-  type: Replicas
+  type: Resource
   completionStrategy:
     completionStrategyType: Once
   adoptionType: StatusAndAnnotation
 status:
   recommendedValue:
-    replicasRecommendation:
-      replicas: 1
+    resourceRequest:
+      containers:
+        - containerName: craned
+          target:
+            cpu: 150m
+            memory: 256Mi
+        - containerName: dashboard
+          target:
+            cpu: 150m
+            memory: 256Mi
   targetRef: {}
-  recommendedInfo: '{"spec":{"replicas":1}}'
-  currentInfo: '{"spec":{"replicas":2}}'
+  recommendedInfo: >-
+    {"spec":{"template":{"spec":{"containers":[{"name":"craned","resources":{"requests":{"cpu":"150m","memory":"256Mi"}}},{"name":"dashboard","resources":{"requests":{"cpu":"150m","memory":"256Mi"}}}]}}}}
+  currentInfo: >-
+    {"spec":{"template":{"spec":{"containers":[{"name":"craned","resources":{"requests":{"cpu":"500m","memory":"512Mi"}}},{"name":"dashboard","resources":{"requests":{"cpu":"200m","memory":"256Mi"}}}]}}}}
   action: Patch
   conditions:
     - type: Ready
       status: 'True'
-      lastTransitionTime: '2022-11-28T08:07:36Z'
+      lastTransitionTime: '2022-11-29T04:07:44Z'
       reason: RecommendationReady
       message: Recommendation is ready
-  lastUpdateTime: '2022-11-29T11:07:45Z'
+  lastUpdateTime: '2022-11-30T03:07:49Z'
 ```
 
 在该示例中：
 
-- 推荐的 TargetRef 指向 crane-system 的 Deployment：prometheus-kube-state-metrics
+- 推荐的 TargetRef 指向 crane-system 的 Deployment：craned
 - 推荐类型为资源推荐
 - adoptionType 是 StatusAndAnnotation，表示将推荐结果展示在 recommendation.status 和 Deployment 的 Annotation
 - recommendedInfo 显示了推荐的资源配置（recommendedValue 已经 deprecated），currentInfo 显示了当前的资源配置，格式是 Json ，可以通过 Kubectl Patch 将推荐结果更新到 TargetRef
@@ -125,7 +130,7 @@ Craned 运行了单独的组件 OOMRecorder ，它记录了集群中 container O
 
 用户可以通过以下 Prom query 得到 Workload Container 的资源用量，推荐值会略高于历史用量的最大值并且考虑 OOM，Pod 规格等因素。
 
-以 crane-system 的 Deployment Craned 为例，用户可以将 container, namespace, pod 换成希望验证的推荐结果。
+以 crane-system 的 Deployment Craned 为例，用户可以将 container, namespace, pod 换成希望验证的推荐 TargetRef。
 
 ```shell
 irate(container_cpu_usage_seconds_total{container!="POD",namespace="crane-system",pod=~"^craned.*$",container="craned"}[3m])   # cpu usage
