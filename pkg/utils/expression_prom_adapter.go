@@ -13,6 +13,7 @@ import (
 )
 
 // define MetricRule for expressionQuery, SeriesName for original metric name, MetricName for name converted by prometheus-adapter
+
 type MetricRule struct {
 	MetricMatches string
 	MetricsQuery  naming.MetricsQuery
@@ -23,21 +24,21 @@ type MetricRule struct {
 // GetMetricRules get metricRules from config.MetricsDiscoveryConfig
 func GetMetricRules(mc config.MetricsDiscoveryConfig, mapper apimeta.RESTMapper) (metricResource []MetricRule, metricCustomer []MetricRule, metricExternel []MetricRule, err error) {
 	if mc.ResourceRules != nil {
-		metricResource, err = GetMetricRuleResourceFromRules(*mc.ResourceRules, mapper)
+		metricResource, err = GetMetricRulesFromResourceRules(*mc.ResourceRules, mapper)
 		if err != nil {
 			return metricResource, metricCustomer, metricExternel, err
 		}
 	}
 
 	if mc.Rules != nil {
-		metricCustomer, err = GetMetricRuleFromRules(mc.Rules, mapper)
+		metricCustomer, err = GetMetricRulesFromDiscoveryRule(mc.Rules, mapper)
 		if err != nil {
 			return metricResource, metricCustomer, metricExternel, err
 		}
 	}
 
 	if mc.ExternalRules != nil {
-		metricExternel, err = GetMetricRuleFromRules(mc.ExternalRules, mapper)
+		metricExternel, err = GetMetricRulesFromDiscoveryRule(mc.ExternalRules, mapper)
 		if err != nil {
 			return metricResource, metricCustomer, metricExternel, err
 		}
@@ -46,7 +47,7 @@ func GetMetricRules(mc config.MetricsDiscoveryConfig, mapper apimeta.RESTMapper)
 }
 
 // GetMetricRuleResourceFromRules produces a MetricNamer for each rule in the given config.
-func GetMetricRuleResourceFromRules(cfg config.ResourceRules, mapper apimeta.RESTMapper) ([]MetricRule, error) {
+func GetMetricRulesFromResourceRules(cfg config.ResourceRules, mapper apimeta.RESTMapper) ([]MetricRule, error) {
 	var metricRules []MetricRule
 	var metricRule MetricRule
 
@@ -91,7 +92,7 @@ func GetMetricRuleResourceFromRules(cfg config.ResourceRules, mapper apimeta.RES
 }
 
 // GetMetricRuleFromRules produces a MetricNamer for each rule in the given config.
-func GetMetricRuleFromRules(cfg []config.DiscoveryRule, mapper apimeta.RESTMapper) ([]MetricRule, error) {
+func GetMetricRulesFromDiscoveryRule(cfg []config.DiscoveryRule, mapper apimeta.RESTMapper) ([]MetricRule, error) {
 	metricRules := make([]MetricRule, len(cfg))
 
 	for i, rule := range cfg {
