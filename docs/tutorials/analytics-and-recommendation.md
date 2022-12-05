@@ -1,4 +1,4 @@
-# Analytics and Recommendation
+# Analytics and Recommendation（Deprecated）
 
 Analytics and Recommendation provide capacity that analyzes the workload in k8s cluster and provide recommendations about resource optimize.
 
