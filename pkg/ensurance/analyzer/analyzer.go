@@ -283,7 +283,6 @@ func (s *AnomalyAnalyzer) computeActionContext(aboveThreshold bool, key string, 
 			ac.Triggered = true
 		}
 	} else {
-		s.triggered[key] = 0
 		restored := utils.GetUint64FromMaps(key, s.restored)
 		restored++
 		// log how many times the actual usage below threshold
