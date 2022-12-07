@@ -356,7 +356,7 @@ kubectl apply -f deploy/metric-adapter
 
 ```console
 export CUSTOMIZE_PROMETHEUS=
-if [ $CUSTOMIZE_PROMETHEUS ]; then sed -i '' "s/http:\/\/prometheus-server.crane-system.svc.cluster.local:8080/${CUSTOMIZE_PROMETHEUS}/" deploy/craned/deployment.yaml ; fi
+if [ $CUSTOMIZE_PROMETHEUS ]; then sed -i '' "s/PROMETHEUS_ADDRESS/${CUSTOMIZE_PROMETHEUS}/" deploy/craned/deployment.yaml ; fi
 ```
 
 ## 安装常见问题
