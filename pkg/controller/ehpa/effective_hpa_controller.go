@@ -19,7 +19,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/prometheus-adapter/pkg/config"
 	"sigs.k8s.io/yaml"
 
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
@@ -33,15 +32,12 @@ import (
 // EffectiveHPAController is responsible for scaling workload's replica based on EffectiveHorizontalPodAutoscaler spec
 type EffectiveHPAController struct {
 	client.Client
-	Scheme              *runtime.Scheme
-	RestMapper          meta.RESTMapper
-	Recorder            record.EventRecorder
-	ScaleClient         scale.ScalesGetter
-	K8SVersion          *version.Version
-	Config              EhpaControllerConfig
-	MetricRulesResource []utils.MetricRule
-	MetricRulesCustomer []utils.MetricRule
-	MetricRulesExternal []utils.MetricRule
+	Scheme      *runtime.Scheme
+	RestMapper  meta.RESTMapper
+	Recorder    record.EventRecorder
+	ScaleClient scale.ScalesGetter
+	K8SVersion  *version.Version
+	Config      EhpaControllerConfig
 }
 
 func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -188,17 +184,6 @@ func (c *EffectiveHPAController) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&autoscalingv2.HorizontalPodAutoscaler{}).
 		Owns(&predictionapi.TimeSeriesPrediction{}).
 		Complete(c)
-}
-
-func (c *EffectiveHPAController) UpdateMetricRules(m config.MetricsDiscoveryConfig) {
-	metricRulesResource, metricRulesCustomer, metricRulesExternal, err := utils.GetMetricRules(m, c.RestMapper)
-	if err != nil {
-		klog.Errorf("Got metricRules failed %v", err)
-	} else {
-		c.MetricRulesResource = metricRulesResource
-		c.MetricRulesCustomer = metricRulesCustomer
-		c.MetricRulesExternal = metricRulesExternal
-	}
 }
 
 func setCondition(status *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus, conditionType autoscalingapi.ConditionType, conditionStatus metav1.ConditionStatus, reason string, message string) {

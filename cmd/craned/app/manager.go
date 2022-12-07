@@ -3,10 +3,7 @@ package app
 import (
 	"context"
 	"flag"
-	"os"
-	"strings"
-	"time"
-
+	prometheus_adapter "github.com/gocrane/crane/pkg/prometheus-adapter"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
@@ -18,10 +15,11 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/scale"
 	"k8s.io/klog/v2"
+	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
-	paConfig "sigs.k8s.io/prometheus-adapter/pkg/config"
+	"strings"
 
 	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
@@ -51,7 +49,6 @@ import (
 	"github.com/gocrane/crane/pkg/recommendation"
 	"github.com/gocrane/crane/pkg/server"
 	serverconfig "github.com/gocrane/crane/pkg/server/config"
-	"github.com/gocrane/crane/pkg/utils"
 	"github.com/gocrane/crane/pkg/utils/target"
 	"github.com/gocrane/crane/pkg/webhooks"
 )
@@ -282,19 +279,24 @@ func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.O
 		}
 
 		if opts.DataSourcePromConfig.AdapterConfigMap != "" {
-			// PrometheusAdapterConfigController
-			if err := (&ehpa.PromAdapterConfigMapController{
-				Client:         mgr.GetClient(),
-				Scheme:         mgr.GetScheme(),
-				RestMapper:     mgr.GetRESTMapper(),
-				Recorder:       mgr.GetEventRecorderFor("prometheus-adapter-configmap-controller"),
-				ConfigMap:      opts.DataSourcePromConfig.AdapterConfigMap,
-				EhpaController: ehpaController,
+			// PrometheusAdapterConfigFetcher
+			if err := (&prometheus_adapter.PromAdapterConfigMapFetcher{
+				Client:     mgr.GetClient(),
+				Scheme:     mgr.GetScheme(),
+				RestMapper: mgr.GetRESTMapper(),
+				Recorder:   mgr.GetEventRecorderFor("prometheus-adapter-configmap-controller"),
+				ConfigMap:  opts.DataSourcePromConfig.AdapterConfigMap,
 			}).SetupWithManager(mgr); err != nil {
 				klog.Exit(err, "unable to create controller", "controller", "PromAdapterConfigMapController")
 			}
 		} else if opts.DataSourcePromConfig.AdapterConfig != "" {
-			go promAdapterConfigDaemonReload(ehpaController, opts.DataSourcePromConfig.AdapterConfig)
+			// PrometheusAdapterConfigFetcher
+			pac := &prometheus_adapter.PromAdapterConfigMapFetcher{
+				RestMapper: mgr.GetRESTMapper(),
+				ConfigMap:  opts.DataSourcePromConfig.AdapterConfig,
+			}
+
+			go pac.PromAdapterConfigDaemonReload()
 		}
 
 		if err := (ehpaController).SetupWithManager(mgr); err != nil {
@@ -441,25 +443,5 @@ func runAll(ctx context.Context, mgr ctrl.Manager, predictorMgr predictor.Manage
 	// wait for all components exit
 	if err := eg.Wait(); err != nil {
 		klog.Fatal(err)
-	}
-}
-
-// if set promAdapterConfig, daemon reload by config's md5
-func promAdapterConfigDaemonReload(ehpaController *ehpa.EffectiveHPAController, filePath string) {
-	var md5Cache string
-	for {
-		md5Now, err := utils.GetFileMd5(filePath)
-		if err != nil {
-			klog.Errorf("Got Md5 failed[%s] %v", filePath, err)
-		} else if md5Now != "" && md5Cache != md5Now {
-			md5Cache = md5Now
-			metricsDiscoveryConfig, err := paConfig.FromFile(filePath)
-			if err != nil {
-				klog.Errorf("Got metricsDiscoveryConfig failed[%s] %v", filePath, err)
-			} else {
-				ehpaController.UpdateMetricRules(*metricsDiscoveryConfig)
-			}
-		}
-		time.Sleep(time.Duration(30) * time.Second)
 	}
 }

@@ -1,8 +1,9 @@
-package ehpa
+package prometheus_adapter
 
 import (
 	"context"
 	"fmt"
+	"github.com/fsnotify/fsnotify"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -19,13 +20,13 @@ import (
 )
 
 // controller for configMap of prometheus-adapter
-type PromAdapterConfigMapController struct {
+type PromAdapterConfigMapFetcher struct {
 	client.Client
-	Scheme         *runtime.Scheme
-	RestMapper     meta.RESTMapper
-	Recorder       record.EventRecorder
-	ConfigMap      string
-	EhpaController *EffectiveHPAController
+	Scheme     *runtime.Scheme
+	RestMapper meta.RESTMapper
+	Recorder   record.EventRecorder
+	ConfigMap  string
+	Config     string
 }
 
 type PromAdapterConfigMapChangedPredicate struct {
@@ -34,7 +35,7 @@ type PromAdapterConfigMapChangedPredicate struct {
 	Namespace string
 }
 
-func (pc *PromAdapterConfigMapController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (pc *PromAdapterConfigMapFetcher) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var cmArray = strings.Split(pc.ConfigMap, "/")
 
 	if len(cmArray) != 3 {
@@ -64,13 +65,26 @@ func (pc *PromAdapterConfigMapController) Reconcile(ctx context.Context, req ctr
 	if err != nil {
 		klog.Errorf("Got metricsDiscoveryConfig failed[%s] %v", pc.ConfigMap, err)
 	}
-	pc.EhpaController.UpdateMetricRules(*cfg)
+
+	//FlushRules
+	err = FlushResourceRules(*cfg, pc.RestMapper)
+	if err != nil {
+		klog.Errorf("FlushResourceRules failed %v", err)
+	}
+	err = FlushRules(*cfg, pc.RestMapper)
+	if err != nil {
+		klog.Errorf("FlushRules failed %v", err)
+	}
+	err = FlushExternalRules(*cfg, pc.RestMapper)
+	if err != nil {
+		klog.Errorf("FlushExternalRules failed %v", err)
+	}
 
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager creates a controller and register to controller manager.
-func (pc *PromAdapterConfigMapController) SetupWithManager(mgr ctrl.Manager) error {
+func (pc *PromAdapterConfigMapFetcher) SetupWithManager(mgr ctrl.Manager) error {
 	var metaConfigmap = strings.Split(pc.ConfigMap, "/")
 
 	if len(metaConfigmap) < 1 {
@@ -105,16 +119,50 @@ func (paCm *PromAdapterConfigMapChangedPredicate) Update(e event.UpdateEvent) bo
 	return false
 }
 
-func GetMatchLabels(extensionLabels map[string]string, metricLabels map[string]string) map[string]string {
-	var matchLabels = make(map[string]string)
-
-	for k := range extensionLabels {
-		matchLabels[k] = extensionLabels[k]
+// if set promAdapterConfig, daemon reload by config's md5
+func (pc *PromAdapterConfigMapFetcher) PromAdapterConfigDaemonReload() {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		klog.Error(err)
+		return
 	}
-
-	for k := range metricLabels {
-		matchLabels[k] = metricLabels[k]
+	defer watcher.Close()
+	err = watcher.Add(pc.Config)
+	if err != nil {
+		klog.ErrorS(err, "Failed to watch", "file", pc.Config)
+		return
 	}
+	klog.Infof("Start watching %s for update.", pc.Config)
 
-	return matchLabels
+	for {
+		select {
+		case event, ok := <-watcher.Events:
+			klog.Infof("Watched an event: %v", event)
+			if !ok {
+				return
+			}
+			metricsDiscoveryConfig, err := config.FromFile(pc.Config)
+			if err != nil {
+				klog.Errorf("Got metricsDiscoveryConfig failed[%s] %v", pc.Config, err)
+			} else {
+				err = FlushResourceRules(*metricsDiscoveryConfig, pc.RestMapper)
+				if err != nil {
+					klog.Errorf("FlushResourceRules failed %v", err)
+				}
+				err = FlushRules(*metricsDiscoveryConfig, pc.RestMapper)
+				if err != nil {
+					klog.Errorf("FlushRules failed %v", err)
+				}
+				err = FlushExternalRules(*metricsDiscoveryConfig, pc.RestMapper)
+				if err != nil {
+					klog.Errorf("FlushExternalRules failed %v", err)
+				}
+			}
+		case err, ok := <-watcher.Errors:
+			if !ok {
+				return
+			}
+			klog.Error(err)
+		}
+	}
 }
