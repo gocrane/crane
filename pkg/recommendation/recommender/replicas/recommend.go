@@ -54,11 +54,11 @@ func (rr *ReplicasRecommender) Recommend(ctx *framework.RecommendationContext) e
 		timeNow.Add(time.Hour*24*7))
 
 	if err != nil {
-		klog.Warningf("%s query predicted time series failed: %v ", rr.Name(), err)
+		klog.Warningf("%s: query predicted time series failed: %v ", ctx.String(), err)
 	}
 
 	if len(tsListPrediction) != 1 {
-		klog.Warningf("%s prediction metrics data is unexpected, List length is %d ", rr.Name(), len(tsListPrediction))
+		klog.Warningf("%s: prediction metrics data is unexpected, List length is %d ", ctx.String(), len(tsListPrediction))
 	}
 
 	ctx.ResultValues = tsListPrediction
