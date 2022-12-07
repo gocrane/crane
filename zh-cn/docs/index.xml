@@ -1324,7 +1324,7 @@ kubectl apply -f deploy/metric-adapter&lt;/code>&lt;/pre>&lt;/div>
 &lt;/div>
 &lt;p>如果您想自定义 Crane 里配置 Prometheus 的 HTTP 地址，请参考以下的命令。如果您在集群里已存在一个 Prometheus，请将 Server 地址填于&lt;code>CUSTOMIZE_PROMETHEUS&lt;/code> 。&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-console" data-lang="console">&lt;span style="display:flex;">&lt;span>export CUSTOMIZE_PROMETHEUS=
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>if [ $CUSTOMIZE_PROMETHEUS ]; then sed -i &amp;#39;&amp;#39; &amp;#34;s/http:\/\/prometheus-server.crane-system.svc.cluster.local:8080/${CUSTOMIZE_PROMETHEUS}/&amp;#34; deploy/craned/deployment.yaml ; fi
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>if [ $CUSTOMIZE_PROMETHEUS ]; then sed -i &amp;#39;&amp;#39; &amp;#34;s/PROMETHEUS_ADDRESS/${CUSTOMIZE_PROMETHEUS}/&amp;#34; deploy/craned/deployment.yaml ; fi
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="安装常见问题">安装常见问题&lt;/h2>
 &lt;h3 id="安装-crane-报错">安装 Crane 报错&lt;/h3>
 &lt;p>当您执行 &lt;code>helm install crane -n crane-system --create-namespace crane/crane&lt;/code> 命令时，可能会遇到如下错误：&lt;/p>
