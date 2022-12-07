@@ -35,7 +35,7 @@ spec:
           operator: Exists
       containers:
         - name: craned
-          image: docker.io/gocrane/craned:v0.7.0
+          image: docker.io/gocrane/craned:v0.8.0
           imagePullPolicy: IfNotPresent
           env:
             - name: TZ
@@ -61,7 +61,7 @@ spec:
               path: /api/healthz
               port: 8082
               scheme: HTTP
-        - image: docker.io/gocrane/dashboard:v0.7.0
+        - image: docker.io/gocrane/dashboard:v0.8.0
           imagePullPolicy: IfNotPresent
           name: dashboard
           volumeMounts:
@@ -115,33 +115,6 @@ data:
             apiVersion: apps/v1
           - kind: StatefulSet
             apiVersion: apps/v1
----
-
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: recommendation-config
-  namespace: crane-system
-data:
-  config_set.yaml: |-
-    apiVersion: analysis.crane.io/v1alpha1
-    kind: ConfigSet
-    configs:
-      - targets: []
-        properties:
-          resource.cpu-request-percentile: "0.98"
-          replicas.workload-min-replicas: "3"
-          replicas.pod-min-ready-seconds: "30"
-          replicas.pod-available-ratio: "0.5"
-          replicas.default-min-replicas: "3"
-          replicas.max-replicas-factor: "3"
-          replicas.min-cpu-usage-threshold: "1"
-          replicas.fluctuation-threshold: "1.5"
-          replicas.min-cpu-target-utilization: "30"
-          replicas.max-cpu-target-utilization: "75"
-          replicas.cpu-target-utilization: "50"
-          replicas.cpu-percentile: "95"
-          replicas.reference-hpa: "true"
 
 ---
 apiVersion: v1
