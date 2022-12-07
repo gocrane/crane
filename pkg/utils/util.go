@@ -1,11 +1,7 @@
 package utils
 
 import (
-	"crypto/md5"
-	"fmt"
-	"io"
 	"math"
-	"os"
 )
 
 func GetUint64withDefault(i *uint64, value uint64) uint64 {
@@ -96,19 +92,4 @@ func CmpFloat(p1, p2 float64) int32 {
 		return -1
 	}
 	return 1
-}
-
-func GetFileMd5(file string) (string, error) {
-	f, err := os.Open(file)
-	if err != nil {
-		return "", err
-	}
-
-	defer f.Close()
-	md5hash := md5.New()
-	_, err = io.Copy(md5hash, f)
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("%x", md5hash.Sum(nil)), err
 }
