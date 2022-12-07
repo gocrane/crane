@@ -21,8 +21,6 @@ const (
 	ContainerMemUsageExpression = "ContainerMemUsageExpression"
 	PodCpuUsageExpression       = "PodCpuUsageExpression"
 	PodMemUsageExpression       = "PodMemUsageExpression"
-	Equals                      = "="
-	Match                       = "=~"
 )
 
 // define MetricRule for expressionQuery, SeriesName for original metric name, MetricName for name converted by prometheus-adapter

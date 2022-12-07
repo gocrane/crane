@@ -3,7 +3,6 @@ package ehpa
 import (
 	"context"
 	"fmt"
-	"github.com/gocrane/crane/pkg/prometheus-adapter"
 	"strings"
 
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
@@ -21,6 +20,7 @@ import (
 
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/metricprovider"
+	prometheus_adapter "github.com/gocrane/crane/pkg/prometheus-adapter"
 	"github.com/gocrane/crane/pkg/utils"
 )
 

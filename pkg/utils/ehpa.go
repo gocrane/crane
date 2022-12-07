@@ -3,7 +3,6 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gocrane/crane/pkg/prometheus-adapter"
 	"regexp"
 	"strings"
 
@@ -160,7 +159,7 @@ func GetExtensionLabelsAnnotationPromAdapter(annotations map[string]string) (ext
 
 	for _, label := range labels {
 		for k := range label {
-			extensionLabels = append(extensionLabels, k+prometheus_adapter.Equals+fmt.Sprintf("%s", label[k]))
+			extensionLabels = append(extensionLabels, fmt.Sprintf("%s=%s", k, label[k]))
 		}
 	}
 	return extensionLabels, err

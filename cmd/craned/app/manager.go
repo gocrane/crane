@@ -3,7 +3,9 @@ package app
 import (
 	"context"
 	"flag"
-	prometheus_adapter "github.com/gocrane/crane/pkg/prometheus-adapter"
+	"os"
+	"strings"
+
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
@@ -15,11 +17,9 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/scale"
 	"k8s.io/klog/v2"
-	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
-	"strings"
 
 	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
@@ -38,6 +38,7 @@ import (
 	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/oom"
 	"github.com/gocrane/crane/pkg/predictor"
+	prometheus_adapter "github.com/gocrane/crane/pkg/prometheus-adapter"
 	"github.com/gocrane/crane/pkg/providers"
 	"github.com/gocrane/crane/pkg/providers/grpc"
 	"github.com/gocrane/crane/pkg/providers/metricserver"

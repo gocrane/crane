@@ -2,13 +2,13 @@ package prometheus
 
 import (
 	"fmt"
-	"github.com/gocrane/crane/pkg/prometheus-adapter"
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/gocrane/crane/pkg/metricquery"
+	"github.com/gocrane/crane/pkg/prometheus-adapter"
 	"github.com/gocrane/crane/pkg/querybuilder"
 	"github.com/gocrane/crane/pkg/utils"
 )
