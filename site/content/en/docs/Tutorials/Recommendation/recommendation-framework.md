@@ -126,8 +126,8 @@ Currently, Crane support these Recommenders:
 
 - [**Resource Recommendation**](/docs/tutorials/recommendation/resource-recommendation): Use the VPA algorithm to analyze the actual usage of applications and recommend more appropriate resource configurations.
 - [**Replicas Recommendation**](/docs/tutorials/recommendation/replicas-recommendation): Use the HPA algorithm to analyze the actual usage of applications and recommend more appropriate replicas configurations.
+- [**HPA Recommendation**](/docs/tutorials/recommendation/hpa-recommendation): Scan the Workload in a cluster and recommend HPA configurations for Workload that are suitable for horizontal autoscaling
 - [**IdleNode Recommendation**](/docs/tutorials/recommendation/idlenode-recommendation): Find the idle nodes in cluster
-
 
 ### Recommender Framework 
 

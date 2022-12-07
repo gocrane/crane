@@ -40,12 +40,12 @@ func (rr *HPARecommender) Policy(ctx *framework.RecommendationContext) error {
 	predictable := true
 
 	if len(ctx.ResultValues) != 1 {
-		klog.Warningf("ReplicasAdvisor prediction metrics data is unexpected, List length is %d ", len(ctx.ResultValues))
+		klog.Warningf("%s: prediction metrics data is unexpected, List length is %d ", ctx.String(), len(ctx.ResultValues))
 		predictable = false
 	}
 
 	if rr.PredictableEnabled && !predictable {
-		return fmt.Errorf("ReplicasAdvisor cannot predict target")
+		return fmt.Errorf("cannot predict target")
 	}
 
 	minReplicas, cpuMax, percentileCpu, err := rr.GetMinReplicas(ctx)
@@ -55,12 +55,12 @@ func (rr *HPARecommender) Policy(ctx *framework.RecommendationContext) error {
 
 	err = rr.checkMinCpuUsageThreshold(cpuMax)
 	if err != nil {
-		return fmt.Errorf("%s checkMinCpuUsageThreshold failed: %v", rr.Name(), err)
+		return fmt.Errorf("checkMinCpuUsageThreshold failed: %v", err)
 	}
 
 	medianMin, medianMax, err := rr.minMaxMedians(ctx.InputValues)
 	if err != nil {
-		return fmt.Errorf("%s minMaxMedians failed: %v", rr.Name(), err)
+		return fmt.Errorf("minMaxMedians failed: %v", err)
 	}
 
 	err = rr.checkFluctuation(medianMin, medianMax)
@@ -70,12 +70,12 @@ func (rr *HPARecommender) Policy(ctx *framework.RecommendationContext) error {
 
 	targetUtilization, _, err := rr.proposeTargetUtilization(ctx)
 	if err != nil {
-		return fmt.Errorf("ReplicasAdvisor proposeTargetUtilization failed: %v", err)
+		return fmt.Errorf("proposeTargetUtilization failed: %v", err)
 	}
 
 	maxReplicas, err := rr.proposeMaxReplicas(&ctx.PodTemplate, percentileCpu, targetUtilization, minReplicas)
 	if err != nil {
-		return fmt.Errorf("ReplicasAdvisor proposeMaxReplicas failed: %v", err)
+		return fmt.Errorf("proposeMaxReplicas failed: %v", err)
 	}
 
 	defaultPredictionWindow := int32(3600)
@@ -304,7 +304,7 @@ func (rr *HPARecommender) proposeTargetUtilization(ctx *framework.Recommendation
 		return 0, 0, err
 	}
 
-	klog.V(4).Infof("ReplicasAdvisor propose targetUtilization, cpuUsage %f requestsPod %d", cpuUsage, requestTotal)
+	klog.V(4).Infof("propose targetUtilization, cpuUsage %f requestsPod %d", cpuUsage, requestTotal)
 	targetUtilization := int32(math.Ceil((cpuUsage * 1000 / float64(requestTotal)) * 100))
 
 	// capping
@@ -327,7 +327,7 @@ func (rr *HPARecommender) proposeMaxReplicas(podTemplate *corev1.PodTemplateSpec
 		return 0, err
 	}
 
-	klog.V(4).Infof("ReplicasAdvisor proposeMaxReplicas, percentileCpu %f requestsPod %d targetUtilization %d", percentileCpu, requestsPod, targetUtilization)
+	klog.V(4).Infof("proposeMaxReplicas, percentileCpu %f requestsPod %d targetUtilization %d", percentileCpu, requestsPod, targetUtilization)
 
 	// request * targetUtilization is the target average cpu usage, use total p95thCpu to divide, we can get the expect max replicas.
 	calcMaxReplicas := (percentileCpu * 100 * 1000 * rr.MaxReplicasFactor) / float64(int32(requestsPod)*targetUtilization)
