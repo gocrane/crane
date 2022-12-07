@@ -20,7 +20,7 @@ scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="tru
 &lt;li>多维度的成本洞察，优化评估。通过 &lt;code>Cloud Provider&lt;/code> 支持多云计费。&lt;/li>
 &lt;/ul>
 &lt;p>&lt;strong>推荐框架&lt;/strong>&lt;/p>
-&lt;p>提供了一个可扩展的推荐框架以支持多种云资源的分析，内置了多种推荐器：资源推荐，副本推荐，闲置资源推荐。&lt;a href="/zh-cn/docs/tutorials/recommendation">了解更多&lt;/a>。&lt;/p>
+&lt;p>提供了一个可扩展的推荐框架以支持多种云资源的分析，内置了多种推荐器：资源推荐，副本推荐，HPA 推荐，闲置资源推荐。&lt;a href="/zh-cn/docs/tutorials/recommendation">了解更多&lt;/a>。&lt;/p>
 &lt;p>&lt;strong>基于预测的水平弹性器&lt;/strong>&lt;/p>
 &lt;p>EffectiveHorizontalPodAutoscaler 支持了预测驱动的弹性。它基于社区 HPA 做底层的弹性控制，支持更丰富的弹性触发策略（预测，观测，周期），让弹性更加高效，并保障了服务的质量。&lt;a href="/zh-cn/docs/tutorials/using-effective-hpa-to-scaling-with-effectiveness">了解更多&lt;/a>。&lt;/p>
 &lt;p>&lt;strong>负载感知的调度器&lt;/strong>&lt;/p>

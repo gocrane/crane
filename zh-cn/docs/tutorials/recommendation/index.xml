@@ -97,6 +97,7 @@
 &lt;ul>
 &lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/resource-recommendation">&lt;strong>资源推荐&lt;/strong>&lt;/a>: 通过 VPA 算法分析应用的真实用量推荐更合适的资源配置&lt;/li>
 &lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/replicas-recommendation">&lt;strong>副本数推荐&lt;/strong>&lt;/a>: 通过 HPA 算法分析应用的真实用量推荐更合适的副本数量&lt;/li>
+&lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/hpa-recommendation">&lt;strong>HPA 推荐&lt;/strong>&lt;/a>: 扫描集群中的 Workload，针对适合适合水平弹性的 Workload 推荐 HPA 配置&lt;/li>
 &lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/idlenode-recommendation">&lt;strong>闲置节点推荐&lt;/strong>&lt;/a>: 扫描集群中的闲置节点&lt;/li>
 &lt;/ul>
 &lt;h3 id="recommender-框架">Recommender 框架&lt;/h3>
@@ -641,7 +642,189 @@ TargetRef&lt;/li>
 &lt;ol>
 &lt;li>扫描集群中所有节点和节点上的 Pod&lt;/li>
 &lt;li>如果节点上所有 Pod 都属于 DaemonSet，则判定为闲置节点&lt;/li>
-&lt;/ol></description></item><item><title>Docs: 如何开发 Recommender</title><link>/zh-cn/docs/tutorials/recommendation/how-to-develop-recommender/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/recommendation/how-to-develop-recommender/</guid><description>
+&lt;/ol></description></item><item><title>Docs: HPA 推荐（Alpha）</title><link>/zh-cn/docs/tutorials/recommendation/hpa-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/recommendation/hpa-recommendation/</guid><description>
+&lt;p>Kubernetes 用户希望使用 HPA 来实现按需使用，提示资源利用率。但是往往不知道哪些应用适合弹性也不知道如何配置HPA的参数。通过 HPA 推荐的算法分析应用的真实用量推荐合适的水平弹性的配置，您可以参考并采纳它提升应用资源利用率。&lt;/p>
+&lt;p>HPA 推荐还处于 Alpha 阶段，欢迎对功能提供意见。&lt;/p>
+&lt;h2 id="动机">动机&lt;/h2>
+&lt;p>在 Kubernetes 中，HPA(HorizontalPodAutoscaler) 自动更新工作负载资源 （例如 Deployment 或者 StatefulSet）， 目的是自动扩缩工作负载以满足需求。但是在实际使用过程中我们观察到以下使用问题：&lt;/p>
+&lt;ul>
+&lt;li>有些应用可以通过 HPA 提示资源利用率，但是没有配置 HPA&lt;/li>
+&lt;li>有些 HPA 配置并不合理，无法有效的进行弹性伸缩，也就达不到提示利用率的效果&lt;/li>
+&lt;/ul>
+&lt;p>HPA 推荐通过应用的历史数据结合算法分析给出建议：哪些应用适合配置 HPA 以及 HPA 的配置。&lt;/p>
+&lt;h2 id="推荐示例">推荐示例&lt;/h2>
+&lt;p>一个简单的弹性推荐 yaml 文件如下：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labels&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-name&lt;/span>: &lt;span style="color:#ae81ff">workload-hpa&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-recommender&lt;/span>: &lt;span style="color:#ae81ff">HPA&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-uid&lt;/span>: &lt;span style="color:#ae81ff">0214c84b-8b39-499b-a7c6-559ac460695d&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-kind&lt;/span>: &lt;span style="color:#ae81ff">Rollout&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-name&lt;/span>: &lt;span style="color:#ae81ff">eshop&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-version&lt;/span>: &lt;span style="color:#ae81ff">v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workload-hpa-hpa-blr4r&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">zytms&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">ownerReferences&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">blockOwnerDeletion&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">controller&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">RecommendationRule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workload-hpa&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">0214c84b-8b39-499b-a7c6-559ac460695d&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">adoptionType&lt;/span>: &lt;span style="color:#ae81ff">StatusAndAnnotation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategy&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategyType&lt;/span>: &lt;span style="color:#ae81ff">Once&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">argoproj.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Rollout&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">eshop&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">eshop&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">HPA&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">status&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">action&lt;/span>: &lt;span style="color:#ae81ff">Create&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastUpdateTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2022-12-05T06:12:54Z&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommendedInfo&lt;/span>: &lt;span style="color:#e6db74">&amp;#39;{&amp;#34;kind&amp;#34;:&amp;#34;EffectiveHorizontalPodAutoscaler&amp;#34;,&amp;#34;apiVersion&amp;#34;:&amp;#34;autoscaling.crane.io/v1alpha1&amp;#34;,&amp;#34;metadata&amp;#34;:{&amp;#34;name&amp;#34;:&amp;#34;eshop&amp;#34;,&amp;#34;namespace&amp;#34;:&amp;#34;eshop&amp;#34;,&amp;#34;creationTimestamp&amp;#34;:null},&amp;#34;spec&amp;#34;:{&amp;#34;scaleTargetRef&amp;#34;:{&amp;#34;kind&amp;#34;:&amp;#34;Rollout&amp;#34;,&amp;#34;name&amp;#34;:&amp;#34;eshop&amp;#34;,&amp;#34;apiVersion&amp;#34;:&amp;#34;argoproj.io/v1alpha1&amp;#34;},&amp;#34;minReplicas&amp;#34;:1,&amp;#34;maxReplicas&amp;#34;:1,&amp;#34;scaleStrategy&amp;#34;:&amp;#34;Preview&amp;#34;,&amp;#34;metrics&amp;#34;:[{&amp;#34;type&amp;#34;:&amp;#34;Resource&amp;#34;,&amp;#34;resource&amp;#34;:{&amp;#34;name&amp;#34;:&amp;#34;cpu&amp;#34;,&amp;#34;target&amp;#34;:{&amp;#34;type&amp;#34;:&amp;#34;Utilization&amp;#34;,&amp;#34;averageUtilization&amp;#34;:58}}},{&amp;#34;type&amp;#34;:&amp;#34;Pods&amp;#34;,&amp;#34;pods&amp;#34;:{&amp;#34;metric&amp;#34;:{&amp;#34;name&amp;#34;:&amp;#34;k8s_pod_cpu_core_used&amp;#34;},&amp;#34;target&amp;#34;:{&amp;#34;type&amp;#34;:&amp;#34;AverageValue&amp;#34;,&amp;#34;averageValue&amp;#34;:&amp;#34;500m&amp;#34;}}}]},&amp;#34;status&amp;#34;:{}}&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommendedValue&lt;/span>: |&lt;span style="color:#e6db74">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> effectiveHPA:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> maxReplicas: 1
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> metrics:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - resource:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> name: cpu
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> target:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> averageUtilization: 58
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> type: Utilization
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> type: Resource
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - pods:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> metric:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> name: k8s_pod_cpu_core_used
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> target:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> averageValue: 500m
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> type: AverageValue
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> type: Pods
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> minReplicas: 1&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>在该示例中：&lt;/p>
+&lt;ul>
+&lt;li>推荐的 TargetRef 指向 eshop 的 Rollout：eshop&lt;/li>
+&lt;li>推荐类型为 HPA 推荐&lt;/li>
+&lt;li>adoptionType 是 StatusAndAnnotation，表示将推荐结果展示在 recommendation.status 和 Deployment 的 Annotation&lt;/li>
+&lt;li>recommendedInfo 显示了推荐的 EHPA 配置（recommendedValue 已经 deprecated）&lt;/li>
+&lt;li>action 是 Create，如果集群中已经有 EHPA 存在，则 action 是 Patch&lt;/li>
+&lt;/ul>
+&lt;h2 id="实现原理">实现原理&lt;/h2>
+&lt;p>HPA 推荐按以下步骤完成一次推荐过程：&lt;/p>
+&lt;ol>
+&lt;li>通过监控数据，获取 Workload 过去一周的 CPU 和 Memory 历史用量。&lt;/li>
+&lt;li>用 DSP 算法预测未来一周 CPU 用量&lt;/li>
+&lt;li>分别计算 CPU 和 内存分别对应的副本数，取较大值作为 minReplicas&lt;/li>
+&lt;li>计算历史 CPU 用量的波动率和最小用量，筛选出适合使用 HPA 的 Workload&lt;/li>
+&lt;li>根据 pod 的 CPU 峰值利用率计算 targetUtilization&lt;/li>
+&lt;li>根据推荐的 targetUtilization 计算推荐的 maxReplicas&lt;/li>
+&lt;li>将 targetUtilization，maxReplicas，minReplicas 组装成完整的 EHPA 对象作为推荐结果&lt;/li>
+&lt;/ol>
+&lt;h3 id="如何筛选适合使用-hpa-的-workload">如何筛选适合使用 HPA 的 workload&lt;/h3>
+&lt;p>适合使用 HPA 的 Workload 需要满足以下条件：&lt;/p>
+&lt;ol>
+&lt;li>Workload 运行基本正常，比如绝大多数 Pod 都处于运行中&lt;/li>
+&lt;li>CPU 的使用量存在波峰波谷的波动。如果基本没有波动或者完全随机的用量适合通过副本推荐配置固定的副本数&lt;/li>
+&lt;li>有一定资源用量的 Workload，如果资源用量长期非常低，那么即使有一定的波动量，也是没有使用 HPA 的价值的&lt;/li>
+&lt;/ol>
+&lt;p>以下是一个典型的存在波峰波谷规律的 Workload 的历史资源用量&lt;/p>
+&lt;p>&lt;img src="/images/algorithm/dsp/input0.png" alt="">&lt;/p>
+&lt;h3 id="计算最小副本算法">计算最小副本算法&lt;/h3>
+&lt;p>方法和副本推荐中计算副本算法一致，请参考：&lt;a href="/zh-cn/docs/tutorials/recommendation/replicas-recommendation">&lt;strong>副本推荐&lt;/strong>&lt;/a>&lt;/p>
+&lt;h2 id="支持的资源类型">支持的资源类型&lt;/h2>
+&lt;p>默认支持 StatefulSet 和 Deployment，但是支持所有实现了 Scale SubResource 的 Workload。&lt;/p>
+&lt;h2 id="参数配置">参数配置&lt;/h2>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>配置项&lt;/th>
+&lt;th>默认值&lt;/th>
+&lt;th>描述&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>workload-min-replicas&lt;/td>
+&lt;td>1&lt;/td>
+&lt;td>小于该值的工作负载不做弹性推荐&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>pod-min-ready-seconds&lt;/td>
+&lt;td>30&lt;/td>
+&lt;td>定义了 Pod 是否 Ready 的秒数&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>pod-available-ratio&lt;/td>
+&lt;td>0.5&lt;/td>
+&lt;td>Ready Pod 比例小于该值的工作负载不做弹性推荐&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>default-min-replicas&lt;/td>
+&lt;td>1&lt;/td>
+&lt;td>最小 minReplicas&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>cpu-percentile&lt;/td>
+&lt;td>0.95&lt;/td>
+&lt;td>历史 CPU 用量的 Percentile&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>mem-percentile&lt;/td>
+&lt;td>0.95&lt;/td>
+&lt;td>历史内存用量的 Percentile&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>cpu-target-utilization&lt;/td>
+&lt;td>0.5&lt;/td>
+&lt;td>CPU 目标峰值利用率&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>mem-target-utilization&lt;/td>
+&lt;td>0.5&lt;/td>
+&lt;td>内存目标峰值利用率&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>predictable&lt;/td>
+&lt;td>false&lt;/td>
+&lt;td>当设置成 true 时，如果 CPU 历史用量无法预测，则不进行推荐&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>reference-hpa&lt;/td>
+&lt;td>true&lt;/td>
+&lt;td>推荐配置会参考现有 HPA 的配置，继承比如自定义指标等信息到 EHPA&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>min-cpu-usage-threshold&lt;/td>
+&lt;td>1&lt;/td>
+&lt;td>Workload CPU 最小用量，如果历史用量小于该配置，则不进行推荐&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>fluctuation-threshold&lt;/td>
+&lt;td>1.5&lt;/td>
+&lt;td>Workload CPU 的波动率，小于该配置，则不进行推荐&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>min-cpu-target-utilization&lt;/td>
+&lt;td>30&lt;/td>
+&lt;td>CPU 的 TargetUtilization 最小值&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>max-cpu-target-utilization&lt;/td>
+&lt;td>75&lt;/td>
+&lt;td>CPU 的 TargetUtilization 最大值&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>max-replicas-factor&lt;/td>
+&lt;td>3&lt;/td>
+&lt;td>在计算 maxReplicas 时的放大系数&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>如何更新推荐的配置请参考：&lt;a href="/zh-cn/docs/tutorials/recommendation/recommendation-framework">&lt;strong>推荐框架&lt;/strong>&lt;/a>&lt;/p></description></item><item><title>Docs: 如何开发 Recommender</title><link>/zh-cn/docs/tutorials/recommendation/how-to-develop-recommender/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/recommendation/how-to-develop-recommender/</guid><description>
 &lt;p>Recommendation Framework 提供了一套可扩展的 Recommender 框架并支持了内置的 Recommender，用户可以实现一个自定义的 Recommender，或者修改一个已有的 Recommender。&lt;/p>
 &lt;h2 id="recommender-interface">Recommender Interface&lt;/h2>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">Recommender&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> {
