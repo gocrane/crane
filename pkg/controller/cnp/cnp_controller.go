@@ -2,6 +2,9 @@ package cnp
 
 import (
 	"context"
+	"fmt"
+	prometheus_adapter "github.com/gocrane/crane/pkg/prometheus-adapter"
+	"github.com/gocrane/crane/pkg/utils"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -92,6 +95,30 @@ func (c *ClusterNodePredictionController) updateStatus(ctx context.Context, cnp 
 }
 
 func (c *ClusterNodePredictionController) mutateTimeSeriesPrediction(cnp *predictionapi.ClusterNodePrediction, tsp *predictionapi.TimeSeriesPrediction, node *v1.Node) {
+	mrs := prometheus_adapter.GetMetricRulesExternal()
+	for _, i := range cnp.Spec.PredictionTemplate.Spec.PredictionMetrics {
+		var expressionQuery string
+
+		switch i.ResourceIdentifier {
+		case "cpu":
+			metricRule := prometheus_adapter.MatchMetricRule(mrs, prometheus_adapter.NodeCpuUsageExpression)
+			expressionQuery, _ = metricRule.QueryForSeries("", []string{fmt.Sprintf("instance=~\"(%s)(:\\d+)?\"", node.Name)})
+			if expressionQuery != "" {
+				i.ExpressionQuery.Expression = expressionQuery
+			} else if i.ExpressionQuery.Expression == "" {
+				i.ExpressionQuery.Expression = utils.GetNodeCpuUsageExpression(node.Name)
+			}
+		case "mem":
+			metricRule := prometheus_adapter.MatchMetricRule(mrs, prometheus_adapter.NodeMemUsageExpression)
+			expressionQuery, _ = metricRule.QueryForSeries("", []string{fmt.Sprintf("instance=~\"(%s)(:\\d+)?\"", node.Name)})
+			if expressionQuery != "" {
+				i.ExpressionQuery.Expression = expressionQuery
+			} else if i.ExpressionQuery.Expression == "" {
+				i.ExpressionQuery.Expression = utils.GetNodeMemUsageExpression(node.Name)
+			}
+		}
+	}
+
 	tsp.Spec = predictionapi.TimeSeriesPredictionSpec{
 		PredictionMetrics: cnp.Spec.PredictionTemplate.Spec.PredictionMetrics,
 		TargetRef: v1.ObjectReference{

@@ -159,7 +159,7 @@ func GetExtensionLabelsAnnotationPromAdapter(annotations map[string]string) (ext
 
 	for _, label := range labels {
 		for k := range label {
-			extensionLabels = append(extensionLabels, fmt.Sprintf("%s=%s", k, label[k]))
+			extensionLabels = append(extensionLabels, fmt.Sprintf("%s=\"%s\"", k, label[k]))
 		}
 	}
 	return extensionLabels, err

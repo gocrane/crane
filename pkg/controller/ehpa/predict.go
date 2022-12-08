@@ -172,10 +172,9 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 					} else {
 						klog.V(4).Infof("Got MetricRulesResource prometheus-adapter-resource MetricMatches[%s] SeriesName[%s]", metricRule.MetricMatches, metricRule.SeriesName)
 						var matchLabels = extensionLabels
-						matchLabels = append(matchLabels, fmt.Sprintf("namespace=\"%s\"", ehpa.Namespace))
 						matchLabels = append(matchLabels, fmt.Sprintf("pod=~\"%s\"", utils.GetPodNameReg(ehpa.Spec.ScaleTargetRef.Name, ehpa.Spec.ScaleTargetRef.Kind)))
 
-						expressionQuery, err = metricRule.QueryForSeries(matchLabels)
+						expressionQuery, err = metricRule.QueryForSeries(ehpa.Namespace, matchLabels)
 						if err != nil {
 							klog.Errorf("Got promSelector prometheus-adapter-resource %v", err)
 						} else {
@@ -191,14 +190,13 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 					} else {
 						klog.V(4).Infof("Got MetricRulesCustomer prometheus-adapter-customer MetricMatches[%s] SeriesName[%s]", metricRule.MetricMatches, metricRule.SeriesName)
 						var matchLabels = extensionLabels
-						matchLabels = append(matchLabels, fmt.Sprintf("namespace=\"%s\"", ehpa.Namespace))
 						if metric.Pods.Metric.Selector != nil {
 							for i := range metric.Pods.Metric.Selector.MatchLabels {
 								matchLabels = append(matchLabels, fmt.Sprintf("%s=\"%s\"", i, metric.Pods.Metric.Selector.MatchLabels[i]))
 							}
 						}
 
-						expressionQuery, err = metricRule.QueryForSeries(matchLabels)
+						expressionQuery, err = metricRule.QueryForSeries(ehpa.Namespace, matchLabels)
 						if err != nil {
 							klog.Errorf("Got promSelector prometheus-adapter-customer %v", err)
 						} else {
@@ -214,14 +212,13 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 					} else {
 						klog.V(4).Infof("Got MetricRulesExternal prometheus-adapter-external MetricMatches[%s] SeriesName[%s]", metricRule.MetricMatches, metricRule.SeriesName)
 						var matchLabels = extensionLabels
-						matchLabels = append(matchLabels, fmt.Sprintf("namespace=\"%s\"", ehpa.Namespace))
 						if metric.External.Metric.Selector != nil {
 							for i := range metric.External.Metric.Selector.MatchLabels {
 								matchLabels = append(matchLabels, fmt.Sprintf("%s=\"%s\"", i, metric.External.Metric.Selector.MatchLabels[i]))
 							}
 						}
 
-						expressionQuery, err = metricRule.QueryForSeries(matchLabels)
+						expressionQuery, err = metricRule.QueryForSeries(ehpa.Namespace, matchLabels)
 						if err != nil {
 							klog.Errorf("Got promSelector prometheus-adapter-external %v", err)
 						} else {

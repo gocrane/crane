@@ -28,38 +28,41 @@ func NewPromQueryBuilder(metric *metricquery.Metric) querybuilder.Builder {
 }
 
 func (b *builder) BuildQuery() (*metricquery.Query, error) {
-	switch b.metric.Type {
-	case metricquery.WorkloadMetricType:
-		return b.workloadQuery(b.metric)
-	case metricquery.PodMetricType:
-		return b.podQuery(b.metric)
-	case metricquery.ContainerMetricType:
-		return b.containerQuery(b.metric)
-	case metricquery.NodeMetricType:
-		return b.nodeQuery(b.metric)
-	case metricquery.PromQLMetricType:
-		return b.promQuery(b.metric)
-	default:
-		return nil, fmt.Errorf("metric type %v not supported", b.metric.Type)
+	if b.metric != nil {
+		switch b.metric.Type {
+		case metricquery.WorkloadMetricType:
+			return b.workloadQuery(b.metric)
+		case metricquery.PodMetricType:
+			return b.podQuery(b.metric)
+		case metricquery.ContainerMetricType:
+			return b.containerQuery(b.metric)
+		case metricquery.NodeMetricType:
+			return b.nodeQuery(b.metric)
+		case metricquery.PromQLMetricType:
+			return b.promQuery(b.metric)
+		default:
+			return nil, fmt.Errorf("metric type %v not supported", b.metric.Type)
+		}
 	}
+	return nil, fmt.Errorf("metric type is nil")
 }
 
 func (b *builder) workloadQuery(metric *metricquery.Metric) (query *metricquery.Query, err error) {
 	if metric.Workload == nil {
 		return nil, fmt.Errorf("metric type %v, but no WorkloadNamerInfo provided", metric.Type)
 	}
-	mrs := prometheus_adapter.GetMetricRules()
+	mrs := prometheus_adapter.GetMetricRulesExternal()
 	var metricRule *prometheus_adapter.MetricRule
 	var queryExpr string
 
 	switch strings.ToLower(metric.MetricName) {
 	case v1.ResourceCPU.String():
-		metricRule = prometheus_adapter.MatchMetricRule(mrs.MetricRulesExternal, prometheus_adapter.WorkloadCpuUsageExpression)
+		metricRule = prometheus_adapter.MatchMetricRule(mrs, prometheus_adapter.WorkloadCpuUsageExpression)
 		if metricRule == nil {
 			queryExpr = utils.GetWorkloadCpuUsageExpression(metric.Workload.Namespace, metric.Workload.Name, "")
 		}
 	case v1.ResourceMemory.String():
-		metricRule = prometheus_adapter.MatchMetricRule(mrs.MetricRulesExternal, prometheus_adapter.WorkloadMemUsageExpression)
+		metricRule = prometheus_adapter.MatchMetricRule(mrs, prometheus_adapter.WorkloadMemUsageExpression)
 		if metricRule == nil {
 			queryExpr = utils.GetWorkloadMemUsageExpression(metric.Workload.Namespace, metric.Workload.Name, "")
 		}
@@ -68,7 +71,7 @@ func (b *builder) workloadQuery(metric *metricquery.Metric) (query *metricquery.
 	}
 
 	if queryExpr == "" {
-		queryExpr, err = metricRule.QueryForSeries([]string{fmt.Sprintf("namespace=\"%s\"", metric.Workload.Namespace), fmt.Sprintf("pod=~\"%s\"", utils.GetPodNameReg(metric.Workload.Name, metric.Workload.Kind))})
+		queryExpr, err = metricRule.QueryForSeries(metric.Workload.Namespace, []string{fmt.Sprintf("pod=~\"%s\"", utils.GetPodNameReg(metric.Workload.Name, metric.Workload.Kind))})
 	}
 	return promQuery(&metricquery.PrometheusQuery{Query: queryExpr}), err
 }
@@ -77,18 +80,18 @@ func (b *builder) nodeQuery(metric *metricquery.Metric) (query *metricquery.Quer
 	if metric.Node == nil {
 		return nil, fmt.Errorf("metric type %v, but no NodeNamerInfo provided", metric.Type)
 	}
-	mrs := prometheus_adapter.GetMetricRules()
+	mrs := prometheus_adapter.GetMetricRulesExternal()
 	var metricRule *prometheus_adapter.MetricRule
 	var queryExpr string
 
 	switch strings.ToLower(metric.MetricName) {
 	case v1.ResourceCPU.String():
-		metricRule = prometheus_adapter.MatchMetricRule(mrs.MetricRulesExternal, prometheus_adapter.NodeCpuUsageExpression)
+		metricRule = prometheus_adapter.MatchMetricRule(mrs, prometheus_adapter.NodeCpuUsageExpression)
 		if metricRule == nil {
 			queryExpr = utils.GetNodeCpuUsageExpression(metric.Node.Name)
 		}
 	case v1.ResourceMemory.String():
-		metricRule = prometheus_adapter.MatchMetricRule(mrs.MetricRulesExternal, prometheus_adapter.NodeMemUsageExpression)
+		metricRule = prometheus_adapter.MatchMetricRule(mrs, prometheus_adapter.NodeMemUsageExpression)
 		if metricRule == nil {
 			queryExpr = utils.GetNodeMemUsageExpression(metric.Node.Name)
 		}
@@ -97,7 +100,7 @@ func (b *builder) nodeQuery(metric *metricquery.Metric) (query *metricquery.Quer
 	}
 
 	if queryExpr == "" {
-		queryExpr, err = metricRule.QueryForSeries([]string{fmt.Sprintf("instance=~\"(%s)(:\\d+)?\"", metric.Node.Name)})
+		queryExpr, err = metricRule.QueryForSeries("", []string{fmt.Sprintf("instance=~\"(%s)(:\\d+)?\"", metric.Node.Name)})
 	}
 
 	return promQuery(&metricquery.PrometheusQuery{Query: queryExpr}), err
@@ -107,18 +110,18 @@ func (b *builder) containerQuery(metric *metricquery.Metric) (query *metricquery
 	if metric.Container == nil {
 		return nil, fmt.Errorf("metric type %v, but no ContainerNamerInfo provided", metric.Type)
 	}
-	mrs := prometheus_adapter.GetMetricRules()
+	mrs := prometheus_adapter.GetMetricRulesExternal()
 	var metricRule *prometheus_adapter.MetricRule
 	var queryExpr string
 
 	switch strings.ToLower(metric.MetricName) {
 	case v1.ResourceCPU.String():
-		metricRule = prometheus_adapter.MatchMetricRule(mrs.MetricRulesExternal, prometheus_adapter.ContainerCpuUsageExpression)
+		metricRule = prometheus_adapter.MatchMetricRule(mrs, prometheus_adapter.ContainerCpuUsageExpression)
 		if metricRule == nil {
 			queryExpr = utils.GetContainerCpuUsageExpression(metric.Container.Namespace, metric.Container.WorkloadName, "", metric.Container.Name)
 		}
 	case v1.ResourceMemory.String():
-		metricRule = prometheus_adapter.MatchMetricRule(mrs.MetricRulesExternal, prometheus_adapter.ContainerMemUsageExpression)
+		metricRule = prometheus_adapter.MatchMetricRule(mrs, prometheus_adapter.ContainerMemUsageExpression)
 		if metricRule == nil {
 			queryExpr = utils.GetContainerMemUsageExpression(metric.Container.Namespace, metric.Container.WorkloadName, "", metric.Container.Name)
 		}
@@ -127,7 +130,7 @@ func (b *builder) containerQuery(metric *metricquery.Metric) (query *metricquery
 	}
 
 	if queryExpr == "" {
-		queryExpr, err = metricRule.QueryForSeries([]string{fmt.Sprintf("namespace=\"%s\"", metric.Container.Namespace), fmt.Sprintf("pod=~\"%s\"", utils.GetPodNameReg(metric.Workload.Name, metric.Workload.Kind)), fmt.Sprintf("container=\"%s\"", metric.Container.Name)})
+		queryExpr, err = metricRule.QueryForSeries(metric.Container.Namespace, []string{fmt.Sprintf("pod=~\"%s\"", utils.GetPodNameReg(metric.Container.WorkloadName, metric.Container.WorkloadKind)), fmt.Sprintf("container=\"%s\"", metric.Container.Name)})
 	}
 	return promQuery(&metricquery.PrometheusQuery{
 		Query: queryExpr,
@@ -138,18 +141,18 @@ func (b *builder) podQuery(metric *metricquery.Metric) (query *metricquery.Query
 	if metric.Pod == nil {
 		return nil, fmt.Errorf("metric type %v, but no PodNamerInfo provided", metric.Type)
 	}
-	mrs := prometheus_adapter.GetMetricRules()
+	mrs := prometheus_adapter.GetMetricRulesExternal()
 	var metricRule *prometheus_adapter.MetricRule
 	var queryExpr string
 
 	switch strings.ToLower(metric.MetricName) {
 	case v1.ResourceCPU.String():
-		metricRule = prometheus_adapter.MatchMetricRule(mrs.MetricRulesExternal, prometheus_adapter.PodCpuUsageExpression)
+		metricRule = prometheus_adapter.MatchMetricRule(mrs, prometheus_adapter.PodCpuUsageExpression)
 		if metricRule == nil {
 			queryExpr = utils.GetPodCpuUsageExpression(metric.Pod.Namespace, metric.Pod.Name)
 		}
 	case v1.ResourceMemory.String():
-		metricRule = prometheus_adapter.MatchMetricRule(mrs.MetricRulesExternal, prometheus_adapter.PodMemUsageExpression)
+		metricRule = prometheus_adapter.MatchMetricRule(mrs, prometheus_adapter.PodMemUsageExpression)
 		if metricRule == nil {
 			queryExpr = utils.GetPodMemUsageExpression(metric.Pod.Namespace, metric.Pod.Name)
 		}
@@ -158,7 +161,7 @@ func (b *builder) podQuery(metric *metricquery.Metric) (query *metricquery.Query
 	}
 
 	if queryExpr == "" {
-		queryExpr, err = metricRule.QueryForSeries([]string{fmt.Sprintf("namespace=\"%s\"", metric.Pod.Namespace), fmt.Sprintf("pod=\"%s\"", metric.Pod.Name)})
+		queryExpr, err = metricRule.QueryForSeries(metric.Pod.Namespace, []string{fmt.Sprintf("pod=\"%s\"", metric.Pod.Name)})
 	}
 	return promQuery(&metricquery.PrometheusQuery{
 		Query: queryExpr,

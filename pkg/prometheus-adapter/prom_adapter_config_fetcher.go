@@ -67,15 +67,15 @@ func (pc *PromAdapterConfigMapFetcher) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	//FlushRules
-	err = FlushResourceRules(*cfg, pc.RestMapper)
+	err = FlushResourceRules(*cfg)
 	if err != nil {
 		klog.Errorf("FlushResourceRules failed %v", err)
 	}
-	err = FlushRules(*cfg, pc.RestMapper)
+	err = FlushRules(*cfg)
 	if err != nil {
 		klog.Errorf("FlushRules failed %v", err)
 	}
-	err = FlushExternalRules(*cfg, pc.RestMapper)
+	err = FlushExternalRules(*cfg)
 	if err != nil {
 		klog.Errorf("FlushExternalRules failed %v", err)
 	}
@@ -145,15 +145,15 @@ func (pc *PromAdapterConfigMapFetcher) PromAdapterConfigDaemonReload() {
 			if err != nil {
 				klog.Errorf("Got metricsDiscoveryConfig failed[%s] %v", pc.Config, err)
 			} else {
-				err = FlushResourceRules(*metricsDiscoveryConfig, pc.RestMapper)
+				err = FlushResourceRules(*metricsDiscoveryConfig)
 				if err != nil {
 					klog.Errorf("FlushResourceRules failed %v", err)
 				}
-				err = FlushRules(*metricsDiscoveryConfig, pc.RestMapper)
+				err = FlushRules(*metricsDiscoveryConfig)
 				if err != nil {
 					klog.Errorf("FlushRules failed %v", err)
 				}
-				err = FlushExternalRules(*metricsDiscoveryConfig, pc.RestMapper)
+				err = FlushExternalRules(*metricsDiscoveryConfig)
 				if err != nil {
 					klog.Errorf("FlushExternalRules failed %v", err)
 				}

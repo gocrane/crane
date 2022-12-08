@@ -7,9 +7,7 @@ import (
 	"strings"
 	"text/template"
 
-	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"sigs.k8s.io/prometheus-adapter/pkg/config"
-	"sigs.k8s.io/prometheus-adapter/pkg/naming"
 )
 
 const (
@@ -40,9 +38,9 @@ type MetricRules struct {
 
 type MetricRule struct {
 	MetricMatches string
-	MetricsQuery  naming.MetricsQuery
 	SeriesName    string
 	Template      *template.Template
+	Namespaced    bool
 	LabelMatchers []string
 }
 
@@ -56,91 +54,78 @@ func GetMetricRules() *MetricRules {
 	return metricRules
 }
 
+func GetMetricRulesExternal() []MetricRule {
+	return metricRules.MetricRulesExternal
+}
+
 // FlushResourceRules from config.MetricsDiscoveryConfig
-func FlushResourceRules(mc config.MetricsDiscoveryConfig, mapper apimeta.RESTMapper) (err error) {
-	metricRules.MetricRulesResource, err = GetMetricRulesFromResourceRules(*mc.ResourceRules, mapper)
+func FlushResourceRules(mc config.MetricsDiscoveryConfig) (err error) {
+	metricRules.MetricRulesResource, err = GetMetricRulesFromResourceRules(*mc.ResourceRules)
 	return err
 }
 
 // FlushRules from config.MetricsDiscoveryConfig
-func FlushRules(mc config.MetricsDiscoveryConfig, mapper apimeta.RESTMapper) (err error) {
+func FlushRules(mc config.MetricsDiscoveryConfig) (err error) {
 	if mc.Rules == nil {
 		return fmt.Errorf("Rules is nil")
 	} else {
-		metricRules.MetricRulesCustomer, err = GetMetricRulesFromDiscoveryRule(mc.Rules, mapper)
+		metricRules.MetricRulesCustomer, err = GetMetricRulesFromDiscoveryRule(mc.Rules)
 	}
 	return err
 }
 
 // FlushExternalRules from config.MetricsDiscoveryConfig
-func FlushExternalRules(mc config.MetricsDiscoveryConfig, mapper apimeta.RESTMapper) (err error) {
+func FlushExternalRules(mc config.MetricsDiscoveryConfig) (err error) {
 	if mc.ExternalRules == nil {
 		return fmt.Errorf("ExternalRules is nil")
 	} else {
-		metricRules.MetricRulesExternal, err = GetMetricRulesFromDiscoveryRule(mc.ExternalRules, mapper)
+		metricRules.MetricRulesExternal, err = GetMetricRulesFromDiscoveryRule(mc.ExternalRules)
 	}
 	return err
 }
 
 // GetMetricRuleResourceFromRules produces a MetricNamer for each rule in the given config.
-func GetMetricRulesFromResourceRules(cfg config.ResourceRules, mapper apimeta.RESTMapper) ([]MetricRule, error) {
+func GetMetricRulesFromResourceRules(cfg config.ResourceRules) ([]MetricRule, error) {
 	var metricRules []MetricRule
 
 	// get cpu MetricsQuery
 	if cfg.CPU.ContainerQuery != "" {
-		reg, err := regexp.Compile(` by \(.*\)$`)
+		reg, err := regexp.Compile(`\s*by\s*\(<<.GroupBy>>\)\s*$`)
 		if err != nil {
 			return nil, fmt.Errorf("unable to match <.GroupBy>")
 		}
 		queryTemplate := reg.ReplaceAllString(cfg.CPU.ContainerQuery, "")
-		converter, err := naming.NewResourceConverter(cfg.CPU.Resources.Template, cfg.CPU.Resources.Overrides, mapper)
-		if err != nil {
-			return metricRules, fmt.Errorf("unable to construct label-resource converter: %v", err)
-		}
 
 		templ, err := template.New("metrics-query").Delims("<<", ">>").Parse(queryTemplate)
 		if err != nil {
 			return nil, fmt.Errorf("unable to parse metrics query template %q: %v", cfg.CPU.ContainerQuery, err)
 		}
 
-		metricQuery, err := naming.NewMetricsQuery(queryTemplate, converter)
-		if err != nil {
-			return metricRules, fmt.Errorf("unable to construct container metrics query: %v", err)
-		}
-
 		metricRules = append(metricRules, MetricRule{
 			MetricMatches: "cpu",
-			MetricsQuery:  metricQuery,
-			Template:      templ,
+			//		MetricsQuery:  metricQuery,
+			Template:   templ,
+			Namespaced: true,
 		})
 	}
 	// get cpu MetricsQuery
 	if cfg.Memory.ContainerQuery != "" {
-		reg, err := regexp.Compile(` by \(.*\)$`)
+		reg, err := regexp.Compile(`\s*by\s*\(<<.GroupBy>>\)\s*$`)
 		if err != nil {
 			return nil, fmt.Errorf("unable to match <.GroupBy>")
 		}
 		queryTemplate := reg.ReplaceAllString(cfg.Memory.ContainerQuery, "")
-
-		converter, err := naming.NewResourceConverter(cfg.Memory.Resources.Template, cfg.Memory.Resources.Overrides, mapper)
-		if err != nil {
-			return metricRules, fmt.Errorf("unable to construct label-resource converter: %v", err)
-		}
 
 		templ, err := template.New("metrics-query").Delims("<<", ">>").Parse(queryTemplate)
 		if err != nil {
 			return nil, fmt.Errorf("unable to parse metrics query template %q: %v", cfg.Memory.ContainerQuery, err)
 		}
 
-		metricQuery, err := naming.NewMetricsQuery(queryTemplate, converter)
-		if err != nil {
-			return metricRules, fmt.Errorf("unable to construct container metrics query: %v", err)
-		}
-
 		metricRules = append(metricRules, MetricRule{
 			MetricMatches: "memory",
-			MetricsQuery:  metricQuery,
-			Template:      templ,
+			//		MetricsQuery:  metricQuery,
+			Template:   templ,
+			Namespaced: true,
 		})
 	}
 
@@ -148,22 +133,17 @@ func GetMetricRulesFromResourceRules(cfg config.ResourceRules, mapper apimeta.RE
 }
 
 // GetMetricRuleFromRules produces a MetricNamer for each rule in the given config.
-func GetMetricRulesFromDiscoveryRule(cfg []config.DiscoveryRule, mapper apimeta.RESTMapper) ([]MetricRule, error) {
+func GetMetricRulesFromDiscoveryRule(cfg []config.DiscoveryRule) ([]MetricRule, error) {
 	metricRules := make([]MetricRule, len(cfg))
 
 	for i, rule := range cfg {
-		resConv, err := naming.NewResourceConverter(rule.Resources.Template, rule.Resources.Overrides, mapper)
-		if err != nil {
-			return nil, err
-		}
-
 		// queries are namespaced by default unless the rule specifically disables it
 		namespaced := true
 		if rule.Resources.Namespaced != nil {
 			namespaced = *rule.Resources.Namespaced
 		}
 
-		reg, err := regexp.Compile(` by \(.*\)$`)
+		reg, err := regexp.Compile(`\s*by\s*\(<<.GroupBy>>\)\s*$`)
 		if err != nil {
 			return nil, fmt.Errorf("unable to match <.GroupBy>")
 		}
@@ -172,11 +152,6 @@ func GetMetricRulesFromDiscoveryRule(cfg []config.DiscoveryRule, mapper apimeta.
 		templ, err := template.New("metrics-query").Delims("<<", ">>").Parse(queryTemplate)
 		if err != nil {
 			return nil, fmt.Errorf("unable to parse metrics query template %q: %v", queryTemplate, err)
-		}
-
-		metricsQuery, err := naming.NewExternalMetricsQuery(queryTemplate, resConv, namespaced)
-		if err != nil {
-			return nil, fmt.Errorf("unable to construct metrics query associated with series query %q: %v", rule.SeriesQuery, err)
 		}
 
 		// get seriesName from SeriesQuery
@@ -196,10 +171,10 @@ func GetMetricRulesFromDiscoveryRule(cfg []config.DiscoveryRule, mapper apimeta.
 
 		metricRules[i] = MetricRule{
 			MetricMatches: metricMatches,
-			MetricsQuery:  metricsQuery,
 			SeriesName:    seriesName,
 			LabelMatchers: labelMatchers,
 			Template:      templ,
+			Namespaced:    namespaced,
 		}
 	}
 
@@ -215,70 +190,14 @@ func MatchMetricRule(mrs []MetricRule, metricName string) *MetricRule {
 	return nil
 }
 
-/*
-// get MetrycsQuery by naming.MetricsQuery.Build from prometheus-adapter
-func (mr *MetricRule) QueryForSeriesResource(exprs []string) (expressionQuery string, err error) {
-	if mr.LabelMatchers != nil {
-		exprs = append(mr.LabelMatchers, exprs...)
-	}
-
-	args := &QueryTemplateArgs{
-		Series:        mr.SeriesName,
-		LabelMatchers: strings.Join(exprs, ","),
-	}
-
-	queryBuff := new(bytes.Buffer)
-	if err := mr.Template.Execute(queryBuff, args); err != nil {
-		return "", err
-	}
-
-	if queryBuff.Len() == 0 {
-		return "", fmt.Errorf("empty query produced by metrics query template")
-	}
-
-	reg, err := regexp.Compile(` by \(.*\)$`)
-	if err != nil {
-		return "", err
-	}
-
-	return reg.ReplaceAllString(queryBuff.String(), ""), err
-	//return queryBuff.String(), err
-}
-
 // get MetrycsQuery by naming.MetricsQuery.BuildExternal from prometheus-adapter
-func (mr *MetricRule) QueryForSeriesCustomer(exprs []string) (expressionQuery string, err error) {
+func (mr *MetricRule) QueryForSeries(namespace string, exprs []string) (expressionQuery string, err error) {
 	if mr.LabelMatchers != nil {
 		exprs = append(mr.LabelMatchers, exprs...)
 	}
 
-	args := &QueryTemplateArgs{
-		Series:        mr.SeriesName,
-		LabelMatchers: strings.Join(exprs, ","),
-	}
-
-	queryBuff := new(bytes.Buffer)
-	if err := mr.Template.Execute(queryBuff, args); err != nil {
-		return "", err
-	}
-
-	if queryBuff.Len() == 0 {
-		return "", fmt.Errorf("empty query produced by metrics query template")
-	}
-
-	//	reg, err := regexp.Compile(` by \(.*\)$`)
-	//	if err != nil {
-	//		return "", err
-	//	}
-
-	//	return reg.ReplaceAllString(queryBuff.String(), ""), err
-	return queryBuff.String(), err
-}
-
-*/
-// get MetrycsQuery by naming.MetricsQuery.BuildExternal from prometheus-adapter
-func (mr *MetricRule) QueryForSeries(exprs []string) (expressionQuery string, err error) {
-	if mr.LabelMatchers != nil {
-		exprs = append(mr.LabelMatchers, exprs...)
+	if mr.Namespaced && namespace != "" {
+		exprs = append(exprs, fmt.Sprintf("namespace=\"%s\"", namespace))
 	}
 
 	args := &QueryTemplateArgs{
@@ -299,9 +218,14 @@ func (mr *MetricRule) QueryForSeries(exprs []string) (expressionQuery string, er
 }
 
 // get SeriesName from seriesQuery
-func GetSeriesNameFromSeriesQuery(seriesQuery string) string {
-	regSeriesName := regexp.MustCompile("(.*?){")
-	return regSeriesName.FindStringSubmatch(seriesQuery)[1]
+func GetSeriesNameFromSeriesQuery(seriesQuery string) (seriesName string) {
+	regSeriesName := regexp.MustCompile("(.*){.*}")
+	if len(regSeriesName.FindStringSubmatch(seriesQuery)) > 1 {
+		seriesName = regSeriesName.FindStringSubmatch(seriesQuery)[1]
+	} else {
+		seriesName = seriesQuery
+	}
+	return seriesName
 }
 
 // get labelMatchers from DiscoveryRule

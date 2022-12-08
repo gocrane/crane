@@ -293,8 +293,7 @@ func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.O
 		} else if opts.DataSourcePromConfig.AdapterConfig != "" {
 			// PrometheusAdapterConfigFetcher
 			pac := &prometheus_adapter.PromAdapterConfigMapFetcher{
-				RestMapper: mgr.GetRESTMapper(),
-				ConfigMap:  opts.DataSourcePromConfig.AdapterConfig,
+				ConfigMap: opts.DataSourcePromConfig.AdapterConfig,
 			}
 
 			go pac.PromAdapterConfigDaemonReload()
