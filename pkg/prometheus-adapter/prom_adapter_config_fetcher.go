@@ -3,9 +3,9 @@ package prometheus_adapter
 import (
 	"context"
 	"fmt"
-	"github.com/fsnotify/fsnotify"
 	"strings"
 
+	"github.com/fsnotify/fsnotify"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -104,6 +104,7 @@ func (pc *PromAdapterConfigMapFetcher) SetupWithManager(mgr ctrl.Manager) error 
 		Complete(pc)
 }
 
+// fetched metricRule if configmap is updated
 func (paCm *PromAdapterConfigMapChangedPredicate) Update(e event.UpdateEvent) bool {
 	if e.ObjectOld == nil {
 		return false
@@ -119,7 +120,7 @@ func (paCm *PromAdapterConfigMapChangedPredicate) Update(e event.UpdateEvent) bo
 	return false
 }
 
-// if set promAdapterConfig, daemon reload by config's md5
+// if set promAdapterConfig, daemon reload by config fsnotify
 func (pc *PromAdapterConfigMapFetcher) PromAdapterConfigDaemonReload() {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {

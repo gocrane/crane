@@ -23,11 +23,3 @@ func ParsePercentage(input string) (float64, error) {
 	}
 	return value / 100, nil
 }
-
-// get string array by seps
-func StrSplitAny(s string, seps string) []string {
-	splitter := func(r rune) bool {
-		return strings.ContainsRune(seps, r)
-	}
-	return strings.FieldsFunc(s, splitter)
-}

@@ -3,8 +3,6 @@ package cnp
 import (
 	"context"
 	"fmt"
-	prometheus_adapter "github.com/gocrane/crane/pkg/prometheus-adapter"
-	"github.com/gocrane/crane/pkg/utils"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -17,6 +15,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
+
+	prometheus_adapter "github.com/gocrane/crane/pkg/prometheus-adapter"
+	"github.com/gocrane/crane/pkg/utils"
 )
 
 type ClusterNodePredictionController struct {

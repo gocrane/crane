@@ -2,9 +2,9 @@ package prometheus_adapter
 
 import (
 	"fmt"
-	"sigs.k8s.io/prometheus-adapter/pkg/config"
-
 	"testing"
+
+	"sigs.k8s.io/prometheus-adapter/pkg/config"
 )
 
 func TestQueryForSeriesResource(t *testing.T) {

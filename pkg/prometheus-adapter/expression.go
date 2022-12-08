@@ -49,11 +49,12 @@ type QueryTemplateArgs struct {
 	LabelMatchers string
 }
 
-// GetMetricRules get metricRules from config.MetricsDiscoveryConfig
+// get MetricRules from config.MetricsDiscoveryConfig
 func GetMetricRules() *MetricRules {
 	return metricRules
 }
 
+// get MetricRulesExternal from config.MetricsDiscoveryConfig
 func GetMetricRulesExternal() []MetricRule {
 	return metricRules.MetricRulesExternal
 }
@@ -181,6 +182,7 @@ func GetMetricRulesFromDiscoveryRule(cfg []config.DiscoveryRule) ([]MetricRule, 
 	return metricRules, nil
 }
 
+// get MetricRule for metricName
 func MatchMetricRule(mrs []MetricRule, metricName string) *MetricRule {
 	for _, metricRule := range mrs {
 		if match, _ := (regexp.Match(metricRule.MetricMatches, []byte(metricName))); match {
@@ -217,7 +219,7 @@ func (mr *MetricRule) QueryForSeries(namespace string, exprs []string) (expressi
 	return queryBuff.String(), err
 }
 
-// get SeriesName from seriesQuery
+// get SeriesName from SeriesQuery
 func GetSeriesNameFromSeriesQuery(seriesQuery string) (seriesName string) {
 	regSeriesName := regexp.MustCompile("(.*){.*}")
 	if len(regSeriesName.FindStringSubmatch(seriesQuery)) > 1 {

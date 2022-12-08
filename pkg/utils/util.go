@@ -1,8 +1,6 @@
 package utils
 
-import (
-	"math"
-)
+import "math"
 
 func GetUint64withDefault(i *uint64, value uint64) uint64 {
 	if i != nil {
