@@ -16,7 +16,7 @@ func TestGetPodNameReg(t *testing.T) {
 func TestGetCustomerExpression(t *testing.T) {
 	var name = "test"
 	var labels = []string{
-		"contianer=\"test\"",
+		"container=\"test\"",
 		"namespace=\"default\"",
 	}
 	fmt.Println("CustomerExpression:", GetCustomerExpression(name, strings.Join(labels, ",")))
