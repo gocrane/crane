@@ -281,8 +281,8 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 							klog.V(4).Infof("Got MetricRulesCustomer prometheus-adapter-customer MetricMatches[%s] SeriesName[%s]", metricRule.MetricMatches, metricRule.SeriesName)
 							var matchLabels = extensionLabels
 							if metric.Pods.Metric.Selector != nil {
-								for i := range metric.Pods.Metric.Selector.MatchLabels {
-									matchLabels = append(matchLabels, fmt.Sprintf("%s=\"%s\"", i, metric.Pods.Metric.Selector.MatchLabels[i]))
+								for _, i := range utils.MapSortToArray(metric.Pods.Metric.Selector.MatchLabels) {
+									matchLabels = append(matchLabels, i)
 								}
 							}
 
@@ -303,8 +303,8 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 							klog.V(4).Infof("Got MetricRulesExternal prometheus-adapter-external MetricMatches[%s] SeriesName[%s]", metricRule.MetricMatches, metricRule.SeriesName)
 							var matchLabels = extensionLabels
 							if metric.External.Metric.Selector != nil {
-								for i := range metric.External.Metric.Selector.MatchLabels {
-									matchLabels = append(matchLabels, fmt.Sprintf("%s=\"%s\"", i, metric.External.Metric.Selector.MatchLabels[i]))
+								for _, i := range utils.MapSortToArray(metric.External.Metric.Selector.MatchLabels) {
+									matchLabels = append(matchLabels, i)
 								}
 							}
 

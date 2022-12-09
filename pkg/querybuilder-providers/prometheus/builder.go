@@ -44,7 +44,7 @@ func (b *builder) BuildQuery() (*metricquery.Query, error) {
 			return nil, fmt.Errorf("metric type %v not supported", b.metric.Type)
 		}
 	}
-	return nil, fmt.Errorf("metric type is nil")
+	return nil, fmt.Errorf("builder.metric is nil")
 }
 
 func (b *builder) workloadQuery(metric *metricquery.Metric) (query *metricquery.Query, err error) {
