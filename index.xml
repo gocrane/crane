@@ -1,1 +1,109 @@
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Crane – Crane</title><link>/</link><description>Recent content on Crane</description><generator>Hugo -- gohugo.io</generator><atom:link href="/index.xml" rel="self" type="application/rss+xml"/></channel></rss>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Crane – Crane</title><link>/</link><description>Recent content on Crane</description><generator>Hugo -- gohugo.io</generator><atom:link href="/index.xml" rel="self" type="application/rss+xml"/><item><title>Blog: Crane v0.7：通过控制台一键节省云成本</title><link>/blog/1/01/01/crane-v0.7%E9%80%9A%E8%BF%87%E6%8E%A7%E5%88%B6%E5%8F%B0%E4%B8%80%E9%94%AE%E8%8A%82%E7%9C%81%E4%BA%91%E6%88%90%E6%9C%AC/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/blog/1/01/01/crane-v0.7%E9%80%9A%E8%BF%87%E6%8E%A7%E5%88%B6%E5%8F%B0%E4%B8%80%E9%94%AE%E8%8A%82%E7%9C%81%E4%BA%91%E6%88%90%E6%9C%AC/</guid><description>
+&lt;p>Crane（ Cloud Resource Analytics and Economics ） 是一个依托FinOps理论指导，基于云原生技术栈的云资源分析与成本优化平台。它的愿景是在保证客户应用运行质量的前提下实现极致的降本。&lt;/p>
+&lt;p>近期，Crane 发布了 0.7.0 版本。在新版本里我们提供了大量的新功能和优化，包括智能推荐框架 Recommendation Framework 以及全新改版的 Crane 产品化控制台。&lt;/p>
+&lt;p>详细的 Release Note 请见：https://github.com/gocrane/crane/releases/tag/v0.7.0&lt;/p>
+&lt;h2 id="资源推荐框架-recommendation-framework">资源推荐框架 Recommendation Framework&lt;/h2>
+&lt;p>Crane 的资源推荐，副本推荐功能在腾讯内部落地帮助自研业务每月节省了大量的成本，取得了很好的效果，详情请见：&lt;a href="https://mp.weixin.qq.com/s/1SeMzcf_VRvRysZ9NLI-Sw">https://mp.weixin.qq.com/s/1SeMzcf_VRvRysZ9NLI-Sw&lt;/a> 。同时，我们认为自动分析集群资源找到浪费并给出优化建议是帮助企业降本的重要方法，引入更多的分析类型至关重要。&lt;/p>
+&lt;p>因此在 0.7.0 版本中，Crane 设计了 Recommendation Framework，它提供了一个可扩展的推荐框架以支持多种云资源的分析，并内置了多种推荐器：资源推荐，副本推荐，闲置资源推荐。Recommendation Framework 通过 &lt;code>RecommendationRule&lt;/code> 和 &lt;code>Recommendation&lt;/code> CRD 描述了如何进行资源的分析推荐。&lt;/p>
+&lt;p>智能推荐的规则&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">RecommendationRule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labels&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-preinstall&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;true&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">runInterval&lt;/span>: &lt;span style="color:#ae81ff">24h &lt;/span> &lt;span style="color:#75715e"># 每24h运行一次&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceSelectors&lt;/span>: &lt;span style="color:#75715e"># 资源的信息&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">StatefulSet&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespaceSelector&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">any&lt;/span>: &lt;span style="color:#66d9ef">true&lt;/span> &lt;span style="color:#75715e"># 扫描所有namespace&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommenders&lt;/span>: &lt;span style="color:#75715e"># 使用 Workload 的副本和资源推荐器&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Replicas&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Resource&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>推荐的结果&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule-resource-flzbv&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">crane-system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labels&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-recommender&lt;/span>: &lt;span style="color:#ae81ff">Resource&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-uid&lt;/span>: &lt;span style="color:#ae81ff">18588495&lt;/span>-&lt;span style="color:#ae81ff">f325-4873-b45a-7acfe9f1ba94&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">app&lt;/span>: &lt;span style="color:#ae81ff">craned&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">app.kubernetes.io/instance&lt;/span>: &lt;span style="color:#ae81ff">crane&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">app.kubernetes.io/managed-by&lt;/span>: &lt;span style="color:#ae81ff">Helm&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">app.kubernetes.io/name&lt;/span>: &lt;span style="color:#ae81ff">crane&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">app.kubernetes.io/version&lt;/span>: &lt;span style="color:#ae81ff">v0.7.0&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">helm.sh/chart&lt;/span>: &lt;span style="color:#ae81ff">crane-0.7.0&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">ownerReferences&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">RecommendationRule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">18588495&lt;/span>-&lt;span style="color:#ae81ff">f325-4873-b45a-7acfe9f1ba94&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">controller&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">blockOwnerDeletion&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>: &lt;span style="color:#75715e"># 推荐目标资源&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">crane-system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">craned&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">Resource&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategy&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategyType&lt;/span>: &lt;span style="color:#ae81ff">Once&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">adoptionType&lt;/span>: &lt;span style="color:#ae81ff">StatusAndAnnotation &lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">status&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommendedInfo&lt;/span>: &amp;gt;-&lt;span style="color:#e6db74">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> &lt;/span> {&lt;span style="color:#e6db74">&amp;#34;spec&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;template&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;spec&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;containers&amp;#34;&lt;/span>:[{&lt;span style="color:#e6db74">&amp;#34;name&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;craned&amp;#34;&lt;/span>,&lt;span style="color:#e6db74">&amp;#34;resources&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;requests&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;cpu&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;229m&amp;#34;&lt;/span>,&lt;span style="color:#e6db74">&amp;#34;memory&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;120586239&amp;#34;&lt;/span>}}},{&lt;span style="color:#e6db74">&amp;#34;name&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;dashboard&amp;#34;&lt;/span>,&lt;span style="color:#e6db74">&amp;#34;resources&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;requests&amp;#34;&lt;/span>:{&lt;span style="color:#e6db74">&amp;#34;cpu&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;114m&amp;#34;&lt;/span>,&lt;span style="color:#e6db74">&amp;#34;memory&amp;#34;&lt;/span>:&lt;span style="color:#e6db74">&amp;#34;120586239&amp;#34;&lt;/span>}}}]}}}} &lt;span style="color:#75715e"># 推荐配置，可通过 kubectl patch 更新 deployment 配置&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">currentInfo&lt;/span>: &amp;gt;-&lt;span style="color:#e6db74">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> {&amp;#34;spec&amp;#34;:{&amp;#34;template&amp;#34;:{&amp;#34;spec&amp;#34;:{&amp;#34;containers&amp;#34;:[{&amp;#34;name&amp;#34;:&amp;#34;craned&amp;#34;,&amp;#34;resources&amp;#34;:{&amp;#34;requests&amp;#34;:{&amp;#34;cpu&amp;#34;:&amp;#34;0&amp;#34;,&amp;#34;memory&amp;#34;:&amp;#34;0&amp;#34;}}},{&amp;#34;name&amp;#34;:&amp;#34;dashboard&amp;#34;,&amp;#34;resources&amp;#34;:{&amp;#34;requests&amp;#34;:{&amp;#34;cpu&amp;#34;:&amp;#34;0&amp;#34;,&amp;#34;memory&amp;#34;:&amp;#34;0&amp;#34;}}}]}}}} # 当前配置，可通过 kubectl patch 回滚已经采纳建议的 deployment 配置
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> action: Patch # 建议的 Action&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>目前 Crane 支持了以下推荐能力：&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>资源推荐&lt;/strong>: 通过 VPA 算法分析应用的真实用量推荐更合适的资源配置&lt;/li>
+&lt;li>&lt;strong>副本数推荐&lt;/strong>: 通过 HPA 算法分析应用的真实用量推荐更合适的副本数量&lt;/li>
+&lt;li>&lt;strong>闲置节点推荐&lt;/strong>: 扫描集群中的空闲节点&lt;/li>
+&lt;li>&lt;strong>闲置PV推荐&lt;/strong>: 扫描集群中的未挂载 Pod 的 PV&lt;/li>
+&lt;/ul>
+&lt;p>用户可以基于 Recommendation Framework 通过实现 Recommender 接口&lt;strong>快速开发新的推荐能力或者扩展现有的推荐能力&lt;/strong>。欢迎大家一起共建，丰富各类云资源的推荐能力，比如：GPU 的资源推荐，腾讯云 CLB 的闲置资源推荐。&lt;/p>
+&lt;h2 id="crane-dashboard">Crane Dashboard&lt;/h2>
+&lt;p>Crane 在0.7.0 版本中花了大量时间基于 TDesign 的前端模版重构了 Dashboard，提供了一套美观、实用的产品界面。&lt;/p>
+&lt;p>新手用户可以观看以下视频对 Dashboard 有一个初步的了解：&lt;/p>
+&lt;iframe src="https://user-images.githubusercontent.com/35299017/186680122-d7756b47-06be-44cb-8553-1957eaa3ed45.mp4"
+scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true" width="1000" height="600">&lt;/iframe>
+&lt;p>视频中将一次成本优化过程分成了三个步骤：&lt;/p>
+&lt;ol>
+&lt;li>&lt;strong>成本展示&lt;/strong>: Kubernetes 资源( Deployments, StatefulSets )的多维度聚合与展示。&lt;/li>
+&lt;li>&lt;strong>成本分析&lt;/strong>: 周期性的分析集群资源的状态并提供优化建议。&lt;/li>
+&lt;li>&lt;strong>成本优化&lt;/strong>: 通过丰富的优化工具更新配置达成降本的目标。&lt;/li>
+&lt;/ol>
+&lt;p>通过 Dashboard，用户可以了解如何通过 Dashboard 快速上手，开启成本优化之旅。&lt;/p>
+&lt;p>我们也提供了 Crane Dashboard 的 &lt;strong>Live Demo&lt;/strong>，欢迎体验：http://dashboard.gocrane.io/&lt;/p>
+&lt;h3 id="成本分析">成本分析&lt;/h3>
+&lt;p>用户可以在 Dashboard 的 菜单-&amp;gt;成本分析-&amp;gt;资源推荐 中使用各种推荐能力，通过推荐功能，用户可以发现集群中的资源浪费，页面上的“采纳建议” 会提供一条 kubectl 命令，用户可以在他的环境中执行命令更新资源配置实现降本，后续会提供一键采纳建议的功能。&lt;/p>
+&lt;p>资源推荐：
+&lt;img src="https://qcloudimg.tencent-cloud.cn/raw/cb640bcaf1ceaab768c321e0763d62bf.png" alt="image">&lt;/p>
+&lt;p>副本数推荐：
+&lt;img src="https://qcloudimg.tencent-cloud.cn/raw/613e5b342a96e044710026a3d991ab48.png" alt="image">&lt;/p>
+&lt;h3 id="碳排放计算器">碳排放计算器&lt;/h3>
+&lt;p>用户可以在 Dashboard 的 菜单-&amp;gt;成本洞察-&amp;gt;碳排放分析 中使用碳排放计算器：
+&lt;img src="https://qcloudimg.tencent-cloud.cn/raw/3413d877baae18586f76537b1f0e3d09.png" alt="image">&lt;/p>
+&lt;p>详细的能力介绍请参考：&lt;a href="https://mp.weixin.qq.com/s/HQFTT7VG8M_q3WV7e4LRkg">https://mp.weixin.qq.com/s/HQFTT7VG8M_q3WV7e4LRkg&lt;/a>&lt;/p>
+&lt;h2 id="升级指南">升级指南&lt;/h2>
+&lt;p>通过以下命令可以从旧版本的 Crane 升级到 0.7.0。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">kubectl apply -f https://raw.githubusercontent.com/gocrane/helm-charts/crane-0.7.0/charts/crane/crds/analysis.crane.io_analytics.yaml&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">kubectl apply -f https://raw.githubusercontent.com/gocrane/helm-charts/crane-0.7.0/charts/crane/crds/analysis.crane.io_recommendationrules.yaml&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">kubectl apply -f https://raw.githubusercontent.com/gocrane/helm-charts/crane-0.7.0/charts/crane/crds/analysis.crane.io_recommendations.yaml&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">kubectl apply -f https://raw.githubusercontent.com/gocrane/helm-charts/crane-0.7.0/charts/crane/crds/autoscaling.crane.io_effectivehorizontalpodautoscalers.yaml&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">kubectl apply -f https://raw.githubusercontent.com/gocrane/helm-charts/crane-0.7.0/charts/crane/crds/autoscaling.crane.io_effectiveverticalpodautoscalers.yaml&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">helm repo add crane https://gocrane.github.io/helm-charts&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">helm repo update&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">helm upgrade -n crane-system --install crane crane/crane --version 0.7.0&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;pre tabindex="0">&lt;code>This is the final element on the page and there should be no margin below this.
+&lt;/code>&lt;/pre></description></item></channel></rss>
