@@ -97,11 +97,11 @@ time_format_blog = "02.01.2006"
     weight = -101
     pre = "<i class='fas fa-book pr-2'></i>"
     url = "/docs/"
-  #[[menu.main]]
-  #  name = "Blog"
-  #  weight = -100
-  #  pre = "<i class='fas fa-rss pr-2'></i>"
-  #  url = "/blog/"
+  [[menu.main]]
+    name = "Blog"
+    weight = -100
+    pre = "<i class='fas fa-rss pr-2'></i>"
+    url = "/blog/"
   [[menu.main]]
     name = "Community"
     weight = -99
