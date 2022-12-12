@@ -156,10 +156,10 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 		var matchLabels []string
 		var metricRule *prometheus_adapter.MetricRule
 
-		//first get annotation expressionQuery
+		// Supreme priority: annotation
 		expressionQuery := utils.GetExpressionQueryAnnotation(metricIdentifier, ehpa.Annotations)
 		if expressionQuery == "" {
-			// second get prometheus-adapter expressionQuery
+			// get metricRule from prometheus-adapter
 			switch metric.Type {
 			case autoscalingv2.ResourceMetricSourceType:
 				if len(mrs.MetricRulesResource) > 0 {
@@ -202,20 +202,21 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 			}
 
 			if metricRule != nil {
+				// Second priority: get default expressionQuery
 				var err error
 				expressionQuery, err = metricRule.QueryForSeries(ehpa.Namespace, matchLabels)
 				if err != nil {
 					klog.Errorf("Got promSelector prometheus-adapter %v", err)
 				} else {
-					klog.V(4).Infof("Got expressionQuery prometheus-adapter [%s]", expressionQuery)
+					klog.V(4).Infof("Got expressionQuery [%s] from prometheus-adapter ", expressionQuery)
 				}
 			}
 
-			// third get default expressionQuery
+			// Third priority: get default expressionQuery
 			if expressionQuery == "" {
 				//if annotation not matched, and configmap is not set, build expressionQuerydefault by metric and ehpa.TargetName
 				expressionQuery = utils.GetExpressionQueryDefault(metric, ehpa.Namespace, ehpa.Spec.ScaleTargetRef.Name, ehpa.Spec.ScaleTargetRef.Kind)
-				klog.V(4).Infof("Got expressionQuery default [%s]", expressionQuery)
+				klog.V(4).Infof("Got expressionQuery [%s] by default", expressionQuery)
 			}
 		}
 

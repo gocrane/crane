@@ -59,24 +59,24 @@ func GetMetricRulesExternal() []MetricRule {
 	return metricRules.MetricRulesExternal
 }
 
-// FlushResourceRules from config.MetricsDiscoveryConfig
-func FlushResourceRules(mc config.MetricsDiscoveryConfig) (err error) {
+// ParsingResourceRules from config.MetricsDiscoveryConfig
+func ParsingResourceRules(mc config.MetricsDiscoveryConfig) (err error) {
 	metricRules.MetricRulesResource, err = GetMetricRulesFromResourceRules(*mc.ResourceRules)
 	return err
 }
 
-// FlushRules from config.MetricsDiscoveryConfig
-func FlushRules(mc config.MetricsDiscoveryConfig) (err error) {
+// ParsingRules from config.MetricsDiscoveryConfig
+func ParsingRules(mc config.MetricsDiscoveryConfig) (err error) {
 	if mc.Rules == nil {
-		return fmt.Errorf("Rules is nil")
+		return fmt.Errorf("rules is nil")
 	} else {
 		metricRules.MetricRulesCustomer, err = GetMetricRulesFromDiscoveryRule(mc.Rules)
 	}
 	return err
 }
 
-// FlushExternalRules from config.MetricsDiscoveryConfig
-func FlushExternalRules(mc config.MetricsDiscoveryConfig) (err error) {
+// ParsingExternalRules from config.MetricsDiscoveryConfig
+func ParsingExternalRules(mc config.MetricsDiscoveryConfig) (err error) {
 	if mc.ExternalRules == nil {
 		return fmt.Errorf("ExternalRules is nil")
 	} else {
