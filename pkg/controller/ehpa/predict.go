@@ -128,12 +128,6 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 		},
 	}
 
-	// get extensionLabels from annotation
-	extensionLabels, err := utils.GetExtensionLabelsAnnotationPromAdapter(ehpa.Annotations)
-	if err != nil {
-		klog.Errorf("Got extensionLabels by prometheus-adapter annotation ehpa[%s] %v", ehpa.Name, err)
-	}
-
 	// get MetricRules
 	mrs := prometheus_adapter.GetMetricRules()
 
@@ -158,76 +152,65 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 			continue
 		}
 
-		//get expressionQuery
-		var expressionQuery string
+		//get matchLabels
+		var matchLabels []string
+		var metricRule *prometheus_adapter.MetricRule
+
 		//first get annotation expressionQuery
-		expressionQuery = utils.GetExpressionQueryAnnotation(metricIdentifier, ehpa.Annotations)
+		expressionQuery := utils.GetExpressionQueryAnnotation(metricIdentifier, ehpa.Annotations)
 		if expressionQuery == "" {
 			// second get prometheus-adapter expressionQuery
 			switch metric.Type {
 			case autoscalingv2.ResourceMetricSourceType:
 				if len(mrs.MetricRulesResource) > 0 {
-					metricRule := prometheus_adapter.MatchMetricRule(mrs.MetricRulesResource, metricName)
+					metricRule = prometheus_adapter.MatchMetricRule(mrs.MetricRulesResource, metricName)
 					if metricRule == nil {
 						klog.Errorf("Got MetricRulesResource prometheus-adapter-resource Failed MetricMatches[%s] SeriesName[%s] MetricName[%s]", metricRule.MetricMatches, metricRule.SeriesName, metricName)
 					} else {
 						klog.V(4).Infof("Got MetricRulesResource prometheus-adapter-resource MetricMatches[%s] SeriesName[%s]", metricRule.MetricMatches, metricRule.SeriesName)
-						var matchLabels = extensionLabels
 						matchLabels = append(matchLabels, fmt.Sprintf("pod=~\"%s\"", utils.GetPodNameReg(ehpa.Spec.ScaleTargetRef.Name, ehpa.Spec.ScaleTargetRef.Kind)))
-
-						expressionQuery, err = metricRule.QueryForSeries(ehpa.Namespace, matchLabels)
-						if err != nil {
-							klog.Errorf("Got promSelector prometheus-adapter-resource %v", err)
-						} else {
-							klog.V(4).Infof("Got expressionQuery prometheus-adapter-resource [%s]", expressionQuery)
-						}
 					}
 				}
 			case autoscalingv2.PodsMetricSourceType:
 				if len(mrs.MetricRulesCustomer) > 0 {
-					metricRule := prometheus_adapter.MatchMetricRule(mrs.MetricRulesCustomer, metricName)
+					metricRule = prometheus_adapter.MatchMetricRule(mrs.MetricRulesCustomer, metricName)
 					if metricRule == nil {
 						klog.Errorf("Got MetricRulesCustomer prometheus-adapter-customer Failed MetricMatches[%s] SeriesName[%s] MetricName[%s]", metricRule.MetricMatches, metricRule.SeriesName, metricName)
 					} else {
 						klog.V(4).Infof("Got MetricRulesCustomer prometheus-adapter-customer MetricMatches[%s] SeriesName[%s]", metricRule.MetricMatches, metricRule.SeriesName)
-						var matchLabels = extensionLabels
 						if metric.Pods.Metric.Selector != nil {
 							for _, i := range utils.MapSortToArray(metric.Pods.Metric.Selector.MatchLabels) {
 								matchLabels = append(matchLabels, i)
 							}
 						}
-
-						expressionQuery, err = metricRule.QueryForSeries(ehpa.Namespace, matchLabels)
-						if err != nil {
-							klog.Errorf("Got promSelector prometheus-adapter-customer %v", err)
-						} else {
-							klog.V(4).Infof("Got expressionQuery prometheus-adapter-customer [%s]", expressionQuery)
-						}
 					}
 				}
 			case autoscalingv2.ExternalMetricSourceType:
 				if len(mrs.MetricRulesExternal) > 0 {
-					metricRule := prometheus_adapter.MatchMetricRule(mrs.MetricRulesExternal, metricName)
+					metricRule = prometheus_adapter.MatchMetricRule(mrs.MetricRulesExternal, metricName)
 					if metricRule == nil {
 						klog.Errorf("Got MetricRulesExternal prometheus-adapter-external Failed MetricMatches[%s] SeriesName[%s] MetricName[%s]", metricRule.MetricMatches, metricRule.SeriesName, metricName)
 					} else {
 						klog.V(4).Infof("Got MetricRulesExternal prometheus-adapter-external MetricMatches[%s] SeriesName[%s]", metricRule.MetricMatches, metricRule.SeriesName)
-						var matchLabels = extensionLabels
 						if metric.External.Metric.Selector != nil {
 							for _, i := range utils.MapSortToArray(metric.External.Metric.Selector.MatchLabels) {
 								matchLabels = append(matchLabels, i)
 							}
 						}
-
-						expressionQuery, err = metricRule.QueryForSeries(ehpa.Namespace, matchLabels)
-						if err != nil {
-							klog.Errorf("Got promSelector prometheus-adapter-external %v", err)
-						} else {
-							klog.V(4).Infof("Got expressionQuery prometheus-adapter-external [%s]", expressionQuery)
-						}
 					}
 				}
 			}
+
+			if metricRule != nil {
+				var err error
+				expressionQuery, err = metricRule.QueryForSeries(ehpa.Namespace, matchLabels)
+				if err != nil {
+					klog.Errorf("Got promSelector prometheus-adapter %v", err)
+				} else {
+					klog.V(4).Infof("Got expressionQuery prometheus-adapter [%s]", expressionQuery)
+				}
+			}
+
 			// third get default expressionQuery
 			if expressionQuery == "" {
 				//if annotation not matched, and configmap is not set, build expressionQuerydefault by metric and ehpa.TargetName

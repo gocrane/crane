@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
@@ -126,41 +125,4 @@ func GetExpressionQueryDefault(metric autoscalingv2.MetricSpec, namespace string
 	}
 
 	return expressionQuery
-}
-
-// GetAnnotationPromAdapter return value from annotation by suffix
-func GetAnnotationPromAdapter(identifier string, annotations map[string]string) string {
-	for k, v := range annotations {
-		if strings.HasPrefix(k, known.EffectiveHorizontalPodAutoscalerAnnotationPromAdapter) {
-			compileRegex := regexp.MustCompile(fmt.Sprintf("%s(.*)", known.EffectiveHorizontalPodAutoscalerAnnotationPromAdapter))
-			matchArr := compileRegex.FindStringSubmatch(k)
-			if len(matchArr) == 2 && matchArr[1][1:] == identifier {
-				return v
-			}
-		}
-	}
-
-	return ""
-}
-
-// GetExtensionLabelsAnnotationPromAdapter return match labels for prometheus adapter
-func GetExtensionLabelsAnnotationPromAdapter(annotations map[string]string) (extensionLabels []string, err error) {
-
-	value := GetAnnotationPromAdapter(known.PromAdapterExtensionLabels, annotations)
-	if value == "" {
-		return extensionLabels, err
-	}
-
-	var labels = []map[string]interface{}{}
-	err = json.Unmarshal([]byte(value), &labels)
-	if err != nil {
-		return extensionLabels, err
-	}
-
-	for _, label := range labels {
-		for k := range label {
-			extensionLabels = append(extensionLabels, fmt.Sprintf("%s=\"%s\"", k, label[k]))
-		}
-	}
-	return extensionLabels, err
 }
