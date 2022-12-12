@@ -279,21 +279,23 @@ func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.O
 			Config:      opts.EhpaControllerConfig,
 		}
 
-		if opts.DataSourcePromConfig.AdapterConfigMap != "" {
+		if opts.DataSourcePromConfig.AdapterConfigMapNS != "" && opts.DataSourcePromConfig.AdapterConfigMapName != "" && opts.DataSourcePromConfig.AdapterConfigMapKey != "" {
 			// PrometheusAdapterConfigFetcher
 			if err := (&prometheus_adapter.PromAdapterConfigMapFetcher{
-				Client:     mgr.GetClient(),
-				Scheme:     mgr.GetScheme(),
-				RestMapper: mgr.GetRESTMapper(),
-				Recorder:   mgr.GetEventRecorderFor("prometheus-adapter-configmap-controller"),
-				ConfigMap:  opts.DataSourcePromConfig.AdapterConfigMap,
+				Client:               mgr.GetClient(),
+				Scheme:               mgr.GetScheme(),
+				RestMapper:           mgr.GetRESTMapper(),
+				Recorder:             mgr.GetEventRecorderFor("prometheus-adapter-configmap-controller"),
+				AdapterConfigMapNS:   opts.DataSourcePromConfig.AdapterConfigMapNS,
+				AdapterConfigMapName: opts.DataSourcePromConfig.AdapterConfigMapName,
+				AdapterConfigMapKey:  opts.DataSourcePromConfig.AdapterConfigMapKey,
 			}).SetupWithManager(mgr); err != nil {
 				klog.Exit(err, "unable to create controller", "controller", "PromAdapterConfigMapController")
 			}
 		} else if opts.DataSourcePromConfig.AdapterConfig != "" {
 			// PrometheusAdapterConfigFetcher
 			pac := &prometheus_adapter.PromAdapterConfigMapFetcher{
-				ConfigMap: opts.DataSourcePromConfig.AdapterConfig,
+				AdapterConfig: opts.DataSourcePromConfig.AdapterConfig,
 			}
 
 			go pac.PromAdapterConfigDaemonReload()

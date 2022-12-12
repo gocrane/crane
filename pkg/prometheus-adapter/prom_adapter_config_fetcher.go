@@ -3,8 +3,6 @@ package prometheus_adapter
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	"github.com/fsnotify/fsnotify"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -22,11 +20,13 @@ import (
 // controller for configMap of prometheus-adapter
 type PromAdapterConfigMapFetcher struct {
 	client.Client
-	Scheme     *runtime.Scheme
-	RestMapper meta.RESTMapper
-	Recorder   record.EventRecorder
-	ConfigMap  string
-	Config     string
+	Scheme               *runtime.Scheme
+	RestMapper           meta.RESTMapper
+	Recorder             record.EventRecorder
+	AdapterConfigMapNS   string
+	AdapterConfigMapName string
+	AdapterConfigMapKey  string
+	AdapterConfig        string
 }
 
 type PromAdapterConfigMapChangedPredicate struct {
@@ -36,16 +36,7 @@ type PromAdapterConfigMapChangedPredicate struct {
 }
 
 func (pc *PromAdapterConfigMapFetcher) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	var cmArray = strings.Split(pc.ConfigMap, "/")
-
-	if len(cmArray) != 3 {
-		return ctrl.Result{}, fmt.Errorf("configmap %s set error", req.NamespacedName)
-	}
-	cmNamespace := cmArray[0]
-	cmName := cmArray[1]
-	cmKey := cmArray[2]
-
-	if req.NamespacedName.String() != cmNamespace+"/"+cmName {
+	if req.NamespacedName.String() != pc.AdapterConfigMapNS+"/"+pc.AdapterConfigMapName {
 		return ctrl.Result{}, fmt.Errorf("configmap %s not matched", req.NamespacedName)
 	}
 	klog.V(4).Infof("Got prometheus adapter configmap %s", req.NamespacedName)
@@ -61,9 +52,9 @@ func (pc *PromAdapterConfigMapFetcher) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, fmt.Errorf("get configmap %s failed", req.NamespacedName)
 	}
 
-	cfg, err := config.FromYAML([]byte(cm.Data[cmKey]))
+	cfg, err := config.FromYAML([]byte(cm.Data[pc.AdapterConfigMapKey]))
 	if err != nil {
-		klog.Errorf("Got metricsDiscoveryConfig failed[%s] %v", pc.ConfigMap, err)
+		klog.Errorf("Got metricsDiscoveryConfig failed[%s] %v", pc.AdapterConfigMapName, err)
 	}
 
 	//FlushRules
@@ -85,17 +76,9 @@ func (pc *PromAdapterConfigMapFetcher) Reconcile(ctx context.Context, req ctrl.R
 
 // SetupWithManager creates a controller and register to controller manager.
 func (pc *PromAdapterConfigMapFetcher) SetupWithManager(mgr ctrl.Manager) error {
-	var metaConfigmap = strings.Split(pc.ConfigMap, "/")
-
-	if len(metaConfigmap) < 1 {
-		return fmt.Errorf("prometheus adapter configmap set error")
-	}
-	namespace := metaConfigmap[0]
-	name := metaConfigmap[1]
-
 	var promAdapterConfigMapChangedPredicate = &PromAdapterConfigMapChangedPredicate{
-		Namespace: namespace,
-		Name:      name,
+		Namespace: pc.AdapterConfigMapNS,
+		Name:      pc.AdapterConfigMapName,
 	}
 
 	// Watch for changes to ConfigMap
@@ -128,12 +111,12 @@ func (pc *PromAdapterConfigMapFetcher) PromAdapterConfigDaemonReload() {
 		return
 	}
 	defer watcher.Close()
-	err = watcher.Add(pc.Config)
+	err = watcher.Add(pc.AdapterConfig)
 	if err != nil {
-		klog.ErrorS(err, "Failed to watch", "file", pc.Config)
+		klog.ErrorS(err, "Failed to watch", "file", pc.AdapterConfig)
 		return
 	}
-	klog.Infof("Start watching %s for update.", pc.Config)
+	klog.Infof("Start watching %s for update.", pc.AdapterConfig)
 
 	for {
 		select {
@@ -142,9 +125,9 @@ func (pc *PromAdapterConfigMapFetcher) PromAdapterConfigDaemonReload() {
 			if !ok {
 				return
 			}
-			metricsDiscoveryConfig, err := config.FromFile(pc.Config)
+			metricsDiscoveryConfig, err := config.FromFile(pc.AdapterConfig)
 			if err != nil {
-				klog.Errorf("Got metricsDiscoveryConfig failed[%s] %v", pc.Config, err)
+				klog.Errorf("Got metricsDiscoveryConfig failed[%s] %v", pc.AdapterConfig, err)
 			} else {
 				err = FlushResourceRules(*metricsDiscoveryConfig)
 				if err != nil {
