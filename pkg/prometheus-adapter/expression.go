@@ -97,8 +97,6 @@ func GetMetricRulesFromResourceRules(cfg config.ResourceRules) ([]MetricRule, er
 			return nil, fmt.Errorf("unable to match <.GroupBy>")
 		}
 
-		labelMatchers := GetLabelMatchersFromResourceQuery(cfg.CPU.ContainerQuery)
-
 		queryTemplate := reg.ReplaceAllString(cfg.CPU.ContainerQuery, "")
 		templ, err := template.New("metrics-query").Delims("<<", ">>").Parse(queryTemplate)
 		if err != nil {
@@ -108,7 +106,6 @@ func GetMetricRulesFromResourceRules(cfg config.ResourceRules) ([]MetricRule, er
 		metricRules = append(metricRules, MetricRule{
 			MetricMatches: "cpu",
 			Template:      templ,
-			LabelMatchers: labelMatchers,
 			Namespaced:    true,
 		})
 	}
@@ -119,8 +116,6 @@ func GetMetricRulesFromResourceRules(cfg config.ResourceRules) ([]MetricRule, er
 			return nil, fmt.Errorf("unable to match <.GroupBy>")
 		}
 
-		labelMatchers := GetLabelMatchersFromResourceQuery(cfg.Memory.ContainerQuery)
-
 		queryTemplate := reg.ReplaceAllString(cfg.Memory.ContainerQuery, "")
 		templ, err := template.New("metrics-query").Delims("<<", ">>").Parse(queryTemplate)
 		if err != nil {
@@ -130,7 +125,6 @@ func GetMetricRulesFromResourceRules(cfg config.ResourceRules) ([]MetricRule, er
 		metricRules = append(metricRules, MetricRule{
 			MetricMatches: "memory",
 			Template:      templ,
-			LabelMatchers: labelMatchers,
 			Namespaced:    true,
 		})
 	}
@@ -265,23 +259,6 @@ func GetLabelMatchersFromDiscoveryRule(rule config.DiscoveryRule) []string {
 		}
 	}
 
-	return labelMatchers
-}
-
-// get labelMatchers from ResourceQuery
-func GetLabelMatchersFromResourceQuery(query string) (labelMatchers []string) {
-	// add labelMatcher
-	regLabelMatchers := regexp.MustCompile("{(.*?)}")
-
-	if len(regLabelMatchers.FindStringSubmatch(query)) < 2 {
-		return labelMatchers
-	}
-
-	for _, labelMatcher := range strings.Split(regLabelMatchers.FindStringSubmatch(query)[1], ",") {
-		if labelMatcher != "<<.LabelMatchers>>" {
-			labelMatchers = append(labelMatchers, labelMatcher)
-		}
-	}
 	return labelMatchers
 }
 

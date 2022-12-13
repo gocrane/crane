@@ -125,27 +125,6 @@ func TestGetLabelMatchersFromDiscoveryRule(t *testing.T) {
 	}
 }
 
-func TestGetLabelMatchersFromResourceQuery(t *testing.T) {
-	containerQuery := `sum(rate(container_cpu_usage_seconds_total{<<.LabelMatchers>>,pod!=""}[3m])) by (<<.GroupBy>>)`
-
-	test := struct {
-		description string
-		resource    string
-		expect      []string
-	}{
-		description: "get expressionQuery For SeriesRules",
-		resource:    containerQuery,
-		expect:      []string{"pod!=\"\""},
-	}
-
-	requests := GetLabelMatchersFromResourceQuery(test.resource)
-	for i := range requests {
-		if requests[i] != test.expect[i] {
-			t.Errorf("expect requests %s actual requests %s", test.expect, requests)
-		}
-	}
-}
-
 func TestGetMetricMatchesFromDiscoveryRule(t *testing.T) {
 	seriesQuery := `nginx_concurrent_utilization{pod_namespace!="",pod_name!=""}`
 	metricsQuery := `sum(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)`
