@@ -139,7 +139,7 @@ func FlushRules(metricsDiscoveryConfig config.MetricsDiscoveryConfig) error {
 	if err != nil {
 		return err
 	}
-	err = FlushRules(metricsDiscoveryConfig)
+	err = ParsingRules(metricsDiscoveryConfig)
 	if err != nil {
 		return err
 	}
