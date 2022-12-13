@@ -268,20 +268,17 @@ func GetLabelMatchersFromDiscoveryRule(rule config.DiscoveryRule) []string {
 }
 
 // get labelMatchers from ResourceQuery
-func GetLabelMatchersFromResourceQuery(query string) []string {
-	var labelMatchers []string
-
-	// add labelMathcers
+func GetLabelMatchersFromResourceQuery(query string) (labelMatchers []string) {
+	// add labelMatcher
 	regLabelMatchers := regexp.MustCompile("{(.*?)}")
 
-	var labelMathcers []string
 	if len(regLabelMatchers.FindStringSubmatch(query)) < 2 {
 		return labelMatchers
 	}
 
 	for _, labelMatcher := range strings.Split(regLabelMatchers.FindStringSubmatch(query)[1], ",") {
 		if labelMatcher != "<<.LabelMatchers>>" {
-			labelMathcers = append(labelMathcers, labelMatcher)
+			labelMatchers = append(labelMatchers, labelMatcher)
 		}
 	}
 	return labelMatchers
