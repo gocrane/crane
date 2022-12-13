@@ -1,10 +1,8 @@
 package prometheus_adapter
 
 import (
-	"fmt"
-	"testing"
-
 	"sigs.k8s.io/prometheus-adapter/pkg/config"
+	"testing"
 )
 
 func TestQueryForSeriesResource(t *testing.T) {
@@ -22,9 +20,24 @@ func TestQueryForSeriesResource(t *testing.T) {
 		},
 	}
 
-	metricRules, _ := GetMetricRulesFromResourceRules(*cfg)
-	expression, err := metricRules[0].QueryForSeries("test", []string{})
-	fmt.Println(expression, err)
+	test := struct {
+		description string
+		resource    config.ResourceRules
+		expect      string
+	}{
+		description: "get expressionQuery For SeriesResource",
+		resource:    *cfg,
+		expect:      "sum(rate(container_cpu_usage_seconds_total{namespace=\"test\"}[3m]))",
+	}
+
+	metricRules, _ := GetMetricRulesFromResourceRules(test.resource)
+	requests, err := metricRules[0].QueryForSeries("test", []string{})
+	if err != nil {
+		t.Errorf("Failed to QueryForSeriesResource: %v", err)
+	}
+	if requests != test.expect {
+		t.Errorf("expect requests %s actual requests %s", test.expect, requests)
+	}
 }
 
 func TestQueryForSeriesRules(t *testing.T) {
@@ -40,14 +53,49 @@ func TestQueryForSeriesRules(t *testing.T) {
 		},
 	}
 
-	metricRules, _ := GetMetricRulesFromDiscoveryRule([]config.DiscoveryRule{discoveryRule})
-	expression, err := metricRules[0].QueryForSeries("test", []string{})
-	fmt.Println(expression, err)
+	test := struct {
+		description string
+		resource    []config.DiscoveryRule
+		expect      string
+	}{
+		description: "get expressionQuery For SeriesRules",
+		resource:    []config.DiscoveryRule{discoveryRule},
+		expect:      "sum(nginx_concurrent_utilization{pod_namespace!=\"\",pod_name!=\"\",namespace=\"test\"})",
+	}
+
+	metricRules, _ := GetMetricRulesFromDiscoveryRule(test.resource)
+	requests, err := metricRules[0].QueryForSeries("test", []string{})
+	if err != nil {
+		t.Errorf("Failed to QueryForSeriesResource: %v", err)
+	}
+	if requests != test.expect {
+		t.Errorf("expect requests %s actual requests %s", test.expect, requests)
+	}
 }
 
-func TestQueryForSeriesExternalRules(t *testing.T) {
+func TestGetSeriesNameFromSeriesQuery(t *testing.T) {
 	seriesQuery := `nginx_concurrent_utilization{pod_namespace!="",pod_name!=""}`
-	metricsQuery := `sum by(node, route)(rate(<<.Series>>{<<.LabelMatchers>>}[1m]))`
+
+	test := struct {
+		description string
+		resource    string
+		expect      string
+	}{
+		description: "get SeriesName For SeriesQuery",
+		resource:    seriesQuery,
+		expect:      "nginx_concurrent_utilization",
+	}
+
+	requests := GetSeriesNameFromSeriesQuery(test.resource)
+
+	if requests != test.expect {
+		t.Errorf("expect requests %s actual requests %s", test.expect, requests)
+	}
+}
+
+func TestGetLabelMatchersFromDiscoveryRule(t *testing.T) {
+	seriesQuery := `nginx_concurrent_utilization{pod_namespace!="",pod_name!=""}`
+	metricsQuery := `sum(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)`
 	namespaced := true
 
 	discoveryRule := config.DiscoveryRule{
@@ -58,7 +106,73 @@ func TestQueryForSeriesExternalRules(t *testing.T) {
 		},
 	}
 
-	metricRules, _ := GetMetricRulesFromDiscoveryRule([]config.DiscoveryRule{discoveryRule})
-	expression, err := metricRules[0].QueryForSeries("test", []string{})
-	fmt.Println(expression, err)
+	test := struct {
+		description string
+		resource    config.DiscoveryRule
+		expect      []string
+	}{
+		description: "get expressionQuery For SeriesRules",
+		resource:    discoveryRule,
+		expect:      []string{"pod_namespace!=\"\"", "pod_name!=\"\""},
+	}
+
+	requests := GetLabelMatchersFromDiscoveryRule(test.resource)
+	for i, _ := range requests {
+		if requests[i] != test.expect[i] {
+			t.Errorf("expect requests %s actual requests %s", test.expect, requests)
+		}
+	}
+}
+
+func TestGetLabelMatchersFromResourceQuery(t *testing.T) {
+	containerQuery := `sum(rate(container_cpu_usage_seconds_total{<<.LabelMatchers>>,pod!=""}[3m])) by (<<.GroupBy>>)`
+
+	test := struct {
+		description string
+		resource    string
+		expect      []string
+	}{
+		description: "get expressionQuery For SeriesRules",
+		resource:    containerQuery,
+		expect:      []string{"pod!=\"\""},
+	}
+
+	requests := GetLabelMatchersFromResourceQuery(test.resource)
+	for i, _ := range requests {
+		if requests[i] != test.expect[i] {
+			t.Errorf("expect requests %s actual requests %s", test.expect, requests)
+		}
+	}
+}
+
+func TestGetMetricMatchesFromDiscoveryRule(t *testing.T) {
+	seriesQuery := `nginx_concurrent_utilization{pod_namespace!="",pod_name!=""}`
+	metricsQuery := `sum(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)`
+	namespaced := true
+
+	discoveryRule := config.DiscoveryRule{
+		SeriesQuery:  seriesQuery,
+		MetricsQuery: metricsQuery,
+		Resources: config.ResourceMapping{
+			Namespaced: &namespaced,
+		},
+	}
+
+	test := struct {
+		description string
+		resource    config.DiscoveryRule
+		expect      string
+	}{
+		description: "get expressionQuery For SeriesRules",
+		resource:    discoveryRule,
+		expect:      "nginx_concurrent_utilization",
+	}
+
+	requests, err := GetMetricMatchesFromDiscoveryRule(test.resource)
+	if err != nil {
+		t.Errorf("Failed to GetMetricMatchesFromDiscoveryRule: %v", err)
+	}
+	if requests != test.expect {
+		t.Errorf("expect requests %s actual requests %s", test.expect, requests)
+	}
 }

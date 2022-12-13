@@ -68,7 +68,7 @@ func ParsingResourceRules(mc config.MetricsDiscoveryConfig) (err error) {
 // ParsingRules from config.MetricsDiscoveryConfig
 func ParsingRules(mc config.MetricsDiscoveryConfig) (err error) {
 	if mc.Rules == nil {
-		return fmt.Errorf("rules is nil")
+		return fmt.Errorf("Rules is nil")
 	} else {
 		metricRules.MetricRulesCustomer, err = GetMetricRulesFromDiscoveryRule(mc.Rules)
 	}
@@ -96,7 +96,7 @@ func GetMetricRulesFromResourceRules(cfg config.ResourceRules) ([]MetricRule, er
 			return nil, fmt.Errorf("unable to match <.GroupBy>")
 		}
 
-		labelMatchers := GetMetricRulesFromResourceQuery(cfg.CPU.ContainerQuery)
+		labelMatchers := GetLabelMatchersFromResourceQuery(cfg.CPU.ContainerQuery)
 
 		queryTemplate := reg.ReplaceAllString(cfg.CPU.ContainerQuery, "")
 		templ, err := template.New("metrics-query").Delims("<<", ">>").Parse(queryTemplate)
@@ -108,8 +108,7 @@ func GetMetricRulesFromResourceRules(cfg config.ResourceRules) ([]MetricRule, er
 			MetricMatches: "cpu",
 			Template:      templ,
 			LabelMatchers: labelMatchers,
-
-			Namespaced: true,
+			Namespaced:    true,
 		})
 	}
 	// get cpu MetricsQuery
@@ -119,7 +118,7 @@ func GetMetricRulesFromResourceRules(cfg config.ResourceRules) ([]MetricRule, er
 			return nil, fmt.Errorf("unable to match <.GroupBy>")
 		}
 
-		labelMatchers := GetMetricRulesFromResourceQuery(cfg.Memory.ContainerQuery)
+		labelMatchers := GetLabelMatchersFromResourceQuery(cfg.Memory.ContainerQuery)
 
 		queryTemplate := reg.ReplaceAllString(cfg.Memory.ContainerQuery, "")
 		templ, err := template.New("metrics-query").Delims("<<", ">>").Parse(queryTemplate)
@@ -260,14 +259,16 @@ func GetLabelMatchersFromDiscoveryRule(rule config.DiscoveryRule) []string {
 	regLabelMatchers := regexp.MustCompile("{(.*?)}")
 	SeriesMatchers := regLabelMatchers.FindStringSubmatch(rule.SeriesQuery)[1]
 	if SeriesMatchers != "" {
-		labelMatchers = append(labelMatchers, SeriesMatchers)
+		for _, seriesMatcher := range strings.Split(SeriesMatchers, ",") {
+			labelMatchers = append(labelMatchers, seriesMatcher)
+		}
 	}
 
 	return labelMatchers
 }
 
 // get labelMatchers from ResourceQuery
-func GetMetricRulesFromResourceQuery(query string) []string {
+func GetLabelMatchersFromResourceQuery(query string) []string {
 	var labelMatchers []string
 
 	// add labelMathcers
