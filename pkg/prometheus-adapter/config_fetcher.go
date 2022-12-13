@@ -18,8 +18,7 @@ import (
 	"sigs.k8s.io/prometheus-adapter/pkg/config"
 )
 
-// controller for configMap of prometheus-adapter
-type PromAdapterConfigMapFetcher struct {
+type PrometheusAdapterConfigFetcher struct {
 	client.Client
 	Scheme               *runtime.Scheme
 	RestMapper           meta.RESTMapper
@@ -30,15 +29,15 @@ type PromAdapterConfigMapFetcher struct {
 	AdapterConfig        string
 }
 
-type PromAdapterConfigMapChangedPredicate struct {
+type PrometheusAdapterConfigChangedPredicate struct {
 	predicate.Funcs
 	Name      string
 	Namespace string
 }
 
-func (pc *PromAdapterConfigMapFetcher) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (pc *PrometheusAdapterConfigFetcher) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	if req.NamespacedName.String() != pc.AdapterConfigMapNS+"/"+pc.AdapterConfigMapName {
-		return ctrl.Result{}, fmt.Errorf("configmap %s not matched", req.NamespacedName)
+		return ctrl.Result{}, fmt.Errorf("configmap %s/%s not matched", req.NamespacedName, req.NamespacedName.Name)
 	}
 	klog.V(4).Infof("Got prometheus adapter configmap %s", req.NamespacedName)
 
@@ -50,7 +49,7 @@ func (pc *PromAdapterConfigMapFetcher) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	if cm == nil {
-		return ctrl.Result{}, fmt.Errorf("get configmap %s failed", req.NamespacedName)
+		return ctrl.Result{}, fmt.Errorf("get configmap %s/%s failed", req.NamespacedName.Namespace, req.NamespacedName.Name)
 	}
 
 	cfg, err := config.FromYAML([]byte(cm.Data[pc.AdapterConfigMapKey]))
@@ -58,26 +57,17 @@ func (pc *PromAdapterConfigMapFetcher) Reconcile(ctx context.Context, req ctrl.R
 		klog.Errorf("Got metricsDiscoveryConfig failed[%s] %v", pc.AdapterConfigMapName, err)
 	}
 
-	//FlushRules
-	err = FlushResourceRules(*cfg)
-	if err != nil {
-		klog.Errorf("FlushResourceRules failed %v", err)
-	}
 	err = FlushRules(*cfg)
 	if err != nil {
-		klog.Errorf("FlushRules failed %v", err)
-	}
-	err = FlushExternalRules(*cfg)
-	if err != nil {
-		klog.Errorf("FlushExternalRules failed %v", err)
+		klog.Errorf("Flush rules failed %v", err)
 	}
 
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager creates a controller and register to controller manager.
-func (pc *PromAdapterConfigMapFetcher) SetupWithManager(mgr ctrl.Manager) error {
-	var promAdapterConfigMapChangedPredicate = &PromAdapterConfigMapChangedPredicate{
+func (pc *PrometheusAdapterConfigFetcher) SetupWithManager(mgr ctrl.Manager) error {
+	var promAdapterConfigMapChangedPredicate = &PrometheusAdapterConfigChangedPredicate{
 		Namespace: pc.AdapterConfigMapNS,
 		Name:      pc.AdapterConfigMapName,
 	}
@@ -89,7 +79,7 @@ func (pc *PromAdapterConfigMapFetcher) SetupWithManager(mgr ctrl.Manager) error 
 }
 
 // fetched metricRule if configmap is updated
-func (paCm *PromAdapterConfigMapChangedPredicate) Update(e event.UpdateEvent) bool {
+func (paCm *PrometheusAdapterConfigChangedPredicate) Update(e event.UpdateEvent) bool {
 	if e.ObjectOld == nil {
 		return false
 	}
@@ -105,7 +95,7 @@ func (paCm *PromAdapterConfigMapChangedPredicate) Update(e event.UpdateEvent) bo
 }
 
 // if set promAdapterConfig, daemon reload by config fsnotify
-func (pc *PromAdapterConfigMapFetcher) PromAdapterConfigDaemonReload() {
+func (pc *PrometheusAdapterConfigFetcher) Reload() {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		klog.Error(err)
@@ -130,17 +120,9 @@ func (pc *PromAdapterConfigMapFetcher) PromAdapterConfigDaemonReload() {
 			if err != nil {
 				klog.Errorf("Got metricsDiscoveryConfig failed[%s] %v", pc.AdapterConfig, err)
 			} else {
-				err = FlushResourceRules(*metricsDiscoveryConfig)
-				if err != nil {
-					klog.Errorf("FlushResourceRules failed %v", err)
-				}
 				err = FlushRules(*metricsDiscoveryConfig)
 				if err != nil {
-					klog.Errorf("FlushRules failed %v", err)
-				}
-				err = FlushExternalRules(*metricsDiscoveryConfig)
-				if err != nil {
-					klog.Errorf("FlushExternalRules failed %v", err)
+					klog.Errorf("Flush rules failed %v", err)
 				}
 			}
 		case err, ok := <-watcher.Errors:
@@ -150,4 +132,21 @@ func (pc *PromAdapterConfigMapFetcher) PromAdapterConfigDaemonReload() {
 			klog.Error(err)
 		}
 	}
+}
+
+func FlushRules(metricsDiscoveryConfig config.MetricsDiscoveryConfig) error {
+	err := ParsingResourceRules(metricsDiscoveryConfig)
+	if err != nil {
+		return err
+	}
+	err = ParsingRules(metricsDiscoveryConfig)
+	if err != nil {
+		return err
+	}
+	err = ParsingExternalRules(metricsDiscoveryConfig)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

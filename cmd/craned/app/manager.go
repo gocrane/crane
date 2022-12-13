@@ -279,9 +279,13 @@ func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.O
 			Config:      opts.EhpaControllerConfig,
 		}
 
+		if err := (ehpaController).SetupWithManager(mgr); err != nil {
+			klog.Exit(err, "unable to create controller", "controller", "EffectiveHPAController")
+		}
+
 		if opts.DataSourcePromConfig.AdapterConfigMapNS != "" && opts.DataSourcePromConfig.AdapterConfigMapName != "" && opts.DataSourcePromConfig.AdapterConfigMapKey != "" {
 			// PrometheusAdapterConfigFetcher
-			if err := (&prometheus_adapter.PromAdapterConfigMapFetcher{
+			if err := (&prometheus_adapter.PrometheusAdapterConfigFetcher{
 				Client:               mgr.GetClient(),
 				Scheme:               mgr.GetScheme(),
 				RestMapper:           mgr.GetRESTMapper(),
@@ -294,15 +298,11 @@ func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.O
 			}
 		} else if opts.DataSourcePromConfig.AdapterConfig != "" {
 			// PrometheusAdapterConfigFetcher
-			pac := &prometheus_adapter.PromAdapterConfigMapFetcher{
+			pac := &prometheus_adapter.PrometheusAdapterConfigFetcher{
 				AdapterConfig: opts.DataSourcePromConfig.AdapterConfig,
 			}
 
-			go pac.PromAdapterConfigDaemonReload()
-		}
-
-		if err := (ehpaController).SetupWithManager(mgr); err != nil {
-			klog.Exit(err, "unable to create controller", "controller", "EffectiveHPAController")
+			go pac.Reload()
 		}
 
 		if err := (&ehpa.SubstituteController{
