@@ -10,6 +10,7 @@ import (
 	"sigs.k8s.io/prometheus-adapter/pkg/config"
 )
 
+// MetricMatches for Prometheus-adapter-config
 const (
 	WorkloadCpuUsageExpression  = "WorkloadCpuUsageExpression"
 	WorkloadMemUsageExpression  = "WorkloadMemUsageExpression"
