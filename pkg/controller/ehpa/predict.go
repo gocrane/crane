@@ -17,6 +17,7 @@ import (
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/known"
+	prometheus_adapter "github.com/gocrane/crane/pkg/prometheus-adapter"
 	"github.com/gocrane/crane/pkg/utils"
 )
 
@@ -127,16 +128,23 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 		},
 	}
 
+	// get MetricRules
+	mrs := prometheus_adapter.GetMetricRules()
+
 	var predictionMetrics []predictionapi.PredictionMetric
 	for _, metric := range ehpa.Spec.Metrics {
+		var metricName string
 		//get metricIdentifier by metric.Type and metricName
 		var metricIdentifier string
 		switch metric.Type {
 		case autoscalingv2.ResourceMetricSourceType:
+			metricName = metric.Resource.Name.String()
 			metricIdentifier = utils.GetMetricIdentifier(metric, metric.Resource.Name.String())
 		case autoscalingv2.ExternalMetricSourceType:
+			metricName = metric.External.Metric.Name
 			metricIdentifier = utils.GetMetricIdentifier(metric, metric.External.Metric.Name)
 		case autoscalingv2.PodsMetricSourceType:
+			metricName = metric.Pods.Metric.Name
 			metricIdentifier = utils.GetMetricIdentifier(metric, metric.Pods.Metric.Name)
 		}
 
@@ -144,14 +152,72 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 			continue
 		}
 
-		//get expressionQuery
-		var expressionQuery string
-		//first get annocation expressionQuery
-		expressionQuery = utils.GetExpressionQueryAnnotation(metricIdentifier, ehpa.Annotations)
+		//get matchLabels
+		var matchLabels []string
+		var metricRule *prometheus_adapter.MetricRule
+
+		// Supreme priority: annotation
+		expressionQuery := utils.GetExpressionQueryAnnotation(metricIdentifier, ehpa.Annotations)
 		if expressionQuery == "" {
-			// second get default expressionQuery
-			//if annocation not matched, build expressionQuerydefault by metric and ehpa.TargetName
-			expressionQuery = utils.GetExpressionQueryDefault(metric, ehpa.Namespace, ehpa.Spec.ScaleTargetRef.Name)
+			// get metricRule from prometheus-adapter
+			switch metric.Type {
+			case autoscalingv2.ResourceMetricSourceType:
+				if len(mrs.MetricRulesResource) > 0 {
+					metricRule = prometheus_adapter.MatchMetricRule(mrs.MetricRulesResource, metricName)
+					if metricRule == nil {
+						klog.Errorf("Got MetricRulesResource prometheus-adapter-resource Failed MetricMatches[%s] SeriesName[%s] MetricName[%s]", metricRule.MetricMatches, metricRule.SeriesName, metricName)
+					} else {
+						klog.V(4).Infof("Got MetricRulesResource prometheus-adapter-resource MetricMatches[%s] SeriesName[%s]", metricRule.MetricMatches, metricRule.SeriesName)
+						matchLabels = append(matchLabels, fmt.Sprintf("pod=~\"%s\"", utils.GetPodNameReg(ehpa.Spec.ScaleTargetRef.Name, ehpa.Spec.ScaleTargetRef.Kind)))
+					}
+				}
+			case autoscalingv2.PodsMetricSourceType:
+				if len(mrs.MetricRulesCustomer) > 0 {
+					metricRule = prometheus_adapter.MatchMetricRule(mrs.MetricRulesCustomer, metricName)
+					if metricRule == nil {
+						klog.Errorf("Got MetricRulesCustomer prometheus-adapter-customer Failed MetricMatches[%s] SeriesName[%s] MetricName[%s]", metricRule.MetricMatches, metricRule.SeriesName, metricName)
+					} else {
+						klog.V(4).Infof("Got MetricRulesCustomer prometheus-adapter-customer MetricMatches[%s] SeriesName[%s]", metricRule.MetricMatches, metricRule.SeriesName)
+						if metric.Pods.Metric.Selector != nil {
+							for _, i := range utils.MapSortToArray(metric.Pods.Metric.Selector.MatchLabels) {
+								matchLabels = append(matchLabels, i)
+							}
+						}
+					}
+				}
+			case autoscalingv2.ExternalMetricSourceType:
+				if len(mrs.MetricRulesExternal) > 0 {
+					metricRule = prometheus_adapter.MatchMetricRule(mrs.MetricRulesExternal, metricName)
+					if metricRule == nil {
+						klog.Errorf("Got MetricRulesExternal prometheus-adapter-external Failed MetricMatches[%s] SeriesName[%s] MetricName[%s]", metricRule.MetricMatches, metricRule.SeriesName, metricName)
+					} else {
+						klog.V(4).Infof("Got MetricRulesExternal prometheus-adapter-external MetricMatches[%s] SeriesName[%s]", metricRule.MetricMatches, metricRule.SeriesName)
+						if metric.External.Metric.Selector != nil {
+							for _, i := range utils.MapSortToArray(metric.External.Metric.Selector.MatchLabels) {
+								matchLabels = append(matchLabels, i)
+							}
+						}
+					}
+				}
+			}
+
+			if metricRule != nil {
+				// Second priority: get default expressionQuery
+				var err error
+				expressionQuery, err = metricRule.QueryForSeries(ehpa.Namespace, matchLabels)
+				if err != nil {
+					klog.Errorf("Got promSelector prometheus-adapter %v", err)
+				} else {
+					klog.V(4).Infof("Got expressionQuery [%s] from prometheus-adapter ", expressionQuery)
+				}
+			}
+
+			// Third priority: get default expressionQuery
+			if expressionQuery == "" {
+				//if annotation not matched, and configmap is not set, build expressionQuerydefault by metric and ehpa.TargetName
+				expressionQuery = utils.GetExpressionQueryDefault(metric, ehpa.Namespace, ehpa.Spec.ScaleTargetRef.Name, ehpa.Spec.ScaleTargetRef.Kind)
+				klog.V(4).Infof("Got expressionQuery [%s] by default", expressionQuery)
+			}
 		}
 
 		if expressionQuery == "" {

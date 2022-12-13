@@ -1,6 +1,10 @@
 package utils
 
-import "math"
+import (
+	"fmt"
+	"math"
+	"sort"
+)
 
 func GetUint64withDefault(i *uint64, value uint64) uint64 {
 	if i != nil {
@@ -90,4 +94,36 @@ func CmpFloat(p1, p2 float64) int32 {
 		return -1
 	}
 	return 1
+}
+
+type SortMap struct {
+	key   string
+	value string
+}
+
+type SortMaps []SortMap
+
+func (a SortMaps) Len() int { return len(a) }
+
+func (a SortMaps) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
+func (a SortMaps) Less(i, j int) bool { return a[i].key < a[j].key }
+
+func MapSortToArray(m map[string]string) []string {
+	if m == nil || len(m) == 0 {
+		return []string{}
+	}
+
+	sortMap := make([]SortMap, 0, len(m))
+	for label, value := range m {
+		sortMap = append(sortMap, SortMap{key: label, value: value})
+	}
+	// sort to have deterministic string representation
+	sort.Sort(SortMaps(sortMap))
+
+	var array []string
+	for _, i := range sortMap {
+		array = append(array, fmt.Sprintf("%s=\"%s\"", i.key, i.value))
+	}
+	return array
 }

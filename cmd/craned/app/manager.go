@@ -38,6 +38,7 @@ import (
 	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/oom"
 	"github.com/gocrane/crane/pkg/predictor"
+	prometheus_adapter "github.com/gocrane/crane/pkg/prometheus-adapter"
 	"github.com/gocrane/crane/pkg/providers"
 	"github.com/gocrane/crane/pkg/providers/grpc"
 	"github.com/gocrane/crane/pkg/providers/metricserver"
@@ -269,15 +270,39 @@ func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.O
 	targetSelectorFetcher := target.NewSelectorFetcher(mgr.GetScheme(), mgr.GetRESTMapper(), scaleClient, mgr.GetClient())
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.CraneAutoscaling) {
-		if err := (&ehpa.EffectiveHPAController{
+		var ehpaController = &ehpa.EffectiveHPAController{
 			Client:      mgr.GetClient(),
 			Scheme:      mgr.GetScheme(),
 			RestMapper:  mgr.GetRESTMapper(),
 			Recorder:    mgr.GetEventRecorderFor("effective-hpa-controller"),
 			ScaleClient: scaleClient,
 			Config:      opts.EhpaControllerConfig,
-		}).SetupWithManager(mgr); err != nil {
+		}
+
+		if err := (ehpaController).SetupWithManager(mgr); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "EffectiveHPAController")
+		}
+
+		if opts.DataSourcePromConfig.AdapterConfigMapNS != "" && opts.DataSourcePromConfig.AdapterConfigMapName != "" && opts.DataSourcePromConfig.AdapterConfigMapKey != "" {
+			// PrometheusAdapterConfigFetcher
+			if err := (&prometheus_adapter.PrometheusAdapterConfigFetcher{
+				Client:               mgr.GetClient(),
+				Scheme:               mgr.GetScheme(),
+				RestMapper:           mgr.GetRESTMapper(),
+				Recorder:             mgr.GetEventRecorderFor("prometheus-adapter-configmap-controller"),
+				AdapterConfigMapNS:   opts.DataSourcePromConfig.AdapterConfigMapNS,
+				AdapterConfigMapName: opts.DataSourcePromConfig.AdapterConfigMapName,
+				AdapterConfigMapKey:  opts.DataSourcePromConfig.AdapterConfigMapKey,
+			}).SetupWithManager(mgr); err != nil {
+				klog.Exit(err, "unable to create controller", "controller", "PromAdapterConfigMapController")
+			}
+		} else if opts.DataSourcePromConfig.AdapterConfig != "" {
+			// PrometheusAdapterConfigFetcher
+			pac := &prometheus_adapter.PrometheusAdapterConfigFetcher{
+				AdapterConfig: opts.DataSourcePromConfig.AdapterConfig,
+			}
+
+			go pac.Reload()
 		}
 
 		if err := (&ehpa.SubstituteController{

@@ -81,7 +81,7 @@ func GetExpressionQueryAnnotation(metricIdentifier string, annotations map[strin
 	return ""
 }
 
-func IsExpressionQueryAnnocationEnabled(metricIdentifier string, annotations map[string]string) bool {
+func IsExpressionQueryAnnotationEnabled(metricIdentifier string, annotations map[string]string) bool {
 	for k := range annotations {
 		if strings.HasPrefix(k, known.EffectiveHorizontalPodAutoscalerExternalMetricsAnnotationPrefix) {
 			compileRegex := regexp.MustCompile(fmt.Sprintf("%s(.*)", known.EffectiveHorizontalPodAutoscalerExternalMetricsAnnotationPrefix))
@@ -96,15 +96,15 @@ func IsExpressionQueryAnnocationEnabled(metricIdentifier string, annotations map
 }
 
 // GetExpressionQuery return metric query
-func GetExpressionQueryDefault(metric autoscalingv2.MetricSpec, namespace string, name string) string {
+func GetExpressionQueryDefault(metric autoscalingv2.MetricSpec, namespace string, name string, kind string) string {
 	var expressionQuery string
 	switch metric.Type {
 	case autoscalingv2.ResourceMetricSourceType:
 		switch metric.Resource.Name {
 		case "cpu":
-			expressionQuery = GetWorkloadCpuUsageExpression(namespace, name)
+			expressionQuery = GetWorkloadCpuUsageExpression(namespace, name, kind)
 		case "memory":
-			expressionQuery = GetWorkloadMemUsageExpression(namespace, name)
+			expressionQuery = GetWorkloadMemUsageExpression(namespace, name, kind)
 		}
 	case autoscalingv2.PodsMetricSourceType:
 		var labels []string

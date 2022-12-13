@@ -183,7 +183,6 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 
 	if utils.IsEHPAPredictionEnabled(ehpa) {
 		var metricsForPrediction []autoscalingv2.MetricSpec
-
 		for _, metric := range metrics {
 			var metricIdentifier string
 			var averageValue *resource.Quantity
@@ -233,30 +232,21 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 				continue
 			}
 
-			//get expressionQuery
-			var expressionQuery string
-
-			//first get annocation
-			expressionQuery = utils.GetExpressionQueryAnnotation(metricIdentifier, ehpa.Annotations)
-			//if annocation not matched, build expressionQuery by metric and ehpa.TargetName
-			if expressionQuery == "" {
-				expressionQuery = utils.GetExpressionQueryDefault(metric, ehpa.Namespace, ehpa.Spec.ScaleTargetRef.Name)
-			}
-
-			if len(expressionQuery) == 0 {
-				continue
-			}
-
 			name := utils.GetPredictionMetricName(metric.Type)
 			if len(name) == 0 {
 				continue
 			}
+
+			if !utils.IsEHPAHasPredictionMetric(ehpa) {
+				continue
+			}
+
 			if _, err := utils.GetReadyPredictionMetric(name, metricIdentifier, tsp); err != nil {
 				// metric is not predictable
 				continue
 			}
 
-			// generate a external metric for Prediction metric
+			// generate an external metric for Prediction metric
 			external := &autoscalingv2.ExternalMetricSource{
 				Metric: autoscalingv2.MetricIdentifier{
 					Name: name,
