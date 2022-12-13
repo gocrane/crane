@@ -4,7 +4,9 @@ import (
 	"strconv"
 	"time"
 
+	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
 	"github.com/gocrane/crane/pkg/oom"
+	"github.com/gocrane/crane/pkg/recommendation/config"
 	"github.com/gocrane/crane/pkg/recommendation/recommender"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/apis"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/base"
@@ -37,10 +39,8 @@ func (rr *ResourceRecommender) Name() string {
 }
 
 // NewResourceRecommender create a new resource recommender.
-func NewResourceRecommender(recommender apis.Recommender, oomRecorder oom.Recorder) (*ResourceRecommender, error) {
-	if recommender.Config == nil {
-		recommender.Config = map[string]string{}
-	}
+func NewResourceRecommender(recommender apis.Recommender, recommendationRule analysisv1alph1.RecommendationRule, oomRecorder oom.Recorder) (*ResourceRecommender, error) {
+	recommender = config.MergeRecommenderConfigFromRule(recommender, recommendationRule)
 
 	cpuSampleInterval, exists := recommender.Config["cpu-sample-interval"]
 	if !exists {

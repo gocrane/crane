@@ -7,6 +7,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"k8s.io/klog/v2"
 
+	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
 	"github.com/gocrane/crane/pkg/oom"
 	"github.com/gocrane/crane/pkg/providers"
 	"github.com/gocrane/crane/pkg/recommendation/config"
@@ -21,7 +22,7 @@ import (
 
 type RecommenderManager interface {
 	// GetRecommender return a registered recommender
-	GetRecommender(recommenderName string) (recommender.Recommender, error)
+	GetRecommender(recommenderName string, recommendationRule analysisv1alph1.RecommendationRule) (recommender.Recommender, error)
 }
 
 func NewRecommenderManager(recommendationConfiguration string, oomRecorder oom.Recorder, realtimeDataSources map[providers.DataSourceType]providers.RealTime, historyDataSources map[providers.DataSourceType]providers.History) RecommenderManager {
@@ -52,7 +53,7 @@ type manager struct {
 	oomRecorder        oom.Recorder
 }
 
-func (m *manager) GetRecommender(recommenderName string) (recommender.Recommender, error) {
+func (m *manager) GetRecommender(recommenderName string, recommendationRule analysisv1alph1.RecommendationRule) (recommender.Recommender, error) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -60,13 +61,13 @@ func (m *manager) GetRecommender(recommenderName string) (recommender.Recommende
 		if r.Name == recommenderName {
 			switch recommenderName {
 			case recommender.ReplicasRecommender:
-				return replicas.NewReplicasRecommender(r)
+				return replicas.NewReplicasRecommender(r, recommendationRule)
 			case recommender.HPARecommender:
-				return hpa.NewHPARecommender(r)
+				return hpa.NewHPARecommender(r, recommendationRule)
 			case recommender.ResourceRecommender:
-				return resource.NewResourceRecommender(r, m.oomRecorder)
+				return resource.NewResourceRecommender(r, recommendationRule, m.oomRecorder)
 			case recommender.IdleNodeRecommender:
-				return idlenode.NewIdleNodeRecommender(r)
+				return idlenode.NewIdleNodeRecommender(r, recommendationRule)
 			default:
 				return nil, fmt.Errorf("unknown recommender name: %s", recommenderName)
 			}
