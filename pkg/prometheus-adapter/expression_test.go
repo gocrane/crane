@@ -1,8 +1,9 @@
 package prometheus_adapter
 
 import (
-	"sigs.k8s.io/prometheus-adapter/pkg/config"
 	"testing"
+
+	"sigs.k8s.io/prometheus-adapter/pkg/config"
 )
 
 func TestQueryForSeriesResource(t *testing.T) {
@@ -117,7 +118,7 @@ func TestGetLabelMatchersFromDiscoveryRule(t *testing.T) {
 	}
 
 	requests := GetLabelMatchersFromDiscoveryRule(test.resource)
-	for i, _ := range requests {
+	for i := range requests {
 		if requests[i] != test.expect[i] {
 			t.Errorf("expect requests %s actual requests %s", test.expect, requests)
 		}
@@ -138,7 +139,7 @@ func TestGetLabelMatchersFromResourceQuery(t *testing.T) {
 	}
 
 	requests := GetLabelMatchersFromResourceQuery(test.resource)
-	for i, _ := range requests {
+	for i := range requests {
 		if requests[i] != test.expect[i] {
 			t.Errorf("expect requests %s actual requests %s", test.expect, requests)
 		}
