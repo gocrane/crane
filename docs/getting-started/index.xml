@@ -184,6 +184,50 @@ id="tabs-4-1" role="tabpanel" aria-labelled-by="tabs-4-1-tab">&lt;pre tabindex="
 helm install crane -n crane-system --create-namespace crane/crane
 helm install fadvisor -n crane-system --create-namespace crane/fadvisor&lt;/code>&lt;/pre>&lt;/div>
 &lt;/div>
+&lt;p>Customize the installation by overriding the Helm/Chart default parameters, for example:&lt;/p>
+&lt;pre tabindex="0">&lt;code>helm install crane -n crane-system --set metricAdapter.enable=false --create-namespace crane/crane
+&lt;/code>&lt;/pre>&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>Parameters&lt;/th>
+&lt;th>Description&lt;/th>
+&lt;th>Default&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>&lt;code>craned.containerArgs.prometheus-address&lt;/code>&lt;/td>
+&lt;td>Craned Prometheus Address&lt;/td>
+&lt;td>&lt;code>http://prometheus-server.crane-system.svc.cluster.local:8080&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>metricAdapter.enable&lt;/code>&lt;/td>
+&lt;td>Whether to install MetricAdapter&lt;/td>
+&lt;td>&lt;code>true&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>metricAdapter.installApiService&lt;/code>&lt;/td>
+&lt;td>Whether to install MetricAdapter ApiService&lt;/td>
+&lt;td>&lt;code>true&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>craneAgent.enable&lt;/code>&lt;/td>
+&lt;td>Whether to install Crane-Agent&lt;/td>
+&lt;td>&lt;code>true&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>craneAgent.containerArgs.feature-gates&lt;/code>&lt;/td>
+&lt;td>Crane-Agent feature-gates&lt;/td>
+&lt;td>&lt;code>NodeResource=false&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>cranedDashboard.enable&lt;/code>&lt;/td>
+&lt;td>Whether to install Crane-Dashboard&lt;/td>
+&lt;td>&lt;code>true&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>For complete Helm/Chart parameters please refer to &lt;a href="https://github.com/gocrane/helm-charts/tree/main/charts/crane">here&lt;/a>&lt;/p>
 &lt;h3 id="using-existing-prometheusoptional">Using Existing Prometheus（Optional）&lt;/h3>
 &lt;p>Normally in a production environment offen already have a specified Prometheus. You can modify the Crane Chart Release configuration by using the following command or modify the Craned Deployment container Args directly.&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>helm upgrade crane -n crane-system --set craned.containerArgs.prometheus-address&lt;span style="color:#f92672">=&lt;/span>http://&lt;span style="color:#f92672">{&lt;/span>prometheus-ip&lt;span style="color:#f92672">}&lt;/span>:&lt;span style="color:#f92672">{&lt;/span>port&lt;span style="color:#f92672">}&lt;/span> --create-namespace crane/crane

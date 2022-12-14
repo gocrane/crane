@@ -196,6 +196,50 @@ id="tabs-4-1" role="tabpanel" aria-labelled-by="tabs-4-1-tab">&lt;pre tabindex="
 helm install crane -n crane-system --create-namespace crane/crane
 helm install fadvisor -n crane-system --create-namespace crane/fadvisor&lt;/code>&lt;/pre>&lt;/div>
 &lt;/div>
+&lt;p>通过覆盖 Helm/Chart 默认参数可以定制需要安装的组件和配置，例如不安装 Metric-Adapter：&lt;/p>
+&lt;pre tabindex="0">&lt;code>helm install crane -n crane-system --set metricAdapter.enable=false --create-namespace crane/crane
+&lt;/code>&lt;/pre>&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>参数&lt;/th>
+&lt;th>描述&lt;/th>
+&lt;th>默认值&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>&lt;code>craned.containerArgs.prometheus-address&lt;/code>&lt;/td>
+&lt;td>Craned 的 Prometheus 地址&lt;/td>
+&lt;td>&lt;code>http://prometheus-server.crane-system.svc.cluster.local:8080&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>metricAdapter.enable&lt;/code>&lt;/td>
+&lt;td>是否安装 MetricAdapter&lt;/td>
+&lt;td>&lt;code>true&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>metricAdapter.installApiService&lt;/code>&lt;/td>
+&lt;td>是否安装 MetricAdapter 的 ApiService&lt;/td>
+&lt;td>&lt;code>true&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>craneAgent.enable&lt;/code>&lt;/td>
+&lt;td>是否安装 Crane-Agent&lt;/td>
+&lt;td>&lt;code>true&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>craneAgent.containerArgs.feature-gates&lt;/code>&lt;/td>
+&lt;td>Crane-Agent 的 feature-gates&lt;/td>
+&lt;td>&lt;code>NodeResource=false&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>cranedDashboard.enable&lt;/code>&lt;/td>
+&lt;td>是否安装 Crane-Dashboard&lt;/td>
+&lt;td>&lt;code>true&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>完整的 Helm/Chart 参数请参考&lt;a href="https://github.com/gocrane/helm-charts/tree/main/charts/crane">这里&lt;/a>&lt;/p>
 &lt;h3 id="使用外部的-prometheus可选">使用外部的 Prometheus（可选）&lt;/h3>
 &lt;p>通常在生产环境，安装时需要配置外部的 Prometheus，你可以通过以下命令修改 Crane 的 Chart Release 配置或者直接修改 Craned Deployment 的容器 Args。&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>helm upgrade crane -n crane-system --set craned.containerArgs.prometheus-address&lt;span style="color:#f92672">=&lt;/span>http://&lt;span style="color:#f92672">{&lt;/span>prometheus-ip&lt;span style="color:#f92672">}&lt;/span>:&lt;span style="color:#f92672">{&lt;/span>port&lt;span style="color:#f92672">}&lt;/span> --create-namespace crane/crane
@@ -378,6 +422,13 @@ kubectl apply -f deploy/metric-adapter&lt;/code>&lt;/pre>&lt;/div>
 &lt;p>如果您想自定义 Crane 里配置 Prometheus 的 HTTP 地址，请参考以下的命令。如果您在集群里已存在一个 Prometheus，请将 Server 地址填于&lt;code>CUSTOMIZE_PROMETHEUS&lt;/code> 。&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-console" data-lang="console">&lt;span style="display:flex;">&lt;span>export CUSTOMIZE_PROMETHEUS=
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>if [ $CUSTOMIZE_PROMETHEUS ]; then sed -i &amp;#39;&amp;#39; &amp;#34;s/PROMETHEUS_ADDRESS/${CUSTOMIZE_PROMETHEUS}/&amp;#34; deploy/craned/deployment.yaml ; fi
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>
+&lt;div class="alert alert-info" role="alert">
+成本展示和资源推荐功能可以运行在较低版本的 Kubernetes 集群中，如果您的 Kubernetes 集群版本接近 1.13，可以尝试使用 deploy/manifest_1.13 的 crd 定义进行自定义安装
+&lt;/div>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-console" data-lang="console">&lt;span style="display:flex;">&lt;span>kubectl apply -f deploy/manifests_1.13
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>kubectl apply -f deploy/craned
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>kubectl apply -f deploy/metric-adapter
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="安装常见问题">安装常见问题&lt;/h2>
 &lt;h3 id="安装-crane-报错">安装 Crane 报错&lt;/h3>
 &lt;p>当您执行 &lt;code>helm install crane -n crane-system --create-namespace crane/crane&lt;/code> 命令时，可能会遇到如下错误：&lt;/p>
