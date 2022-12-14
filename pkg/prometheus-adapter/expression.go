@@ -83,14 +83,12 @@ func ParsingExternalRules(mc config.MetricsDiscoveryConfig) (err error) {
 }
 
 // SetExtensionLabels from opts.DataSourcePromConfig.AdapterExtensionLabels
-func SetExtensionLabels(extensionLabels string) (err error) {
+func SetExtensionLabels(extensionLabels string) {
 	if extensionLabels != "" {
 		for _, label := range strings.Split(extensionLabels, ",") {
 			metricRules.ExtensionLabels = append(metricRules.ExtensionLabels, label)
 		}
-		return err
 	}
-	return err
 }
 
 // GetMetricRuleResourceFromRules produces a MetricNamer for each rule in the given config.
