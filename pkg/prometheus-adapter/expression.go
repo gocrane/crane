@@ -2,6 +2,7 @@ package prometheus_adapter
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
@@ -35,6 +36,7 @@ type MetricRules struct {
 	MetricRulesResource []MetricRule
 	MetricRulesCustomer []MetricRule
 	MetricRulesExternal []MetricRule
+	ExtensionLabels     []string
 }
 
 type MetricRule struct {
@@ -53,11 +55,6 @@ type QueryTemplateArgs struct {
 // get MetricRules from config.MetricsDiscoveryConfig
 func GetMetricRules() *MetricRules {
 	return metricRules
-}
-
-// get MetricRulesExternal from config.MetricsDiscoveryConfig
-func GetMetricRulesExternal() []MetricRule {
-	return metricRules.MetricRulesExternal
 }
 
 // ParsingResourceRules from config.MetricsDiscoveryConfig
@@ -82,6 +79,25 @@ func ParsingExternalRules(mc config.MetricsDiscoveryConfig) (err error) {
 		return fmt.Errorf("ExternalRules is nil")
 	} else {
 		metricRules.MetricRulesExternal, err = GetMetricRulesFromDiscoveryRule(mc.ExternalRules)
+	}
+	return err
+}
+
+// ParsingExternalRules from config.MetricsDiscoveryConfig
+func SetExtensionLabels(extensionLabels string) (err error) {
+	if extensionLabels != "" {
+		var labels = []map[string]interface{}{}
+		err = json.Unmarshal([]byte(extensionLabels), &labels)
+		if err != nil {
+			return err
+		}
+
+		for _, label := range labels {
+			for k := range label {
+				metricRules.ExtensionLabels = append(metricRules.ExtensionLabels, fmt.Sprintf("%s=\"%s\"", k, label[k]))
+			}
+		}
+		return err
 	}
 	return err
 }
@@ -252,10 +268,12 @@ func GetLabelMatchersFromDiscoveryRule(rule config.DiscoveryRule) []string {
 
 	// add SeriesQueryLabels
 	regLabelMatchers := regexp.MustCompile("{(.*?)}")
-	SeriesMatchers := regLabelMatchers.FindStringSubmatch(rule.SeriesQuery)[1]
-	if SeriesMatchers != "" {
-		for _, seriesMatcher := range strings.Split(SeriesMatchers, ",") {
-			labelMatchers = append(labelMatchers, seriesMatcher)
+	if len(regLabelMatchers.FindStringSubmatch(rule.SeriesQuery)) > 1 {
+		SeriesMatchers := regLabelMatchers.FindStringSubmatch(rule.SeriesQuery)[1]
+		if SeriesMatchers != "" {
+			for _, seriesMatcher := range strings.Split(SeriesMatchers, ",") {
+				labelMatchers = append(labelMatchers, seriesMatcher)
+			}
 		}
 	}
 

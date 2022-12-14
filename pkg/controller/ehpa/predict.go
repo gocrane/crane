@@ -204,7 +204,7 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 			if metricRule != nil {
 				// Second priority: get default expressionQuery
 				var err error
-				expressionQuery, err = metricRule.QueryForSeries(ehpa.Namespace, matchLabels)
+				expressionQuery, err = metricRule.QueryForSeries(ehpa.Namespace, append(mrs.ExtensionLabels, matchLabels...))
 				if err != nil {
 					klog.Errorf("Got promSelector prometheus-adapter %v", err)
 				} else {
