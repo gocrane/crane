@@ -2,7 +2,6 @@ package prometheus_adapter
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
@@ -83,19 +82,11 @@ func ParsingExternalRules(mc config.MetricsDiscoveryConfig) (err error) {
 	return err
 }
 
-// ParsingExternalRules from config.MetricsDiscoveryConfig
+// SetExtensionLabels from opts.DataSourcePromConfig.AdapterExtensionLabels
 func SetExtensionLabels(extensionLabels string) (err error) {
 	if extensionLabels != "" {
-		var labels = []map[string]interface{}{}
-		err = json.Unmarshal([]byte(extensionLabels), &labels)
-		if err != nil {
-			return err
-		}
-
-		for _, label := range labels {
-			for k := range label {
-				metricRules.ExtensionLabels = append(metricRules.ExtensionLabels, fmt.Sprintf("%s=\"%s\"", k, label[k]))
-			}
+		for _, label := range strings.Split(extensionLabels, ",") {
+			metricRules.ExtensionLabels = append(metricRules.ExtensionLabels, label)
 		}
 		return err
 	}
