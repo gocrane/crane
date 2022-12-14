@@ -44,6 +44,7 @@ import (
 	"github.com/gocrane/crane/pkg/ensurance/manager"
 	"github.com/gocrane/crane/pkg/ensurance/runtime"
 	"github.com/gocrane/crane/pkg/features"
+	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/resource"
 	"github.com/gocrane/crane/pkg/utils"
@@ -169,7 +170,7 @@ func getAgentName(nodeName string) string {
 
 func (a *Agent) CreateNodeResourceTsp() string {
 	foundTsp := true
-	tsp, err := a.craneClient.PredictionV1alpha1().TimeSeriesPredictions(resource.TspNamespace).Get(context.TODO(), a.GenerateNodeResourceTspName(), metav1.GetOptions{})
+	tsp, err := a.craneClient.PredictionV1alpha1().TimeSeriesPredictions(known.CraneSystemNamespace).Get(context.TODO(), a.GenerateNodeResourceTspName(), metav1.GetOptions{})
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			klog.Errorf("Failed to get noderesource tsp : %v", err)
@@ -177,7 +178,7 @@ func (a *Agent) CreateNodeResourceTsp() string {
 		}
 		foundTsp = false
 	}
-	config, err := a.kubeClient.CoreV1().ConfigMaps(resource.TspNamespace).Get(context.TODO(), "noderesource-tsp-template", metav1.GetOptions{})
+	config, err := a.kubeClient.CoreV1().ConfigMaps(known.CraneSystemNamespace).Get(context.TODO(), "noderesource-tsp-template", metav1.GetOptions{})
 
 	if err != nil {
 		klog.Errorf("Failed to get noderesource tsp configmap : %v", err)
@@ -241,7 +242,7 @@ func (a *Agent) CreateNodeResourceTsp() string {
 		klog.V(4).Infof("The noderesource tsp does not exist, try to create a new one: %s", a.GenerateNodeResourceTspName())
 		tsp = &predictionapi.TimeSeriesPrediction{}
 		tsp.Name = a.GenerateNodeResourceTspName()
-		tsp.Namespace = resource.TspNamespace
+		tsp.Namespace = known.CraneSystemNamespace
 		tsp.Spec = spec
 		_ = controllerutil.SetControllerReference(n, tsp, scheme.Scheme)
 		_, err = a.craneClient.PredictionV1alpha1().TimeSeriesPredictions(tsp.Namespace).Create(context.TODO(), tsp, metav1.CreateOptions{})
@@ -291,7 +292,7 @@ func (a *Agent) CreateNodeResourceTopology(sysPath string) error {
 }
 
 func (a *Agent) DeleteNodeResourceTsp() error {
-	err := a.craneClient.PredictionV1alpha1().TimeSeriesPredictions(resource.TspNamespace).Delete(context.TODO(), a.GenerateNodeResourceTspName(), metav1.DeleteOptions{})
+	err := a.craneClient.PredictionV1alpha1().TimeSeriesPredictions(known.CraneSystemNamespace).Delete(context.TODO(), a.GenerateNodeResourceTspName(), metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}

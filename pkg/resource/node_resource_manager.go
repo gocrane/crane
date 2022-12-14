@@ -34,7 +34,6 @@ const (
 	MinDeltaRatio                                 = 0.1
 	StateExpiration                               = 1 * time.Minute
 	TspUpdateInterval                             = 20 * time.Second
-	TspNamespace                                  = "default"
 	NodeReserveResourcePercentageAnnotationPrefix = "reserve.node.gocrane.io/%s"
 )
 
@@ -271,7 +270,7 @@ func (o *NodeResourceManager) GetCanNotBeReclaimedResourceFromTsp(node *v1.Node)
 		v1.ResourceMemory: 0,
 	}
 
-	tsp, err := o.tspLister.TimeSeriesPredictions(TspNamespace).Get(o.tspName)
+	tsp, err := o.tspLister.TimeSeriesPredictions(known.CraneSystemNamespace).Get(o.tspName)
 	if err != nil {
 		klog.Errorf("Failed to get tsp: %#v", err)
 		return canNotBeReclaimedResource

@@ -117,22 +117,22 @@ Support StatefulSet and Deployment by default，but all workloads that support `
 
 ## Configuration
 
-| Configuration items   | Default | Description                                                                       |
-|-------------|---------|-----------------------------------------------------------------------------------|
-| workload-min-replicas | 1       | Workload replicas that less than this value will abort recommendation             |
-| pod-min-ready-seconds | 30      | Defines the min seconds to identify Pod is ready                                  |
-| pod-available-ratio | 0.5     | Workload ready Pod ratio that less than this value will abort recommendation      |
-| default-min-replicas | 1       | default minReplicas                                                               |
-| cpu-percentile | 0.95    | Percentile for historical cpu usage                                               |
-| mem-percentile | 0.95    | Percentile for historical memory usage                                            |
-| cpu-target-utilization | 0.5     | Target of CPU peak historical usage                                               |
-| mem-target-utilization | 0.5     | Target of Memory peak historical usage                                            |
-| predictable | false   | When set to true, it will not recommend for HPA if CPU usage is not predictable   |
-| reference-hpa | true    | The recommended result will inherits custom/external metric from existing ehpa    |
-| min-cpu-usage-threshold | 1       | Workload CPU peak usage that less than this value will abort recommendation       |
-| fluctuation-threshold | 1.5     | Workload CPU usage fluctuation that less than this value will abort recommendation |
-| min-cpu-target-utilization | 30      | minimum CPU TargetUtilization                                                     |
-| max-cpu-target-utilization | 75      | maximum CPU TargetUtilization                                                     |
-| max-replicas-factor | 3       | the factor when calculate maxReplicas                                       |
+| Configuration items        | Default | Description                                                                        |
+|----------------------------|---------|------------------------------------------------------------------------------------|
+| workload-min-replicas      | 1       | Workload replicas that less than this value will abort recommendation              |
+| pod-min-ready-seconds      | 30      | Defines the min seconds to identify Pod is ready                                   |
+| pod-available-ratio        | 0.5     | Workload ready Pod ratio that less than this value will abort recommendation       |
+| default-min-replicas       | 1       | default minReplicas                                                                |
+| cpu-percentile             | 0.95    | Percentile for historical cpu usage                                                |
+| mem-percentile             | 0.95    | Percentile for historical memory usage                                             |
+| cpu-target-utilization     | 0.5     | Target of CPU peak historical usage                                                |
+| mem-target-utilization     | 0.5     | Target of Memory peak historical usage                                             |
+| predictable                | false   | When set to true, it will not recommend for HPA if CPU usage is not predictable    |
+| reference-hpa              | true    | The recommended result will inherits custom/external metric from existing ehpa     |
+| min-cpu-usage-threshold    | 1       | Workload CPU peak usage that less than this value will abort recommendation        |
+| fluctuation-threshold      | 1.5     | Workload CPU usage fluctuation that less than this value will abort recommendation |
+| min-cpu-target-utilization | 30      | minimum CPU TargetUtilization                                                      |
+| max-cpu-target-utilization | 75      | maximum CPU TargetUtilization                                                      |
+| max-replicas-factor        | 3       | the factor when calculate maxReplicas                                              |
 
 How to update recommendation configuration please refer to：[**Recommendation Framework**](/docs/tutorials/recommendation/recommendation-framework)

@@ -117,22 +117,22 @@ HPA 推荐按以下步骤完成一次推荐过程：
 
 ## 参数配置
 
-| 配置项         | 默认值   | 描述                                   |
-|-------------|-------|--------------------------------------|
-| workload-min-replicas | 1     | 小于该值的工作负载不做弹性推荐                      |
-| pod-min-ready-seconds | 30    | 定义了 Pod 是否 Ready 的秒数                 |
-| pod-available-ratio | 0.5   | Ready Pod 比例小于该值的工作负载不做弹性推荐          |
-| default-min-replicas | 1     | 最小 minReplicas                       |
-| cpu-percentile | 0.95  | 历史 CPU 用量的 Percentile                |
-| mem-percentile | 0.95  | 历史内存用量的 Percentile                   |
-| cpu-target-utilization | 0.5   | CPU 目标峰值利用率                          |
-| mem-target-utilization | 0.5   | 内存目标峰值利用率                            |
-| predictable | false | 当设置成 true 时，如果 CPU 历史用量无法预测，则不进行推荐   |
-| reference-hpa | true  | 推荐配置会参考现有 HPA 的配置，继承比如自定义指标等信息到 EHPA |
-| min-cpu-usage-threshold | 1     | Workload CPU 最小用量，如果历史用量小于该配置，则不进行推荐 |
-| fluctuation-threshold | 1.5   | Workload CPU 的波动率，小于该配置，则不进行推荐       |
+| 配置项                        | 默认值   | 描述                                   |
+|----------------------------|-------|--------------------------------------|
+| workload-min-replicas      | 1     | 小于该值的工作负载不做弹性推荐                      |
+| pod-min-ready-seconds      | 30    | 定义了 Pod 是否 Ready 的秒数                 |
+| pod-available-ratio        | 0.5   | Ready Pod 比例小于该值的工作负载不做弹性推荐          |
+| default-min-replicas       | 1     | 最小 minReplicas                       |
+| cpu-percentile             | 0.95  | 历史 CPU 用量的 Percentile                |
+| mem-percentile             | 0.95  | 历史内存用量的 Percentile                   |
+| cpu-target-utilization     | 0.5   | CPU 目标峰值利用率                          |
+| mem-target-utilization     | 0.5   | 内存目标峰值利用率                            |
+| predictable                | false | 当设置成 true 时，如果 CPU 历史用量无法预测，则不进行推荐   |
+| reference-hpa              | true  | 推荐配置会参考现有 HPA 的配置，继承比如自定义指标等信息到 EHPA |
+| min-cpu-usage-threshold    | 1     | Workload CPU 最小用量，如果历史用量小于该配置，则不进行推荐 |
+| fluctuation-threshold      | 1.5   | Workload CPU 的波动率，小于该配置，则不进行推荐       |
 | min-cpu-target-utilization | 30    | CPU 的 TargetUtilization 最小值          |
 | max-cpu-target-utilization | 75    | CPU 的 TargetUtilization 最大值          |
-| max-replicas-factor | 3     | 在计算 maxReplicas 时的放大系数               |
+| max-replicas-factor        | 3     | 在计算 maxReplicas 时的放大系数               |
 
 如何更新推荐的配置请参考：[**推荐框架**](/zh-cn/docs/tutorials/recommendation/recommendation-framework)
