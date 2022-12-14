@@ -164,30 +164,9 @@ ifneq ($(REGISTRY_USER_NAME), "")
 endif
 	docker push ${ADAPTER_IMG}
 
-# go-get-tool will 'go get' any package $2 and install it to $1.
-PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
-define go-get-tool
-@[ -f $(1) ] || { \
-set -e ;\
-TMP_DIR=$$(mktemp -d) ;\
-cd $$TMP_DIR ;\
-go mod init tmp ;\
-echo "Downloading $(2)" ;\
-GOBIN=$(PROJECT_DIR)/bin go get $(2) ;\
-rm -rf $$TMP_DIR ;\
-}
-endef
-
 controller-gen:
 ifeq (, $(shell which controller-gen))
-	@{ \
-	set -e ;\
-	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
-	cd $$CONTROLLER_GEN_TMP_DIR ;\
-	go mod init tmp ;\
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.7.0 ;\
-	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
-	}
+	hack/install-tools.sh sigs.k8s.io/controller-tools/cmd/controller-gen@v0.7.0
 CONTROLLER_GEN=$(shell go env GOPATH)/bin/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
@@ -195,15 +174,7 @@ endif
 
 golangci-lint:
 ifeq (, $(shell which golangci-lint))
-	@{ \
-	set -e ;\
-	export GO111MODULE=on; \
-	GOLANG_LINT_TMP_DIR=$$(mktemp -d) ;\
-	cd $$GOLANG_LINT_TMP_DIR ;\
-	go mod init tmp ;\
-	go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.43.0 ;\
-	rm -rf $$GOLANG_LINT_TMP_DIR ;\
-	}
+	hack/install-tools.sh github.com/golangci/golangci-lint/cmd/golangci-lint@v1.43.0
 GOLANG_LINT=$(shell go env GOPATH)/bin/golangci-lint
 else
 GOLANG_LINT=$(shell which golangci-lint)
@@ -211,15 +182,7 @@ endif
 
 goimports:
 ifeq (, $(shell which goimports))
-	@{ \
-	set -e ;\
-	export GO111MODULE=on; \
-	GO_IMPORTS_TMP_DIR=$$(mktemp -d) ;\
-	cd $$GO_IMPORTS_TMP_DIR ;\
-	go mod init tmp ;\
-	go get golang.org/x/tools/cmd/goimports@v0.1.7 ;\
-	rm -rf $$GO_IMPORTS_TMP_DIR ;\
-	}
+	hack/install-tools.sh golang.org/x/tools/cmd/goimports@v0.1.7
 GO_IMPORTS=$(shell go env GOPATH)/bin/goimports
 else
 GO_IMPORTS=$(shell which goimports)
@@ -227,16 +190,7 @@ endif
 
 mockgen:
 ifeq (, $(shell which mockgen))
-	@{ \
-	set -e ;\
-	export GO111MODULE=on; \
-	GO_MOCKGEN_TMP_DIR=$$(mktemp -d) ;\
-	cd $$GO_MOCKGEN_TMP_DIR ;\
-	go mod init tmp ;\
-	go get github.com/golang/mock/mockgen@v1.5.0 ;\
-	go install github.com/golang/mock/mockgen ;\
-	rm -rf $$GO_MOCKGEN_TMP_DIR ;\
-	}
+	hack/install-tools.sh github.com/golang/mock/mockgen@v1.5.0
 GO_MOCKGEN=$(shell go env GOPATH)/bin/mockgen
 else
 GO_MOCKGEN=$(shell which mockgen)
