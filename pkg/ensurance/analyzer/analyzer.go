@@ -537,15 +537,17 @@ func (s *AnomalyAnalyzer) mergeSchedulingActions(actionContexts []ecache.ActionC
 				klog.Warningf("Action %s defined in nodeQOS %s is not found", ac.ActionName, ac.NodeQOS.Name)
 				continue
 			}
-			if ac.Restored && !now.After(s.lastTriggeredTime.Add(time.Duration(action.Spec.CoolDownSeconds)*time.Second)) {
-				metrics.UpdateAnalyzerStatus(metrics.AnalyzeTypeEnableScheduling, float64(0))
-				s.ToggleScheduleSetting(avoidanceExecutor, true)
-				break
+			if ac.Restored {
+				if !now.After(s.lastTriggeredTime.Add(time.Duration(action.Spec.CoolDownSeconds) * time.Second)) {
+					metrics.UpdateAnalyzerStatus(metrics.AnalyzeTypeEnableScheduling, float64(0))
+					s.ToggleScheduleSetting(avoidanceExecutor, true)
+					break
+				} else {
+					metrics.UpdateAnalyzerStatus(metrics.AnalyzeTypeEnableScheduling, float64(1))
+					s.ToggleScheduleSetting(avoidanceExecutor, false)
+				}
 			}
 		}
-
-		metrics.UpdateAnalyzerStatus(metrics.AnalyzeTypeEnableScheduling, float64(1))
-		s.ToggleScheduleSetting(avoidanceExecutor, false)
 	}
 }
 
