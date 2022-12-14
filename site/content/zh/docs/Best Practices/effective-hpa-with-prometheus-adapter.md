@@ -190,7 +190,6 @@ craned通过读取prometheus-adapter配置，实现查询表达式模板的自�
     spec:
       containers:
       - args:
-        - --prometheus-address=http://prometheus.aispeech.com
         - --prometheus-adapter-configmap-namespace=monitoring
         - --prometheus-adapter-configmap-name=prometheus-adapter-config
         - --prometheus-adapter-configmap-key=config.yaml
