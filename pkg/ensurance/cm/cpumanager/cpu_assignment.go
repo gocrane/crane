@@ -20,7 +20,7 @@ This code is directly lifted from the distribution codebase as they could't been
 For reference: https://github.com/kubernetes/kubernetes/blob/release-1.25/pkg/kubelet/cm/cpumanager/cpu_assignment.go
 */
 
-//nolint
+// nolint
 package cpumanager
 
 import (
