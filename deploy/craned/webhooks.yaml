@@ -33,7 +33,7 @@ webhooks:
       service:
         name: craned
         namespace: crane-system
-        path: /mutate-ensurance-crane-io-v1alpha1-nodeqosensurancepolicy
+        path: /mutate-ensurance-crane-io-v1alpha1-nodeqos
     failurePolicy: Fail
     name: mnodeqosensurancepolicies.ensurance.crane.io
     rules:
@@ -45,7 +45,7 @@ webhooks:
           - CREATE
           - UPDATE
         resources:
-          - NodeQOSEnsurancePolicy
+          - NodeQOS
     sideEffects: None
   - admissionReviewVersions:
       - v1
@@ -124,7 +124,7 @@ webhooks:
       service:
         name: craned
         namespace: crane-system
-        path: /validate-ensurance-crane-io-v1alpha1-nodeqosensurancepolicy
+        path: /validate-ensurance-crane-io-v1alpha1-nodeqos
     failurePolicy: Fail
     name: vnodeqosensurancepolicies.ensurance.crane.io
     rules:
@@ -136,7 +136,7 @@ webhooks:
           - CREATE
           - UPDATE
         resources:
-          - nodeqosensurancepolicies
+          - nodeqoss
     sideEffects: None
   - admissionReviewVersions:
       - v1

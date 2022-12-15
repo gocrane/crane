@@ -1,5 +1,5 @@
 apiVersion: ensurance.crane.io/v1alpha1
-kind: NodeQOSEnsurancePolicy
+kind: NodeQOS
 metadata:
   name: "waterline1"
   labels:
@@ -9,7 +9,7 @@ spec:
     timeoutSeconds: 10
     nodeLocalGet:
       localCacheTTLSeconds: 60
-  objectiveEnsurances:
+  rules:
     - name: "cpu-usage"
       avoidanceThreshold: 2
       restoreThreshold: 2
