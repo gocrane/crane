@@ -60,49 +60,145 @@ helm install prometheus-adapter -n crane-system prometheus-community/prometheus-
 
 再将 ApiService 改回 Crane 的 Metric-Adapter
 
+注：若用户期望使用prometheus-adapter则跳过该步骤
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/deploy/metric-adapter/apiservice.yaml
 ```
 
-### 配置 Metric-Adapter 开启 RemoteAdapter 功能
+Prometheus-Adapter配置
 
-在安装 PrometheusAdapter 时没有将 ApiService 指向 PrometheusAdapter，因此为了让 PrometheusAdapter 也可以提供自定义 Metric，通过 Crane Metric Adapter 的 `RemoteAdapter` 功能将请求转发给 PrometheusAdapter。
-
-修改 Metric-Adapter 的配置，将 PrometheusAdapter 的 Service 配置成 Crane Metric Adapter 的 RemoteAdapter
-
-```bash
-# 查看当前集群 ApiService
-kubectl edit deploy metric-adapter -n crane-system
+注：该配置为基础配置，Resource部分支持CPU/MEM预测指标模板，External部分支持资源推荐模板、定时任务通用指标crane_autoscaling_cron、预测通用指标crane_autoscaling_prediction
+，您可以按需补充其他指标
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-adapter-config
+  namespace: crane-system
+data:
+  config: |
+    resourceRules:
+      cpu:
+        containerQuery: sum(rate(container_cpu_usage_seconds_total{<<.LabelMatchers>>}[3m])) by (<<.GroupBy>>)
+        nodeQuery: sum(rate(container_cpu_usage_seconds_total{<<.LabelMatchers>>,id='/'}[3m])) by (<<.GroupBy>>)
+        resources:
+          overrides:
+            instance:
+              resource: node
+            namespace:
+              resource: namespace
+            pod:
+              resource: pod
+        containerLabel: container
+      memory:
+        containerQuery: sum(container_memory_working_set_bytes{<<.LabelMatchers>>}) by (<<.GroupBy>>)
+        nodeQuery: sum(container_memory_working_set_bytes{<<.LabelMatchers>>,id='/'}) by (<<.GroupBy>>)
+        resources:
+          overrides:
+            instance:
+              resource: node
+            namespace:
+              resource: namespace
+            pod:
+              resource: pod
+        containerLabel: container
+      window: 1m
+    externalRules:
+    - seriesQuery: 'container_cpu_usage_seconds_total'
+      metricsQuery: 'sum(irate(<<.Series>>{<<.LabelMatchers>>,container!=""}[3m]))'
+      name:
+        matches: "^(.*)$"
+        as: "WorkloadCpuUsageExpression"
+      resources:
+        namespaced: true
+    - seriesQuery: 'container_memory_working_set_bytes'
+      metricsQuery: 'sum(<<.Series>>{<<.LabelMatchers>>,container!=""})'
+      name:
+        matches: "^(.*)$"
+        as: "WorkloadMemUsageExpression"
+      resources:
+        namespaced: true
+    - seriesQuery: 'node_cpu_seconds_total{mode="idle"}'
+      metricsQuery: 'sum(count(<<.Series>>{<<.LabelMatchers>>}) by (mode, cpu)) - sum(irate(<<.Series>>{<<.LabelMatchers>>}[3m]))'
+      name:
+        matches: "^(.*)$"
+        as: "NodeCpuUsageExpression"
+    - seriesQuery: 'node_memory_MemTotal_bytes'
+      metricsQuery: 'sum(<<.Series>>{<<.LabelMatchers>>} - node_memory_MemAvailable_bytes{<<.LabelMatchers>>})'
+      name:
+        matches: "^(.*)$"
+        as: "NodeMemUsageExpression"
+    - seriesQuery: 'container_cpu_usage_seconds_total'
+      metricsQuery: 'sum(irate(<<.Series>>{<<.LabelMatchers>>,container!="POD"}[3m]))'
+      name:
+        matches: "^(.*)$"
+        as: "PodCpuUsageExpression"
+      resources:
+        namespaced: true
+    - seriesQuery: 'container_memory_working_set_bytes'
+      metricsQuery: 'sum(<<.Series>>{<<.LabelMatchers>>,container!="POD"})'
+      name:
+        matches: "^(.*)$"
+        as: "PodMemUsageExpression"
+      resources:
+        namespaced: true
+    - seriesQuery: 'container_cpu_usage_seconds_total'
+      metricsQuery: 'irate(<<.Series>>{<<.LabelMatchers>>,container!="POD"}[3m])'
+      name:
+        matches: "^(.*)$"
+        as: "ContainerCpuUsageExpression"
+      resources:
+        namespaced: true
+    - seriesQuery: 'container_memory_working_set_bytes'
+      metricsQuery: '<<.Series>>{<<.LabelMatchers>>,container!="POD"}'
+      name:
+        matches: "^(.*)$"
+        as: "ContainerMemUsageExpression"
+      resources:
+        namespaced: true
+    - seriesQuery: 'crane_autoscaling_cron'
+      metricsQuery: 'max(<<.Series>>{<<.LabelMatchers>>,pod_name!=""})'
+      resources:
+        namespaced: false
+    - seriesQuery: 'crane_autoscaling_prediction'
+      metricsQuery: 'max(<<.Series>>{<<.LabelMatchers>>,pod_name!=""})'
+      resources:
+        namespaced: false
 ```
+Craned启动参数
 
-根据 PrometheusAdapter 的配置做以下修改：
+craned通过读取prometheus-adapter配置，实现查询表达式模板的自动更新与渲染
+
+相关参数：
+
+通过Configmap加载
+- prometheus-adapter-configmap-namespace=crane-system
+- prometheus-adapter-configmap-name=prometheus-adapter-config
+- prometheus-adapter-configmap-key=config
+
+通过ConfigFile加载
+- prometheus-adapter-config=/prometheus-adapter.cfg
+
+全局扩展标签 
+
+ 通过该参数可实现查询表达式labelMatchers的全局扩展，实现指标的分类，多个标签以","分隔
+
+- prometheus-adapter-extension-labels=cluster="prod",container!="" 
 
 ```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: metric-adapter
-  namespace: crane-system
-spec:
-  template:
+
     spec:
       containers:
       - args:
-          #添加外部 Adapter 配置
-        - --remote-adapter=true
-        - --remote-adapter-service-namespace=crane-system
-        - --remote-adapter-service-name=prometheus-adapter
-        - --remote-adapter-service-port=443
+        - --prometheus-adapter-configmap-namespace=monitoring
+        - --prometheus-adapter-configmap-name=prometheus-adapter-config
+        - --prometheus-adapter-configmap-key=config.yaml
+        - --prometheus-adapter-extension-labels=cluster="prod",container!=""
+...
+        command:
+        - /craned
+
 ```
-
-#### RemoteAdapter 能力
-
-![remote adapter](/images/remote-adapter.png)
-
-Kubernetes 限制一个 ApiService 只能配置一个后端服务，因此，为了在一个集群内使用 Crane 提供的 Metric 和 PrometheusAdapter 提供的 Metric，Crane 支持了 RemoteAdapter 解决此问题
-
-- Crane Metric-Adapter 支持配置一个 Kubernetes Service 作为一个远程 Adapter
-- Crane Metric-Adapter 处理请求时会先检查是否是 Crane 提供的 Local Metric，如果不是，则转发给远程 Adapter
 
 ## 运行例子
 
@@ -236,6 +332,9 @@ kubectl get --raw /apis/custom.metrics.k8s.io/v1beta1 | jq .
 
 #### 如何定义一个自定义指标开启预测功能
 
+- 通过EHPA Annotation 增加自定义配置
+- 通过Prometheus Adapter 增加模板配置
+
 在 Effective HPA 的 Annotation 按以下规则添加配置：
 
 ```yaml
@@ -293,6 +392,18 @@ spec:
 kubectl create -f sample-app-hpa.yaml
 ```
 
+通过Prometheus-adapter增加模板配置
+```yaml
+    rules:
+    - seriesQuery: 'http_requests_total{pod!=""}'
+      name:
+        matches: "(.*)_total$"
+        as: "${1}"
+      resources:
+        namespaced: true
+      metricsQuery: 'sum(rate(<<.Series>>{<<.LabelMatchers>>}[5m])) by (<<.GroupBy>>)'
+```
+
 查看 TimeSeriesPrediction 状态，如果应用运行时间较短，可能会无法预测：
 
 ```yaml
@@ -316,7 +427,9 @@ spec:
           estimators: {}
           historyLength: 7d
           sampleInterval: 60s
-      resourceIdentifier: crane_pod_cpu_usage
+      expressionQuery:
+        expression: sum(rate(container_cpu_usage_seconds_total{cluster="prod",container!="",pod=~"^php-apache-[a-z0-9]+-[a-z0-9]{5}$",namespace="default"}[3m]))
+      resourceIdentifier: resource.cpu
       resourceQuery: cpu
       type: ResourceQuery
     - algorithm:
@@ -326,7 +439,7 @@ spec:
           historyLength: 7d
           sampleInterval: 60s
       expressionQuery:
-        expression: sum(rate(http_requests_total[5m])) by (pod)
+        expression: sum(rate(http_requests_total{cluster="prod",container!="",namespace="default",pod!=""}[5m])) by (pod)
       resourceIdentifier: pods.http_requests
       type: ExpressionQuery
   predictionWindowSeconds: 3600
@@ -408,4 +521,4 @@ spec:
 
 ## 总结
 
-由于生产环境的复杂性，基于多指标的弹性（CPU/Memory/自定义指标）往往是生产应用的常见选择，因此 Effective HPA 通过预测算法覆盖了多指标的弹性，达到了帮助更多业务在生产环境落地水平弹性的成效。
+由于生产环境的复杂性，基于多指标的弹性（CPU/Memory/自定义指标/外部指标）往往是生产应用的常见选择，因此 Effective HPA 通过预测算法覆盖了多指标的弹性，达到了帮助更多业务在生产环境落地水平弹性的成效。
