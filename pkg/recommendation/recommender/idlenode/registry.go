@@ -3,6 +3,8 @@ package idlenode
 import (
 	"strconv"
 
+	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
+	"github.com/gocrane/crane/pkg/recommendation/config"
 	"github.com/gocrane/crane/pkg/recommendation/recommender"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/apis"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/base"
@@ -21,10 +23,8 @@ func (inr *IdleNodeRecommender) Name() string {
 }
 
 // NewIdleNodeRecommender create a new idle node recommender.
-func NewIdleNodeRecommender(recommender apis.Recommender) (*IdleNodeRecommender, error) {
-	if recommender.Config == nil {
-		recommender.Config = map[string]string{}
-	}
+func NewIdleNodeRecommender(recommender apis.Recommender, recommendationRule analysisv1alph1.RecommendationRule) (*IdleNodeRecommender, error) {
+	recommender = config.MergeRecommenderConfigFromRule(recommender, recommendationRule)
 
 	cpuRequestUtilization, exists := recommender.Config["cpu-request-utilization"]
 	if !exists {

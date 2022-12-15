@@ -3,6 +3,8 @@ package hpa
 import (
 	"strconv"
 
+	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
+	"github.com/gocrane/crane/pkg/recommendation/config"
 	"github.com/gocrane/crane/pkg/recommendation/recommender"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/apis"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/replicas"
@@ -26,7 +28,9 @@ func (rr *HPARecommender) Name() string {
 }
 
 // NewHPARecommender create a new hpa recommender.
-func NewHPARecommender(recommender apis.Recommender) (*HPARecommender, error) {
+func NewHPARecommender(recommender apis.Recommender, recommendationRule analysisv1alph1.RecommendationRule) (*HPARecommender, error) {
+	recommender = config.MergeRecommenderConfigFromRule(recommender, recommendationRule)
+
 	predictable, exists := recommender.Config["predictable"]
 	if !exists {
 		predictable = "false"
@@ -90,7 +94,7 @@ func NewHPARecommender(recommender apis.Recommender) (*HPARecommender, error) {
 		return nil, err
 	}
 
-	replicasRecommender, err := replicas.NewReplicasRecommender(recommender)
+	replicasRecommender, err := replicas.NewReplicasRecommender(recommender, recommendationRule)
 	if err != nil {
 		return nil, err
 	}
