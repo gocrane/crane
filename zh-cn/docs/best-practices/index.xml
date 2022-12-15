@@ -32,36 +32,135 @@ Prometheus 是当下流行的开源监控系统，通过 Prometheus 可以获取
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>helm repo update
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>helm install prometheus-adapter -n crane-system prometheus-community/prometheus-adapter
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>再将 ApiService 改回 Crane 的 Metric-Adapter&lt;/p>
+&lt;p>注：若用户期望使用prometheus-adapter则跳过该步骤&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>kubectl apply -f https://raw.githubusercontent.com/gocrane/crane/main/deploy/metric-adapter/apiservice.yaml
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="配置-metric-adapter-开启-remoteadapter-功能">配置 Metric-Adapter 开启 RemoteAdapter 功能&lt;/h3>
-&lt;p>在安装 PrometheusAdapter 时没有将 ApiService 指向 PrometheusAdapter，因此为了让 PrometheusAdapter 也可以提供自定义 Metric，通过 Crane Metric Adapter 的 &lt;code>RemoteAdapter&lt;/code> 功能将请求转发给 PrometheusAdapter。&lt;/p>
-&lt;p>修改 Metric-Adapter 的配置，将 PrometheusAdapter 的 Service 配置成 Crane Metric Adapter 的 RemoteAdapter&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 查看当前集群 ApiService&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>kubectl edit deploy metric-adapter -n crane-system
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>根据 PrometheusAdapter 的配置做以下修改：&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Prometheus-Adapter配置&lt;/p>
+&lt;p>注：该配置为基础配置，Resource部分支持CPU/MEM预测指标模板，External部分支持资源推荐模板、定时任务通用指标crane_autoscaling_cron、预测通用指标crane_autoscaling_prediction
+，您可以按需补充其他指标&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">ConfigMap&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">metric-adapter&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">prometheus-adapter-config&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">crane-system&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">template&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">data&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">config&lt;/span>: |&lt;span style="color:#e6db74">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> resourceRules:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> cpu:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> containerQuery: sum(rate(container_cpu_usage_seconds_total{&amp;lt;&amp;lt;.LabelMatchers&amp;gt;&amp;gt;}[3m])) by (&amp;lt;&amp;lt;.GroupBy&amp;gt;&amp;gt;)
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> nodeQuery: sum(rate(container_cpu_usage_seconds_total{&amp;lt;&amp;lt;.LabelMatchers&amp;gt;&amp;gt;,id=&amp;#39;/&amp;#39;}[3m])) by (&amp;lt;&amp;lt;.GroupBy&amp;gt;&amp;gt;)
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> resources:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> overrides:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> instance:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> resource: node
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> namespace:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> resource: namespace
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> pod:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> resource: pod
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> containerLabel: container
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> memory:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> containerQuery: sum(container_memory_working_set_bytes{&amp;lt;&amp;lt;.LabelMatchers&amp;gt;&amp;gt;}) by (&amp;lt;&amp;lt;.GroupBy&amp;gt;&amp;gt;)
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> nodeQuery: sum(container_memory_working_set_bytes{&amp;lt;&amp;lt;.LabelMatchers&amp;gt;&amp;gt;,id=&amp;#39;/&amp;#39;}) by (&amp;lt;&amp;lt;.GroupBy&amp;gt;&amp;gt;)
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> resources:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> overrides:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> instance:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> resource: node
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> namespace:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> resource: namespace
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> pod:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> resource: pod
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> containerLabel: container
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> window: 1m
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> externalRules:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - seriesQuery: &amp;#39;container_cpu_usage_seconds_total&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> metricsQuery: &amp;#39;sum(irate(&amp;lt;&amp;lt;.Series&amp;gt;&amp;gt;{&amp;lt;&amp;lt;.LabelMatchers&amp;gt;&amp;gt;,container!=&amp;#34;&amp;#34;}[3m]))&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> name:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> matches: &amp;#34;^(.*)$&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> as: &amp;#34;WorkloadCpuUsageExpression&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> resources:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> namespaced: true
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - seriesQuery: &amp;#39;container_memory_working_set_bytes&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> metricsQuery: &amp;#39;sum(&amp;lt;&amp;lt;.Series&amp;gt;&amp;gt;{&amp;lt;&amp;lt;.LabelMatchers&amp;gt;&amp;gt;,container!=&amp;#34;&amp;#34;})&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> name:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> matches: &amp;#34;^(.*)$&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> as: &amp;#34;WorkloadMemUsageExpression&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> resources:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> namespaced: true
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - seriesQuery: &amp;#39;node_cpu_seconds_total{mode=&amp;#34;idle&amp;#34;}&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> metricsQuery: &amp;#39;sum(count(&amp;lt;&amp;lt;.Series&amp;gt;&amp;gt;{&amp;lt;&amp;lt;.LabelMatchers&amp;gt;&amp;gt;}) by (mode, cpu)) - sum(irate(&amp;lt;&amp;lt;.Series&amp;gt;&amp;gt;{&amp;lt;&amp;lt;.LabelMatchers&amp;gt;&amp;gt;}[3m]))&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> name:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> matches: &amp;#34;^(.*)$&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> as: &amp;#34;NodeCpuUsageExpression&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - seriesQuery: &amp;#39;node_memory_MemTotal_bytes&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> metricsQuery: &amp;#39;sum(&amp;lt;&amp;lt;.Series&amp;gt;&amp;gt;{&amp;lt;&amp;lt;.LabelMatchers&amp;gt;&amp;gt;} - node_memory_MemAvailable_bytes{&amp;lt;&amp;lt;.LabelMatchers&amp;gt;&amp;gt;})&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> name:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> matches: &amp;#34;^(.*)$&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> as: &amp;#34;NodeMemUsageExpression&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - seriesQuery: &amp;#39;container_cpu_usage_seconds_total&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> metricsQuery: &amp;#39;sum(irate(&amp;lt;&amp;lt;.Series&amp;gt;&amp;gt;{&amp;lt;&amp;lt;.LabelMatchers&amp;gt;&amp;gt;,container!=&amp;#34;POD&amp;#34;}[3m]))&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> name:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> matches: &amp;#34;^(.*)$&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> as: &amp;#34;PodCpuUsageExpression&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> resources:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> namespaced: true
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - seriesQuery: &amp;#39;container_memory_working_set_bytes&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> metricsQuery: &amp;#39;sum(&amp;lt;&amp;lt;.Series&amp;gt;&amp;gt;{&amp;lt;&amp;lt;.LabelMatchers&amp;gt;&amp;gt;,container!=&amp;#34;POD&amp;#34;})&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> name:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> matches: &amp;#34;^(.*)$&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> as: &amp;#34;PodMemUsageExpression&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> resources:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> namespaced: true
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - seriesQuery: &amp;#39;container_cpu_usage_seconds_total&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> metricsQuery: &amp;#39;irate(&amp;lt;&amp;lt;.Series&amp;gt;&amp;gt;{&amp;lt;&amp;lt;.LabelMatchers&amp;gt;&amp;gt;,container!=&amp;#34;POD&amp;#34;}[3m])&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> name:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> matches: &amp;#34;^(.*)$&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> as: &amp;#34;ContainerCpuUsageExpression&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> resources:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> namespaced: true
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - seriesQuery: &amp;#39;container_memory_working_set_bytes&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> metricsQuery: &amp;#39;&amp;lt;&amp;lt;.Series&amp;gt;&amp;gt;{&amp;lt;&amp;lt;.LabelMatchers&amp;gt;&amp;gt;,container!=&amp;#34;POD&amp;#34;}&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> name:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> matches: &amp;#34;^(.*)$&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> as: &amp;#34;ContainerMemUsageExpression&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> resources:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> namespaced: true
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - seriesQuery: &amp;#39;crane_autoscaling_cron&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> metricsQuery: &amp;#39;max(&amp;lt;&amp;lt;.Series&amp;gt;&amp;gt;{&amp;lt;&amp;lt;.LabelMatchers&amp;gt;&amp;gt;,pod_name!=&amp;#34;&amp;#34;})&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> resources:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> namespaced: false
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> - seriesQuery: &amp;#39;crane_autoscaling_prediction&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> metricsQuery: &amp;#39;max(&amp;lt;&amp;lt;.Series&amp;gt;&amp;gt;{&amp;lt;&amp;lt;.LabelMatchers&amp;gt;&amp;gt;,pod_name!=&amp;#34;&amp;#34;})&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> resources:
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> namespaced: false&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Craned启动参数&lt;/p>
+&lt;p>craned通过读取prometheus-adapter配置，实现查询表达式模板的自动更新与渲染&lt;/p>
+&lt;p>相关参数：&lt;/p>
+&lt;p>通过Configmap加载&lt;/p>
+&lt;ul>
+&lt;li>prometheus-adapter-configmap-namespace=crane-system&lt;/li>
+&lt;li>prometheus-adapter-configmap-name=prometheus-adapter-config&lt;/li>
+&lt;li>prometheus-adapter-configmap-key=config&lt;/li>
+&lt;/ul>
+&lt;p>通过ConfigFile加载&lt;/p>
+&lt;ul>
+&lt;li>prometheus-adapter-config=/prometheus-adapter.cfg&lt;/li>
+&lt;/ul>
+&lt;p>全局扩展标签&lt;/p>
+&lt;p>通过该参数可实现查询表达式labelMatchers的全局扩展，实现指标的分类，多个标签以&amp;quot;,&amp;ldquo;分隔&lt;/p>
+&lt;ul>
+&lt;li>prometheus-adapter-extension-labels=cluster=&amp;ldquo;prod&amp;rdquo;,container!=&amp;rdquo;&amp;quot;&lt;/li>
+&lt;/ul>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">spec&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">containers&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">args&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">#添加外部 Adapter 配置&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - --&lt;span style="color:#ae81ff">remote-adapter=true&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - --&lt;span style="color:#ae81ff">remote-adapter-service-namespace=crane-system&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - --&lt;span style="color:#ae81ff">remote-adapter-service-name=prometheus-adapter&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - --&lt;span style="color:#ae81ff">remote-adapter-service-port=443&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h4 id="remoteadapter-能力">RemoteAdapter 能力&lt;/h4>
-&lt;p>&lt;img src="/images/remote-adapter.png" alt="remote adapter">&lt;/p>
-&lt;p>Kubernetes 限制一个 ApiService 只能配置一个后端服务，因此，为了在一个集群内使用 Crane 提供的 Metric 和 PrometheusAdapter 提供的 Metric，Crane 支持了 RemoteAdapter 解决此问题&lt;/p>
-&lt;ul>
-&lt;li>Crane Metric-Adapter 支持配置一个 Kubernetes Service 作为一个远程 Adapter&lt;/li>
-&lt;li>Crane Metric-Adapter 处理请求时会先检查是否是 Crane 提供的 Local Metric，如果不是，则转发给远程 Adapter&lt;/li>
-&lt;/ul>
-&lt;h2 id="运行例子">运行例子&lt;/h2>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - --&lt;span style="color:#ae81ff">prometheus-adapter-configmap-namespace=monitoring&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - --&lt;span style="color:#ae81ff">prometheus-adapter-configmap-name=prometheus-adapter-config&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - --&lt;span style="color:#ae81ff">prometheus-adapter-configmap-key=config.yaml&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - --&lt;span style="color:#ae81ff">prometheus-adapter-extension-labels=cluster=&amp;#34;prod&amp;#34;,container!=&amp;#34;&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>...
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">command&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">/craned&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="运行例子">运行例子&lt;/h2>
 &lt;h3 id="准备应用">准备应用&lt;/h3>
 &lt;p>将以下应用部署到集群中，应用暴露了 Metric 展示每秒收到的 http 请求数量。&lt;/p>
 &lt;summary>sample-app.deploy.yaml&lt;/summary>
@@ -152,6 +251,10 @@ Prometheus 是当下流行的开源监控系统，通过 Prometheus 可以获取
 &lt;h3 id="配置弹性">配置弹性&lt;/h3>
 &lt;p>现在我们可以创建 Effective HPA。此时 Effective HPA 可以通过 Pod Metric &lt;code>http_requests&lt;/code> 进行弹性：&lt;/p>
 &lt;h4 id="如何定义一个自定义指标开启预测功能">如何定义一个自定义指标开启预测功能&lt;/h4>
+&lt;ul>
+&lt;li>通过EHPA Annotation 增加自定义配置&lt;/li>
+&lt;li>通过Prometheus Adapter 增加模板配置&lt;/li>
+&lt;/ul>
 &lt;p>在 Effective HPA 的 Annotation 按以下规则添加配置：&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">annotations&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e"># metric-query.autoscaling.crane.io 是固定的前缀，后面是 Metric 的 type 和 名字，需跟 spec.metrics 中的 Metric.name 相同，支持 Pods 类型(pods)和 External 类型(external)&lt;/span>
@@ -198,6 +301,15 @@ Prometheus 是当下流行的开源监控系统，通过 Prometheus 可以获取
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">sampleInterval&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;60s&amp;#34;&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">historyLength&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;7d&amp;#34;&lt;/span>
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>kubectl create -f sample-app-hpa.yaml
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>通过Prometheus-adapter增加模板配置&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">rules&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">seriesQuery&lt;/span>: &lt;span style="color:#e6db74">&amp;#39;http_requests_total{pod!=&amp;#34;&amp;#34;}&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">matches&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;(.*)_total$&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">as&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;${1}&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resources&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespaced&lt;/span>: &lt;span style="color:#66d9ef">true&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">metricsQuery&lt;/span>: &lt;span style="color:#e6db74">&amp;#39;sum(rate(&amp;lt;&amp;lt;.Series&amp;gt;&amp;gt;{&amp;lt;&amp;lt;.LabelMatchers&amp;gt;&amp;gt;}[5m])) by (&amp;lt;&amp;lt;.GroupBy&amp;gt;&amp;gt;)&amp;#39;&lt;/span>
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>查看 TimeSeriesPrediction 状态，如果应用运行时间较短，可能会无法预测：&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">prediction.crane.io/v1alpha1&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">TimeSeriesPrediction&lt;/span>
@@ -219,7 +331,9 @@ Prometheus 是当下流行的开源监控系统，通过 Prometheus 可以获取
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">estimators&lt;/span>: {}
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">historyLength&lt;/span>: &lt;span style="color:#ae81ff">7d&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">sampleInterval&lt;/span>: &lt;span style="color:#ae81ff">60s&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceIdentifier&lt;/span>: &lt;span style="color:#ae81ff">crane_pod_cpu_usage&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">expressionQuery&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">expression&lt;/span>: &lt;span style="color:#ae81ff">sum(rate(container_cpu_usage_seconds_total{cluster=&amp;#34;prod&amp;#34;,container!=&amp;#34;&amp;#34;,pod=~&amp;#34;^php-apache-[a-z0-9]+-[a-z0-9]{5}$&amp;#34;,namespace=&amp;#34;default&amp;#34;}[3m]))&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceIdentifier&lt;/span>: &lt;span style="color:#ae81ff">resource.cpu&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceQuery&lt;/span>: &lt;span style="color:#ae81ff">cpu&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">ResourceQuery&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">algorithm&lt;/span>:
@@ -229,7 +343,7 @@ Prometheus 是当下流行的开源监控系统，通过 Prometheus 可以获取
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">historyLength&lt;/span>: &lt;span style="color:#ae81ff">7d&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">sampleInterval&lt;/span>: &lt;span style="color:#ae81ff">60s&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">expressionQuery&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">expression&lt;/span>: &lt;span style="color:#ae81ff">sum(rate(http_requests_total[5m])) by (pod)&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">expression&lt;/span>: &lt;span style="color:#ae81ff">sum(rate(http_requests_total{cluster=&amp;#34;prod&amp;#34;,container!=&amp;#34;&amp;#34;,namespace=&amp;#34;default&amp;#34;,pod!=&amp;#34;&amp;#34;}[5m])) by (pod)&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceIdentifier&lt;/span>: &lt;span style="color:#ae81ff">pods.http_requests&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">ExpressionQuery&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">predictionWindowSeconds&lt;/span>: &lt;span style="color:#ae81ff">3600&lt;/span>
@@ -304,4 +418,4 @@ Prometheus 是当下流行的开源监控系统，通过 Prometheus 可以获取
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">sample-app&lt;/span>
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="总结">总结&lt;/h2>
-&lt;p>由于生产环境的复杂性，基于多指标的弹性（CPU/Memory/自定义指标）往往是生产应用的常见选择，因此 Effective HPA 通过预测算法覆盖了多指标的弹性，达到了帮助更多业务在生产环境落地水平弹性的成效。&lt;/p></description></item></channel></rss>
+&lt;p>由于生产环境的复杂性，基于多指标的弹性（CPU/Memory/自定义指标/外部指标）往往是生产应用的常见选择，因此 Effective HPA 通过预测算法覆盖了多指标的弹性，达到了帮助更多业务在生产环境落地水平弹性的成效。&lt;/p></description></item></channel></rss>
