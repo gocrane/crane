@@ -176,7 +176,7 @@ func (tc *Controller) UpdateStatus(ctx context.Context, tsPrediction *prediction
 		tsPrediction.Status = *newStatus
 		err := tc.Client.Status().Update(ctx, tsPrediction)
 		if err != nil {
-			tc.Recorder.Event(tsPrediction, v1.EventTypeNormal, "FailedUpdateStatus", err.Error())
+			tc.Recorder.Event(tsPrediction, v1.EventTypeWarning, "FailedUpdateStatus", err.Error())
 			klog.Errorf("Failed to update status for %v", klog.KObj(tsPrediction))
 			return err
 		}

@@ -146,7 +146,7 @@ func (c *EffectiveVPAController) UpdateStatus(ctx context.Context, evpa *autosca
 		evpa.Status = *newStatus
 		err := c.Status().Update(ctx, evpa)
 		if err != nil {
-			c.Recorder.Event(evpa, v1.EventTypeNormal, "FailedUpdateStatus", err.Error())
+			c.Recorder.Event(evpa, v1.EventTypeWarning, "FailedUpdateStatus", err.Error())
 			klog.Errorf("Failed to update status, evpa %s error %v", klog.KObj(evpa), err)
 			return
 		}

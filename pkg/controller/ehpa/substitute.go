@@ -28,7 +28,7 @@ func (c *EffectiveHPAController) ReconcileSubstitute(ctx context.Context, ehpa *
 		if errors.IsNotFound(err) {
 			return c.CreateSubstitute(ctx, ehpa, scale)
 		} else {
-			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedGetSubstitute", err.Error())
+			c.Recorder.Event(ehpa, v1.EventTypeWarning, "FailedGetSubstitute", err.Error())
 			klog.Errorf("Failed to get Substitute, ehpa %s error %v", klog.KObj(ehpa), err)
 			return nil, err
 		}
@@ -42,14 +42,14 @@ func (c *EffectiveHPAController) ReconcileSubstitute(ctx context.Context, ehpa *
 func (c *EffectiveHPAController) CreateSubstitute(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, scale *autoscalingapiv1.Scale) (*autoscalingapi.Substitute, error) {
 	substitute, err := c.NewSubstituteObject(ehpa, scale)
 	if err != nil {
-		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreateSubstituteObject", err.Error())
+		c.Recorder.Event(ehpa, v1.EventTypeWarning, "FailedCreateSubstituteObject", err.Error())
 		klog.Errorf("Failed to create object, Substitute %s error %v", klog.KObj(substitute), err)
 		return nil, err
 	}
 
 	err = c.Client.Create(ctx, substitute)
 	if err != nil {
-		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreateSubstitute", err.Error())
+		c.Recorder.Event(ehpa, v1.EventTypeWarning, "FailedCreateSubstitute", err.Error())
 		klog.Errorf("Failed to create Substitute %s error %v", klog.KObj(substitute), err)
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func (c *EffectiveHPAController) UpdateSubstituteIfNeed(ctx context.Context, ehp
 		substituteExist.Spec.SubstituteTargetRef = ehpa.Spec.ScaleTargetRef
 		err := c.Update(ctx, substituteExist)
 		if err != nil {
-			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedUpdateSubstitute", err.Error())
+			c.Recorder.Event(ehpa, v1.EventTypeWarning, "FailedUpdateSubstitute", err.Error())
 			klog.Errorf("Failed to update Substitute %s, error %v", klog.KObj(substituteExist), err)
 			return nil, err
 		}
