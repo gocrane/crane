@@ -114,7 +114,7 @@ For the first make image, It takes a bit of a long time, Please be patient.&lt;/
 &lt;li>consider failure paths and success paths&lt;/li>
 &lt;li>event do not need the object key&lt;/li>
 &lt;/ul>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">c&lt;/span>.&lt;span style="color:#a6e22e">Recorder&lt;/span>.&lt;span style="color:#a6e22e">Event&lt;/span>(&lt;span style="color:#a6e22e">ehpa&lt;/span>, &lt;span style="color:#a6e22e">v1&lt;/span>.&lt;span style="color:#a6e22e">EventTypeNormal&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;FailedGetSubstitute&amp;#34;&lt;/span>, &lt;span style="color:#a6e22e">err&lt;/span>.&lt;span style="color:#a6e22e">Error&lt;/span>())
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">c&lt;/span>.&lt;span style="color:#a6e22e">Recorder&lt;/span>.&lt;span style="color:#a6e22e">Event&lt;/span>(&lt;span style="color:#a6e22e">ehpa&lt;/span>, &lt;span style="color:#a6e22e">v1&lt;/span>.&lt;span style="color:#a6e22e">EventTypeWarning&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;FailedGetSubstitute&amp;#34;&lt;/span>, &lt;span style="color:#a6e22e">err&lt;/span>.&lt;span style="color:#a6e22e">Error&lt;/span>())
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="comment">comment&lt;/h3>
 &lt;ul>
 &lt;li>every interface should have comments to clarify&lt;/li>
