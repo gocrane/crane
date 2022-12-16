@@ -33,7 +33,7 @@ func (c *EffectiveHPAController) ReconcileHPA(ctx context.Context, ehpa *autosca
 		if errors.IsNotFound(err) {
 			return c.CreateHPA(ctx, ehpa, substitute, tsp)
 		} else {
-			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedGetHPA", err.Error())
+			c.Recorder.Event(ehpa, v1.EventTypeWarning, "FailedGetHPA", err.Error())
 			klog.Errorf("Failed to get HPA, ehpa %s error %v", klog.KObj(ehpa), err)
 			return nil, err
 		}
@@ -62,14 +62,14 @@ func (c *EffectiveHPAController) GetHPA(ctx context.Context, ehpa *autoscalingap
 func (c *EffectiveHPAController) CreateHPA(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, substitute *autoscalingapi.Substitute, tsp *predictionapi.TimeSeriesPrediction) (*autoscalingv2.HorizontalPodAutoscaler, error) {
 	hpa, err := c.NewHPAObject(ctx, ehpa, substitute, tsp)
 	if err != nil {
-		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreateHPAObject", err.Error())
+		c.Recorder.Event(ehpa, v1.EventTypeWarning, "FailedCreateHPAObject", err.Error())
 		klog.Errorf("Failed to create object, HorizontalPodAutoscaler %s error %v", klog.KObj(hpa), err)
 		return nil, err
 	}
 
 	err = c.Client.Create(ctx, hpa)
 	if err != nil {
-		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreateHPA", err.Error())
+		c.Recorder.Event(ehpa, v1.EventTypeWarning, "FailedCreateHPA", err.Error())
 		klog.Errorf("Failed to create HorizontalPodAutoscaler %s, error %v", klog.KObj(hpa), err)
 		return nil, err
 	}
@@ -140,7 +140,7 @@ func (c *EffectiveHPAController) UpdateHPAIfNeed(ctx context.Context, ehpa *auto
 	var needUpdate bool
 	hpa, err := c.NewHPAObject(ctx, ehpa, substitute, tsp)
 	if err != nil {
-		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreateHPAObject", err.Error())
+		c.Recorder.Event(ehpa, v1.EventTypeWarning, "FailedCreateHPAObject", err.Error())
 		klog.Errorf("Failed to create object, HorizontalPodAutoscaler %s error %v", klog.KObj(hpa), err)
 		return nil, err
 	}
@@ -163,7 +163,7 @@ func (c *EffectiveHPAController) UpdateHPAIfNeed(ctx context.Context, ehpa *auto
 	if needUpdate {
 		err := c.Update(ctx, hpaExist)
 		if err != nil {
-			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedUpdateHPA", err.Error())
+			c.Recorder.Event(ehpa, v1.EventTypeWarning, "FailedUpdateHPA", err.Error())
 			klog.Errorf("Failed to update HorizontalPodAutoscaler %s error %v", klog.KObj(hpaExist), err)
 			return nil, err
 		}
