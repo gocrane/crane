@@ -35,7 +35,7 @@ spec:
           operator: Exists
       containers:
         - name: craned
-          image: docker.io/gocrane/craned:v0.8.0
+          image: docker.io/gocrane/craned:v0.9.0
           imagePullPolicy: IfNotPresent
           env:
             - name: TZ
@@ -115,7 +115,10 @@ data:
             apiVersion: apps/v1
           - kind: StatefulSet
             apiVersion: apps/v1
-
+      - name: IdleNode
+        acceptedResources:
+          - kind: Node
+            apiVersion: v1
 ---
 apiVersion: v1
 kind: ConfigMap
