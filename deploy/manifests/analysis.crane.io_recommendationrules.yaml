@@ -67,6 +67,11 @@ spec:
                 items:
                   description: Recommender referring to the Recommender in RecommendationConfiguration
                   properties:
+                    config:
+                      additionalProperties:
+                        type: string
+                      description: Override Recommendation configs
+                      type: object
                     name:
                       description: Recommender's Name
                       type: string
@@ -199,6 +204,11 @@ spec:
                       description: RecommenderRef presents recommender info for recommendation
                         mission.
                       properties:
+                        config:
+                          additionalProperties:
+                            type: string
+                          description: Override Recommendation configs
+                          type: object
                         name:
                           description: Recommender's Name
                           type: string

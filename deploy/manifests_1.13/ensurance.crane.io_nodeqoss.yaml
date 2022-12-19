@@ -323,8 +323,8 @@ spec:
                 type: object
             type: object
           status:
-            description: NodeQOSEnsurancePolicyStatus defines the observed status
-              of NodeQOSEnsurancePolicy
+            description: NodeQOSStatus defines the observed status
+              of NodeQOS
             type: object
         required:
         - spec
