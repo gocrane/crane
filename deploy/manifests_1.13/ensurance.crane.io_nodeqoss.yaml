@@ -1,13 +1,12 @@
-
----
-apiVersion: apiextensions.k8s.io/v1
+apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: ""
-  creationTimestamp: null
   name: nodeqoss.ensurance.crane.io
 spec:
+  conversion:
+    strategy: None
   group: ensurance.crane.io
   names:
     kind: NodeQOS
@@ -17,6 +16,7 @@ spec:
     - nq
     singular: nodeqos
   scope: Cluster
+  version: v1alpha1
   versions:
   - name: v1alpha1
     schema:
@@ -333,7 +333,22 @@ spec:
     storage: true
 status:
   acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
+    kind: NodeQOS
+    listKind: NodeQOSList
+    plural: nodeqoss
+    shortNames:
+    - nq
+    singular: nodeqos
+  conditions:
+  - lastTransitionTime: "2022-10-19T10:32:21Z"
+    message: no conflicts found
+    reason: NoConflicts
+    status: "True"
+    type: NamesAccepted
+  - lastTransitionTime: null
+    message: the initial names have been accepted
+    reason: InitialNamesAccepted
+    status: "True"
+    type: Established
+  storedVersions:
+  - v1alpha1
