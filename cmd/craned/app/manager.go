@@ -296,12 +296,13 @@ func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.O
 			}).SetupWithManager(mgr); err != nil {
 				klog.Exit(err, "unable to create controller", "controller", "PromAdapterConfigMapController")
 			}
+			prometheus_adapter.SetExtensionLabels(opts.DataSourcePromConfig.AdapterExtensionLabels)
 		} else if opts.DataSourcePromConfig.AdapterConfig != "" {
 			// PrometheusAdapterConfigFetcher
 			pac := &prometheus_adapter.PrometheusAdapterConfigFetcher{
 				AdapterConfig: opts.DataSourcePromConfig.AdapterConfig,
 			}
-
+			prometheus_adapter.SetExtensionLabels(opts.DataSourcePromConfig.AdapterExtensionLabels)
 			go pac.Reload()
 		}
 

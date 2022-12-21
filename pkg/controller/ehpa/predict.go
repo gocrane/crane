@@ -31,7 +31,7 @@ func (c *EffectiveHPAController) ReconcilePredication(ctx context.Context, ehpa 
 		if errors.IsNotFound(err) {
 			return c.CreatePrediction(ctx, ehpa)
 		} else {
-			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedGetPrediction", err.Error())
+			c.Recorder.Event(ehpa, v1.EventTypeWarning, "FailedGetPrediction", err.Error())
 			klog.Errorf("Failed to get TimeSeriesPrediction, ehpa %s error %v", klog.KObj(ehpa), err)
 			return nil, err
 		}
@@ -60,14 +60,14 @@ func (c *EffectiveHPAController) GetPredication(ctx context.Context, ehpa *autos
 func (c *EffectiveHPAController) CreatePrediction(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) (*predictionapi.TimeSeriesPrediction, error) {
 	prediction, err := c.NewPredictionObject(ehpa)
 	if err != nil {
-		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreatePredictionObject", err.Error())
+		c.Recorder.Event(ehpa, v1.EventTypeWarning, "FailedCreatePredictionObject", err.Error())
 		klog.Errorf("Failed to create object, TimeSeriesPrediction %s error %v", klog.KObj(prediction), err)
 		return nil, err
 	}
 
 	err = c.Client.Create(ctx, prediction)
 	if err != nil {
-		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreatePrediction", err.Error())
+		c.Recorder.Event(ehpa, v1.EventTypeWarning, "FailedCreatePrediction", err.Error())
 		klog.Errorf("Failed to create TimeSeriesPrediction %s error %v", klog.KObj(prediction), err)
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (c *EffectiveHPAController) CreatePrediction(ctx context.Context, ehpa *aut
 func (c *EffectiveHPAController) UpdatePredictionIfNeed(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, predictionExist *predictionapi.TimeSeriesPrediction) (*predictionapi.TimeSeriesPrediction, error) {
 	prediction, err := c.NewPredictionObject(ehpa)
 	if err != nil {
-		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedCreatePredictionObject", err.Error())
+		c.Recorder.Event(ehpa, v1.EventTypeWarning, "FailedCreatePredictionObject", err.Error())
 		klog.Errorf("Failed to create object, TimeSeriesPrediction %s error %v", klog.KObj(prediction), err)
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func (c *EffectiveHPAController) UpdatePredictionIfNeed(ctx context.Context, ehp
 		predictionExist.Spec = prediction.Spec
 		err := c.Update(ctx, predictionExist)
 		if err != nil {
-			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedUpdatePrediction", err.Error())
+			c.Recorder.Event(ehpa, v1.EventTypeWarning, "FailedUpdatePrediction", err.Error())
 			klog.Errorf("Failed to update TimeSeriesPrediction %s", klog.KObj(predictionExist))
 			return nil, err
 		}
@@ -204,7 +204,7 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 			if metricRule != nil {
 				// Second priority: get default expressionQuery
 				var err error
-				expressionQuery, err = metricRule.QueryForSeries(ehpa.Namespace, matchLabels)
+				expressionQuery, err = metricRule.QueryForSeries(ehpa.Namespace, append(mrs.ExtensionLabels, matchLabels...))
 				if err != nil {
 					klog.Errorf("Got promSelector prometheus-adapter %v", err)
 				} else {

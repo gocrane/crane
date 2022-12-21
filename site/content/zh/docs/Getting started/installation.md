@@ -95,6 +95,23 @@ helm install fadvisor -n crane-system --create-namespace crane/fadvisor
 {{< /tab >}}
 {{% /tabpane %}}
 
+通过覆盖 Helm/Chart 默认参数可以定制需要安装的组件和配置，例如不安装 Metric-Adapter：
+
+```
+helm install crane -n crane-system --set metricAdapter.enable=false --create-namespace crane/crane 
+```
+
+| 参数                                        | 描述                              | 默认值                                                            |
+|-------------------------------------------|---------------------------------|----------------------------------------------------------------|
+| `craned.containerArgs.prometheus-address` | Craned 的 Prometheus 地址          | `http://prometheus-server.crane-system.svc.cluster.local:8080` |
+| `metricAdapter.enable`                    | 是否安装 MetricAdapter              | `true`                                                         |
+| `metricAdapter.installApiService`         | 是否安装 MetricAdapter 的 ApiService | `true`                                                         |
+| `craneAgent.enable`                       | 是否安装 Crane-Agent                | `true`                                                         |
+| `craneAgent.containerArgs.feature-gates`  | Crane-Agent 的 feature-gates     | `NodeResource=false`                                           |
+| `cranedDashboard.enable`                  | 是否安装 Crane-Dashboard            | `true`                                                         |
+
+完整的 Helm/Chart 参数请参考[这里](https://github.com/gocrane/helm-charts/tree/main/charts/crane)
+
 ### 使用外部的 Prometheus（可选）
 
 通常在生产环境，安装时需要配置外部的 Prometheus，你可以通过以下命令修改 Crane 的 Chart Release 配置或者直接修改 Craned Deployment 的容器 Args。
@@ -357,6 +374,16 @@ kubectl apply -f deploy/metric-adapter
 ```console
 export CUSTOMIZE_PROMETHEUS=
 if [ $CUSTOMIZE_PROMETHEUS ]; then sed -i '' "s/PROMETHEUS_ADDRESS/${CUSTOMIZE_PROMETHEUS}/" deploy/craned/deployment.yaml ; fi
+```
+
+{{% alert color="info" %}}
+成本展示和资源推荐功能可以运行在较低版本的 Kubernetes 集群中，如果您的 Kubernetes 集群版本接近 1.13，可以尝试使用 deploy/manifest_1.13 的 crd 定义进行自定义安装
+{{% /alert %}}
+
+```console
+kubectl apply -f deploy/manifests_1.13
+kubectl apply -f deploy/craned
+kubectl apply -f deploy/metric-adapter
 ```
 
 ## 安装常见问题

@@ -46,7 +46,7 @@ klog.ErrorDepth(5, fmt.Errorf("failed to get ehpa %s: %v", klog.KObj(ehpa), err)
 - consider failure paths and success paths
 - event do not need the object key
 ```go
-c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedGetSubstitute", err.Error())
+c.Recorder.Event(ehpa, v1.EventTypeWarning, "FailedGetSubstitute", err.Error())
 ```
 
 ### comment

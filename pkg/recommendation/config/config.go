@@ -7,8 +7,30 @@ import (
 	klog "k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 
+	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/apis"
 )
+
+func MergeRecommenderConfigFromRule(recommender apis.Recommender, recommendationRule analysisv1alph1.RecommendationRule) apis.Recommender {
+	if recommender.Config == nil {
+		recommender.Config = map[string]string{}
+	}
+
+	for _, ruleRecommender := range recommendationRule.Spec.Recommenders {
+		if recommender.Name == ruleRecommender.Name {
+			if ruleRecommender.Config == nil {
+				ruleRecommender.Config = map[string]string{}
+			}
+			// merge config in configmap and config in RecommendationRule.
+			// if conflicted, use the config value in RecommendationRule(has the highest priority).
+			for configKey, configValue := range ruleRecommender.Config {
+				recommender.Config[configKey] = configValue
+			}
+		}
+	}
+
+	return recommender
+}
 
 func LoadRecommenderConfigFromFile(filePath string) (*apis.RecommenderConfiguration, error) {
 	if filePath == "" {

@@ -3,6 +3,8 @@ package replicas
 import (
 	"strconv"
 
+	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
+	"github.com/gocrane/crane/pkg/recommendation/config"
 	"github.com/gocrane/crane/pkg/recommendation/recommender"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/apis"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/base"
@@ -27,7 +29,9 @@ func (rr *ReplicasRecommender) Name() string {
 }
 
 // NewReplicasRecommender create a new replicas recommender.
-func NewReplicasRecommender(recommender apis.Recommender) (*ReplicasRecommender, error) {
+func NewReplicasRecommender(recommender apis.Recommender, recommendationRule analysisv1alph1.RecommendationRule) (*ReplicasRecommender, error) {
+	recommender = config.MergeRecommenderConfigFromRule(recommender, recommendationRule)
+
 	workloadMinReplicas, exists := recommender.Config["workload-min-replicas"]
 	if !exists {
 		workloadMinReplicas = "1"

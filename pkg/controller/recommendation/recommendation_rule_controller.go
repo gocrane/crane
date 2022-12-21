@@ -9,7 +9,6 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -80,7 +79,7 @@ func (c *RecommendationRuleController) Reconcile(ctx context.Context, req ctrl.R
 
 	interval, err := time.ParseDuration(recommendationRule.Spec.RunInterval)
 	if err != nil {
-		c.Recorder.Event(recommendationRule, v1.EventTypeNormal, "FailedParseRunInterval", err.Error())
+		c.Recorder.Event(recommendationRule, corev1.EventTypeWarning, "FailedParseRunInterval", err.Error())
 		klog.Errorf("Failed to parse RunInterval, recommendationRule %s", klog.KObj(recommendationRule))
 		return ctrl.Result{}, err
 	}
@@ -112,7 +111,7 @@ func (c *RecommendationRuleController) doReconcile(ctx context.Context, recommen
 
 	identities, err := c.getIdentities(ctx, recommendationRule)
 	if err != nil {
-		c.Recorder.Event(recommendationRule, corev1.EventTypeNormal, "FailedSelectResource", err.Error())
+		c.Recorder.Event(recommendationRule, corev1.EventTypeWarning, "FailedSelectResource", err.Error())
 		msg := fmt.Sprintf("Failed to get idenitities, RecommendationRule %s error %v", klog.KObj(recommendationRule), err)
 		klog.Errorf(msg)
 		c.UpdateStatus(ctx, recommendationRule, newStatus)
@@ -156,7 +155,7 @@ func (c *RecommendationRuleController) doReconcile(ctx context.Context, recommen
 	}
 	err = c.Client.List(ctx, &currRecommendations, opts...)
 	if err != nil {
-		c.Recorder.Event(recommendationRule, corev1.EventTypeNormal, "FailedSelectResource", err.Error())
+		c.Recorder.Event(recommendationRule, corev1.EventTypeWarning, "FailedSelectResource", err.Error())
 		msg := fmt.Sprintf("Failed to get recomendations, RecommendationRule %s error %v", klog.KObj(recommendationRule), err)
 		klog.Errorf(msg)
 		c.UpdateStatus(ctx, recommendationRule, newStatus)
@@ -351,7 +350,6 @@ func (c *RecommendationRuleController) executeMission(ctx context.Context, wg *s
 	defer func() {
 		mission.LastStartTime = &timeNow
 		klog.Infof("Mission message: %s", mission.Message)
-
 		wg.Done()
 	}()
 
@@ -365,7 +363,7 @@ func (c *RecommendationRuleController) executeMission(ctx context.Context, wg *s
 			recommendation = c.CreateRecommendationObject(recommendationRule, mission.TargetRef, id, mission.RecommenderRef.Name)
 		}
 
-		r, err := c.RecommenderMgr.GetRecommender(mission.RecommenderRef.Name)
+		r, err := c.RecommenderMgr.GetRecommender(mission.RecommenderRef.Name, *recommendationRule)
 		if err != nil {
 			mission.Message = fmt.Sprintf("get recommender %s failed, %v", mission.RecommenderRef.Name, err)
 			return
@@ -439,7 +437,7 @@ func (c *RecommendationRuleController) UpdateStatus(ctx context.Context, recomme
 	})
 
 	if err != nil {
-		c.Recorder.Event(recommendationRule, corev1.EventTypeNormal, "FailedUpdateStatus", err.Error())
+		c.Recorder.Event(recommendationRule, corev1.EventTypeWarning, "FailedUpdateStatus", err.Error())
 		klog.Errorf("Failed to update status, RecommendationRule %s error %v", klog.KObj(recommendationRule), err)
 		return
 	}

@@ -35,6 +35,7 @@ type MetricRules struct {
 	MetricRulesResource []MetricRule
 	MetricRulesCustomer []MetricRule
 	MetricRulesExternal []MetricRule
+	ExtensionLabels     []string
 }
 
 type MetricRule struct {
@@ -53,11 +54,6 @@ type QueryTemplateArgs struct {
 // get MetricRules from config.MetricsDiscoveryConfig
 func GetMetricRules() *MetricRules {
 	return metricRules
-}
-
-// get MetricRulesExternal from config.MetricsDiscoveryConfig
-func GetMetricRulesExternal() []MetricRule {
-	return metricRules.MetricRulesExternal
 }
 
 // ParsingResourceRules from config.MetricsDiscoveryConfig
@@ -86,6 +82,15 @@ func ParsingExternalRules(mc config.MetricsDiscoveryConfig) (err error) {
 	return err
 }
 
+// SetExtensionLabels from opts.DataSourcePromConfig.AdapterExtensionLabels
+func SetExtensionLabels(extensionLabels string) {
+	if extensionLabels != "" {
+		for _, label := range strings.Split(extensionLabels, ",") {
+			metricRules.ExtensionLabels = append(metricRules.ExtensionLabels, label)
+		}
+	}
+}
+
 // GetMetricRuleResourceFromRules produces a MetricNamer for each rule in the given config.
 func GetMetricRulesFromResourceRules(cfg config.ResourceRules) ([]MetricRule, error) {
 	var metricRules []MetricRule
@@ -97,8 +102,6 @@ func GetMetricRulesFromResourceRules(cfg config.ResourceRules) ([]MetricRule, er
 			return nil, fmt.Errorf("unable to match <.GroupBy>")
 		}
 
-		labelMatchers := GetLabelMatchersFromResourceQuery(cfg.CPU.ContainerQuery)
-
 		queryTemplate := reg.ReplaceAllString(cfg.CPU.ContainerQuery, "")
 		templ, err := template.New("metrics-query").Delims("<<", ">>").Parse(queryTemplate)
 		if err != nil {
@@ -108,7 +111,6 @@ func GetMetricRulesFromResourceRules(cfg config.ResourceRules) ([]MetricRule, er
 		metricRules = append(metricRules, MetricRule{
 			MetricMatches: "cpu",
 			Template:      templ,
-			LabelMatchers: labelMatchers,
 			Namespaced:    true,
 		})
 	}
@@ -119,8 +121,6 @@ func GetMetricRulesFromResourceRules(cfg config.ResourceRules) ([]MetricRule, er
 			return nil, fmt.Errorf("unable to match <.GroupBy>")
 		}
 
-		labelMatchers := GetLabelMatchersFromResourceQuery(cfg.Memory.ContainerQuery)
-
 		queryTemplate := reg.ReplaceAllString(cfg.Memory.ContainerQuery, "")
 		templ, err := template.New("metrics-query").Delims("<<", ">>").Parse(queryTemplate)
 		if err != nil {
@@ -130,7 +130,6 @@ func GetMetricRulesFromResourceRules(cfg config.ResourceRules) ([]MetricRule, er
 		metricRules = append(metricRules, MetricRule{
 			MetricMatches: "memory",
 			Template:      templ,
-			LabelMatchers: labelMatchers,
 			Namespaced:    true,
 		})
 	}
@@ -258,30 +257,15 @@ func GetLabelMatchersFromDiscoveryRule(rule config.DiscoveryRule) []string {
 
 	// add SeriesQueryLabels
 	regLabelMatchers := regexp.MustCompile("{(.*?)}")
-	SeriesMatchers := regLabelMatchers.FindStringSubmatch(rule.SeriesQuery)[1]
-	if SeriesMatchers != "" {
-		for _, seriesMatcher := range strings.Split(SeriesMatchers, ",") {
-			labelMatchers = append(labelMatchers, seriesMatcher)
+	if len(regLabelMatchers.FindStringSubmatch(rule.SeriesQuery)) > 1 {
+		SeriesMatchers := regLabelMatchers.FindStringSubmatch(rule.SeriesQuery)[1]
+		if SeriesMatchers != "" {
+			for _, seriesMatcher := range strings.Split(SeriesMatchers, ",") {
+				labelMatchers = append(labelMatchers, seriesMatcher)
+			}
 		}
 	}
 
-	return labelMatchers
-}
-
-// get labelMatchers from ResourceQuery
-func GetLabelMatchersFromResourceQuery(query string) (labelMatchers []string) {
-	// add labelMatcher
-	regLabelMatchers := regexp.MustCompile("{(.*?)}")
-
-	if len(regLabelMatchers.FindStringSubmatch(query)) < 2 {
-		return labelMatchers
-	}
-
-	for _, labelMatcher := range strings.Split(regLabelMatchers.FindStringSubmatch(query)[1], ",") {
-		if labelMatcher != "<<.LabelMatchers>>" {
-			labelMatchers = append(labelMatchers, labelMatcher)
-		}
-	}
 	return labelMatchers
 }
 

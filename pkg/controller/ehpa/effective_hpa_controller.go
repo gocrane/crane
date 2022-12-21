@@ -55,7 +55,7 @@ func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 
 	scale, mapping, err := utils.GetScale(ctx, c.RestMapper, c.ScaleClient, ehpa.Namespace, ehpa.Spec.ScaleTargetRef)
 	if err != nil {
-		c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedGetScale", err.Error())
+		c.Recorder.Event(ehpa, v1.EventTypeWarning, "FailedGetScale", err.Error())
 		klog.Errorf("Failed to get scale, ehpa %s", klog.KObj(ehpa))
 		setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedGetScale", "Failed to get scale")
 		c.UpdateStatus(ctx, ehpa, newStatus)
@@ -132,7 +132,7 @@ func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 		scale.Spec.Replicas = *ehpa.Spec.SpecificReplicas
 		updatedScale, err := c.ScaleClient.Scales(scale.Namespace).Update(ctx, mapping.Resource.GroupResource(), scale, metav1.UpdateOptions{})
 		if err != nil {
-			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedManualScale", err.Error())
+			c.Recorder.Event(ehpa, v1.EventTypeWarning, "FailedManualScale", err.Error())
 			msg := fmt.Sprintf("Failed to manual scale target to specific replicas, ehpa %s replicas %d", klog.KObj(ehpa), *ehpa.Spec.SpecificReplicas)
 			klog.Error(err, msg)
 			setCondition(newStatus, autoscalingapi.Ready, metav1.ConditionFalse, "FailedScale", msg)
@@ -156,7 +156,7 @@ func (c *EffectiveHPAController) UpdateStatus(ctx context.Context, ehpa *autosca
 		ehpa.Status = *newStatus
 		err := c.Status().Update(ctx, ehpa)
 		if err != nil {
-			c.Recorder.Event(ehpa, v1.EventTypeNormal, "FailedUpdateStatus", err.Error())
+			c.Recorder.Event(ehpa, v1.EventTypeWarning, "FailedUpdateStatus", err.Error())
 			klog.Errorf("Failed to update status, ehpa %s error %v", klog.KObj(ehpa), err)
 			return
 		}

@@ -48,7 +48,7 @@ func (c *SubstituteController) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	scale, _, err := utils.GetScale(ctx, c.RestMapper, c.ScaleClient, substitute.Namespace, substitute.Spec.SubstituteTargetRef)
 	if err != nil {
-		c.Recorder.Event(substitute, v1.EventTypeNormal, "FailedGetScale", err.Error())
+		c.Recorder.Event(substitute, v1.EventTypeWarning, "FailedGetScale", err.Error())
 		klog.Errorf("Failed to get scale, Substitute %s error %v", klog.KObj(substitute), err)
 		return ctrl.Result{}, err
 	}
@@ -63,7 +63,7 @@ func (c *SubstituteController) Reconcile(ctx context.Context, req ctrl.Request) 
 
 		err := c.Update(ctx, substitute)
 		if err != nil {
-			c.Recorder.Event(substitute, v1.EventTypeNormal, "FailedUpdateSubstitute", err.Error())
+			c.Recorder.Event(substitute, v1.EventTypeWarning, "FailedUpdateSubstitute", err.Error())
 			klog.Errorf("Failed to update Substitute %s, error %v", klog.KObj(substitute), err)
 			return ctrl.Result{}, err
 		}
@@ -75,7 +75,7 @@ func (c *SubstituteController) Reconcile(ctx context.Context, req ctrl.Request) 
 		substitute.Status = newStatus
 		err := c.Status().Update(ctx, substitute)
 		if err != nil {
-			c.Recorder.Event(substitute, v1.EventTypeNormal, "FailedUpdateStatus", err.Error())
+			c.Recorder.Event(substitute, v1.EventTypeWarning, "FailedUpdateStatus", err.Error())
 			klog.Errorf("Failed to update status, Substitute %s error %v", klog.KObj(substitute), err)
 			return ctrl.Result{}, err
 		}

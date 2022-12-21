@@ -85,6 +85,23 @@ helm install fadvisor -n crane-system --create-namespace crane/fadvisor
 {{< /tab >}}
 {{% /tabpane %}}
 
+Customize the installation by overriding the Helm/Chart default parameters, for example:
+
+```
+helm install crane -n crane-system --set metricAdapter.enable=false --create-namespace crane/crane 
+```
+
+| Parameters                                | Description                                 | Default                                                        |
+|-------------------------------------------|---------------------------------------------|----------------------------------------------------------------|
+| `craned.containerArgs.prometheus-address` | Craned Prometheus Address                   | `http://prometheus-server.crane-system.svc.cluster.local:8080` |
+| `metricAdapter.enable`                    | Whether to install MetricAdapter            | `true`                                                         |
+| `metricAdapter.installApiService`         | Whether to install MetricAdapter ApiService | `true`                                                         |
+| `craneAgent.enable`                       | Whether to install Crane-Agent              | `true`                                                         |
+| `craneAgent.containerArgs.feature-gates`  | Crane-Agent feature-gates                   | `NodeResource=false`                                           |
+| `cranedDashboard.enable`                  | Whether to install Crane-Dashboard          | `true`                                                         |
+
+For complete Helm/Chart parameters please refer to [here](https://github.com/gocrane/helm-charts/tree/main/charts/crane)
+
 ### Using Existing Prometheus（Optional）
 
 Normally in a production environment offen already have a specified Prometheus. You can modify the Crane Chart Release configuration by using the following command or modify the Craned Deployment container Args directly.

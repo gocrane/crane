@@ -257,6 +257,15 @@ spec:
                         - pageCacheMaxRatio
                         - pageCacheReclaimRatio
                         type: object
+                      memPriority:
+                        description: MemoryPriority define the memory priority for
+                          the pods. MemoryPriority range [0,7], 0 is the highest level.
+                          When the memory resource is shortage, the low level pods
+                          would be OOM Killed earlier
+                        format: int32
+                        maximum: 7
+                        minimum: 0
+                        type: integer
                       memWatermark:
                         description: MemWatermark to set memory watermark priority
                         properties:
