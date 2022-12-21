@@ -1,0 +1,44 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: ""
+  name: configsets.analysis.crane.io
+spec:
+  conversion:
+    strategy: None
+  group: analysis.crane.io
+  names:
+    kind: ConfigSet
+    listKind: ConfigSetList
+    plural: configsets
+    shortNames:
+    - cs
+    singular: configset
+  scope: Namespaced
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ConfigSet
+    listKind: ConfigSetList
+    plural: configsets
+    shortNames:
+    - cs
+    singular: configset
+  conditions:
+  - lastTransitionTime: "2022-10-19T10:23:19Z"
+    message: no conflicts found
+    reason: NoConflicts
+    status: "True"
+    type: NamesAccepted
+  - lastTransitionTime: null
+    message: the initial names have been accepted
+    reason: InitialNamesAccepted
+    status: "True"
+    type: Established
+  storedVersions:
+  - v1alpha1

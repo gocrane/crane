@@ -1,0 +1,44 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.0.alpha.1
+  name: analytics.analysis.crane.io
+spec:
+  conversion:
+    strategy: None
+  group: analysis.crane.io
+  names:
+    kind: Analytics
+    listKind: AnalyticsList
+    plural: analytics
+    shortNames:
+    - analytics
+    singular: analytics
+  scope: Namespaced
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: Analytics
+    listKind: AnalyticsList
+    plural: analytics
+    shortNames:
+    - analytics
+    singular: analytics
+  conditions:
+  - lastTransitionTime: "2022-10-19T10:21:16Z"
+    message: no conflicts found
+    reason: NoConflicts
+    status: "True"
+    type: NamesAccepted
+  - lastTransitionTime: null
+    message: the initial names have been accepted
+    reason: InitialNamesAccepted
+    status: "True"
+    type: Established
+  storedVersions:
+  - v1alpha1
