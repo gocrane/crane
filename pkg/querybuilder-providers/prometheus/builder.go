@@ -71,7 +71,7 @@ func (b *builder) workloadQuery(metric *metricquery.Metric) (query *metricquery.
 	}
 
 	if queryExpr == "" {
-		queryExpr, err = metricRule.QueryForSeries(metric.Workload.Namespace, append(mrs.ExtensionLabels, fmt.Sprintf("pod=~\"%s\"", utils.GetPodNameReg(metric.Workload.Name, metric.Workload.Kind))))
+		queryExpr, err = metricRule.QueryForSeries(metric.Workload.Namespace, utils.GetPodNameReg(metric.Workload.Name, metric.Workload.Kind), mrs.ExtensionLabels)
 	}
 	return promQuery(&metricquery.PrometheusQuery{Query: queryExpr}), err
 }
@@ -100,7 +100,7 @@ func (b *builder) nodeQuery(metric *metricquery.Metric) (query *metricquery.Quer
 	}
 
 	if queryExpr == "" {
-		queryExpr, err = metricRule.QueryForSeries("", append(mrs.ExtensionLabels, fmt.Sprintf("instance=~\"(%s)(:\\d+)?\"", metric.Node.Name)))
+		queryExpr, err = metricRule.QueryForSeries("", "", append(mrs.ExtensionLabels, fmt.Sprintf("instance=~\"(%s)(:\\d+)?\"", metric.Node.Name)))
 	}
 
 	return promQuery(&metricquery.PrometheusQuery{Query: queryExpr}), err
@@ -130,7 +130,7 @@ func (b *builder) containerQuery(metric *metricquery.Metric) (query *metricquery
 	}
 
 	if queryExpr == "" {
-		queryExpr, err = metricRule.QueryForSeries(metric.Container.Namespace, append(mrs.ExtensionLabels, []string{fmt.Sprintf("pod=~\"%s\"", utils.GetPodNameReg(metric.Container.WorkloadName, metric.Container.WorkloadKind)), fmt.Sprintf("container=\"%s\"", metric.Container.Name)}...))
+		queryExpr, err = metricRule.QueryForSeries(metric.Container.Namespace, utils.GetPodNameReg(metric.Container.WorkloadName, metric.Container.WorkloadKind), append(mrs.ExtensionLabels, fmt.Sprintf("container=\"%s\"", metric.Container.Name)))
 	}
 	return promQuery(&metricquery.PrometheusQuery{
 		Query: queryExpr,
@@ -161,7 +161,7 @@ func (b *builder) podQuery(metric *metricquery.Metric) (query *metricquery.Query
 	}
 
 	if queryExpr == "" {
-		queryExpr, err = metricRule.QueryForSeries(metric.Pod.Namespace, append(mrs.ExtensionLabels, fmt.Sprintf("pod=\"%s\"", metric.Pod.Name)))
+		queryExpr, err = metricRule.QueryForSeries(metric.Pod.Namespace, "", append(mrs.ExtensionLabels, fmt.Sprintf("pod=\"%s\"", metric.Pod.Name)))
 	}
 	return promQuery(&metricquery.PrometheusQuery{
 		Query: queryExpr,
