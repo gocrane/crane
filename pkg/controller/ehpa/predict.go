@@ -165,7 +165,7 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 				if len(mrs.MetricRulesResource) > 0 {
 					metricRule = prometheus_adapter.MatchMetricRule(mrs.MetricRulesResource, metricName)
 					if metricRule == nil {
-						klog.Errorf("Got MetricRulesResource prometheus-adapter-resource Failed MetricMatches[%s] SeriesName[%s] MetricName[%s]", metricRule.MetricMatches, metricRule.SeriesName, metricName)
+						klog.Errorf("Got MetricRulesResource prometheus-adapter-resource Failed MetricName[%s]", metricName)
 					} else {
 						klog.V(4).Infof("Got MetricRulesResource prometheus-adapter-resource MetricMatches[%s] SeriesName[%s]", metricRule.MetricMatches, metricRule.SeriesName)
 						matchLabels = append(matchLabels, fmt.Sprintf("pod=~\"%s\"", utils.GetPodNameReg(ehpa.Spec.ScaleTargetRef.Name, ehpa.Spec.ScaleTargetRef.Kind)))
@@ -175,7 +175,7 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 				if len(mrs.MetricRulesCustomer) > 0 {
 					metricRule = prometheus_adapter.MatchMetricRule(mrs.MetricRulesCustomer, metricName)
 					if metricRule == nil {
-						klog.Errorf("Got MetricRulesCustomer prometheus-adapter-customer Failed MetricMatches[%s] SeriesName[%s] MetricName[%s]", metricRule.MetricMatches, metricRule.SeriesName, metricName)
+						klog.Errorf("Got MetricRulesCustomer prometheus-adapter-customer Failed MetricName[%s]", metricName)
 					} else {
 						klog.V(4).Infof("Got MetricRulesCustomer prometheus-adapter-customer MetricMatches[%s] SeriesName[%s]", metricRule.MetricMatches, metricRule.SeriesName)
 						if metric.Pods.Metric.Selector != nil {
@@ -189,7 +189,7 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 				if len(mrs.MetricRulesExternal) > 0 {
 					metricRule = prometheus_adapter.MatchMetricRule(mrs.MetricRulesExternal, metricName)
 					if metricRule == nil {
-						klog.Errorf("Got MetricRulesExternal prometheus-adapter-external Failed MetricMatches[%s] SeriesName[%s] MetricName[%s]", metricRule.MetricMatches, metricRule.SeriesName, metricName)
+						klog.Errorf("Got MetricRulesExternal prometheus-adapter-external Failed MetricName[%s]", metricName)
 					} else {
 						klog.V(4).Infof("Got MetricRulesExternal prometheus-adapter-external MetricMatches[%s] SeriesName[%s]", metricRule.MetricMatches, metricRule.SeriesName)
 						if metric.External.Metric.Selector != nil {
@@ -206,7 +206,7 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 				var err error
 				expressionQuery, err = metricRule.QueryForSeries(ehpa.Namespace, append(mrs.ExtensionLabels, matchLabels...))
 				if err != nil {
-					klog.Errorf("Got promSelector prometheus-adapter %v", err)
+					klog.Errorf("Got promSelector prometheus-adapter %v %v", metricRule, err)
 				} else {
 					klog.V(4).Infof("Got expressionQuery [%s] from prometheus-adapter ", expressionQuery)
 				}

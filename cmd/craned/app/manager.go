@@ -303,7 +303,7 @@ func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.O
 				AdapterConfig: opts.DataSourcePromConfig.AdapterConfig,
 			}
 			prometheus_adapter.SetExtensionLabels(opts.DataSourcePromConfig.AdapterExtensionLabels)
-			go pac.Reload()
+			go pac.Reload(mgr.GetRESTMapper())
 		}
 
 		if err := (&ehpa.SubstituteController{

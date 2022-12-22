@@ -57,7 +57,7 @@ func (pc *PrometheusAdapterConfigFetcher) Reconcile(ctx context.Context, req ctr
 		klog.Errorf("Got metricsDiscoveryConfig failed[%s] %v", pc.AdapterConfigMapName, err)
 	}
 
-	err = FlushRules(*cfg)
+	err = FlushRules(*cfg, pc.RestMapper)
 	if err != nil {
 		klog.Errorf("Flush rules failed %v", err)
 	}
@@ -95,7 +95,7 @@ func (paCm *PrometheusAdapterConfigChangedPredicate) Update(e event.UpdateEvent)
 }
 
 // if set promAdapterConfig, daemon reload by config fsnotify
-func (pc *PrometheusAdapterConfigFetcher) Reload() {
+func (pc *PrometheusAdapterConfigFetcher) Reload(mapper meta.RESTMapper) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		klog.Error(err)
@@ -120,7 +120,7 @@ func (pc *PrometheusAdapterConfigFetcher) Reload() {
 			if err != nil {
 				klog.Errorf("Got metricsDiscoveryConfig failed[%s] %v", pc.AdapterConfig, err)
 			} else {
-				err = FlushRules(*metricsDiscoveryConfig)
+				err = FlushRules(*metricsDiscoveryConfig, mapper)
 				if err != nil {
 					klog.Errorf("Flush rules failed %v", err)
 				}
@@ -134,16 +134,16 @@ func (pc *PrometheusAdapterConfigFetcher) Reload() {
 	}
 }
 
-func FlushRules(metricsDiscoveryConfig config.MetricsDiscoveryConfig) error {
-	err := ParsingResourceRules(metricsDiscoveryConfig)
+func FlushRules(metricsDiscoveryConfig config.MetricsDiscoveryConfig, mapper meta.RESTMapper) error {
+	err := ParsingResourceRules(metricsDiscoveryConfig, mapper)
 	if err != nil {
 		return err
 	}
-	err = ParsingRules(metricsDiscoveryConfig)
+	err = ParsingRules(metricsDiscoveryConfig, mapper)
 	if err != nil {
 		return err
 	}
-	err = ParsingExternalRules(metricsDiscoveryConfig)
+	err = ParsingExternalRules(metricsDiscoveryConfig, mapper)
 	if err != nil {
 		return err
 	}
