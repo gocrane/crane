@@ -120,7 +120,7 @@ func (pc *PrometheusAdapterConfigFetcher) Reload(mapper meta.RESTMapper) {
 			if err != nil {
 				klog.Errorf("Got metricsDiscoveryConfig failed[%s] %v", pc.AdapterConfig, err)
 			} else {
-				err = FlushRules(*metricsDiscoveryConfig, mapper)
+				err = FlushRules(*metricsDiscoveryConfig, pc.RestMapper)
 				if err != nil {
 					klog.Errorf("Flush rules failed %v", err)
 				}
