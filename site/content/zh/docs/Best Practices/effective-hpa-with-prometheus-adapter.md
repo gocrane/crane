@@ -2,7 +2,7 @@
 title: "基于 Effective HPA 实现自定义指标的智能弹性实践"
 weight: 10
 description: >
-Effective HPA 的最佳实践.
+  Effective HPA 的最佳实践.
 ---
 
 Kubernetes HPA 支持了丰富的弹性扩展能力，Kubernetes 平台开发者部署服务实现自定义 Metric 的服务，Kubernetes 用户配置多项内置的资源指标或者自定义 Metric 指标实现自定义水平弹性。
@@ -179,24 +179,24 @@ craned通过读取prometheus-adapter配置，实现查询表达式模板的自�
 通过ConfigFile加载
 - prometheus-adapter-config=/prometheus-adapter.cfg
 
-全局扩展标签
+全局扩展标签 
 
-通过该参数可实现查询表达式labelMatchers的全局扩展，实现指标的分类，多个标签以","分隔
+ 通过该参数可实现查询表达式labelMatchers的全局扩展，实现指标的分类，多个标签以","分隔
 
 - prometheus-adapter-extension-labels=cluster="prod",container!=""
 
 ```yaml
 
-spec:
-  containers:
-    - args:
+    spec:
+      containers:
+      - args:
         - --prometheus-adapter-configmap-namespace=monitoring
         - --prometheus-adapter-configmap-name=prometheus-adapter-config
         - --prometheus-adapter-configmap-key=config
         - --prometheus-adapter-extension-labels=cluster="prod",container!=""
 ...
-command:
-  - /craned
+        command:
+        - /craned
 
 ```
 
@@ -226,16 +226,16 @@ spec:
         app: sample-app
     spec:
       containers:
-        - image: luxas/autoscale-demo:v0.1.2
-          name: metrics-provider
-          resources:
-            limits:
-              cpu: 500m
-            requests:
-              cpu: 200m
-          ports:
-            - name: http
-              containerPort: 8080
+      - image: luxas/autoscale-demo:v0.1.2
+        name: metrics-provider
+        resources:
+          limits:
+            cpu: 500m
+          requests:
+            cpu: 200m
+        ports:
+        - name: http
+          containerPort: 8080
 ```
 
 <summary>sample-app.service.yaml</summary>
@@ -249,10 +249,10 @@ metadata:
   name: sample-app
 spec:
   ports:
-    - name: http
-      port: 80
-      protocol: TCP
-      targetPort: 8080
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8080
   selector:
     app: sample-app
   type: ClusterIP
@@ -282,22 +282,22 @@ kubectl edit configmap -n crane-system prometheus-server
 ```yaml
     - job_name: sample-app
       kubernetes_sd_configs:
-        - role: pod
+      - role: pod
       relabel_configs:
-        - action: keep
-          regex: default;sample-app-(.+)
-          source_labels:
-            - __meta_kubernetes_namespace
-            - __meta_kubernetes_pod_name
-        - action: labelmap
-          regex: __meta_kubernetes_pod_label_(.+)
-        - action: replace
-          source_labels:
-            - __meta_kubernetes_namespace
-          target_label: namespace
-        - source_labels: [__meta_kubernetes_pod_name]
-          action: replace
-          target_label: pod
+      - action: keep
+        regex: default;sample-app-(.+)
+        source_labels:
+        - __meta_kubernetes_namespace
+        - __meta_kubernetes_pod_name
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_namespace
+        target_label: namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        action: replace
+        target_label: pod
 ```
 
 此时，您可以在 Prometheus 查询 psql：sum(rate(http_requests_total[5m])) by (pod)
@@ -364,19 +364,19 @@ spec:
   scaleStrategy: Auto   # ScaleStrategy indicate the strategy to scaling target, value can be "Auto" and "Manual".
   # Metrics contains the specifications for which to use to calculate the desired replica count.
   metrics:
-    - type: Resource
-      resource:
-        name: cpu
-        target:
-          type: Utilization
-          averageUtilization: 50
-    - type: Pods
-      pods:
-        metric:
-          name: http_requests
-        target:
-          type: AverageValue
-          averageValue: 500m
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
+  - type: Pods
+    pods:
+      metric:
+        name: http_requests
+      target:
+        type: AverageValue
+        averageValue: 500m
   # Prediction defines configurations for predict resources.
   # If unspecified, defaults don't enable prediction.
   prediction:
@@ -395,13 +395,13 @@ kubectl create -f sample-app-hpa.yaml
 通过Prometheus-adapter增加模板配置
 ```yaml
     rules:
-      - seriesQuery: 'http_requests_total{pod!=""}'
-        name:
-          matches: "(.*)_total$"
-          as: "${1}"
-        resources:
-          namespaced: true
-        metricsQuery: 'sum(rate(<<.Series>>{<<.LabelMatchers>>}[5m])) by (<<.GroupBy>>)'
+    - seriesQuery: 'http_requests_total{pod!=""}'
+      name:
+        matches: "(.*)_total$"
+        as: "${1}"
+      resources:
+        namespaced: true
+      metricsQuery: 'sum(rate(<<.Series>>{<<.LabelMatchers>>}[5m])) by (<<.GroupBy>>)'
 ```
 
 查看 TimeSeriesPrediction 状态，如果应用运行时间较短，可能会无法预测：
@@ -489,29 +489,29 @@ metadata:
 spec:
   maxReplicas: 10
   metrics:
-    - pods:
-        metric:
-          name: http_requests
-        target:
-          averageValue: 500m
-          type: AverageValue
-      type: Pods
-    - pods:
-        metric:
-          name: pods.http_requests
-          selector:
-            matchLabels:
-              autoscaling.crane.io/effective-hpa-uid: 1322c5ac-a1c6-4c71-98d6-e85d07b22da0
-        target:
-          averageValue: 500m
-          type: AverageValue
-      type: Pods
-    - resource:
-        name: cpu
-        target:
-          averageUtilization: 50
-          type: Utilization
-      type: Resource
+  - pods:
+      metric:
+        name: http_requests
+      target:
+        averageValue: 500m
+        type: AverageValue
+    type: Pods
+  - pods:
+      metric:
+        name: pods.http_requests
+        selector:
+          matchLabels:
+            autoscaling.crane.io/effective-hpa-uid: 1322c5ac-a1c6-4c71-98d6-e85d07b22da0
+      target:
+        averageValue: 500m
+        type: AverageValue
+    type: Pods
+  - resource:
+      name: cpu
+      target:
+        averageUtilization: 50
+        type: Utilization
+    type: Resource
   minReplicas: 1
   scaleTargetRef:
     apiVersion: apps/v1
