@@ -95,7 +95,7 @@ func (paCm *PrometheusAdapterConfigChangedPredicate) Update(e event.UpdateEvent)
 }
 
 // if set promAdapterConfig, daemon reload by config fsnotify
-func (pc *PrometheusAdapterConfigFetcher) Reload(mapper meta.RESTMapper) {
+func (pc *PrometheusAdapterConfigFetcher) Reload() {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		klog.Error(err)
