@@ -3,6 +3,7 @@ package prometheus_adapter
 import (
 	"bytes"
 	"fmt"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"regexp"
 	"strings"
 	"text/template"
@@ -218,7 +219,7 @@ func MatchMetricRule(mrs []MetricRule, metricName string) *MetricRule {
 }
 
 // get MetrycsQuery by naming.MetricsQuery.BuildExternal from prometheus-adapter
-func (mr *MetricRule) QueryForSeries(namespace string, exprs []string) (expressionQuery string, err error) {
+func (mr *MetricRule) QueryForSeries(namespace string, nameReg string, exprs []string) (expressionQuery string, err error) {
 	if mr.LabelMatchers != nil {
 		exprs = append(mr.LabelMatchers, exprs...)
 	}
@@ -229,6 +230,14 @@ func (mr *MetricRule) QueryForSeries(namespace string, exprs []string) (expressi
 			return "", err
 		}
 		exprs = append(exprs, fmt.Sprintf("%s=\"%s\"", namespaceLbl, namespace))
+	}
+
+	if nameReg != "" {
+		resourceLbl, err := mr.ResConverter.LabelForResource(schema.GroupResource{Resource: "pods"})
+		if err != nil {
+			return "", err
+		}
+		exprs = append(exprs, fmt.Sprintf("%s=~\"%s\"", resourceLbl, nameReg))
 	}
 
 	args := &QueryTemplateArgs{

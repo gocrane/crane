@@ -3,6 +3,9 @@ package prometheus_adapter
 import (
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/prometheus-adapter/pkg/config"
 )
 
@@ -14,25 +17,38 @@ func TestQueryForSeriesResource(t *testing.T) {
 		CPU: config.ResourceRule{
 			ContainerQuery: containerQuery,
 			Resources: config.ResourceMapping{
-				Overrides:  map[string]config.GroupResource{},
+				Overrides: map[string]config.GroupResource{
+					"pod_namespace": {Resource: "namespace"},
+					"pod_name":      {Resource: "pod"},
+				},
 				Namespaced: &namespaced,
 			},
 			ContainerLabel: "container",
 		},
 	}
 
+	mp := meta.NewDefaultRESTMapper([]schema.GroupVersion{corev1.SchemeGroupVersion})
+	mp.Add(corev1.SchemeGroupVersion.WithKind("Pod"), meta.RESTScopeNamespace)
+	mp.Add(corev1.SchemeGroupVersion.WithKind("Namespace"), meta.RESTScopeRoot)
+
 	test := struct {
 		description string
 		resource    config.ResourceRules
+		mapper      meta.RESTMapper
+		namespace   string
+		nameReg     string
 		expect      string
 	}{
 		description: "get expressionQuery For SeriesResource",
 		resource:    *cfg,
-		expect:      "sum(rate(container_cpu_usage_seconds_total{namespace=\"test\"}[3m]))",
+		mapper:      mp,
+		namespace:   "test",
+		nameReg:     "test-.*",
+		expect:      "sum(rate(container_cpu_usage_seconds_total{pod_namespace=\"test\",pod_name=~\"test-.*\"}[3m]))",
 	}
 
-	metricRules, _ := GetMetricRulesFromResourceRules(test.resource)
-	requests, err := metricRules[0].QueryForSeries("test", []string{})
+	metricRules, _ := GetMetricRulesFromResourceRules(test.resource, test.mapper)
+	requests, err := metricRules[0].QueryForSeries(test.namespace, test.nameReg, []string{})
 	if err != nil {
 		t.Errorf("Failed to QueryForSeriesResource: %v", err)
 	}
@@ -42,7 +58,7 @@ func TestQueryForSeriesResource(t *testing.T) {
 }
 
 func TestQueryForSeriesRules(t *testing.T) {
-	seriesQuery := `nginx_concurrent_utilization{pod_namespace!="",pod_name!=""}`
+	seriesQuery := `nginx_concurrent_utilization{namespace!="",pod!=""}`
 	metricsQuery := `sum(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)`
 	namespaced := true
 
@@ -50,22 +66,36 @@ func TestQueryForSeriesRules(t *testing.T) {
 		SeriesQuery:  seriesQuery,
 		MetricsQuery: metricsQuery,
 		Resources: config.ResourceMapping{
+			Overrides: map[string]config.GroupResource{
+				"pod_namespace": {Resource: "namespace"},
+				"pod_name":      {Resource: "pod"},
+			},
 			Namespaced: &namespaced,
 		},
 	}
 
+	mp := meta.NewDefaultRESTMapper([]schema.GroupVersion{corev1.SchemeGroupVersion})
+	mp.Add(corev1.SchemeGroupVersion.WithKind("Pod"), meta.RESTScopeNamespace)
+	mp.Add(corev1.SchemeGroupVersion.WithKind("Namespace"), meta.RESTScopeRoot)
+
 	test := struct {
 		description string
 		resource    []config.DiscoveryRule
+		mapper      meta.RESTMapper
+		namespace   string
+		nameReg     string
 		expect      string
 	}{
 		description: "get expressionQuery For SeriesRules",
 		resource:    []config.DiscoveryRule{discoveryRule},
-		expect:      "sum(nginx_concurrent_utilization{pod_namespace!=\"\",pod_name!=\"\",namespace=\"test\"})",
+		mapper:      mp,
+		namespace:   "test",
+		nameReg:     "test-.*",
+		expect:      "sum(nginx_concurrent_utilization{namespace!=\"\",pod!=\"\",pod_namespace=\"test\",pod_name=~\"test-.*\"})",
 	}
 
-	metricRules, _ := GetMetricRulesFromDiscoveryRule(test.resource)
-	requests, err := metricRules[0].QueryForSeries("test", []string{})
+	metricRules, _ := GetMetricRulesFromDiscoveryRule(test.resource, test.mapper)
+	requests, err := metricRules[0].QueryForSeries(test.namespace, test.nameReg, []string{})
 	if err != nil {
 		t.Errorf("Failed to QueryForSeriesResource: %v", err)
 	}
