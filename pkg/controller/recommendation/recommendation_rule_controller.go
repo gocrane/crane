@@ -414,7 +414,7 @@ func (c *RecommendationRuleController) executeMission(ctx context.Context, wg *s
 }
 
 func (c *RecommendationRuleController) UpdateStatus(ctx context.Context, recommendationRule *analysisv1alph1.RecommendationRule, newStatus *analysisv1alph1.RecommendationRuleStatus) {
-	klog.Infof("Updating RecommendationRule %s status", klog.KObj(recommendationRule))
+	klog.V(2).Infof("Updating RecommendationRule %s status", klog.KObj(recommendationRule))
 	recommendationRuleCopy := recommendationRule.DeepCopy()
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		if !equality.Semantic.DeepEqual(&recommendationRuleCopy.Status, newStatus) {
@@ -442,7 +442,7 @@ func (c *RecommendationRuleController) UpdateStatus(ctx context.Context, recomme
 		return
 	}
 
-	klog.Infof("Update RecommendationRule status successful, RecommendationRule %s", klog.KObj(recommendationRule))
+	klog.V(2).Infof("Update RecommendationRule status successful, RecommendationRule %s", klog.KObj(recommendationRule))
 }
 
 type ObjectIdentity struct {
