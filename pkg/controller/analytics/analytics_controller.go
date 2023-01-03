@@ -24,7 +24,6 @@ import (
 	"k8s.io/client-go/scale"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -258,12 +257,15 @@ func (c *Controller) CreateRecommendationObject(ctx context.Context, analytics *
 		},
 	}
 
-	if recommendation.Labels == nil {
-		recommendation.Labels = map[string]string{}
+	labels := map[string]string{}
+	labels[known.AnalyticsNameLabel] = analytics.Name
+	labels[known.AnalyticsUidLabel] = string(analytics.UID)
+	labels[known.AnalyticsTypeLabel] = string(analytics.Spec.Type)
+	for k, v := range id.Labels {
+		labels[k] = v
 	}
-	recommendation.Labels[known.AnalyticsNameLabel] = analytics.Name
-	recommendation.Labels[known.AnalyticsUidLabel] = string(analytics.UID)
-	recommendation.Labels[known.AnalyticsTypeLabel] = string(analytics.Spec.Type)
+
+	recommendation.Labels = labels
 
 	return recommendation
 }
