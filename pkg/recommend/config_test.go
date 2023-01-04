@@ -2,9 +2,13 @@ package recommend
 
 import (
 	"io/ioutil"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+
+	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
 )
 
 const configDef = `
@@ -58,4 +62,32 @@ func writeConfig(t *testing.T, config string) string {
 	assert.NoError(t, f.Close())
 
 	return f.Name()
+}
+
+func TestGetConfig(t *testing.T) {
+
+	analyticsConfig := map[string]string{"resource.cpu-request-percentile": "0.2"}
+	configString := "apiVersion: analysis.crane.io/v1alpha1\nkind: ConfigSet\nconfigs:\n  - targets: []\n    properties:\n      resource.cpu-request-percentile: \"0.98\"\n      replicas.workload-min-replicas: \"3\"\n      replicas.pod-min-ready-seconds: \"30\"\n      replicas.pod-available-ratio: \"0.5\"\n      replicas.default-min-replicas: \"3\"\n      replicas.max-replicas-factor: \"3\"\n      replicas.min-cpu-usage-threshold: \"1\"\n      replicas.fluctuation-threshold: \"1.5\"\n      replicas.min-cpu-target-utilization: \"30\"\n      replicas.max-cpu-target-utilization: \"75\"\n      replicas.cpu-target-utilization: \"50\"\n      replicas.cpu-percentile: \"95\"\n      replicas.reference-hpa: \"true\""
+	configSet, _ := loadConfigSetFromBytes([]byte(configString))
+
+	var wg sync.WaitGroup
+
+	for i := 1; i < 20; i++ {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			time.Sleep(time.Second)
+			target := analysisapi.Target{
+				Kind:      "Deployment",
+				Namespace: "crane-system",
+				Name:      "php-apache",
+			}
+
+			GetProperties(configSet, target, analyticsConfig)
+		}()
+	}
+
+	wg.Wait()
 }

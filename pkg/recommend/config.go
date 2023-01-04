@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-
 	"k8s.io/klog/v2"
 
 	analysisv1alpha1 "github.com/gocrane/api/analysis/v1alpha1"
@@ -44,18 +43,22 @@ func loadConfigSetFromBytes(configSetBytes []byte) (*analysisv1alpha1.ConfigSet,
 }
 
 func GetProperties(configSet *analysisv1alpha1.ConfigSet, dst analysisv1alpha1.Target, analyticsConfig map[string]string) map[string]string {
-	var selectedProps map[string]string
+	selectedProps := make(map[string]string)
 	maxMatchLevel := -1
 	for i, config := range configSet.Configs {
 		if len(config.Targets) == 0 && maxMatchLevel < 0 {
 			maxMatchLevel = 0
-			selectedProps = configSet.Configs[i].Properties
+			for k, v := range configSet.Configs[i].Properties {
+				selectedProps[k] = v
+			}
 		} else {
 			for _, src := range config.Targets {
 				matchLevel := targetsMatchLevel(src, dst)
 				if matchLevel > maxMatchLevel {
 					maxMatchLevel = matchLevel
-					selectedProps = configSet.Configs[i].Properties
+					for k, v := range configSet.Configs[i].Properties {
+						selectedProps[k] = v
+					}
 				}
 			}
 		}
