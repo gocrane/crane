@@ -154,9 +154,9 @@ func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 }
 
 func (c *EffectiveHPAController) UpdateStatus(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, newStatus *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus) {
-	ehpaCopy := ehpa.DeepCopy()
-	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		if !equality.Semantic.DeepEqual(&ehpaCopy.Status, newStatus) {
+	if !equality.Semantic.DeepEqual(&ehpa.Status, newStatus) {
+		ehpaCopy := ehpa.DeepCopy()
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			ehpaCopy.Status = *newStatus
 			err := c.Status().Update(ctx, ehpaCopy)
 			if err == nil {
@@ -170,18 +170,17 @@ func (c *EffectiveHPAController) UpdateStatus(ctx context.Context, ehpa *autosca
 			}
 
 			return err
+
+		})
+
+		if err != nil {
+			c.Recorder.Event(ehpa, v1.EventTypeWarning, "FailedUpdateStatus", err.Error())
+			klog.Errorf("Failed to update status, EffectiveHorizontalPodAutoscaler %s error %v", klog.KObj(ehpa), err)
+			return
 		}
 
-		return nil
-	})
-
-	if err != nil {
-		c.Recorder.Event(ehpa, v1.EventTypeWarning, "FailedUpdateStatus", err.Error())
-		klog.Errorf("Failed to update status, EffectiveHorizontalPodAutoscaler %s error %v", klog.KObj(ehpa), err)
-		return
+		klog.V(2).Infof("Update EffectiveHorizontalPodAutoscaler %s status successful ", klog.KObj(ehpa))
 	}
-
-	klog.V(2).Infof("Update EffectiveHorizontalPodAutoscaler %s status successful ", klog.KObj(ehpa))
 }
 
 func (c *EffectiveHPAController) SetupWithManager(mgr ctrl.Manager) error {
