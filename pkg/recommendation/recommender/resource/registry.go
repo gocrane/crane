@@ -92,11 +92,11 @@ func NewResourceRecommender(recommender apis.Recommender, recommendationRule ana
 	if err != nil {
 		return nil, err
 	}
-	specificationCofig, exists := recommender.Config["specification-config"]
+	specificationConfig, exists := recommender.Config["specification-config"]
 	if !exists {
-		specificationCofig = DefaultSpecs
+		specificationConfig = DefaultSpecs
 	}
-	specifications, err := GetResourceSpecifications(specificationCofig)
+	specifications, err := GetResourceSpecifications(specificationConfig)
 	if err != nil {
 		return nil, err
 	}
