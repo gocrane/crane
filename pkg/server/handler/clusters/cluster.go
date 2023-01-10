@@ -131,6 +131,11 @@ func (ch *ClusterHandler) AddClusters(c *gin.Context) {
 			cluster.Id = store.GenerateClusterName("cls")
 		}
 
+		// if cluster.Discount is not set,we should set the default value 100.
+		if cluster.Discount == 0 {
+			cluster.Discount = 100
+		}
+
 		if _, ok := clustersMap[cluster.Id]; ok {
 			err := fmt.Errorf("cluster id %v duplicated", cluster.Id)
 			ginwrapper.WriteResponse(c, err, nil)
@@ -189,7 +194,13 @@ func (ch *ClusterHandler) UpdateCluster(c *gin.Context) {
 	old.Name = r.Name
 	old.GrafanaUrl = r.GrafanaUrl
 	old.CraneUrl = r.CraneUrl
-	old.Discount = r.Discount
+
+	// if r.Discount is not set,we should set the default value 100.
+	if r.Discount == 0 {
+		old.Discount = 100
+	} else {
+		old.Discount = r.Discount
+	}
 
 	clustersMap, err := ch.getClusterMap()
 	if err != nil {
