@@ -414,10 +414,10 @@ func (c *RecommendationRuleController) executeMission(ctx context.Context, wg *s
 }
 
 func (c *RecommendationRuleController) UpdateStatus(ctx context.Context, recommendationRule *analysisv1alph1.RecommendationRule, newStatus *analysisv1alph1.RecommendationRuleStatus) {
-	klog.V(2).Infof("Updating RecommendationRule %s status", klog.KObj(recommendationRule))
-	recommendationRuleCopy := recommendationRule.DeepCopy()
-	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		if !equality.Semantic.DeepEqual(&recommendationRuleCopy.Status, newStatus) {
+	if !equality.Semantic.DeepEqual(&recommendationRule.Status, newStatus) {
+		klog.V(2).Infof("Updating RecommendationRule %s status", klog.KObj(recommendationRule))
+		recommendationRuleCopy := recommendationRule.DeepCopy()
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			recommendationRuleCopy.Status = *newStatus
 			err := c.Update(ctx, recommendationRuleCopy)
 			if err == nil {
@@ -431,18 +431,16 @@ func (c *RecommendationRuleController) UpdateStatus(ctx context.Context, recomme
 			}
 
 			return err
+		})
+
+		if err != nil {
+			c.Recorder.Event(recommendationRule, corev1.EventTypeWarning, "FailedUpdateStatus", err.Error())
+			klog.Errorf("Failed to update status, RecommendationRule %s error %v", klog.KObj(recommendationRule), err)
+			return
 		}
 
-		return nil
-	})
-
-	if err != nil {
-		c.Recorder.Event(recommendationRule, corev1.EventTypeWarning, "FailedUpdateStatus", err.Error())
-		klog.Errorf("Failed to update status, RecommendationRule %s error %v", klog.KObj(recommendationRule), err)
-		return
+		klog.V(2).Infof("Update RecommendationRule status successful, RecommendationRule %s", klog.KObj(recommendationRule))
 	}
-
-	klog.V(2).Infof("Update RecommendationRule status successful, RecommendationRule %s", klog.KObj(recommendationRule))
 }
 
 type ObjectIdentity struct {

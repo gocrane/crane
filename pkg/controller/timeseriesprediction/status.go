@@ -11,7 +11,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -173,8 +175,23 @@ func (tc *Controller) doPredict(tsPrediction *predictionapi.TimeSeriesPrediction
 
 func (tc *Controller) UpdateStatus(ctx context.Context, tsPrediction *predictionapi.TimeSeriesPrediction, newStatus *predictionapi.TimeSeriesPredictionStatus) error {
 	if !equality.Semantic.DeepEqual(&tsPrediction.Status, newStatus) {
-		tsPrediction.Status = *newStatus
-		err := tc.Client.Status().Update(ctx, tsPrediction)
+		tsPredictionCopy := tsPrediction.DeepCopy()
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			tsPredictionCopy.Status = *newStatus
+			err := tc.Client.Status().Update(ctx, tsPredictionCopy)
+			if err == nil {
+				return nil
+			}
+
+			updated := &predictionapi.TimeSeriesPrediction{}
+			errGet := tc.Get(context.TODO(), types.NamespacedName{Namespace: tsPredictionCopy.Namespace, Name: tsPredictionCopy.Name}, updated)
+			if errGet == nil {
+				tsPredictionCopy = updated
+			}
+
+			return err
+		})
+
 		if err != nil {
 			tc.Recorder.Event(tsPrediction, v1.EventTypeWarning, "FailedUpdateStatus", err.Error())
 			klog.Errorf("Failed to update status for %v", klog.KObj(tsPrediction))
