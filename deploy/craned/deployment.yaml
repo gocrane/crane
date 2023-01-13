@@ -191,7 +191,6 @@ data:
         add_header Cache-Control "must-revalidate";
         add_header Cache-Control "max-age=300";
         add_header ETag "1.90.0-rc.0";
-        add_header Access-Control-Allow-Origin *;
         listen 9090;
         listen [::]:9090;
         location / {
@@ -200,6 +199,7 @@ data:
             try_files $uri $uri/ /index.html;
         }
         location /grafana {
+            add_header Access-Control-Allow-Origin *;
             set $upstream_grafana grafana.crane-system.svc.cluster.local;
             proxy_pass http://$upstream_grafana:8082;
             rewrite /grafana/(.*) /$1 break;
