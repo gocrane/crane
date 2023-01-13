@@ -77,7 +77,7 @@ func (rr *ResourceRecommender) makeMemConfig() *config.Config {
 			Histogram: predictionapi.HistogramConfig{
 				HalfLife:   "48h",
 				BucketSize: "104857600",
-				MaxValue:   "104857600000",
+				MaxValue:   "314572800000",
 			},
 		},
 	}
