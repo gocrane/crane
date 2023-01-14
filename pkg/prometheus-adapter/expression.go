@@ -58,15 +58,15 @@ func GetMetricRules() *MetricRules {
 
 // ParsingResourceRules from config.MetricsDiscoveryConfig
 func ParsingResourceRules(mc config.MetricsDiscoveryConfig) (err error) {
-	metricRules.MetricRulesResource, err = GetMetricRulesFromResourceRules(*mc.ResourceRules)
+	if mc.ResourceRules != nil {
+		metricRules.MetricRulesResource, err = GetMetricRulesFromResourceRules(*mc.ResourceRules)
+	}
 	return err
 }
 
 // ParsingRules from config.MetricsDiscoveryConfig
 func ParsingRules(mc config.MetricsDiscoveryConfig) (err error) {
-	if mc.Rules == nil {
-		return fmt.Errorf("Rules is nil")
-	} else {
+	if mc.Rules != nil {
 		metricRules.MetricRulesCustomer, err = GetMetricRulesFromDiscoveryRule(mc.Rules)
 	}
 	return err
@@ -74,9 +74,7 @@ func ParsingRules(mc config.MetricsDiscoveryConfig) (err error) {
 
 // ParsingExternalRules from config.MetricsDiscoveryConfig
 func ParsingExternalRules(mc config.MetricsDiscoveryConfig) (err error) {
-	if mc.ExternalRules == nil {
-		return fmt.Errorf("ExternalRules is nil")
-	} else {
+	if mc.ExternalRules != nil {
 		metricRules.MetricRulesExternal, err = GetMetricRulesFromDiscoveryRule(mc.ExternalRules)
 	}
 	return err
