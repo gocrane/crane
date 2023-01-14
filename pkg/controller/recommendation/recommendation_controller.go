@@ -87,7 +87,7 @@ func (c *RecommendationController) UpdateStatus(ctx context.Context, recommendat
 			return err
 		}
 
-		klog.Infof("Update Recommendation status successful, Recommendation %s", klog.KObj(recommendation))
+		klog.V(2).Infof("Update Recommendation status successful, Recommendation %s", klog.KObj(recommendation))
 	}
 
 	return nil

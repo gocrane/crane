@@ -8,8 +8,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/scale"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -72,8 +74,23 @@ func (c *SubstituteController) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	if !equality.Semantic.DeepEqual(&substitute.Status, &newStatus) {
-		substitute.Status = newStatus
-		err := c.Status().Update(ctx, substitute)
+		substituteCopy := substitute.DeepCopy()
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			substituteCopy.Status = newStatus
+			err := c.Status().Update(ctx, substituteCopy)
+			if err == nil {
+				return nil
+			}
+
+			updated := &autoscalingapi.Substitute{}
+			errGet := c.Get(context.TODO(), types.NamespacedName{Namespace: substituteCopy.Namespace, Name: substituteCopy.Name}, updated)
+			if errGet == nil {
+				substituteCopy = updated
+			}
+
+			return err
+		})
+
 		if err != nil {
 			c.Recorder.Event(substitute, v1.EventTypeWarning, "FailedUpdateStatus", err.Error())
 			klog.Errorf("Failed to update status, Substitute %s error %v", klog.KObj(substitute), err)
