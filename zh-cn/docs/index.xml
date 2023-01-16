@@ -247,7 +247,7 @@ Prometheus 是当下流行的开源监控系统，通过 Prometheus 可以获取
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">args&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - --&lt;span style="color:#ae81ff">prometheus-adapter-configmap-namespace=monitoring&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - --&lt;span style="color:#ae81ff">prometheus-adapter-configmap-name=prometheus-adapter-config&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - --&lt;span style="color:#ae81ff">prometheus-adapter-configmap-key=config.yaml&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - --&lt;span style="color:#ae81ff">prometheus-adapter-configmap-key=config&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - --&lt;span style="color:#ae81ff">prometheus-adapter-extension-labels=cluster=&amp;#34;prod&amp;#34;,container!=&amp;#34;&amp;#34;&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>...
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">command&lt;/span>:
