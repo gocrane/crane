@@ -183,7 +183,7 @@ craned通过读取prometheus-adapter配置，实现查询表达式模板的自�
 
  通过该参数可实现查询表达式labelMatchers的全局扩展，实现指标的分类，多个标签以","分隔
 
-- prometheus-adapter-extension-labels=cluster="prod",container!="" 
+- prometheus-adapter-extension-labels=cluster="prod",container!=""
 
 ```yaml
 
@@ -192,7 +192,7 @@ craned通过读取prometheus-adapter配置，实现查询表达式模板的自�
       - args:
         - --prometheus-adapter-configmap-namespace=monitoring
         - --prometheus-adapter-configmap-name=prometheus-adapter-config
-        - --prometheus-adapter-configmap-key=config.yaml
+        - --prometheus-adapter-configmap-key=config
         - --prometheus-adapter-extension-labels=cluster="prod",container!=""
 ...
         command:

@@ -7,7 +7,10 @@ import (
 	"strings"
 	"text/template"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/prometheus-adapter/pkg/config"
+	"sigs.k8s.io/prometheus-adapter/pkg/naming"
 )
 
 // MetricMatches for Prometheus-adapter-config
@@ -41,6 +44,7 @@ type MetricRules struct {
 type MetricRule struct {
 	MetricMatches string
 	SeriesName    string
+	ResConverter  naming.ResourceConverter
 	Template      *template.Template
 	Namespaced    bool
 	LabelMatchers []string
@@ -57,25 +61,27 @@ func GetMetricRules() *MetricRules {
 }
 
 // ParsingResourceRules from config.MetricsDiscoveryConfig
-func ParsingResourceRules(mc config.MetricsDiscoveryConfig) (err error) {
-	if mc.ResourceRules != nil {
-		metricRules.MetricRulesResource, err = GetMetricRulesFromResourceRules(*mc.ResourceRules)
-	}
+func ParsingResourceRules(mc config.MetricsDiscoveryConfig, mapper meta.RESTMapper) (err error) {
+	metricRules.MetricRulesResource, err = GetMetricRulesFromResourceRules(*mc.ResourceRules, mapper)
 	return err
 }
 
 // ParsingRules from config.MetricsDiscoveryConfig
-func ParsingRules(mc config.MetricsDiscoveryConfig) (err error) {
-	if mc.Rules != nil {
-		metricRules.MetricRulesCustomer, err = GetMetricRulesFromDiscoveryRule(mc.Rules)
+func ParsingRules(mc config.MetricsDiscoveryConfig, mapper meta.RESTMapper) (err error) {
+	if mc.Rules == nil {
+		return fmt.Errorf("Rules is nil")
+	} else {
+		metricRules.MetricRulesCustomer, err = GetMetricRulesFromDiscoveryRule(mc.Rules, mapper)
 	}
 	return err
 }
 
 // ParsingExternalRules from config.MetricsDiscoveryConfig
-func ParsingExternalRules(mc config.MetricsDiscoveryConfig) (err error) {
-	if mc.ExternalRules != nil {
-		metricRules.MetricRulesExternal, err = GetMetricRulesFromDiscoveryRule(mc.ExternalRules)
+func ParsingExternalRules(mc config.MetricsDiscoveryConfig, mapper meta.RESTMapper) (err error) {
+	if mc.ExternalRules == nil {
+		return fmt.Errorf("ExternalRules is nil")
+	} else {
+		metricRules.MetricRulesExternal, err = GetMetricRulesFromDiscoveryRule(mc.ExternalRules, mapper)
 	}
 	return err
 }
@@ -90,11 +96,17 @@ func SetExtensionLabels(extensionLabels string) {
 }
 
 // GetMetricRuleResourceFromRules produces a MetricNamer for each rule in the given config.
-func GetMetricRulesFromResourceRules(cfg config.ResourceRules) ([]MetricRule, error) {
-	var metricRules []MetricRule
-
+func GetMetricRulesFromResourceRules(cfg config.ResourceRules, mapper meta.RESTMapper) (metricRules []MetricRule, err error) {
 	// get cpu MetricsQuery
 	if cfg.CPU.ContainerQuery != "" {
+		var resConverter naming.ResourceConverter
+		if cfg.CPU.Resources.Overrides != nil {
+			resConverter, err = naming.NewResourceConverter(cfg.CPU.Resources.Template, cfg.CPU.Resources.Overrides, mapper)
+			if err != nil {
+				return nil, fmt.Errorf("unable to construct label-resource converter: %s %v", "resource.cpu", err)
+			}
+		}
+
 		reg, err := regexp.Compile(`\s*by\s*\(<<.GroupBy>>\)\s*$`)
 		if err != nil {
 			return nil, fmt.Errorf("unable to match <.GroupBy>")
@@ -108,12 +120,20 @@ func GetMetricRulesFromResourceRules(cfg config.ResourceRules) ([]MetricRule, er
 
 		metricRules = append(metricRules, MetricRule{
 			MetricMatches: "cpu",
+			ResConverter:  resConverter,
 			Template:      templ,
 			Namespaced:    true,
 		})
 	}
 	// get cpu MetricsQuery
 	if cfg.Memory.ContainerQuery != "" {
+		var resConverter naming.ResourceConverter
+		if cfg.Memory.Resources.Overrides != nil {
+			resConverter, err = naming.NewResourceConverter(cfg.Memory.Resources.Template, cfg.Memory.Resources.Overrides, mapper)
+			if err != nil {
+				return nil, fmt.Errorf("unable to construct label-resource converter: %s %v", "resource.memory", err)
+			}
+		}
 		reg, err := regexp.Compile(`\s*by\s*\(<<.GroupBy>>\)\s*$`)
 		if err != nil {
 			return nil, fmt.Errorf("unable to match <.GroupBy>")
@@ -127,6 +147,7 @@ func GetMetricRulesFromResourceRules(cfg config.ResourceRules) ([]MetricRule, er
 
 		metricRules = append(metricRules, MetricRule{
 			MetricMatches: "memory",
+			ResConverter:  resConverter,
 			Template:      templ,
 			Namespaced:    true,
 		})
@@ -136,10 +157,19 @@ func GetMetricRulesFromResourceRules(cfg config.ResourceRules) ([]MetricRule, er
 }
 
 // GetMetricRuleFromRules produces a MetricNamer for each rule in the given config.
-func GetMetricRulesFromDiscoveryRule(cfg []config.DiscoveryRule) ([]MetricRule, error) {
+func GetMetricRulesFromDiscoveryRule(cfg []config.DiscoveryRule, mapper meta.RESTMapper) ([]MetricRule, error) {
 	metricRules := make([]MetricRule, len(cfg))
+	var err error
 
 	for i, rule := range cfg {
+		var resConverter naming.ResourceConverter
+		if rule.Resources.Overrides != nil {
+			resConverter, err = naming.NewResourceConverter(rule.Resources.Template, rule.Resources.Overrides, mapper)
+			if err != nil {
+				return nil, fmt.Errorf("unable to construct label-resource converter: %s %v", rule.SeriesQuery, err)
+			}
+		}
+
 		// queries are namespaced by default unless the rule specifically disables it
 		namespaced := true
 		if rule.Resources.Namespaced != nil {
@@ -176,6 +206,7 @@ func GetMetricRulesFromDiscoveryRule(cfg []config.DiscoveryRule) ([]MetricRule, 
 			MetricMatches: metricMatches,
 			SeriesName:    seriesName,
 			LabelMatchers: labelMatchers,
+			ResConverter:  resConverter,
 			Template:      templ,
 			Namespaced:    namespaced,
 		}
@@ -195,13 +226,33 @@ func MatchMetricRule(mrs []MetricRule, metricName string) *MetricRule {
 }
 
 // get MetrycsQuery by naming.MetricsQuery.BuildExternal from prometheus-adapter
-func (mr *MetricRule) QueryForSeries(namespace string, exprs []string) (expressionQuery string, err error) {
+func (mr *MetricRule) QueryForSeries(namespace string, nameReg string, exprs []string) (expressionQuery string, err error) {
 	if mr.LabelMatchers != nil {
 		exprs = append(mr.LabelMatchers, exprs...)
 	}
 
 	if mr.Namespaced && namespace != "" {
-		exprs = append(exprs, fmt.Sprintf("namespace=\"%s\"", namespace))
+		if mr.ResConverter != nil {
+			namespaceLbl, err := mr.ResConverter.LabelForResource(naming.NsGroupResource)
+			if err != nil {
+				return "", err
+			}
+			exprs = append(exprs, fmt.Sprintf("%s=\"%s\"", namespaceLbl, namespace))
+		} else {
+			exprs = append(exprs, fmt.Sprintf("%s=\"%s\"", "namespace", namespace))
+		}
+	}
+
+	if nameReg != "" {
+		if mr.ResConverter != nil {
+			resourceLbl, err := mr.ResConverter.LabelForResource(schema.GroupResource{Resource: "pods"})
+			if err != nil {
+				return "", err
+			}
+			exprs = append(exprs, fmt.Sprintf("%s=~\"%s\"", resourceLbl, nameReg))
+		} else {
+			exprs = append(exprs, fmt.Sprintf("%s=~\"%s\"", "pod", nameReg))
+		}
 	}
 
 	args := &QueryTemplateArgs{
