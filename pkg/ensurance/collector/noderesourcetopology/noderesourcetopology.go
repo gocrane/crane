@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"strconv"
 
 	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/jaypipes/ghw"
@@ -17,8 +18,10 @@ import (
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	corelisters "k8s.io/client-go/listers/core/v1"
+	"k8s.io/klog/v2"
 	kubeletconfiginternal "k8s.io/kubernetes/pkg/kubelet/apis/config"
 	kubeletcpumanager "k8s.io/kubernetes/pkg/kubelet/cm/cpumanager"
+	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 	"k8s.io/kubernetes/pkg/kubelet/stats/pidlimit"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -98,6 +101,11 @@ func BuildNodeResourceTopology(sysPath string, kubeletConfig *kubeletconfiginter
 	if err != nil {
 		return nil, fmt.Errorf("failed to detect topology info by GHW: %v", err)
 	}
+
+	reservedSystemCPUs, err := parseReservedSystemCPUs(kubeletConfig)
+	if err != nil {
+		return nil, err
+	}
 	kubeReserved, err := parseResourceList(kubeletConfig.KubeReserved)
 	if err != nil {
 		return nil, err
@@ -120,6 +128,11 @@ func BuildNodeResourceTopology(sysPath string, kubeletConfig *kubeletconfiginter
 	nrtBuilder.WithReservedCPUs(getNumReservedCPUs(reserved))
 	nrtBuilder.WithTopologyInfo(topo)
 	nrtBuilder.WithCPUManagerPolicy(cpuManagerPolicy)
+	nrtBuilder.WithSystemReservedCPUs(reservedSystemCPUs)
+	nrtBuilder.WithAttributes(map[string]string{
+		topologyapi.ReservedSystemCPUsAttributes: kubeletConfig.ReservedSystemCPUs,
+	})
+
 	newNrt := nrtBuilder.Build()
 	_ = controllerutil.SetControllerReference(node, newNrt, scheme.Scheme)
 	return newNrt, nil
@@ -190,4 +203,27 @@ func getNumReservedCPUs(nodeAllocatableReservation corev1.ResourceList) int {
 	reservedCPUsFloat := float64(reservedCPUs.MilliValue()) / 1000
 	numReservedCPUs := int(math.Ceil(reservedCPUsFloat))
 	return numReservedCPUs
+}
+
+// parseReservedSystemCPUs will parse kubelet ReservedSystemCPUs and overwrite the cpus in KubeReserved and SystemReserved
+// copy code from: https://github.com/kubernetes/kubernetes/blob/master/cmd/kubelet/app/server.go#L671
+func parseReservedSystemCPUs(kubeletConfig *kubeletconfiginternal.KubeletConfiguration) (cpuset.CPUSet, error) {
+	reservedSystemCPUs, err := utils.GetReservedCPUs(kubeletConfig.ReservedSystemCPUs)
+	if err != nil {
+		return reservedSystemCPUs, fmt.Errorf("parse reserved cpus: %v", err)
+	}
+	if reservedSystemCPUs.Size() > 0 {
+		// at cmd option validation phase it is tested either --system-reserved-cgroup or --kube-reserved-cgroup is specified, so overwrite should be ok
+		klog.InfoS("Option --reserved-cpus is specified, it will overwrite the cpu setting in KubeReserved and SystemReserved",
+			"kubeReservedCPUs", kubeletConfig.KubeReserved, "systemReservedCPUs", kubeletConfig.SystemReserved)
+		if kubeletConfig.KubeReserved != nil {
+			delete(kubeletConfig.KubeReserved, "cpu")
+		}
+		if kubeletConfig.SystemReserved == nil {
+			kubeletConfig.SystemReserved = make(map[string]string)
+		}
+		kubeletConfig.SystemReserved["cpu"] = strconv.Itoa(reservedSystemCPUs.Size())
+		klog.InfoS("After cpu setting is overwritten", "kubeReservedCPUs", kubeletConfig.KubeReserved, "systemReservedCPUs", kubeletConfig.SystemReserved)
+	}
+	return reservedSystemCPUs, nil
 }
