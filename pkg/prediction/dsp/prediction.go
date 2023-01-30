@@ -38,7 +38,8 @@ type periodicSignalPrediction struct {
 }
 
 func (p *periodicSignalPrediction) QueryPredictionStatus(ctx context.Context, metricNamer metricnaming.MetricNamer) (prediction.Status, error) {
-	panic("implement me")
+	_, status := p.a.GetSignals(metricNamer.BuildUniqueKey())
+	return status, nil
 }
 
 func NewPrediction(realtimeProvider providers.RealTime, historyProvider providers.History, mc config.AlgorithmModelConfig) prediction.Interface {
