@@ -33,8 +33,14 @@ func (rr *ResourceRecommender) Filter(ctx *framework.RecommendationContext) erro
 	}
 
 	pod := ctx.Pods[0]
-	if len(pod.OwnerReferences) == 0 {
-		return fmt.Errorf("owner reference not found")
+	if ctx.Recommendation.Spec.TargetRef.Kind == "Pod" {
+		if len(pod.OwnerReferences) != 0 {
+			return fmt.Errorf("when Kind == 'Pod', only recommend pods have no owner reference")
+		}
+	} else {
+		if len(pod.OwnerReferences) == 0 {
+			return fmt.Errorf("owner reference not found")
+		}
 	}
 
 	return nil

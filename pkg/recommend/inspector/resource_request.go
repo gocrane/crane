@@ -16,8 +16,10 @@ func (i *ResourceRequestInspector) Inspect() error {
 	}
 
 	pod := i.Pods[0]
-	if len(pod.OwnerReferences) == 0 {
-		return fmt.Errorf("owner reference not found")
+	if i.Recommendation.Kind != "Pod" {
+		if len(pod.OwnerReferences) == 0 {
+			return fmt.Errorf("owner reference not found")
+		}
 	}
 
 	return nil
