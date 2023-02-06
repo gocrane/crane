@@ -179,6 +179,10 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 					corev1.ResourceCPU:    c.Resources.Requests[corev1.ResourceCPU],
 					corev1.ResourceMemory: c.Resources.Requests[corev1.ResourceMemory],
 				},
+				Limits: corev1.ResourceList{
+					corev1.ResourceCPU:    c.Resources.Limits[corev1.ResourceCPU],
+					corev1.ResourceMemory: c.Resources.Limits[corev1.ResourceMemory],
+				},
 			},
 		}
 
