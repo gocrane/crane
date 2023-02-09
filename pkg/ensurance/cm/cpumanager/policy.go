@@ -30,6 +30,8 @@ type Policy interface {
 	GetSharedCPUs(s cpumanagerstate.State) cpuset.CPUSet
 	// GetExclusiveCPUSet returns the set of all CPUs minus the default set.
 	GetExclusiveCPUSet(s cpumanagerstate.State) cpuset.CPUSet
+	// GetReservedCPUSet returns the set of reserved CPUs
+	GetReservedCPUSet() cpuset.CPUSet
 }
 
 type staticPolicy struct {
@@ -69,6 +71,10 @@ func (p *staticPolicy) Start(s cpumanagerstate.State, nodeTopology TopologyResul
 
 func (p *staticPolicy) Name() string {
 	return PolicyNameStatic
+}
+
+func (p *staticPolicy) GetReservedCPUSet() cpuset.CPUSet {
+	return p.reserved
 }
 
 func (p *staticPolicy) Allocate(
@@ -274,6 +280,11 @@ func (p *staticPolicy) takeByTopology(availableCPUs cpuset.CPUSet, numCPUs int) 
 func buildReservedCPUSet(topology *cputopo.CPUTopology, tr TopologyResult) (cpuset.CPUSet, error) {
 	res := cpuset.NewCPUSet()
 	for idx, info := range tr {
+		// if reserved system cpus is specified, use it directly
+		if info.ReservedSystemCPUs.Size() != 0 {
+			res = res.Union(info.ReservedSystemCPUs)
+			continue
+		}
 		reserved, err := takeByTopologyNUMAPacked(topology, topology.CPUDetails.CPUsInNUMANodes(idx), info.NumReservedCPUs)
 		if err != nil {
 			return cpuset.CPUSet{}, err

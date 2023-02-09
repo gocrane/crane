@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/evanphx/json-patch v4.11.0+incompatible
 	github.com/go-echarts/go-echarts/v2 v2.2.4
-	github.com/gocrane/api v0.9.0
+	github.com/gocrane/api v0.0.0-20230117025609-8b3a495647d9
 	github.com/google/cadvisor v0.39.2
 	github.com/jaypipes/ghw v0.9.0
 	github.com/mjibson/go-dsp v0.0.0-20180508042940-11479a337f12

@@ -411,7 +411,7 @@ func (cm *cpuManager) syncHandler(key string) error {
 		return nil
 	}
 
-	tr, err := fromZoneListToTopologyResult(GetPodNUMANodeResult(pod))
+	tr, err := fromZoneListToTopologyResult(GetPodNUMANodeResult(pod), nil)
 	if err != nil {
 		klog.ErrorS(err, "Failed to decode pod zoneList to topology result", "pod", key)
 		return nil
@@ -473,7 +473,13 @@ func (cm *cpuManager) reconcileState() (success []reconciledContainer, failure [
 				continue
 			}
 
+			excludeReservedCPUs := utils.PodExcludeReservedCPUs(pod)
+
 			cset := cm.state.GetCPUSetOrDefault(string(pod.UID), container.Name)
+			if excludeReservedCPUs {
+				cset = cset.Difference(cm.policy.GetReservedCPUSet())
+			}
+
 			if cset.IsEmpty() {
 				// NOTE: This should not happen outside of tests.
 				klog.V(4).InfoS("ReconcileState: skipping container; assigned cpuset is empty", "pod", klog.KObj(pod), "containerName", container.Name)
@@ -485,6 +491,9 @@ func (cm *cpuManager) reconcileState() (success []reconciledContainer, failure [
 			updated := err == nil && podUID == string(pod.UID) && containerName == container.Name
 
 			lcset := cm.lastUpdateState.GetCPUSetOrDefault(string(pod.UID), container.Name)
+			if excludeReservedCPUs {
+				lcset = lcset.Difference(cm.policy.GetReservedCPUSet())
+			}
 			if !cset.Equals(lcset) || !updated {
 				klog.V(4).InfoS("ReconcileState: updating container", "pod", klog.KObj(pod), "containerName", container.Name, "containerID", containerID, "cpuSet", cset)
 				err = cm.updateContainerCPUSet(containerID, cset)
@@ -507,7 +516,7 @@ func (cm *cpuManager) getNodeTopologyResult() (TopologyResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	return fromZoneListToTopologyResult(nrt.Zones)
+	return fromZoneListToTopologyResult(nrt.Zones, nrt.Attributes)
 }
 
 func findContainerIDByName(status *corev1.PodStatus, name string) (string, error) {
@@ -580,8 +589,9 @@ func buildContainerMapFromRuntime(runtimeService criapis.RuntimeService) contain
 type TopologyResult map[int]NodeInfo
 
 type NodeInfo struct {
-	CPUs            int
-	NumReservedCPUs int
+	CPUs               int
+	NumReservedCPUs    int
+	ReservedSystemCPUs cpuset.CPUSet
 }
 
 func NewTopologyResult() TopologyResult {
@@ -620,8 +630,12 @@ func (tr TopologyResult) NumReservedCPUsInNUMANodes(ids ...int) int {
 	return res
 }
 
-func fromZoneListToTopologyResult(zones topologyapi.ZoneList) (TopologyResult, error) {
+func fromZoneListToTopologyResult(zones topologyapi.ZoneList, attributes map[string]string) (TopologyResult, error) {
 	tr := NewTopologyResult()
+	reservedCPUs, err := utils.GetReservedCPUs(attributes[topologyapi.ReservedSystemCPUsAttributes])
+	if err != nil {
+		return tr, fmt.Errorf("get reserved cpus: %v", err)
+	}
 	for i := range zones {
 		if zones[i].Type == topologyapi.ZoneTypeNode && zones[i].Resources != nil {
 			// the zone should have a prefix 'node*'
@@ -631,8 +645,9 @@ func fromZoneListToTopologyResult(zones topologyapi.ZoneList) (TopologyResult, e
 			}
 			if numCPUs := zones[i].Resources.Capacity.Cpu().Value(); numCPUs > 0 {
 				tr[nodeID] = NodeInfo{
-					CPUs:            int(numCPUs),
-					NumReservedCPUs: int(zones[i].Resources.ReservedCPUNums),
+					CPUs:               int(numCPUs),
+					NumReservedCPUs:    int(zones[i].Resources.ReservedCPUNums),
+					ReservedSystemCPUs: reservedCPUs,
 				}
 			}
 		}
