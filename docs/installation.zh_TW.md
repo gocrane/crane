@@ -41,7 +41,7 @@ Crane 使用 Prometheus 抓取集群工作負載對資源的使用情況。安�
     ```bash
     helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
     helm install prometheus -n crane-system \
-                            --set pushgateway.enabled=false \
+                            --set prometheus-pushgateway.enabled=false \
                             --set alertmanager.enabled=false \
                             --set server.persistentVolume.enabled=false \
                             -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/prometheus/override_values.yaml \
@@ -53,7 +53,7 @@ Crane 使用 Prometheus 抓取集群工作負載對資源的使用情況。安�
     ```bash
     helm repo add prometheus-community https://finops-helm.pkg.coding.net/gocrane/prometheus-community
     helm install prometheus -n crane-system \
-                            --set pushgateway.enabled=false \
+                            --set prometheus-pushgateway.enabled=false \
                             --set alertmanager.enabled=false \
                             --set server.persistentVolume.enabled=false \
                             -f https://finops.coding.net/p/gocrane/d/helm-charts/git/raw/main/integration/prometheus/override_values.yaml?download=false \

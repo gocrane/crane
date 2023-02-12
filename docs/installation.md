@@ -30,7 +30,7 @@ Using following command to install prometheus components: prometheus-server, nod
     ```bash
     helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
     helm install prometheus -n crane-system \
-                            --set pushgateway.enabled=false \
+                            --set prometheus-pushgateway.enabled=false \
                             --set alertmanager.enabled=false \
                             --set server.persistentVolume.enabled=false \
                             -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/prometheus/override_values.yaml \
@@ -42,7 +42,7 @@ Using following command to install prometheus components: prometheus-server, nod
     ```bash
     helm repo add prometheus-community https://finops-helm.pkg.coding.net/gocrane/prometheus-community
     helm install prometheus -n crane-system \
-                            --set pushgateway.enabled=false \
+                            --set prometheus-pushgateway.enabled=false \
                             --set alertmanager.enabled=false \
                             --set server.persistentVolume.enabled=false \
                             -f https://gitee.com/finops/helm-charts/raw/main/integration/prometheus/override_values.yaml \

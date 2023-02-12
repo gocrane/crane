@@ -16,7 +16,7 @@ echo "Step1: Create local cluster finished."
 echo "Step2: Installing Prometheus "
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm install prometheus -n crane-system \
-                        --set pushgateway.enabled=false \
+                        --set prometheus-pushgateway.enabled=false \
                         --set alertmanager.enabled=false \
                         --set server.persistentVolume.enabled=false \
                         -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/prometheus/override_values.yaml \
