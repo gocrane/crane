@@ -58,6 +58,9 @@ type Options struct {
 
 	// OOMRecordMaxNumber is the max number for oom record
 	OOMRecordMaxNumber int
+
+	// TimeSeriesPredictionMaxConcurrentReconciles is the max concurrent reconciles for TimeSeriesPrediction controller
+	TimeSeriesPredictionMaxConcurrentReconciles int
 }
 
 // NewOptions builds an empty options.
@@ -127,5 +130,5 @@ func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.StringSliceVar(&o.EhpaControllerConfig.PropagationConfig.Labels, "ehpa-propagation-labels", []string{}, "propagate labels whose key is complete matching to hpa")
 	flags.StringSliceVar(&o.EhpaControllerConfig.PropagationConfig.Annotations, "ehpa-propagation-annotations", []string{}, "propagate annotations whose key is complete matching to hpa")
 	flags.IntVar(&o.OOMRecordMaxNumber, "oom-record-max-number", 10000, "Max number for oom records to store in configmap")
-
+	flags.IntVar(&o.TimeSeriesPredictionMaxConcurrentReconciles, "time-series-prediction-max-concurrent-reconciles", 10, "Max concurrent reconciles for TimeSeriesPrediction controller")
 }

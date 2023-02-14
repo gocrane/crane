@@ -16,6 +16,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
@@ -90,8 +91,9 @@ func (tc *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Res
 }
 
 // SetupWithManager creates a controller and register to controller manager.
-func (tc *Controller) SetupWithManager(mgr ctrl.Manager) error {
+func (tc *Controller) SetupWithManager(mgr ctrl.Manager, maxConcurrentReconciles int) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(controller.Options{MaxConcurrentReconciles: maxConcurrentReconciles}).
 		For(&predictionapi.TimeSeriesPrediction{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(tc)
 }
