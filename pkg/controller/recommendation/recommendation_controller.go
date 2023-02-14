@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/klog/v2"
-
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -13,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/scale"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -21,18 +20,21 @@ import (
 	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
 	predictormgr "github.com/gocrane/crane/pkg/predictor"
 	"github.com/gocrane/crane/pkg/providers"
+	recommender "github.com/gocrane/crane/pkg/recommendation"
+	"github.com/gocrane/crane/pkg/recommendation/framework"
 )
 
 // RecommendationController is responsible for reconcile Recommendation
 type RecommendationController struct {
 	client.Client
-	ConfigSet    *analysisv1alph1.ConfigSet
-	Scheme       *runtime.Scheme
-	Recorder     record.EventRecorder
-	RestMapper   meta.RESTMapper
-	ScaleClient  scale.ScalesGetter
-	PredictorMgr predictormgr.Manager
-	Provider     providers.History
+	ConfigSet      *analysisv1alph1.ConfigSet
+	Scheme         *runtime.Scheme
+	Recorder       record.EventRecorder
+	RestMapper     meta.RESTMapper
+	RecommenderMgr recommender.RecommenderManager
+	ScaleClient    scale.ScalesGetter
+	PredictorMgr   predictormgr.Manager
+	Provider       providers.History
 }
 
 func (c *RecommendationController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -46,6 +48,17 @@ func (c *RecommendationController) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if recommendation.DeletionTimestamp != nil {
 		return ctrl.Result{}, nil
+	}
+
+	r, err := c.RecommenderMgr.GetRecommender(string(recommendation.Spec.Type))
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	recommendationContext := framework.NewRecommendationContextForObserve(recommendation, c.RestMapper, c.ScaleClient)
+	err = r.Observe(&recommendationContext)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
 	// defaulting for TargetRef.Namespace
