@@ -17,7 +17,7 @@ Crane 是一个基于 FinOps 的云资源分析与成本优化平台。它的愿
 
 <img alt="fcs logo" height="200" src="docs/images/Crane-FinOps-Certified-Solution.png" title="FinOps Certified Solution" width="200"/>
 
-Crane 是 [FinOps 基金会](https://www.finops.org/)认证的[云优化方案](https://www.finops.org/members/finops-certified-solution/)。
+Crane 是 [FinOps 基金会](https://www.finops.org/)认证的[云优化方案](https://www.finops.org/certifications/finops-certified-solution/)。
 
 **如何在 Crane 中开启成本优化之旅？**
 
