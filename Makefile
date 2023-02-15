@@ -62,7 +62,8 @@ help: ## Display this help.
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	go mod vendor; \
-    $(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" rbac:roleName=manager-role crd webhook paths="./vendor/github.com/gocrane/api/..." output:crd:artifacts:config=deploy/manifests; \
+    $(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" crd webhook paths="./vendor/github.com/gocrane/api/..." output:crd:artifacts:config=deploy/manifests; \
+    $(CONTROLLER_GEN) rbac:roleName=craned paths=./pkg/controller/... output:rbac:artifacts:config=deploy/craned; \
     rm -rf vendor
 
 .PHONY: go-mockgen
