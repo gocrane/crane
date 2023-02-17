@@ -24,6 +24,7 @@ import (
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
+	"github.com/gocrane/crane/pkg/webhooks/analytics"
 	"github.com/gocrane/crane/pkg/webhooks/autoscaling"
 	"github.com/gocrane/crane/pkg/webhooks/ensurance"
 	"github.com/gocrane/crane/pkg/webhooks/prediction"
@@ -54,7 +55,7 @@ func SetupWebhookWithManager(mgr ctrl.Manager, autoscalingEnabled, nodeResourceE
 			return err
 		}
 
-		analyticsValidationAdmission := recommendation.ValidationAdmission{}
+		analyticsValidationAdmission := analytics.ValidationAdmission{}
 		err = ctrl.NewWebhookManagedBy(mgr).
 			For(&analysisapi.Analytics{}).
 			WithValidator(&analyticsValidationAdmission).
