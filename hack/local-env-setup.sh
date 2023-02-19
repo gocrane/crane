@@ -56,13 +56,6 @@ if [ "$FROM_MIRROR" = true ]; then
   CRANE_HELM_NAME="crane-mirror"
   CRANE_HELM_URL="https://finops-helm.pkg.coding.net/gocrane/gocrane"
 fi
-echo "PROMETHEUS_HELM_NAME=${PROMETHEUS_HELM_NAME}"
-echo "GRAFANA_HELM_NAMEL=${GRAFANA_HELM_NAME}"
-echo "PROMETHEUS_HELM_URL=${PROMETHEUS_HELM_URL}"
-echo "PROMETHEUS_VALUE_URL=${PROMETHEUS_VALUE_URL}"
-echo "GRAFANA_HELM_URL=${GRAFANA_HELM_URL}"
-echo "GRAFANA_VALUE_URL=${GRAFANA_VALUE_URL}"
-echo "CRANE_HELM_URL=${CRANE_HELM_URL}"
 
 echo "Step1: Create local cluster: " ${CRANE_KUBECONFIG}
 kind delete cluster --name="${CRANE_CLUSTER_NAME}" 2>&1
