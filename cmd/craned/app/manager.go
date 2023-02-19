@@ -347,7 +347,7 @@ func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.O
 			predictorMgr,
 			targetSelectorFetcher,
 		)
-		if err := tspController.SetupWithManager(mgr); err != nil {
+		if err := tspController.SetupWithManager(mgr, opts.TimeSeriesPredictionMaxConcurrentReconciles); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "TspController")
 		}
 	}
