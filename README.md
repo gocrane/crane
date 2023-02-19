@@ -17,7 +17,7 @@ Crane is a FinOps Platform for Cloud Resource Analytics and Economics in Kuberne
 
 <img alt="fcs logo" height="200" src="docs/images/Crane-FinOps-Certified-Solution.png" title="FinOps Certified Solution" width="200"/>
 
-Crane is a [FinOps Certified Solution](https://www.finops.org/members/finops-certified-solution/) project of the [FinOps Foundation](https://www.finops.org/).
+Crane is a [FinOps Certified Solution](https://www.finops.org/certifications/finops-certified-solution/) project of the [FinOps Foundation](https://www.finops.org/).
 
 **How to start a Cost-Saving journey on Crane?**
 
