@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 
@@ -11,7 +10,6 @@ import (
 
 	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/recommendation/framework"
-	"github.com/gocrane/crane/pkg/utils"
 )
 
 // Observe enhance the observability.
@@ -55,12 +53,6 @@ func (rr *ResourceRecommender) recordResourceRecommendation(ctx *framework.Recom
 		"container":  containerName,
 		"resource":   resName.String(),
 	}
-
-	scale, _, err := utils.GetScaleFromObjectReference(context.TODO(), ctx.RestMapper, ctx.ScaleClient, ctx.Recommendation.Spec.TargetRef)
-	if err != nil {
-		return err
-	}
-	labels["owner_replicas"] = fmt.Sprintf("%d", scale.Spec.Replicas)
 
 	switch resName {
 	case v1.ResourceCPU:
