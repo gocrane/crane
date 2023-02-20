@@ -22,7 +22,9 @@ import (
 
 type RecommenderManager interface {
 	// GetRecommender return a registered recommender
-	GetRecommender(recommenderName string, recommendationRule analysisv1alph1.RecommendationRule) (recommender.Recommender, error)
+	GetRecommender(recommenderName string) (recommender.Recommender, error)
+	// GetRecommenderWithRule return a registered recommender, its config merged with recommendationRule
+	GetRecommenderWithRule(recommenderName string, recommendationRule analysisv1alph1.RecommendationRule) (recommender.Recommender, error)
 }
 
 func NewRecommenderManager(recommendationConfiguration string, oomRecorder oom.Recorder, realtimeDataSources map[providers.DataSourceType]providers.RealTime, historyDataSources map[providers.DataSourceType]providers.History) RecommenderManager {
@@ -53,7 +55,11 @@ type manager struct {
 	oomRecorder        oom.Recorder
 }
 
-func (m *manager) GetRecommender(recommenderName string, recommendationRule analysisv1alph1.RecommendationRule) (recommender.Recommender, error) {
+func (m *manager) GetRecommender(recommenderName string) (recommender.Recommender, error) {
+	return m.GetRecommenderWithRule(recommenderName, analysisv1alph1.RecommendationRule{})
+}
+
+func (m *manager) GetRecommenderWithRule(recommenderName string, recommendationRule analysisv1alph1.RecommendationRule) (recommender.Recommender, error) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 

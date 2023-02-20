@@ -368,11 +368,12 @@ func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.O
 		}
 
 		if err := (&recommendationctrl.RecommendationController{
-			Client:      mgr.GetClient(),
-			Scheme:      mgr.GetScheme(),
-			RestMapper:  mgr.GetRESTMapper(),
-			ScaleClient: scaleClient,
-			Recorder:    mgr.GetEventRecorderFor("recommendation-controller"),
+			Client:         mgr.GetClient(),
+			Scheme:         mgr.GetScheme(),
+			RestMapper:     mgr.GetRESTMapper(),
+			RecommenderMgr: recommenderMgr,
+			ScaleClient:    scaleClient,
+			Recorder:       mgr.GetEventRecorderFor("recommendation-controller"),
 		}).SetupWithManager(mgr); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "RecommendationController")
 		}

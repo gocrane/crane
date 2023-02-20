@@ -363,7 +363,7 @@ func (c *RecommendationRuleController) executeMission(ctx context.Context, wg *s
 			recommendation = c.CreateRecommendationObject(recommendationRule, mission.TargetRef, id, mission.RecommenderRef.Name)
 		}
 
-		r, err := c.RecommenderMgr.GetRecommender(mission.RecommenderRef.Name, *recommendationRule)
+		r, err := c.RecommenderMgr.GetRecommenderWithRule(mission.RecommenderRef.Name, *recommendationRule)
 		if err != nil {
 			mission.Message = fmt.Sprintf("get recommender %s failed, %v", mission.RecommenderRef.Name, err)
 			return

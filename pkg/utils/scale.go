@@ -44,6 +44,15 @@ func GetScale(ctx context.Context, restMapper meta.RESTMapper, scaleClient scale
 	return nil, nil, fmt.Errorf("unrecognized resource: %+v", errs)
 }
 
+func GetScaleFromObjectReference(ctx context.Context, restMapper meta.RESTMapper, scaleClient scale.ScalesGetter, ref v1.ObjectReference) (*autoscalingapiv1.Scale, *meta.RESTMapping, error) {
+	newRef := autoscalingv2.CrossVersionObjectReference{
+		APIVersion: ref.APIVersion,
+		Kind:       ref.Kind,
+		Name:       ref.Name,
+	}
+	return GetScale(ctx, restMapper, scaleClient, ref.Namespace, newRef)
+}
+
 func GetPodsFromScale(kubeClient client.Client, scale *autoscalingapiv1.Scale) ([]v1.Pod, error) {
 	selector, err := labels.ConvertSelectorToLabelsMap(scale.Status.Selector)
 	if err != nil {

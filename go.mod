@@ -29,6 +29,7 @@ require (
 	k8s.io/kubelet v0.22.3
 	k8s.io/kubernetes v1.22.3
 	k8s.io/metrics v0.22.3
+	k8s.io/utils v0.0.0-20210819203725-bdf08cb9a70a
 	sigs.k8s.io/controller-runtime v0.10.2
 	sigs.k8s.io/custom-metrics-apiserver v1.22.0
 	sigs.k8s.io/prometheus-adapter v0.9.0
@@ -163,7 +164,6 @@ require (
 	k8s.io/component-helpers v0.22.3 // indirect
 	k8s.io/kube-scheduler v0.0.0 // indirect
 	k8s.io/mount-utils v0.22.3 // indirect
-	k8s.io/utils v0.0.0-20210819203725-bdf08cb9a70a // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.22 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.1.2 // indirect
 )
