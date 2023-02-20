@@ -63,4 +63,3 @@ func (rr *ResourceRecommender) recordResourceRecommendation(ctx *framework.Recom
 
 	return nil
 }
-
