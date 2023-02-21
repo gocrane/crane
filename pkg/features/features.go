@@ -33,6 +33,9 @@ const (
 
 	// CraneDashboardControl enables the control from Dashboard.
 	CraneDashboardControl featuregate.Feature = "DashboardControl"
+
+	// QOSInitializer enables the qos initialization featrues.
+	QOSInitializer featuregate.Feature = "QOSInitializer"
 )
 
 var defaultFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
@@ -44,6 +47,7 @@ var defaultFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	CraneClusterNodePrediction: {Default: false, PreRelease: featuregate.Alpha},
 	CraneTimeSeriesPrediction:  {Default: true, PreRelease: featuregate.Alpha},
 	CraneCPUManager:            {Default: false, PreRelease: featuregate.Alpha},
+	QOSInitializer:             {Default: false, PreRelease: featuregate.Alpha},
 	CraneDashboardControl:      {Default: false, PreRelease: featuregate.Alpha},
 }
 

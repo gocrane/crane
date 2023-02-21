@@ -17,6 +17,7 @@ limitations under the License.
 package webhooks
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -24,13 +25,16 @@ import (
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
+
+	"github.com/gocrane/crane/pkg/ensurance/config"
 	"github.com/gocrane/crane/pkg/webhooks/autoscaling"
 	"github.com/gocrane/crane/pkg/webhooks/ensurance"
+	"github.com/gocrane/crane/pkg/webhooks/pod"
 	"github.com/gocrane/crane/pkg/webhooks/prediction"
 	"github.com/gocrane/crane/pkg/webhooks/recommendation"
 )
 
-func SetupWebhookWithManager(mgr ctrl.Manager, autoscalingEnabled, nodeResourceEnabled, clusterNodePredictionEnabled, analysisEnabled, timeseriespredictEnabled bool) error {
+func SetupWebhookWithManager(mgr ctrl.Manager, autoscalingEnabled, nodeResourceEnabled, clusterNodePredictionEnabled, analysisEnabled, timeseriespredictEnabled, qosInitializer bool, qosConfigPath string) error {
 	if timeseriespredictEnabled {
 		tspValidationAdmission := prediction.ValidationAdmission{}
 		err := ctrl.NewWebhookManagedBy(mgr).
@@ -97,6 +101,38 @@ func SetupWebhookWithManager(mgr ctrl.Manager, autoscalingEnabled, nodeResourceE
 			klog.Errorf("Failed to setup autoscaling webhook: %v", err)
 		}
 		klog.Infof("Succeed to setup autoscaling webhook")
+
+		autoscalingMutating := autoscaling.MutatingAdmission{}
+		err = ctrl.NewWebhookManagedBy(mgr).
+			For(&autoscalingapi.EffectiveHorizontalPodAutoscaler{}).
+			WithDefaulter(&autoscalingMutating).
+			Complete()
+		if err != nil {
+			klog.Errorf("Failed to setup ehpa mutating webhook: %v", err)
+		}
+		klog.Infof("Succeed to setup ehpa mutating webhook")
+	}
+
+	klog.Infof("before qos init")
+	if qosInitializer {
+		klog.Infof("enable qos init")
+
+		qosConfig, err := config.LoadQOSConfigFromFile(qosConfigPath)
+		if err != nil {
+			klog.Errorf("Failed to load qos initializer config: %v", err)
+		}
+
+		podMutatingAdmission := pod.MutatingAdmission{
+			Config: qosConfig,
+		}
+		err = ctrl.NewWebhookManagedBy(mgr).
+			For(&corev1.Pod{}).
+			WithDefaulter(&podMutatingAdmission).
+			Complete()
+		if err != nil {
+			klog.Errorf("Failed to setup qos initializer webhook: %v", err)
+		}
+		klog.Infof("Succeed to setup qos initializer webhook")
 	}
 
 	return nil

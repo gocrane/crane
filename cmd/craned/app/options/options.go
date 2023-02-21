@@ -46,6 +46,9 @@ type Options struct {
 	// If unspecified, a default is provided.
 	RecommendationConfigFile string
 
+	// QOSConfigFile is the configuration file for QOS.
+	QOSConfigFile string
+
 	// ServerOptions hold the craned web server options
 	ServerOptions *ServerOptions
 
@@ -125,6 +128,7 @@ func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&o.WebhookConfig.Enabled, "webhook-enabled", true, "whether enable webhook or not, default to true")
 	flags.StringVar(&o.RecommendationConfigFile, "recommendation-config-file", "", "recommendation configuration file")
 	flags.StringVar(&o.RecommendationConfiguration, "recommendation-configuration-file", "/tmp/recommendation-framework/recommendation_configuration.yaml", "recommendation configuration file")
+	flags.StringVar(&o.QOSConfigFile, "qos-config-file", "", "qos configuration file")
 	flags.StringSliceVar(&o.EhpaControllerConfig.PropagationConfig.LabelPrefixes, "ehpa-propagation-label-prefixes", []string{}, "propagate labels whose key has the prefix to hpa")
 	flags.StringSliceVar(&o.EhpaControllerConfig.PropagationConfig.AnnotationPrefixes, "ehpa-propagation-annotation-prefixes", []string{}, "propagate annotations whose key has the prefix to hpa")
 	flags.StringSliceVar(&o.EhpaControllerConfig.PropagationConfig.Labels, "ehpa-propagation-labels", []string{}, "propagate labels whose key is complete matching to hpa")
