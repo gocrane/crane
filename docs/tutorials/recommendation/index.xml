@@ -469,6 +469,26 @@ TargetRef&lt;/li>
 &lt;td>1.2&lt;/td>
 &lt;td>OOM memory bump up ratio&lt;/td>
 &lt;/tr>
+&lt;tr>
+&lt;td>cpu-histogram-bucket-size&lt;/td>
+&lt;td>0.1&lt;/td>
+&lt;td>The size of the balanced bucket is also equal to the minimum value recommended by the CPU&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>cpu-histogram-max-value&lt;/td>
+&lt;td>100&lt;/td>
+&lt;td>The maximum value of the balance bucket is also equal to the maximum value recommended by the CPU&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>mem-histogram-bucket-size&lt;/td>
+&lt;td>104857600&lt;/td>
+&lt;td>The size of the balanced bucket is also equal to the minimum value recommended by the MEM&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>mem-histogram-max-value&lt;/td>
+&lt;td>104857600000&lt;/td>
+&lt;td>The maximum value of the balance bucket is also equal to the maximum value recommended by the MEM&lt;/td>
+&lt;/tr>
 &lt;/tbody>
 &lt;/table>
 &lt;p>How to update recommendation configuration please refer to：&lt;a href="/docs/tutorials/recommendation/recommendation-framework">&lt;strong>Recommendation Framework&lt;/strong>&lt;/a>&lt;/p>

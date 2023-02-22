@@ -464,6 +464,26 @@ TargetRef&lt;/li>
 &lt;td>1.2&lt;/td>
 &lt;td>OOM 内存放大系数&lt;/td>
 &lt;/tr>
+&lt;tr>
+&lt;td>cpu-histogram-bucket-size&lt;/td>
+&lt;td>0.1&lt;/td>
+&lt;td>均衡桶的大小，同时也等于cpu推荐的最小值&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>cpu-histogram-max-value&lt;/td>
+&lt;td>100&lt;/td>
+&lt;td>均衡桶的最大值，同时也等于cpu推荐的最大值&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>mem-histogram-bucket-size&lt;/td>
+&lt;td>104857600&lt;/td>
+&lt;td>均衡桶的大小，同时也等于mem推荐的最小值&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>mem-histogram-max-value&lt;/td>
+&lt;td>104857600000&lt;/td>
+&lt;td>均衡桶的最大值，同时也等于mem推荐的最大值&lt;/td>
+&lt;/tr>
 &lt;/tbody>
 &lt;/table>
 &lt;p>如何更新推荐的配置请参考：&lt;a href="/zh-cn/docs/tutorials/recommendation/recommendation-framework">&lt;strong>推荐框架&lt;/strong>&lt;/a>&lt;/p>
