@@ -974,7 +974,44 @@ make decisions based on input and policies.&lt;/p>
 &lt;h3 id="0120-december">0.12.0 [December]&lt;/h3>
 &lt;ul>
 &lt;li>Multi-cluster cost optimization&lt;/li>
-&lt;/ul></description></item><item><title>Docs: 开发者指南</title><link>/zh-cn/docs/contributing/developer-guide/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/contributing/developer-guide/</guid><description>
+&lt;/ul></description></item><item><title>Docs: 安装命令行工具</title><link>/zh-cn/docs/installation/installation-cli-tool/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/installation/installation-cli-tool/</guid><description>
+&lt;h2 id="安装-kubectl-crane">安装 kubectl-crane&lt;/h2>
+&lt;p>你可以通过以下任意方式来安装 &lt;code>kubectl-crane&lt;/code> 命令行工具&lt;/p>
+&lt;ul>
+&lt;li>一键安装.&lt;/li>
+&lt;li>使用 krew 安装.&lt;/li>
+&lt;li>通过源码构建.&lt;/li>
+&lt;/ul>
+&lt;h2 id="前提条件">前提条件&lt;/h2>
+&lt;ul>
+&lt;li>kubectl： &lt;code>kubectl&lt;/code> 是 Kubernetes 命令行工具，可让您控制 Kubernetes 集群。
+有关安装说明，请参阅 &lt;a href="https://kubernetes.io/docs/tasks/tools/#kubectl">安装 kubectl&lt;/a>。&lt;/li>
+&lt;/ul>
+&lt;h3 id="一键安装">一键安装&lt;/h3>
+&lt;h4 id="linux">Linux&lt;/h4>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>export release&lt;span style="color:#f92672">=&lt;/span>v0.2.0
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>export arch&lt;span style="color:#f92672">=&lt;/span>x86_64
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>curl -L -o kubectl-crane.tar.gz https://github.com/gocrane/kubectl-crane/releases/download/&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>/kubectl-crane_&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>_Linux_&lt;span style="color:#e6db74">${&lt;/span>arch&lt;span style="color:#e6db74">}&lt;/span>.tar.gz
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>tar -xvf kubectl-crane.tar.gz
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>cp kubectl-crane_&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>_Linux_&lt;span style="color:#e6db74">${&lt;/span>arch&lt;span style="color:#e6db74">}&lt;/span>/kubectl-crane /usr/local/bin/
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h4 id="mac">Mac&lt;/h4>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>export release&lt;span style="color:#f92672">=&lt;/span>v0.2.0
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>export arch&lt;span style="color:#f92672">=&lt;/span>arm64
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>curl -L -o kubectl-crane.tar.gz https://github.com/gocrane/kubectl-crane/releases/download/&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>/kubectl-crane_&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>_Darwin_&lt;span style="color:#e6db74">${&lt;/span>arch&lt;span style="color:#e6db74">}&lt;/span>.tar.gz
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>tar -xvf kubectl-crane.tar.gz
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>cp kubectl-crane_&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>_Darwin_&lt;span style="color:#e6db74">${&lt;/span>arch&lt;span style="color:#e6db74">}&lt;/span>/kubectl-crane /usr/local/bin/
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="使用-krew-安装">使用 krew 安装&lt;/h3>
+&lt;p>&lt;code>Krew&lt;/code> 是 &lt;code>kubectl&lt;/code> 命令行工具的插件管理器。&lt;/p>
+&lt;p>在你的机器上&lt;a href="https://krew.sigs.k8s.io/docs/user-guide/setup/install/">安装和设置&lt;/a> Krew。&lt;/p>
+&lt;p>然后安装 &lt;code>kubectl-crane&lt;/code> 插件：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>kubectl krew install crane
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="通过源码构建">通过源码构建&lt;/h3>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>git clone https://github.com/gocrane/kubectl-crane.git
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>cd kubectl-crane
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>export CGO_ENABLED&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#ae81ff">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>go mod vendor
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>go build -o kubectl-crane ./cmd/
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>然后将项目根目录下的 &lt;code>kubectl-crane&lt;/code> 可执行文件移动到 &lt;code>PATH&lt;/code> 路径下。&lt;/p></description></item><item><title>Docs: 开发者指南</title><link>/zh-cn/docs/contributing/developer-guide/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/contributing/developer-guide/</guid><description>
 &lt;p>First, please make sure you&amp;rsquo;ve got a working &lt;a href="https://golang.org/doc/install">Go environment&lt;/a>
 and &lt;a href="https://docs.docker.com/engine">Docker environment&lt;/a>.&lt;/p>
 &lt;h2 id="prepare-local-crane-environment">Prepare local crane environment&lt;/h2>

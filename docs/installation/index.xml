@@ -1,0 +1,38 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Crane – Installation</title><link>/docs/installation/</link><description>Recent content in Installation on Crane</description><generator>Hugo -- gohugo.io</generator><atom:link href="/docs/installation/index.xml" rel="self" type="application/rss+xml"/><item><title>Docs: Installation of CLI Tool</title><link>/docs/installation/installation-cli-tool/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/installation/installation-cli-tool/</guid><description>
+&lt;h2 id="install-kubectl-crane">Install kubectl-crane&lt;/h2>
+&lt;p>You can install &lt;code>kubectl-crane&lt;/code> plugin in any of the following ways:&lt;/p>
+&lt;ul>
+&lt;li>One-click installation.&lt;/li>
+&lt;li>Install using Krew.&lt;/li>
+&lt;li>Build from source code.&lt;/li>
+&lt;/ul>
+&lt;h2 id="prerequisites">Prerequisites&lt;/h2>
+&lt;ul>
+&lt;li>Kubectl: &lt;code>kubectl&lt;/code> is the Kubernetes command line tool lets you control Kubernetes clusters.
+For installation instructions see &lt;a href="https://kubernetes.io/docs/tasks/tools/#kubectl">installing kubectl&lt;/a>.&lt;/li>
+&lt;/ul>
+&lt;h3 id="one-click-installation">One-click installation&lt;/h3>
+&lt;h4 id="for-linux">For Linux&lt;/h4>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>export release&lt;span style="color:#f92672">=&lt;/span>v0.2.0
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>export arch&lt;span style="color:#f92672">=&lt;/span>x86_64
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>curl -L -o kubectl-crane.tar.gz https://github.com/gocrane/kubectl-crane/releases/download/&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>/kubectl-crane_&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>_Linux_&lt;span style="color:#e6db74">${&lt;/span>arch&lt;span style="color:#e6db74">}&lt;/span>.tar.gz
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>tar -xvf kubectl-crane.tar.gz
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>cp kubectl-crane_&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>_Linux_&lt;span style="color:#e6db74">${&lt;/span>arch&lt;span style="color:#e6db74">}&lt;/span>/kubectl-crane /usr/local/bin/
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h4 id="for-mac">For Mac&lt;/h4>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>export release&lt;span style="color:#f92672">=&lt;/span>v0.2.0
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>export arch&lt;span style="color:#f92672">=&lt;/span>arm64
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>curl -L -o kubectl-crane.tar.gz https://github.com/gocrane/kubectl-crane/releases/download/&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>/kubectl-crane_&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>_Darwin_&lt;span style="color:#e6db74">${&lt;/span>arch&lt;span style="color:#e6db74">}&lt;/span>.tar.gz
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>tar -xvf kubectl-crane.tar.gz
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>cp kubectl-crane_&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>_Darwin_&lt;span style="color:#e6db74">${&lt;/span>arch&lt;span style="color:#e6db74">}&lt;/span>/kubectl-crane /usr/local/bin/
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="install-using-krew">Install using Krew&lt;/h3>
+&lt;p>&lt;code>Krew&lt;/code> is the plugin manager for &lt;code>kubectl&lt;/code> command-line tool.&lt;/p>
+&lt;p>&lt;a href="https://krew.sigs.k8s.io/docs/user-guide/setup/install/">Install and setup&lt;/a> Krew on your machine.&lt;/p>
+&lt;p>Then install &lt;code>kubectl-crane&lt;/code> plug-in:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>kubectl krew install crane
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="build-from-source-code">Build from source code&lt;/h3>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>git clone https://github.com/gocrane/kubectl-crane.git
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>cd kubectl-crane
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>export CGO_ENABLED&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#ae81ff">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>go mod vendor
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>go build -o kubectl-crane ./cmd/
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Next, move the &lt;code>kubectl-crane&lt;/code> executable file in the project root directory to the &lt;code>PATH&lt;/code> path.&lt;/p></description></item></channel></rss>
