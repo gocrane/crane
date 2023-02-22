@@ -58,8 +58,8 @@ func (rr *ResourceRecommender) makeCpuConfig() *config.Config {
 			Percentile:        rr.CpuRequestPercentile,
 			Histogram: predictionapi.HistogramConfig{
 				HalfLife:   "24h",
-				BucketSize: "0.1",
-				MaxValue:   "100",
+				BucketSize: rr.CpuHistogramBucketSize,
+				MaxValue:   rr.CpuHistogramMaxValue,
 			},
 		},
 	}
@@ -76,8 +76,8 @@ func (rr *ResourceRecommender) makeMemConfig() *config.Config {
 			TargetUtilization: rr.MemTargetUtilization,
 			Histogram: predictionapi.HistogramConfig{
 				HalfLife:   "48h",
-				BucketSize: "104857600",
-				MaxValue:   "104857600000",
+				BucketSize: rr.MemHistogramBucketSize,
+				MaxValue:   rr.MemHistogramMaxValue,
 			},
 		},
 	}

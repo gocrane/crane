@@ -32,6 +32,10 @@ type ResourceRecommender struct {
 	OOMBumpRatio             float64
 	Specification            bool
 	SpecificationConfigs     []Specification
+	CpuHistogramBucketSize   string
+	CpuHistogramMaxValue     string
+	MemHistogramBucketSize   string
+	MemHistogramMaxValue     string
 }
 
 func (rr *ResourceRecommender) Name() string {
@@ -125,10 +129,25 @@ func NewResourceRecommender(recommender apis.Recommender, recommendationRule ana
 	if !exists {
 		OOMBumpRatio = "1.2"
 	}
-
 	OOMBumpRatioFloat, err := strconv.ParseFloat(OOMBumpRatio, 64)
 	if err != nil {
 		return nil, err
+	}
+	cpuHistogramBucketSize, exists := recommender.Config["cpu-histogram-bucket-size"]
+	if !exists {
+		cpuHistogramBucketSize = "0.1"
+	}
+	cpuHistogramMaxValue, exists := recommender.Config["cpu-histogram-max-value"]
+	if !exists {
+		cpuHistogramMaxValue = "100"
+	}
+	memHistogramBucketSize, exists := recommender.Config["mem-histogram-bucket-size"]
+	if !exists {
+		memHistogramBucketSize = "104857600"
+	}
+	memHistogramMaxValue, exists := recommender.Config["mem-histogram-max-value"]
+	if !exists {
+		memHistogramMaxValue = "104857600000"
 	}
 
 	return &ResourceRecommender{
@@ -149,5 +168,9 @@ func NewResourceRecommender(recommender apis.Recommender, recommendationRule ana
 		OOMBumpRatioFloat,
 		specificationBool,
 		specifications,
+		cpuHistogramBucketSize,
+		cpuHistogramMaxValue,
+		memHistogramBucketSize,
+		memHistogramMaxValue,
 	}, nil
 }
