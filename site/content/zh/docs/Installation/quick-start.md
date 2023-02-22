@@ -1,35 +1,34 @@
 ---
-title: "Quick Start"
-description: "Quick Start guide for Crane"
-weight: 11
+title: "快速开始"
+description: "如何快速上手 Crane"
+weight: 10
 ---
 
-Welcome to Crane! In this document, we will work through how to install Crane and visit Crane Dashboard in your local
-environments:
+欢迎来到 Crane！在本文档中我们将介绍如何在本地安装 Crane 以及访问 Crane Dashboard：
 
-- Create a local running Kubernetes cluster by [Kind](https://kind.sigs.k8s.io/)
-- Install Prometheus and Grafana by [Helm](https://helm.sh/)
-- Install Crane by [Helm](https://helm.sh/)
-- Visit Crane Dashboard via kubectl port-forward
+- 使用 [Kind](https://kind.sigs.k8s.io/) 安装一个本地运行的 Kubernetes 集群
+- 使用 [Helm](https://helm.sh/) 安装 Prometheus 和 Grafana
+- 使用 [Helm](https://helm.sh/) 安装 Crane
+- 通过 kubectl 的 port-forward 访问 Crane Dashboard
 
-Please referring to [Installation](/docs/getting-started/installation) to know more about how to install crane 。
+更多关于安装的介绍请参考 [安装文档](/zh-cn/docs/installation/installation) 。
 
-## Prerequisites
+## 部署环境要求
 
 - kubectl
 - Kubernetes 1.18+
 - Helm 3.1.0
 - Kind 0.16+
 
-## Installation
+## 安装
 
-Following command will install Crane with dependencies applications(Prometheus/Grafana).
+以下命令将安装 Crane 以及其依赖 (Prometheus/Grafana).
 
 ```bash
 curl -sf https://raw.githubusercontent.com/gocrane/crane/main/hack/local-env-setup.sh | sh -
 ```
 
-Make sure all pods are running:
+确保所有 Pod 都正常运行:
 
 ```bash
 $ export KUBECONFIG=${HOME}/.kube/config_crane
@@ -45,12 +44,12 @@ prometheus-node-exporter-4wk8b                   1/1     Running   0            
 prometheus-server-fb944f4b7-4qqlv                2/2     Running   0              4m46s
 ```
 
-## Visit Crane Dashboard
+## 访问 Crane Dashboard
 
 ```bash
 kubectl -n crane-system port-forward service/craned 9090:9090
 ```
 
-Visit dashboard via [here](http://127.0.0.1:9090/)
+点击 [这里](http://127.0.0.1:9090/) 访问 Crane Dashboard
 
 ![](/images/dashboard.png)

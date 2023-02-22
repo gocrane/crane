@@ -1,7 +1,7 @@
 ---
 title: "Installation"
 description: "How to install Crane"
-weight: 12
+weight: 11
 ---
 
 ## Prerequisites
