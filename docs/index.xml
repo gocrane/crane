@@ -467,7 +467,42 @@ scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="tru
 &lt;li>&lt;a href="https://github.com/gocrane/api">gocrane/api&lt;/a> - This repository defines component-level APIs for the Crane platform.&lt;/li>
 &lt;li>&lt;a href="https://github.com/gocrane/fadvisor">gocrane/fadvisor&lt;/a> - Financial advisor which collect resource prices from cloud API.&lt;/li>
 &lt;li>&lt;a href="https://github.com/gocrane/crane-scheduler">gocrane/crane-scheduler&lt;/a> - A Kubernetes scheduler which can schedule pod based on actual node load.&lt;/li>
-&lt;/ul></description></item><item><title>Docs: Recommendation Framework</title><link>/docs/tutorials/recommendation/recommendation-framework/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/recommendation-framework/</guid><description>
+&lt;/ul></description></item><item><title>Docs: Quick Start</title><link>/docs/installation/quick-start/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/installation/quick-start/</guid><description>
+&lt;p>Welcome to Crane! In this document, we will work through how to install Crane and visit Crane Dashboard in your local
+environments:&lt;/p>
+&lt;ul>
+&lt;li>Create a local running Kubernetes cluster by &lt;a href="https://kind.sigs.k8s.io/">Kind&lt;/a>&lt;/li>
+&lt;li>Install Prometheus and Grafana by &lt;a href="https://helm.sh/">Helm&lt;/a>&lt;/li>
+&lt;li>Install Crane by &lt;a href="https://helm.sh/">Helm&lt;/a>&lt;/li>
+&lt;li>Visit Crane Dashboard via kubectl port-forward&lt;/li>
+&lt;/ul>
+&lt;p>Please referring to &lt;a href="/docs/installation/installation">Installation&lt;/a> to know more about how to install crane 。&lt;/p>
+&lt;h2 id="prerequisites">Prerequisites&lt;/h2>
+&lt;ul>
+&lt;li>kubectl&lt;/li>
+&lt;li>Kubernetes 1.18+&lt;/li>
+&lt;li>Helm 3.1.0&lt;/li>
+&lt;li>Kind 0.16+&lt;/li>
+&lt;/ul>
+&lt;h2 id="installation">Installation&lt;/h2>
+&lt;p>Following command will install Crane with dependencies applications(Prometheus/Grafana).&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>curl -sf https://raw.githubusercontent.com/gocrane/crane/main/hack/local-env-setup.sh | sh -
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Make sure all pods are running:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>$ export KUBECONFIG&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">${&lt;/span>HOME&lt;span style="color:#e6db74">}&lt;/span>/.kube/config_crane
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>$ kubectl get deploy -n crane-system
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>NAME READY STATUS RESTARTS AGE
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>crane-agent-5r9l2 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m40s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>craned-6dcc5c569f-vnfsf 2/2 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m41s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>fadvisor-5b685f4cd6-xpxzq 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m37s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>grafana-64656f6d54-6l24j 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m46s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>metric-adapter-967c6d57f-swhfv 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m41s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>prometheus-kube-state-metrics-7f9d78cffc-p8l7c 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m46s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>prometheus-node-exporter-4wk8b 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m40s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>prometheus-server-fb944f4b7-4qqlv 2/2 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m46s
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="visit-crane-dashboard">Visit Crane Dashboard&lt;/h2>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>kubectl -n crane-system port-forward service/craned 9090:9090
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Visit dashboard via &lt;a href="http://127.0.0.1:9090/">here&lt;/a>&lt;/p>
+&lt;p>&lt;img src="/images/dashboard.png" alt="">&lt;/p></description></item><item><title>Docs: Recommendation Framework</title><link>/docs/tutorials/recommendation/recommendation-framework/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/recommendation-framework/</guid><description>
 &lt;p>&lt;strong>Recommendation Framework&lt;/strong> provides the ability to automatically analyze various resources in Kubernetes cluster and make recommendations for optimization。&lt;/p>
 &lt;h2 id="overview">Overview&lt;/h2>
 &lt;p>Crane&amp;rsquo;s recommendation module periodically detects cluster resource configuration problems and provides optimization suggestions. Framework provides a variety of recommender to implement the optimization and recommendation for different resources.
@@ -660,446 +695,7 @@ make images
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>!!! note
 For the first make image, It takes a bit of a long time, Please be patient.&lt;/p>
 &lt;p>When we finish the make image, in the docker desktop, we can see the image we built, and the Tag is the hash value at the time of the git commit.&lt;/p>
-&lt;p>&lt;img src="/images/developer-guide/make_image_docker_images.jpg" alt="make_image_docker_images">&lt;/p></description></item><item><title>Docs: Installation of CLI Tool</title><link>/docs/installation/installation-cli-tool/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/installation/installation-cli-tool/</guid><description>
-&lt;h2 id="install-kubectl-crane">Install kubectl-crane&lt;/h2>
-&lt;p>You can install &lt;code>kubectl-crane&lt;/code> plugin in any of the following ways:&lt;/p>
-&lt;ul>
-&lt;li>One-click installation.&lt;/li>
-&lt;li>Install using Krew.&lt;/li>
-&lt;li>Build from source code.&lt;/li>
-&lt;/ul>
-&lt;h2 id="prerequisites">Prerequisites&lt;/h2>
-&lt;ul>
-&lt;li>Kubectl: &lt;code>kubectl&lt;/code> is the Kubernetes command line tool lets you control Kubernetes clusters.
-For installation instructions see &lt;a href="https://kubernetes.io/docs/tasks/tools/#kubectl">installing kubectl&lt;/a>.&lt;/li>
-&lt;/ul>
-&lt;h3 id="one-click-installation">One-click installation&lt;/h3>
-&lt;h4 id="for-linux">For Linux&lt;/h4>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>export release&lt;span style="color:#f92672">=&lt;/span>v0.2.0
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>export arch&lt;span style="color:#f92672">=&lt;/span>x86_64
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>curl -L -o kubectl-crane.tar.gz https://github.com/gocrane/kubectl-crane/releases/download/&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>/kubectl-crane_&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>_Linux_&lt;span style="color:#e6db74">${&lt;/span>arch&lt;span style="color:#e6db74">}&lt;/span>.tar.gz
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>tar -xvf kubectl-crane.tar.gz
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>cp kubectl-crane_&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>_Linux_&lt;span style="color:#e6db74">${&lt;/span>arch&lt;span style="color:#e6db74">}&lt;/span>/kubectl-crane /usr/local/bin/
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h4 id="for-mac">For Mac&lt;/h4>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>export release&lt;span style="color:#f92672">=&lt;/span>v0.2.0
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>export arch&lt;span style="color:#f92672">=&lt;/span>arm64
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>curl -L -o kubectl-crane.tar.gz https://github.com/gocrane/kubectl-crane/releases/download/&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>/kubectl-crane_&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>_Darwin_&lt;span style="color:#e6db74">${&lt;/span>arch&lt;span style="color:#e6db74">}&lt;/span>.tar.gz
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>tar -xvf kubectl-crane.tar.gz
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>cp kubectl-crane_&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>_Darwin_&lt;span style="color:#e6db74">${&lt;/span>arch&lt;span style="color:#e6db74">}&lt;/span>/kubectl-crane /usr/local/bin/
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="install-using-krew">Install using Krew&lt;/h3>
-&lt;p>&lt;code>Krew&lt;/code> is the plugin manager for &lt;code>kubectl&lt;/code> command-line tool.&lt;/p>
-&lt;p>&lt;a href="https://krew.sigs.k8s.io/docs/user-guide/setup/install/">Install and setup&lt;/a> Krew on your machine.&lt;/p>
-&lt;p>Then install &lt;code>kubectl-crane&lt;/code> plug-in:&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>kubectl krew install crane
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="build-from-source-code">Build from source code&lt;/h3>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>git clone https://github.com/gocrane/kubectl-crane.git
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>cd kubectl-crane
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>export CGO_ENABLED&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#ae81ff">0&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>go mod vendor
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>go build -o kubectl-crane ./cmd/
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Next, move the &lt;code>kubectl-crane&lt;/code> executable file in the project root directory to the &lt;code>PATH&lt;/code> path.&lt;/p></description></item><item><title>Docs: Provide a policy-based abnormal detection mechanism in crane-agent</title><link>/docs/proposals/20220402-policy-based-abnomal-detection/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/proposals/20220402-policy-based-abnomal-detection/</guid><description>
-&lt;h2 id="summary">Summary&lt;/h2>
-&lt;p>Crane-agent is responsible for detecting abnormality on nodes and interference between running pods.&lt;/p>
-&lt;p>Currently, such detection mechanism is fixed and quite simple.
-Crane-agent compares the values of some pre-defined metrics, such as node&amp;rsquo;s &lt;code>cpu_total_usage&lt;/code> and &lt;code>cpu_total_utilization&lt;/code>,
-with some thresholds periodically. If the metric value is higher the threshold for some times, say the &lt;code>cpu_total_utilization&lt;/code>
-on a node is found higher than 80% in 3 consecutive detections, crane-agent thinks the node entering into an abnormal status,
-and will perform some further actions, such as suppressing or evicting pods with low priorities.&lt;/p>
-&lt;p>This proposal suggests a flexible and extensible way to detect abnormality. The criteria of abnormality can be customized by
-users in form of policies, and the detection process is executed in a policy decision-making way, which is offloaded to a
-general-purpose policy engine.&lt;/p>
-&lt;h2 id="motivation">Motivation&lt;/h2>
-&lt;p>The criteria of abnormality or interference are not that always as simple as something like a metric value is higher than a threshold.
-Different users may have different QOS requirements on different applications in different environments. The rule of
-abnormality detection varies, and it is impossible to implement all of them in code in advance.&lt;/p>
-&lt;h3 id="goals">Goals&lt;/h3>
-&lt;ol>
-&lt;li>Provides an abnormality detection mechanism which can consume external metrics.&lt;/li>
-&lt;li>Provides an abnormality detection mechanism in which the logic determining how to check the abnormality can be customized.&lt;/li>
-&lt;li>Metrics and detection policies can be added, updated and deleted on the fly without changing the code.&lt;/li>
-&lt;/ol>
-&lt;h3 id="non-goals">Non-Goals&lt;/h3>
-&lt;ol>
-&lt;li>How to handle the abnormality or interference. This proposal only focuses on detection, and the subsequent action is
-out of scope.&lt;/li>
-&lt;/ol>
-&lt;h2 id="proposal">Proposal&lt;/h2>
-&lt;h3 id="user-stories">User Stories&lt;/h3>
-&lt;h4 id="story-1">Story 1&lt;/h4>
-&lt;p>A user has a critical online application which is latency sensitive running in the cluster, and he wants to use both
-the 99th percentile response time and the error code rate as the application QOS indicators. If either of these 2 indicators
-deteriorates, the application is thought of being in abnormal status.&lt;/p>
-&lt;h4 id="story-2">Story 2&lt;/h4>
-&lt;p>The SRE team finds that if the node CPU utilization is more than 60%, the QOS of some latency sensitive applications
-running on it are likely to decline. So they want to keep the node CPU utilization lower than 60%.
-If the utilization is higher than this threshold, the BE applications should be suppressed
-accordingly.&lt;/p>
-&lt;h4 id="story-3">Story 3&lt;/h4>
-&lt;p>The traffic of online applications is very low at night, and the offline jobs are run during this time.
-Comparing with online applications, offline jobs always require more CPU resource quantities but less resource qualities.
-In this case, the SRE team wants to set different node CPU load thresholds in the daytime and at night.&lt;/p>
-&lt;h3 id="functional-requirements">Functional Requirements&lt;/h3>
-&lt;h3 id="implementation-details">Implementation Details&lt;/h3>
-&lt;h4 id="api">API&lt;/h4>
-&lt;p>#####NodeQOSEnsurancePolicy&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">ensurance.crane.io/v1alpha1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">NodeQOSEnsurancePolicy&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;xxx&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">nodeQualityProbe&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">prometheus&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targets&lt;/span>: [&lt;span style="color:#e6db74">&amp;#39;localhost:9090&amp;#39;&lt;/span>]
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">queryInterval&lt;/span>: &lt;span style="color:#ae81ff">60s&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">metrics&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">node_cpu_utilization&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">query&lt;/span>: &lt;span style="color:#ae81ff">1&lt;/span> - &lt;span style="color:#ae81ff">avg(irate(node_cpu_seconds_total{mode=&amp;#34;idle&amp;#34;, instance=&amp;#34;$nodeName&amp;#34;}[5m]))&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">variables&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">nodeName&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">valueFrom&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">fieldRef&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">fieldPath&lt;/span>: &lt;span style="color:#ae81ff">spec.nodeName&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">objectiveEnsurances&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;ext_cpu_total_distribute&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">avoidanceThreshold&lt;/span>: &lt;span style="color:#ae81ff">2&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">restoreThreshold&lt;/span>: &lt;span style="color:#ae81ff">2&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">actionName&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;disablescheduling&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">policy&lt;/span>: |&lt;span style="color:#e6db74">
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> default abnormal = false
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> hour := time.clock([time.now_ns(), &amp;#34;Local&amp;#34;])[0]
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> abnormal {
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> input.node_cpu_utilization &amp;gt; 0.6
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> hour &amp;gt;= 7, hour &amp;lt; 21
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> }
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> abnormal {
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> input.node_cpu_utilization &amp;gt; 0.8
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> hour &amp;gt;= 21
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> }
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> abnormal {
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> input.node_cpu_utilization &amp;gt; 0.8
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> hour &amp;lt; 7
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> }&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>#####PodQOSEnsurancePolicy&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">ensurance.crane.io/v1alpha1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">PodQOSEnsurancePolicy&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;xxx&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">selector&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">matchLabels&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">app&lt;/span>: &lt;span style="color:#ae81ff">test&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">qualityProbe&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">prometheus&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targets&lt;/span>: [&lt;span style="color:#e6db74">&amp;#39;localhost:9090&amp;#39;&lt;/span>]
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">queryInterval&lt;/span>: &lt;span style="color:#ae81ff">60s&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">metrics&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">test_app_p90_latency&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">query&lt;/span>: &lt;span style="color:#ae81ff">histogram_quantile(0.9, rate(http_request_duration_seconds_bucket{pod=~&amp;#34;$podName&amp;#34;, node=&amp;#34;$nodeName&amp;#34;}[1m]))&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">variables&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">podName&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">valueFrom&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">fieldRef&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">fieldPath&lt;/span>: &lt;span style="color:#ae81ff">metadata.name&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">nodeName&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">valueFrom&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">fieldRef&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">fieldPath&lt;/span>: &lt;span style="color:#ae81ff">spec.nodeName&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">objectiveEnsurances&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;ext_cpu_total_distribute&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">avoidanceThreshold&lt;/span>: &lt;span style="color:#ae81ff">2&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">restoreThreshold&lt;/span>: &lt;span style="color:#ae81ff">2&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">actionName&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;disablescheduling&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">policy&lt;/span>: |&lt;span style="color:#e6db74">
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> &lt;/span> &lt;span style="color:#ae81ff">abnormal if test_app_p90_latency[_].value &amp;gt; 0.1&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>In addition to &lt;code>Prometheus&lt;/code>, other protocols, such as &lt;code>Graphite&lt;/code>, &lt;code>InfluxDB&lt;/code> can also
-be added in the future.&lt;/p>
-&lt;h4 id="metrics">Metrics&lt;/h4>
-&lt;h4 id="built-in-metrics">Built-in metrics&lt;/h4>
-&lt;p>Currently, crane-agent collects a bunch of metrics(defined in &lt;code>pkg/ensurance/collector/types/types.go&lt;/code>, e.g.
-&lt;code>cpu_total_usage&lt;/code>).
-These metrics are collected by &lt;code>nodelocal&lt;/code> and &lt;code>cadvisor&lt;/code> collectors, both of which collects metrics every 10 seconds.&lt;/p>
-&lt;p>We call these metrics as built-in metrics. Users can use built-in metrics in the policy without explicit setting, and
-crane-agent will pass their values to every request to policy engine.&lt;/p>
-&lt;h5 id="external-metrics-new">External metrics (New)&lt;/h5>
-&lt;p>Crane-agent can also get &lt;code>external&lt;/code> metrics by querying against prometheus servers. A new &lt;code>prometheus&lt;/code> quality probe
-will be added to CRDs &lt;code>PodQOSEnsurancePolicy&lt;/code> and &lt;code>NodeQOSEnsurancePolicy&lt;/code> as shown in above 2 example yamls.&lt;/p>
-&lt;p>In &lt;a href="#PodQOSEnsurancePolicy">PodQOSEnsurancePolicy&lt;/a>, &lt;code>.spec.nodeQualityProbe.prometheus.metrics.query&lt;/code> is a promQL, which
-may includes some node variables (prefixed with &lt;code>$&lt;/code>). In this case, crane-agent will use its node name
-to replace the variable &lt;code>$nodeName&lt;/code>.&lt;/p>
-&lt;p>In &lt;a href="#PodQOSEnsurancePolicy">PodQOSEnsurancePolicy&lt;/a>, &lt;code>.spec.qualityProbe.prometheus.metrics.query&lt;/code> is a promQL, which
-may includes some pod related variables (&lt;code>$nodeName&lt;/code>, &lt;code>$podName&lt;/code> in this example). Crane-agent will firstly
-get all pods that match the &lt;code>.spec.selector.matchLabels&lt;/code> on its node. Say two pods are selected, and
-their names are &lt;code>pod-1&lt;/code> and &lt;code>pod-2&lt;/code>, and the node name is &lt;code>node-1&lt;/code>. The replaced promQL will be&lt;/p>
-&lt;pre tabindex="0">&lt;code>histogram_quantile(0.9, rate(http_request_duration_seconds_bucket{pod=~&amp;#34;pod-1|pod-2&amp;#34;, node=&amp;#34;node-1&amp;#34;}[1m]))
-&lt;/code>&lt;/pre>&lt;p>And 2 query results are expected to get returned, like:&lt;/p>
-&lt;pre tabindex="0">&lt;code>test_app_p90_latency{pod=&amp;#34;pod-1&amp;#34;, ...} 0.01
-test_app_p90_latency{pod=&amp;#34;pod-2&amp;#34;, ...} 0.01
-&lt;/code>&lt;/pre>&lt;p>Simply speaking, variables in promQL help crane-agent only query metrics of its own node and the pods that running on its own node.&lt;/p>
-&lt;h4 id="embedded-metrics-tsdb">Embedded metrics TSDB&lt;/h4>
-&lt;p>In order to decouple the components that collect metrics and those which consume the metrics, and to
-make these components&amp;rsquo; logic simple, an embedded metrics TSDB will be imported into crane-agent.&lt;/p>
-&lt;p>Prometheus-tsdb and vmstorage are two good candidates, both of which are easy to insert values and are
-compatible with promQL query grammar.&lt;/p>
-&lt;p>Both analyzer and executor fetch metrics from the TSDB without considering where the metrics come from.&lt;/p>
-&lt;p>&lt;img src="/images/tsdb.png" alt="">&lt;/p>
-&lt;h4 id="policy">Policy&lt;/h4>
-&lt;p>The Open Policy Agent (OPA) is an open source, general-purpose policy engine that unifies policy enforcement.
-Crane-agent will use it to evaluate if nodes or pods are abnormal.&lt;/p>
-&lt;p>The criteria for detecting abnormality is not pre-defined or hardcoded, instead, it is customized by users
-at runtime.&lt;/p>
-&lt;p>A &lt;code>policy&lt;/code> filed will be added to &lt;code>ObjectiveEnsurance&lt;/code>, which is
-a &lt;a href="https://www.openpolicyagent.org/docs/latest/policy-language/">rego&lt;/a> rule whose result is a boolean
-element.&lt;/p>
-&lt;p>crane-agent will feed both the latest built-in and external metrics as input into the OPA policy engine, and OPA
-make decisions based on input and policies.&lt;/p>
-&lt;p>&lt;img src="/images/opa.png" alt="">&lt;/p>
-&lt;p>A sample input is as follows:&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-json" data-lang="json">&lt;span style="display:flex;">&lt;span>{
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;crane&amp;#34;&lt;/span>: {
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;cpu_total_usage&amp;#34;&lt;/span>: &lt;span style="color:#ae81ff">4680&lt;/span>,
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#960050;background-color:#1e0010">...&lt;/span> &lt;span style="color:#960050;background-color:#1e0010">orhter&lt;/span> &lt;span style="color:#960050;background-color:#1e0010">built-in&lt;/span> &lt;span style="color:#960050;background-color:#1e0010">mertrcs&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> },
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;test_app_p90_latency&amp;#34;&lt;/span>: [
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;labels&amp;#34;&lt;/span>: {
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;pod&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;pod-1&amp;#34;&lt;/span>,
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;node&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;node-1&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> },
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;value&amp;#34;&lt;/span>: &lt;span style="color:#ae81ff">0.1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> },
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;labels&amp;#34;&lt;/span>: {
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;pod&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;pod-2&amp;#34;&lt;/span>,
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;node&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;node-1&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> },
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;value&amp;#34;&lt;/span>: &lt;span style="color:#ae81ff">0.09&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> ],
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#960050;background-color:#1e0010">...&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div></description></item><item><title>Docs: Quick Start</title><link>/docs/getting-started/quick-start/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/getting-started/quick-start/</guid><description>
-&lt;p>Welcome to Crane! In this document, we will work through how to install Crane and visit Crane Dashboard in your local
-environments:&lt;/p>
-&lt;ul>
-&lt;li>Create a local running Kubernetes cluster by &lt;a href="https://kind.sigs.k8s.io/">Kind&lt;/a>&lt;/li>
-&lt;li>Install Prometheus and Grafana by &lt;a href="https://helm.sh/">Helm&lt;/a>&lt;/li>
-&lt;li>Install Crane by &lt;a href="https://helm.sh/">Helm&lt;/a>&lt;/li>
-&lt;li>Visit Crane Dashboard via kubectl port-forward&lt;/li>
-&lt;/ul>
-&lt;p>Please referring to &lt;a href="/docs/getting-started/installation">Installation&lt;/a> to know more about how to install crane 。&lt;/p>
-&lt;h2 id="prerequisites">Prerequisites&lt;/h2>
-&lt;ul>
-&lt;li>kubectl&lt;/li>
-&lt;li>Kubernetes 1.18+&lt;/li>
-&lt;li>Helm 3.1.0&lt;/li>
-&lt;li>Kind 0.16+&lt;/li>
-&lt;/ul>
-&lt;h2 id="installation">Installation&lt;/h2>
-&lt;p>Following command will install Crane with dependencies applications(Prometheus/Grafana).&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>curl -sf https://raw.githubusercontent.com/gocrane/crane/main/hack/local-env-setup.sh | sh -
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Make sure all pods are running:&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>$ export KUBECONFIG&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">${&lt;/span>HOME&lt;span style="color:#e6db74">}&lt;/span>/.kube/config_crane
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>$ kubectl get deploy -n crane-system
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>NAME READY STATUS RESTARTS AGE
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>crane-agent-5r9l2 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m40s
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>craned-6dcc5c569f-vnfsf 2/2 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m41s
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>fadvisor-5b685f4cd6-xpxzq 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m37s
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>grafana-64656f6d54-6l24j 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m46s
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>metric-adapter-967c6d57f-swhfv 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m41s
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>prometheus-kube-state-metrics-7f9d78cffc-p8l7c 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m46s
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>prometheus-node-exporter-4wk8b 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m40s
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>prometheus-server-fb944f4b7-4qqlv 2/2 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m46s
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="visit-crane-dashboard">Visit Crane Dashboard&lt;/h2>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>kubectl -n crane-system port-forward service/craned 9090:9090
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Visit dashboard via &lt;a href="http://127.0.0.1:9090/">here&lt;/a>&lt;/p>
-&lt;p>&lt;img src="/images/dashboard.png" alt="">&lt;/p></description></item><item><title>Docs: Roadmap for 2022</title><link>/docs/roadmap/roadmap-2022/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/roadmap/roadmap-2022/</guid><description>
-&lt;p>Please refer the following sections for Crane release plan of H1 2022, new release will be cut on monthly basis.&lt;/p>
-&lt;p>Please let us know if you have urgent needs which are not presented in the plan.&lt;/p>
-&lt;h3 id="010-released">0.1.0 [released]&lt;/h3>
-&lt;ul>
-&lt;li>Predictor to support Moving Windows and DSP algorithms&lt;/li>
-&lt;li>Resource Request Recommendation and Effective Horizontal Pod Autoscaler&lt;/li>
-&lt;li>Grafana Dashboard to view resource utilization and cost trends&lt;/li>
-&lt;li>fadvisor to support billing&lt;/li>
-&lt;/ul>
-&lt;h3 id="020released">0.2.0：[released]&lt;/h3>
-&lt;ul>
-&lt;li>Multiple Metric Adaptor support&lt;/li>
-&lt;li>Node QOS Ensurance for CPU&lt;/li>
-&lt;li>Operation Metrics about R3 and EPA applied ratio&lt;/li>
-&lt;/ul>
-&lt;h3 id="030-released">0.3.0 [released]&lt;/h3>
-&lt;ul>
-&lt;li>UI with cost visibility and usage optimizations.&lt;/li>
-&lt;li>Request Recommendation adapts with Virtual Kubelet&lt;/li>
-&lt;li>Multiple Triggers for EPA&lt;/li>
-&lt;li>Node QOS Ensurance for Mem&lt;/li>
-&lt;li>Prediction with CPU, Memory, and Business Metrics&lt;/li>
-&lt;li>Scalability to support 1K TSP and 1K EPA&lt;/li>
-&lt;/ul>
-&lt;h3 id="040-released">0.4.0 [released]&lt;/h3>
-&lt;ul>
-&lt;li>UI to support EPA.&lt;/li>
-&lt;/ul>
-&lt;h3 id="050-released">0.5.0 [released]&lt;/h3>
-&lt;ul>
-&lt;li>Resource and Replicas Recommendation&lt;/li>
-&lt;li>Load-aware Scheduler&lt;/li>
-&lt;/ul>
-&lt;h3 id="060-released">0.6.0 [released]&lt;/h3>
-&lt;ul>
-&lt;li>Scalability to support 3k TSP and 3k EPA&lt;/li>
-&lt;li>Algorithm and QOS Documentation&lt;/li>
-&lt;li>EHPA grafana dashboard&lt;/li>
-&lt;li>DSP Algorithm Optimization&lt;/li>
-&lt;li>Support remote adapter for external metric&lt;/li>
-&lt;li>Prediction with business metrics&lt;/li>
-&lt;/ul>
-&lt;h3 id="070-july">0.7.0 [July]&lt;/h3>
-&lt;ul>
-&lt;li>Recommendation Framework&lt;/li>
-&lt;li>Crane-Descheduler based on CPU/Memory metrics&lt;/li>
-&lt;li>Offline Algorithm Evaluator&lt;/li>
-&lt;/ul>
-&lt;h3 id="080-august">0.8.0 [August]&lt;/h3>
-&lt;ul>
-&lt;li>External recommendation plugins&lt;/li>
-&lt;li>Built-in CICD Pipeline integration&lt;/li>
-&lt;li>CPU topology aware scheduler&lt;/li>
-&lt;li>Enhanced Console with resource optimization&lt;/li>
-&lt;/ul>
-&lt;h3 id="090-september">0.9.0 [September]&lt;/h3>
-&lt;ul>
-&lt;li>Flexible conflict prediction and detection&lt;/li>
-&lt;li>Builtin AI Prediction&lt;/li>
-&lt;li>Wastes discovery and dashboard&lt;/li>
-&lt;li>Enhanced Console with more cost visibility dashboard&lt;/li>
-&lt;/ul>
-&lt;h3 id="0100-october">0.10.0 [October]&lt;/h3>
-&lt;ul>
-&lt;li>Business Maturity Model Dashboard&lt;/li>
-&lt;li>In-place Update support by EVPA&lt;/li>
-&lt;li>Kubernetes and Elastic Kubernetes Service price comparison&lt;/li>
-&lt;/ul>
-&lt;h3 id="0110-november">0.11.0 [November]&lt;/h3>
-&lt;ul>
-&lt;li>Multi-cluster cost dashboard&lt;/li>
-&lt;/ul>
-&lt;h3 id="0120-december">0.12.0 [December]&lt;/h3>
-&lt;ul>
-&lt;li>Multi-cluster cost optimization&lt;/li>
-&lt;/ul></description></item><item><title>Docs: Code Standard</title><link>/docs/contributing/code-standards/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/contributing/code-standards/</guid><description>
-&lt;p>This doc describes the code standards and suggestion for crane project, mainly for new contributor of the project&lt;/p>
-&lt;h3 id="import-need-to-be-organized">import need to be organized&lt;/h3>
-&lt;p>import should be categorized with blank line as system imports, community imports and crane apis and crane imports, like the following example&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">import&lt;/span> (
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#e6db74">&amp;#34;reflect&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#e6db74">&amp;#34;sync&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#e6db74">&amp;#34;time&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">vpa&lt;/span> &lt;span style="color:#e6db74">&amp;#34;k8s.io/autoscaler/vertical-pod-autoscaler/pkg/recommender/util&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#e6db74">&amp;#34;github.com/gocrane/api/prediction/v1alpha1&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#e6db74">&amp;#34;github.com/gocrane/crane/pkg/utils&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#e6db74">&amp;#34;github.com/gocrane/crane/pkg/prediction/config&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>)
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="logs-standard">logs standard&lt;/h3>
-&lt;ul>
-&lt;li>logs are required for troubleshooting purpose&lt;/li>
-&lt;li>log message should always start with capital letter&lt;/li>
-&lt;li>log message should be a complete sentence that contains enough context, for example: object key, action, parameters, status, error message&lt;/li>
-&lt;li>by default, you don&amp;rsquo;t need to set log level&lt;/li>
-&lt;li>set 4 for debug level.&lt;/li>
-&lt;li>set 6 for more detail debug level.&lt;/li>
-&lt;li>set 10 for massive data log level.&lt;/li>
-&lt;li>can use klog.KObj() to contain object key to let we know which object the message is printed for&lt;/li>
-&lt;/ul>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">klog&lt;/span>.&lt;span style="color:#a6e22e">Infof&lt;/span>(&lt;span style="color:#e6db74">&amp;#34;Failed to setup webhook %s&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;value&amp;#34;&lt;/span>)
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">klog&lt;/span>.&lt;span style="color:#a6e22e">V&lt;/span>(&lt;span style="color:#ae81ff">4&lt;/span>).&lt;span style="color:#a6e22e">Infof&lt;/span>(&lt;span style="color:#e6db74">&amp;#34;Debug info %s&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;value&amp;#34;&lt;/span>)
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">klog&lt;/span>.&lt;span style="color:#a6e22e">Errorf&lt;/span>(&lt;span style="color:#e6db74">&amp;#34;Failed to get scale, ehpa %s error %v&amp;#34;&lt;/span>, &lt;span style="color:#a6e22e">klog&lt;/span>.&lt;span style="color:#a6e22e">KObj&lt;/span>(&lt;span style="color:#a6e22e">ehpa&lt;/span>), &lt;span style="color:#a6e22e">err&lt;/span>)
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">klog&lt;/span>.&lt;span style="color:#a6e22e">Error&lt;/span>(&lt;span style="color:#66d9ef">error&lt;/span>)
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">klog&lt;/span>.&lt;span style="color:#a6e22e">ErrorDepth&lt;/span>(&lt;span style="color:#ae81ff">5&lt;/span>, &lt;span style="color:#a6e22e">fmt&lt;/span>.&lt;span style="color:#a6e22e">Errorf&lt;/span>(&lt;span style="color:#e6db74">&amp;#34;failed to get ehpa %s: %v&amp;#34;&lt;/span>, &lt;span style="color:#a6e22e">klog&lt;/span>.&lt;span style="color:#a6e22e">KObj&lt;/span>(&lt;span style="color:#a6e22e">ehpa&lt;/span>), &lt;span style="color:#a6e22e">err&lt;/span>))
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="event-is-needed-for-critical-reconcile-loop">event is needed for critical reconcile loop&lt;/h3>
-&lt;ul>
-&lt;li>event is to let user know what happens on serverside, only print info we want user to know&lt;/li>
-&lt;li>consider failure paths and success paths&lt;/li>
-&lt;li>event do not need the object key&lt;/li>
-&lt;/ul>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">c&lt;/span>.&lt;span style="color:#a6e22e">Recorder&lt;/span>.&lt;span style="color:#a6e22e">Event&lt;/span>(&lt;span style="color:#a6e22e">ehpa&lt;/span>, &lt;span style="color:#a6e22e">v1&lt;/span>.&lt;span style="color:#a6e22e">EventTypeWarning&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;FailedGetSubstitute&amp;#34;&lt;/span>, &lt;span style="color:#a6e22e">err&lt;/span>.&lt;span style="color:#a6e22e">Error&lt;/span>())
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="comment">comment&lt;/h3>
-&lt;ul>
-&lt;li>every interface should have comments to clarify&lt;/li>
-&lt;li>comment should be a complete sentence&lt;/li>
-&lt;/ul>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// Interface is a source of monitoring metric that provides metrics that can be used for
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// prediction, such as &amp;#39;cpu usage&amp;#39;, &amp;#39;memory footprint&amp;#39;, &amp;#39;request per second (qps)&amp;#39;, etc.
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">Interface&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> {
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// GetTimeSeries returns the metric time series that meet the given
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#75715e">// conditions from the specified time range.
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">GetTimeSeries&lt;/span>(&lt;span style="color:#a6e22e">metricName&lt;/span> &lt;span style="color:#66d9ef">string&lt;/span>, &lt;span style="color:#a6e22e">Conditions&lt;/span> []&lt;span style="color:#a6e22e">common&lt;/span>.&lt;span style="color:#a6e22e">QueryCondition&lt;/span>,
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">startTime&lt;/span> &lt;span style="color:#a6e22e">time&lt;/span>.&lt;span style="color:#a6e22e">Time&lt;/span>, &lt;span style="color:#a6e22e">endTime&lt;/span> &lt;span style="color:#a6e22e">time&lt;/span>.&lt;span style="color:#a6e22e">Time&lt;/span>, &lt;span style="color:#a6e22e">step&lt;/span> &lt;span style="color:#a6e22e">time&lt;/span>.&lt;span style="color:#a6e22e">Duration&lt;/span>) ([]&lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">common&lt;/span>.&lt;span style="color:#a6e22e">TimeSeries&lt;/span>, &lt;span style="color:#66d9ef">error&lt;/span>)
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// GetLatestTimeSeries returns the latest metric values that meet the given conditions.
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">GetLatestTimeSeries&lt;/span>(&lt;span style="color:#a6e22e">metricName&lt;/span> &lt;span style="color:#66d9ef">string&lt;/span>, &lt;span style="color:#a6e22e">Conditions&lt;/span> []&lt;span style="color:#a6e22e">common&lt;/span>.&lt;span style="color:#a6e22e">QueryCondition&lt;/span>) ([]&lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">common&lt;/span>.&lt;span style="color:#a6e22e">TimeSeries&lt;/span>, &lt;span style="color:#66d9ef">error&lt;/span>)
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// QueryTimeSeries returns the time series based on a promql like query string.
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">QueryTimeSeries&lt;/span>(&lt;span style="color:#a6e22e">queryExpr&lt;/span> &lt;span style="color:#66d9ef">string&lt;/span>, &lt;span style="color:#a6e22e">startTime&lt;/span> &lt;span style="color:#a6e22e">time&lt;/span>.&lt;span style="color:#a6e22e">Time&lt;/span>, &lt;span style="color:#a6e22e">endTime&lt;/span> &lt;span style="color:#a6e22e">time&lt;/span>.&lt;span style="color:#a6e22e">Time&lt;/span>, &lt;span style="color:#a6e22e">step&lt;/span> &lt;span style="color:#a6e22e">time&lt;/span>.&lt;span style="color:#a6e22e">Duration&lt;/span>) ([]&lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">common&lt;/span>.&lt;span style="color:#a6e22e">TimeSeries&lt;/span>, &lt;span style="color:#66d9ef">error&lt;/span>)
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// QueryLatestTimeSeries returns the latest metric values that meet the given query.
-&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">QueryLatestTimeSeries&lt;/span>(&lt;span style="color:#a6e22e">queryExpr&lt;/span> &lt;span style="color:#66d9ef">string&lt;/span>) ([]&lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">common&lt;/span>.&lt;span style="color:#a6e22e">TimeSeries&lt;/span>, &lt;span style="color:#66d9ef">error&lt;/span>)
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="functions">functions&lt;/h3>
-&lt;ul>
-&lt;li>function name should clarify what do this function do, for example: verb + noun&lt;/li>
-&lt;li>similar functions should be refactored, merge or divide them&lt;/li>
-&lt;li>common functions should move to common folder like utils&lt;/li>
-&lt;/ul>
-&lt;h3 id="variable">variable&lt;/h3>
-&lt;ul>
-&lt;li>variable name should clarify what do this variable does, better not use too short name and too simple name&lt;/li>
-&lt;li>better to use more meaningful variable name for tmp variable, for example: foo loop&lt;/li>
-&lt;/ul>
-&lt;h3 id="folder-and-file">folder and file&lt;/h3>
-&lt;ul>
-&lt;li>folder name should be letter with lower case and number&lt;/li>
-&lt;li>file name should be letter and number and _&lt;/li>
-&lt;/ul>
-&lt;h3 id="unit-test">unit test&lt;/h3>
-&lt;ul>
-&lt;li>Test-driven developing&lt;/li>
-&lt;li>Complex function that include condition decide should add unit test for it&lt;/li>
-&lt;/ul>
-&lt;h3 id="dont-forget-to-run-make-fmt-before-you-submit-code">don&amp;rsquo;t forget to run &lt;code>make fmt&lt;/code> before you submit code&lt;/h3></description></item><item><title>Docs: Dynamic-scheduler: a load-aware scheduler plugin</title><link>/docs/tutorials/dynamic-scheduler-plugin/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/dynamic-scheduler-plugin/</guid><description>
-&lt;p>Native scheduler of kubernetes can only schedule pods by resource request, which can easily cause a series of load uneven problems:&lt;/p>
-&lt;ul>
-&lt;li>for some nodes, the actual load is not much different from the resource request, which will lead to a very high probability of stability problems.&lt;/li>
-&lt;li>for others, the actual load is much smaller than the resource request, which will lead to a huge waste of resources.&lt;/li>
-&lt;/ul>
-&lt;p>To solve these problems, Dynamic scheduler builds a simple but efficient model based on actual node utilization data，and filters out those nodes with high load to balance the cluster.&lt;/p>
-&lt;h2 id="design-details">Design Details&lt;/h2>
-&lt;h3 id="architecture">Architecture&lt;/h3>
-&lt;p>&lt;img src="/images/dynamic-scheduler-plugin.png" alt="">&lt;/p>
-&lt;p>As shown above, Dynamic scheduler relies on &lt;code>Prometheus&lt;/code> and &lt;code>Node-exporter&lt;/code> to collect and aggregate metrics data, and it consists of two components:
-!!! note &amp;ldquo;Note&amp;rdquo;
-&lt;code>Node-annotator&lt;/code> is currently a module of &lt;code>Crane-scheduler-controller&lt;/code>.&lt;/p>
-&lt;ul>
-&lt;li>&lt;code>Node-annotator&lt;/code> periodically pulls data from Prometheus and marks them with timestamp on the node in the form of annotations.&lt;/li>
-&lt;li>&lt;code>Dynamic plugin&lt;/code> reads the load data directly from the node&amp;rsquo;s annotation, filters and scores candidates based on a simple algorithm.&lt;/li>
-&lt;/ul>
-&lt;h3 id="scheduler-policy">Scheduler Policy&lt;/h3>
-&lt;p>Dynamic provides a default &lt;a href="../deploy/manifests/policy.yaml">scheduler policy&lt;/a> and supports user-defined policies. The default policy reies on following metrics:&lt;/p>
-&lt;ul>
-&lt;li>&lt;code>cpu_usage_avg_5m&lt;/code>&lt;/li>
-&lt;li>&lt;code>cpu_usage_max_avg_1h&lt;/code>&lt;/li>
-&lt;li>&lt;code>cpu_usage_max_avg_1d&lt;/code>&lt;/li>
-&lt;li>&lt;code>mem_usage_avg_5m&lt;/code>&lt;/li>
-&lt;li>&lt;code>mem_usage_max_avg_1h&lt;/code>&lt;/li>
-&lt;li>&lt;code>mem_usage_max_avg_1d&lt;/code>&lt;/li>
-&lt;/ul>
-&lt;p>At the scheduling &lt;code>Filter&lt;/code> stage, the node will be filtered if the actual usage rate of this node is greater than the threshold of any of the above metrics. And at the &lt;code>Score&lt;/code> stage, the final score is the weighted sum of these metrics&amp;rsquo; values.&lt;/p>
-&lt;h3 id="hot-value">Hot Value&lt;/h3>
-&lt;p>In the production cluster, scheduling hotspots may occur frequently because the load of the nodes can not increase immediately after the pod is created. Therefore, we define an extra metrics named &lt;code>Hot Value&lt;/code>, which represents the scheduling frequency of the node in recent times. And the final priority of the node is the final score minus the &lt;code>Hot Value&lt;/code>.&lt;/p></description></item><item><title>Docs: Installation</title><link>/docs/getting-started/installation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/getting-started/installation/</guid><description>
+&lt;p>&lt;img src="/images/developer-guide/make_image_docker_images.jpg" alt="make_image_docker_images">&lt;/p></description></item><item><title>Docs: Installation</title><link>/docs/installation/installation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/installation/installation/</guid><description>
 &lt;h2 id="prerequisites">Prerequisites&lt;/h2>
 &lt;ul>
 &lt;li>Kubernetes 1.18+&lt;/li>
@@ -1433,7 +1029,411 @@ $ curl -H &amp;#34;Host: dashboard.gocrane.io&amp;#34; 10.200.0.6
 &lt;p>Get the Grafana URL to visit by running these commands in the same shell:&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>export POD_NAME&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#66d9ef">$(&lt;/span>kubectl get pods --namespace crane-system -l &lt;span style="color:#e6db74">&amp;#34;app.kubernetes.io/name=grafana,app.kubernetes.io/instance=grafana&amp;#34;&lt;/span> -o jsonpath&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;{.items[0].metadata.name}&amp;#34;&lt;/span>&lt;span style="color:#66d9ef">)&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>kubectl --namespace crane-system port-forward $POD_NAME &lt;span style="color:#ae81ff">3000&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>visit &lt;a href="http://127.0.0.1:3000/dashboards">Cost Report&lt;/a> here with account(admin:admin).&lt;/p></description></item><item><title>Docs: Recommendation Framework</title><link>/docs/proposals/20220706-recommendation-framework/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/proposals/20220706-recommendation-framework/</guid><description>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>visit &lt;a href="http://127.0.0.1:3000/dashboards">Cost Report&lt;/a> here with account(admin:admin).&lt;/p></description></item><item><title>Docs: Provide a policy-based abnormal detection mechanism in crane-agent</title><link>/docs/proposals/20220402-policy-based-abnomal-detection/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/proposals/20220402-policy-based-abnomal-detection/</guid><description>
+&lt;h2 id="summary">Summary&lt;/h2>
+&lt;p>Crane-agent is responsible for detecting abnormality on nodes and interference between running pods.&lt;/p>
+&lt;p>Currently, such detection mechanism is fixed and quite simple.
+Crane-agent compares the values of some pre-defined metrics, such as node&amp;rsquo;s &lt;code>cpu_total_usage&lt;/code> and &lt;code>cpu_total_utilization&lt;/code>,
+with some thresholds periodically. If the metric value is higher the threshold for some times, say the &lt;code>cpu_total_utilization&lt;/code>
+on a node is found higher than 80% in 3 consecutive detections, crane-agent thinks the node entering into an abnormal status,
+and will perform some further actions, such as suppressing or evicting pods with low priorities.&lt;/p>
+&lt;p>This proposal suggests a flexible and extensible way to detect abnormality. The criteria of abnormality can be customized by
+users in form of policies, and the detection process is executed in a policy decision-making way, which is offloaded to a
+general-purpose policy engine.&lt;/p>
+&lt;h2 id="motivation">Motivation&lt;/h2>
+&lt;p>The criteria of abnormality or interference are not that always as simple as something like a metric value is higher than a threshold.
+Different users may have different QOS requirements on different applications in different environments. The rule of
+abnormality detection varies, and it is impossible to implement all of them in code in advance.&lt;/p>
+&lt;h3 id="goals">Goals&lt;/h3>
+&lt;ol>
+&lt;li>Provides an abnormality detection mechanism which can consume external metrics.&lt;/li>
+&lt;li>Provides an abnormality detection mechanism in which the logic determining how to check the abnormality can be customized.&lt;/li>
+&lt;li>Metrics and detection policies can be added, updated and deleted on the fly without changing the code.&lt;/li>
+&lt;/ol>
+&lt;h3 id="non-goals">Non-Goals&lt;/h3>
+&lt;ol>
+&lt;li>How to handle the abnormality or interference. This proposal only focuses on detection, and the subsequent action is
+out of scope.&lt;/li>
+&lt;/ol>
+&lt;h2 id="proposal">Proposal&lt;/h2>
+&lt;h3 id="user-stories">User Stories&lt;/h3>
+&lt;h4 id="story-1">Story 1&lt;/h4>
+&lt;p>A user has a critical online application which is latency sensitive running in the cluster, and he wants to use both
+the 99th percentile response time and the error code rate as the application QOS indicators. If either of these 2 indicators
+deteriorates, the application is thought of being in abnormal status.&lt;/p>
+&lt;h4 id="story-2">Story 2&lt;/h4>
+&lt;p>The SRE team finds that if the node CPU utilization is more than 60%, the QOS of some latency sensitive applications
+running on it are likely to decline. So they want to keep the node CPU utilization lower than 60%.
+If the utilization is higher than this threshold, the BE applications should be suppressed
+accordingly.&lt;/p>
+&lt;h4 id="story-3">Story 3&lt;/h4>
+&lt;p>The traffic of online applications is very low at night, and the offline jobs are run during this time.
+Comparing with online applications, offline jobs always require more CPU resource quantities but less resource qualities.
+In this case, the SRE team wants to set different node CPU load thresholds in the daytime and at night.&lt;/p>
+&lt;h3 id="functional-requirements">Functional Requirements&lt;/h3>
+&lt;h3 id="implementation-details">Implementation Details&lt;/h3>
+&lt;h4 id="api">API&lt;/h4>
+&lt;p>#####NodeQOSEnsurancePolicy&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">ensurance.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">NodeQOSEnsurancePolicy&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;xxx&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">nodeQualityProbe&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">prometheus&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targets&lt;/span>: [&lt;span style="color:#e6db74">&amp;#39;localhost:9090&amp;#39;&lt;/span>]
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">queryInterval&lt;/span>: &lt;span style="color:#ae81ff">60s&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">metrics&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">node_cpu_utilization&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">query&lt;/span>: &lt;span style="color:#ae81ff">1&lt;/span> - &lt;span style="color:#ae81ff">avg(irate(node_cpu_seconds_total{mode=&amp;#34;idle&amp;#34;, instance=&amp;#34;$nodeName&amp;#34;}[5m]))&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">variables&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">nodeName&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">valueFrom&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">fieldRef&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">fieldPath&lt;/span>: &lt;span style="color:#ae81ff">spec.nodeName&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">objectiveEnsurances&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;ext_cpu_total_distribute&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">avoidanceThreshold&lt;/span>: &lt;span style="color:#ae81ff">2&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">restoreThreshold&lt;/span>: &lt;span style="color:#ae81ff">2&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">actionName&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;disablescheduling&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">policy&lt;/span>: |&lt;span style="color:#e6db74">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> default abnormal = false
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> hour := time.clock([time.now_ns(), &amp;#34;Local&amp;#34;])[0]
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> abnormal {
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> input.node_cpu_utilization &amp;gt; 0.6
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> hour &amp;gt;= 7, hour &amp;lt; 21
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> }
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> abnormal {
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> input.node_cpu_utilization &amp;gt; 0.8
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> hour &amp;gt;= 21
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> }
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> abnormal {
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> input.node_cpu_utilization &amp;gt; 0.8
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> hour &amp;lt; 7
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> }&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>#####PodQOSEnsurancePolicy&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">ensurance.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">PodQOSEnsurancePolicy&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;xxx&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">selector&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">matchLabels&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">app&lt;/span>: &lt;span style="color:#ae81ff">test&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">qualityProbe&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">prometheus&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targets&lt;/span>: [&lt;span style="color:#e6db74">&amp;#39;localhost:9090&amp;#39;&lt;/span>]
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">queryInterval&lt;/span>: &lt;span style="color:#ae81ff">60s&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">metrics&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">test_app_p90_latency&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">query&lt;/span>: &lt;span style="color:#ae81ff">histogram_quantile(0.9, rate(http_request_duration_seconds_bucket{pod=~&amp;#34;$podName&amp;#34;, node=&amp;#34;$nodeName&amp;#34;}[1m]))&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">variables&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">podName&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">valueFrom&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">fieldRef&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">fieldPath&lt;/span>: &lt;span style="color:#ae81ff">metadata.name&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">nodeName&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">valueFrom&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">fieldRef&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">fieldPath&lt;/span>: &lt;span style="color:#ae81ff">spec.nodeName&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">objectiveEnsurances&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;ext_cpu_total_distribute&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">avoidanceThreshold&lt;/span>: &lt;span style="color:#ae81ff">2&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">restoreThreshold&lt;/span>: &lt;span style="color:#ae81ff">2&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">actionName&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;disablescheduling&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">policy&lt;/span>: |&lt;span style="color:#e6db74">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> &lt;/span> &lt;span style="color:#ae81ff">abnormal if test_app_p90_latency[_].value &amp;gt; 0.1&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>In addition to &lt;code>Prometheus&lt;/code>, other protocols, such as &lt;code>Graphite&lt;/code>, &lt;code>InfluxDB&lt;/code> can also
+be added in the future.&lt;/p>
+&lt;h4 id="metrics">Metrics&lt;/h4>
+&lt;h4 id="built-in-metrics">Built-in metrics&lt;/h4>
+&lt;p>Currently, crane-agent collects a bunch of metrics(defined in &lt;code>pkg/ensurance/collector/types/types.go&lt;/code>, e.g.
+&lt;code>cpu_total_usage&lt;/code>).
+These metrics are collected by &lt;code>nodelocal&lt;/code> and &lt;code>cadvisor&lt;/code> collectors, both of which collects metrics every 10 seconds.&lt;/p>
+&lt;p>We call these metrics as built-in metrics. Users can use built-in metrics in the policy without explicit setting, and
+crane-agent will pass their values to every request to policy engine.&lt;/p>
+&lt;h5 id="external-metrics-new">External metrics (New)&lt;/h5>
+&lt;p>Crane-agent can also get &lt;code>external&lt;/code> metrics by querying against prometheus servers. A new &lt;code>prometheus&lt;/code> quality probe
+will be added to CRDs &lt;code>PodQOSEnsurancePolicy&lt;/code> and &lt;code>NodeQOSEnsurancePolicy&lt;/code> as shown in above 2 example yamls.&lt;/p>
+&lt;p>In &lt;a href="#PodQOSEnsurancePolicy">PodQOSEnsurancePolicy&lt;/a>, &lt;code>.spec.nodeQualityProbe.prometheus.metrics.query&lt;/code> is a promQL, which
+may includes some node variables (prefixed with &lt;code>$&lt;/code>). In this case, crane-agent will use its node name
+to replace the variable &lt;code>$nodeName&lt;/code>.&lt;/p>
+&lt;p>In &lt;a href="#PodQOSEnsurancePolicy">PodQOSEnsurancePolicy&lt;/a>, &lt;code>.spec.qualityProbe.prometheus.metrics.query&lt;/code> is a promQL, which
+may includes some pod related variables (&lt;code>$nodeName&lt;/code>, &lt;code>$podName&lt;/code> in this example). Crane-agent will firstly
+get all pods that match the &lt;code>.spec.selector.matchLabels&lt;/code> on its node. Say two pods are selected, and
+their names are &lt;code>pod-1&lt;/code> and &lt;code>pod-2&lt;/code>, and the node name is &lt;code>node-1&lt;/code>. The replaced promQL will be&lt;/p>
+&lt;pre tabindex="0">&lt;code>histogram_quantile(0.9, rate(http_request_duration_seconds_bucket{pod=~&amp;#34;pod-1|pod-2&amp;#34;, node=&amp;#34;node-1&amp;#34;}[1m]))
+&lt;/code>&lt;/pre>&lt;p>And 2 query results are expected to get returned, like:&lt;/p>
+&lt;pre tabindex="0">&lt;code>test_app_p90_latency{pod=&amp;#34;pod-1&amp;#34;, ...} 0.01
+test_app_p90_latency{pod=&amp;#34;pod-2&amp;#34;, ...} 0.01
+&lt;/code>&lt;/pre>&lt;p>Simply speaking, variables in promQL help crane-agent only query metrics of its own node and the pods that running on its own node.&lt;/p>
+&lt;h4 id="embedded-metrics-tsdb">Embedded metrics TSDB&lt;/h4>
+&lt;p>In order to decouple the components that collect metrics and those which consume the metrics, and to
+make these components&amp;rsquo; logic simple, an embedded metrics TSDB will be imported into crane-agent.&lt;/p>
+&lt;p>Prometheus-tsdb and vmstorage are two good candidates, both of which are easy to insert values and are
+compatible with promQL query grammar.&lt;/p>
+&lt;p>Both analyzer and executor fetch metrics from the TSDB without considering where the metrics come from.&lt;/p>
+&lt;p>&lt;img src="/images/tsdb.png" alt="">&lt;/p>
+&lt;h4 id="policy">Policy&lt;/h4>
+&lt;p>The Open Policy Agent (OPA) is an open source, general-purpose policy engine that unifies policy enforcement.
+Crane-agent will use it to evaluate if nodes or pods are abnormal.&lt;/p>
+&lt;p>The criteria for detecting abnormality is not pre-defined or hardcoded, instead, it is customized by users
+at runtime.&lt;/p>
+&lt;p>A &lt;code>policy&lt;/code> filed will be added to &lt;code>ObjectiveEnsurance&lt;/code>, which is
+a &lt;a href="https://www.openpolicyagent.org/docs/latest/policy-language/">rego&lt;/a> rule whose result is a boolean
+element.&lt;/p>
+&lt;p>crane-agent will feed both the latest built-in and external metrics as input into the OPA policy engine, and OPA
+make decisions based on input and policies.&lt;/p>
+&lt;p>&lt;img src="/images/opa.png" alt="">&lt;/p>
+&lt;p>A sample input is as follows:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-json" data-lang="json">&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;crane&amp;#34;&lt;/span>: {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;cpu_total_usage&amp;#34;&lt;/span>: &lt;span style="color:#ae81ff">4680&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#960050;background-color:#1e0010">...&lt;/span> &lt;span style="color:#960050;background-color:#1e0010">orhter&lt;/span> &lt;span style="color:#960050;background-color:#1e0010">built-in&lt;/span> &lt;span style="color:#960050;background-color:#1e0010">mertrcs&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> },
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;test_app_p90_latency&amp;#34;&lt;/span>: [
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;labels&amp;#34;&lt;/span>: {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;pod&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;pod-1&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;node&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;node-1&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> },
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;value&amp;#34;&lt;/span>: &lt;span style="color:#ae81ff">0.1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> },
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;labels&amp;#34;&lt;/span>: {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;pod&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;pod-2&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;node&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;node-1&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> },
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;value&amp;#34;&lt;/span>: &lt;span style="color:#ae81ff">0.09&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> ],
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#960050;background-color:#1e0010">...&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div></description></item><item><title>Docs: Roadmap for 2022</title><link>/docs/roadmap/roadmap-2022/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/roadmap/roadmap-2022/</guid><description>
+&lt;p>Please refer the following sections for Crane release plan of H1 2022, new release will be cut on monthly basis.&lt;/p>
+&lt;p>Please let us know if you have urgent needs which are not presented in the plan.&lt;/p>
+&lt;h3 id="010-released">0.1.0 [released]&lt;/h3>
+&lt;ul>
+&lt;li>Predictor to support Moving Windows and DSP algorithms&lt;/li>
+&lt;li>Resource Request Recommendation and Effective Horizontal Pod Autoscaler&lt;/li>
+&lt;li>Grafana Dashboard to view resource utilization and cost trends&lt;/li>
+&lt;li>fadvisor to support billing&lt;/li>
+&lt;/ul>
+&lt;h3 id="020released">0.2.0：[released]&lt;/h3>
+&lt;ul>
+&lt;li>Multiple Metric Adaptor support&lt;/li>
+&lt;li>Node QOS Ensurance for CPU&lt;/li>
+&lt;li>Operation Metrics about R3 and EPA applied ratio&lt;/li>
+&lt;/ul>
+&lt;h3 id="030-released">0.3.0 [released]&lt;/h3>
+&lt;ul>
+&lt;li>UI with cost visibility and usage optimizations.&lt;/li>
+&lt;li>Request Recommendation adapts with Virtual Kubelet&lt;/li>
+&lt;li>Multiple Triggers for EPA&lt;/li>
+&lt;li>Node QOS Ensurance for Mem&lt;/li>
+&lt;li>Prediction with CPU, Memory, and Business Metrics&lt;/li>
+&lt;li>Scalability to support 1K TSP and 1K EPA&lt;/li>
+&lt;/ul>
+&lt;h3 id="040-released">0.4.0 [released]&lt;/h3>
+&lt;ul>
+&lt;li>UI to support EPA.&lt;/li>
+&lt;/ul>
+&lt;h3 id="050-released">0.5.0 [released]&lt;/h3>
+&lt;ul>
+&lt;li>Resource and Replicas Recommendation&lt;/li>
+&lt;li>Load-aware Scheduler&lt;/li>
+&lt;/ul>
+&lt;h3 id="060-released">0.6.0 [released]&lt;/h3>
+&lt;ul>
+&lt;li>Scalability to support 3k TSP and 3k EPA&lt;/li>
+&lt;li>Algorithm and QOS Documentation&lt;/li>
+&lt;li>EHPA grafana dashboard&lt;/li>
+&lt;li>DSP Algorithm Optimization&lt;/li>
+&lt;li>Support remote adapter for external metric&lt;/li>
+&lt;li>Prediction with business metrics&lt;/li>
+&lt;/ul>
+&lt;h3 id="070-july">0.7.0 [July]&lt;/h3>
+&lt;ul>
+&lt;li>Recommendation Framework&lt;/li>
+&lt;li>Crane-Descheduler based on CPU/Memory metrics&lt;/li>
+&lt;li>Offline Algorithm Evaluator&lt;/li>
+&lt;/ul>
+&lt;h3 id="080-august">0.8.0 [August]&lt;/h3>
+&lt;ul>
+&lt;li>External recommendation plugins&lt;/li>
+&lt;li>Built-in CICD Pipeline integration&lt;/li>
+&lt;li>CPU topology aware scheduler&lt;/li>
+&lt;li>Enhanced Console with resource optimization&lt;/li>
+&lt;/ul>
+&lt;h3 id="090-september">0.9.0 [September]&lt;/h3>
+&lt;ul>
+&lt;li>Flexible conflict prediction and detection&lt;/li>
+&lt;li>Builtin AI Prediction&lt;/li>
+&lt;li>Wastes discovery and dashboard&lt;/li>
+&lt;li>Enhanced Console with more cost visibility dashboard&lt;/li>
+&lt;/ul>
+&lt;h3 id="0100-october">0.10.0 [October]&lt;/h3>
+&lt;ul>
+&lt;li>Business Maturity Model Dashboard&lt;/li>
+&lt;li>In-place Update support by EVPA&lt;/li>
+&lt;li>Kubernetes and Elastic Kubernetes Service price comparison&lt;/li>
+&lt;/ul>
+&lt;h3 id="0110-november">0.11.0 [November]&lt;/h3>
+&lt;ul>
+&lt;li>Multi-cluster cost dashboard&lt;/li>
+&lt;/ul>
+&lt;h3 id="0120-december">0.12.0 [December]&lt;/h3>
+&lt;ul>
+&lt;li>Multi-cluster cost optimization&lt;/li>
+&lt;/ul></description></item><item><title>Docs: Code Standard</title><link>/docs/contributing/code-standards/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/contributing/code-standards/</guid><description>
+&lt;p>This doc describes the code standards and suggestion for crane project, mainly for new contributor of the project&lt;/p>
+&lt;h3 id="import-need-to-be-organized">import need to be organized&lt;/h3>
+&lt;p>import should be categorized with blank line as system imports, community imports and crane apis and crane imports, like the following example&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">import&lt;/span> (
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#e6db74">&amp;#34;reflect&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#e6db74">&amp;#34;sync&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#e6db74">&amp;#34;time&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">vpa&lt;/span> &lt;span style="color:#e6db74">&amp;#34;k8s.io/autoscaler/vertical-pod-autoscaler/pkg/recommender/util&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#e6db74">&amp;#34;github.com/gocrane/api/prediction/v1alpha1&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#e6db74">&amp;#34;github.com/gocrane/crane/pkg/utils&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#e6db74">&amp;#34;github.com/gocrane/crane/pkg/prediction/config&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>)
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="logs-standard">logs standard&lt;/h3>
+&lt;ul>
+&lt;li>logs are required for troubleshooting purpose&lt;/li>
+&lt;li>log message should always start with capital letter&lt;/li>
+&lt;li>log message should be a complete sentence that contains enough context, for example: object key, action, parameters, status, error message&lt;/li>
+&lt;li>by default, you don&amp;rsquo;t need to set log level&lt;/li>
+&lt;li>set 4 for debug level.&lt;/li>
+&lt;li>set 6 for more detail debug level.&lt;/li>
+&lt;li>set 10 for massive data log level.&lt;/li>
+&lt;li>can use klog.KObj() to contain object key to let we know which object the message is printed for&lt;/li>
+&lt;/ul>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">klog&lt;/span>.&lt;span style="color:#a6e22e">Infof&lt;/span>(&lt;span style="color:#e6db74">&amp;#34;Failed to setup webhook %s&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;value&amp;#34;&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">klog&lt;/span>.&lt;span style="color:#a6e22e">V&lt;/span>(&lt;span style="color:#ae81ff">4&lt;/span>).&lt;span style="color:#a6e22e">Infof&lt;/span>(&lt;span style="color:#e6db74">&amp;#34;Debug info %s&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;value&amp;#34;&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">klog&lt;/span>.&lt;span style="color:#a6e22e">Errorf&lt;/span>(&lt;span style="color:#e6db74">&amp;#34;Failed to get scale, ehpa %s error %v&amp;#34;&lt;/span>, &lt;span style="color:#a6e22e">klog&lt;/span>.&lt;span style="color:#a6e22e">KObj&lt;/span>(&lt;span style="color:#a6e22e">ehpa&lt;/span>), &lt;span style="color:#a6e22e">err&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">klog&lt;/span>.&lt;span style="color:#a6e22e">Error&lt;/span>(&lt;span style="color:#66d9ef">error&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">klog&lt;/span>.&lt;span style="color:#a6e22e">ErrorDepth&lt;/span>(&lt;span style="color:#ae81ff">5&lt;/span>, &lt;span style="color:#a6e22e">fmt&lt;/span>.&lt;span style="color:#a6e22e">Errorf&lt;/span>(&lt;span style="color:#e6db74">&amp;#34;failed to get ehpa %s: %v&amp;#34;&lt;/span>, &lt;span style="color:#a6e22e">klog&lt;/span>.&lt;span style="color:#a6e22e">KObj&lt;/span>(&lt;span style="color:#a6e22e">ehpa&lt;/span>), &lt;span style="color:#a6e22e">err&lt;/span>))
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="event-is-needed-for-critical-reconcile-loop">event is needed for critical reconcile loop&lt;/h3>
+&lt;ul>
+&lt;li>event is to let user know what happens on serverside, only print info we want user to know&lt;/li>
+&lt;li>consider failure paths and success paths&lt;/li>
+&lt;li>event do not need the object key&lt;/li>
+&lt;/ul>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">c&lt;/span>.&lt;span style="color:#a6e22e">Recorder&lt;/span>.&lt;span style="color:#a6e22e">Event&lt;/span>(&lt;span style="color:#a6e22e">ehpa&lt;/span>, &lt;span style="color:#a6e22e">v1&lt;/span>.&lt;span style="color:#a6e22e">EventTypeWarning&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;FailedGetSubstitute&amp;#34;&lt;/span>, &lt;span style="color:#a6e22e">err&lt;/span>.&lt;span style="color:#a6e22e">Error&lt;/span>())
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="comment">comment&lt;/h3>
+&lt;ul>
+&lt;li>every interface should have comments to clarify&lt;/li>
+&lt;li>comment should be a complete sentence&lt;/li>
+&lt;/ul>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// Interface is a source of monitoring metric that provides metrics that can be used for
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// prediction, such as &amp;#39;cpu usage&amp;#39;, &amp;#39;memory footprint&amp;#39;, &amp;#39;request per second (qps)&amp;#39;, etc.
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">Interface&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// GetTimeSeries returns the metric time series that meet the given
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#75715e">// conditions from the specified time range.
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">GetTimeSeries&lt;/span>(&lt;span style="color:#a6e22e">metricName&lt;/span> &lt;span style="color:#66d9ef">string&lt;/span>, &lt;span style="color:#a6e22e">Conditions&lt;/span> []&lt;span style="color:#a6e22e">common&lt;/span>.&lt;span style="color:#a6e22e">QueryCondition&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">startTime&lt;/span> &lt;span style="color:#a6e22e">time&lt;/span>.&lt;span style="color:#a6e22e">Time&lt;/span>, &lt;span style="color:#a6e22e">endTime&lt;/span> &lt;span style="color:#a6e22e">time&lt;/span>.&lt;span style="color:#a6e22e">Time&lt;/span>, &lt;span style="color:#a6e22e">step&lt;/span> &lt;span style="color:#a6e22e">time&lt;/span>.&lt;span style="color:#a6e22e">Duration&lt;/span>) ([]&lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">common&lt;/span>.&lt;span style="color:#a6e22e">TimeSeries&lt;/span>, &lt;span style="color:#66d9ef">error&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// GetLatestTimeSeries returns the latest metric values that meet the given conditions.
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">GetLatestTimeSeries&lt;/span>(&lt;span style="color:#a6e22e">metricName&lt;/span> &lt;span style="color:#66d9ef">string&lt;/span>, &lt;span style="color:#a6e22e">Conditions&lt;/span> []&lt;span style="color:#a6e22e">common&lt;/span>.&lt;span style="color:#a6e22e">QueryCondition&lt;/span>) ([]&lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">common&lt;/span>.&lt;span style="color:#a6e22e">TimeSeries&lt;/span>, &lt;span style="color:#66d9ef">error&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// QueryTimeSeries returns the time series based on a promql like query string.
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">QueryTimeSeries&lt;/span>(&lt;span style="color:#a6e22e">queryExpr&lt;/span> &lt;span style="color:#66d9ef">string&lt;/span>, &lt;span style="color:#a6e22e">startTime&lt;/span> &lt;span style="color:#a6e22e">time&lt;/span>.&lt;span style="color:#a6e22e">Time&lt;/span>, &lt;span style="color:#a6e22e">endTime&lt;/span> &lt;span style="color:#a6e22e">time&lt;/span>.&lt;span style="color:#a6e22e">Time&lt;/span>, &lt;span style="color:#a6e22e">step&lt;/span> &lt;span style="color:#a6e22e">time&lt;/span>.&lt;span style="color:#a6e22e">Duration&lt;/span>) ([]&lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">common&lt;/span>.&lt;span style="color:#a6e22e">TimeSeries&lt;/span>, &lt;span style="color:#66d9ef">error&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// QueryLatestTimeSeries returns the latest metric values that meet the given query.
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#a6e22e">QueryLatestTimeSeries&lt;/span>(&lt;span style="color:#a6e22e">queryExpr&lt;/span> &lt;span style="color:#66d9ef">string&lt;/span>) ([]&lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#a6e22e">common&lt;/span>.&lt;span style="color:#a6e22e">TimeSeries&lt;/span>, &lt;span style="color:#66d9ef">error&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="functions">functions&lt;/h3>
+&lt;ul>
+&lt;li>function name should clarify what do this function do, for example: verb + noun&lt;/li>
+&lt;li>similar functions should be refactored, merge or divide them&lt;/li>
+&lt;li>common functions should move to common folder like utils&lt;/li>
+&lt;/ul>
+&lt;h3 id="variable">variable&lt;/h3>
+&lt;ul>
+&lt;li>variable name should clarify what do this variable does, better not use too short name and too simple name&lt;/li>
+&lt;li>better to use more meaningful variable name for tmp variable, for example: foo loop&lt;/li>
+&lt;/ul>
+&lt;h3 id="folder-and-file">folder and file&lt;/h3>
+&lt;ul>
+&lt;li>folder name should be letter with lower case and number&lt;/li>
+&lt;li>file name should be letter and number and _&lt;/li>
+&lt;/ul>
+&lt;h3 id="unit-test">unit test&lt;/h3>
+&lt;ul>
+&lt;li>Test-driven developing&lt;/li>
+&lt;li>Complex function that include condition decide should add unit test for it&lt;/li>
+&lt;/ul>
+&lt;h3 id="dont-forget-to-run-make-fmt-before-you-submit-code">don&amp;rsquo;t forget to run &lt;code>make fmt&lt;/code> before you submit code&lt;/h3></description></item><item><title>Docs: Dynamic-scheduler: a load-aware scheduler plugin</title><link>/docs/tutorials/dynamic-scheduler-plugin/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/dynamic-scheduler-plugin/</guid><description>
+&lt;p>Native scheduler of kubernetes can only schedule pods by resource request, which can easily cause a series of load uneven problems:&lt;/p>
+&lt;ul>
+&lt;li>for some nodes, the actual load is not much different from the resource request, which will lead to a very high probability of stability problems.&lt;/li>
+&lt;li>for others, the actual load is much smaller than the resource request, which will lead to a huge waste of resources.&lt;/li>
+&lt;/ul>
+&lt;p>To solve these problems, Dynamic scheduler builds a simple but efficient model based on actual node utilization data，and filters out those nodes with high load to balance the cluster.&lt;/p>
+&lt;h2 id="design-details">Design Details&lt;/h2>
+&lt;h3 id="architecture">Architecture&lt;/h3>
+&lt;p>&lt;img src="/images/dynamic-scheduler-plugin.png" alt="">&lt;/p>
+&lt;p>As shown above, Dynamic scheduler relies on &lt;code>Prometheus&lt;/code> and &lt;code>Node-exporter&lt;/code> to collect and aggregate metrics data, and it consists of two components:
+!!! note &amp;ldquo;Note&amp;rdquo;
+&lt;code>Node-annotator&lt;/code> is currently a module of &lt;code>Crane-scheduler-controller&lt;/code>.&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>Node-annotator&lt;/code> periodically pulls data from Prometheus and marks them with timestamp on the node in the form of annotations.&lt;/li>
+&lt;li>&lt;code>Dynamic plugin&lt;/code> reads the load data directly from the node&amp;rsquo;s annotation, filters and scores candidates based on a simple algorithm.&lt;/li>
+&lt;/ul>
+&lt;h3 id="scheduler-policy">Scheduler Policy&lt;/h3>
+&lt;p>Dynamic provides a default &lt;a href="../deploy/manifests/policy.yaml">scheduler policy&lt;/a> and supports user-defined policies. The default policy reies on following metrics:&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>cpu_usage_avg_5m&lt;/code>&lt;/li>
+&lt;li>&lt;code>cpu_usage_max_avg_1h&lt;/code>&lt;/li>
+&lt;li>&lt;code>cpu_usage_max_avg_1d&lt;/code>&lt;/li>
+&lt;li>&lt;code>mem_usage_avg_5m&lt;/code>&lt;/li>
+&lt;li>&lt;code>mem_usage_max_avg_1h&lt;/code>&lt;/li>
+&lt;li>&lt;code>mem_usage_max_avg_1d&lt;/code>&lt;/li>
+&lt;/ul>
+&lt;p>At the scheduling &lt;code>Filter&lt;/code> stage, the node will be filtered if the actual usage rate of this node is greater than the threshold of any of the above metrics. And at the &lt;code>Score&lt;/code> stage, the final score is the weighted sum of these metrics&amp;rsquo; values.&lt;/p>
+&lt;h3 id="hot-value">Hot Value&lt;/h3>
+&lt;p>In the production cluster, scheduling hotspots may occur frequently because the load of the nodes can not increase immediately after the pod is created. Therefore, we define an extra metrics named &lt;code>Hot Value&lt;/code>, which represents the scheduling frequency of the node in recent times. And the final priority of the node is the final score minus the &lt;code>Hot Value&lt;/code>.&lt;/p></description></item><item><title>Docs: Installation of CLI Tool</title><link>/docs/installation/installation-cli-tool/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/installation/installation-cli-tool/</guid><description>
+&lt;h2 id="install-kubectl-crane">Install kubectl-crane&lt;/h2>
+&lt;p>You can install &lt;code>kubectl-crane&lt;/code> plugin in any of the following ways:&lt;/p>
+&lt;ul>
+&lt;li>One-click installation.&lt;/li>
+&lt;li>Install using Krew.&lt;/li>
+&lt;li>Build from source code.&lt;/li>
+&lt;/ul>
+&lt;h2 id="prerequisites">Prerequisites&lt;/h2>
+&lt;ul>
+&lt;li>Kubectl: &lt;code>kubectl&lt;/code> is the Kubernetes command line tool lets you control Kubernetes clusters.
+For installation instructions see &lt;a href="https://kubernetes.io/docs/tasks/tools/#kubectl">installing kubectl&lt;/a>.&lt;/li>
+&lt;/ul>
+&lt;h3 id="one-click-installation">One-click installation&lt;/h3>
+&lt;h4 id="for-linux">For Linux&lt;/h4>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>export release&lt;span style="color:#f92672">=&lt;/span>v0.2.0
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>export arch&lt;span style="color:#f92672">=&lt;/span>x86_64
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>curl -L -o kubectl-crane.tar.gz https://github.com/gocrane/kubectl-crane/releases/download/&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>/kubectl-crane_&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>_Linux_&lt;span style="color:#e6db74">${&lt;/span>arch&lt;span style="color:#e6db74">}&lt;/span>.tar.gz
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>tar -xvf kubectl-crane.tar.gz
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>cp kubectl-crane_&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>_Linux_&lt;span style="color:#e6db74">${&lt;/span>arch&lt;span style="color:#e6db74">}&lt;/span>/kubectl-crane /usr/local/bin/
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h4 id="for-mac">For Mac&lt;/h4>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>export release&lt;span style="color:#f92672">=&lt;/span>v0.2.0
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>export arch&lt;span style="color:#f92672">=&lt;/span>arm64
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>curl -L -o kubectl-crane.tar.gz https://github.com/gocrane/kubectl-crane/releases/download/&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>/kubectl-crane_&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>_Darwin_&lt;span style="color:#e6db74">${&lt;/span>arch&lt;span style="color:#e6db74">}&lt;/span>.tar.gz
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>tar -xvf kubectl-crane.tar.gz
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>cp kubectl-crane_&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>_Darwin_&lt;span style="color:#e6db74">${&lt;/span>arch&lt;span style="color:#e6db74">}&lt;/span>/kubectl-crane /usr/local/bin/
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="install-using-krew">Install using Krew&lt;/h3>
+&lt;p>&lt;code>Krew&lt;/code> is the plugin manager for &lt;code>kubectl&lt;/code> command-line tool.&lt;/p>
+&lt;p>&lt;a href="https://krew.sigs.k8s.io/docs/user-guide/setup/install/">Install and setup&lt;/a> Krew on your machine.&lt;/p>
+&lt;p>Then install &lt;code>kubectl-crane&lt;/code> plug-in:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>kubectl krew install crane
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="build-from-source-code">Build from source code&lt;/h3>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>git clone https://github.com/gocrane/kubectl-crane.git
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>cd kubectl-crane
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>export CGO_ENABLED&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#ae81ff">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>go mod vendor
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>go build -o kubectl-crane ./cmd/
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Next, move the &lt;code>kubectl-crane&lt;/code> executable file in the project root directory to the &lt;code>PATH&lt;/code> path.&lt;/p></description></item><item><title>Docs: Recommendation Framework</title><link>/docs/proposals/20220706-recommendation-framework/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/proposals/20220706-recommendation-framework/</guid><description>
 &lt;p>Recommendation Framework provide a consistence progress to optimize variable kinds of resources in kubernetes. The progress should be Pluggable and support Multi-Cloud.&lt;/p>
 &lt;h2 id="motivation">Motivation&lt;/h2>
 &lt;p>Currently, we use &lt;code>Analytics&lt;/code> and &lt;code>Recommendation&lt;/code> to provide a recommendation service for workloads in cluster. Kubernetes&amp;rsquo; users use the recommendation to optimize the resource configuration and reduce their cost.
