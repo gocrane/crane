@@ -1,7 +1,7 @@
 ---
 title: "安装命令行工具"
 description: "如何安装 kubectl-crane 命令行工具"
-weight: 11
+weight: 12
 ---
 
 ## 安装 kubectl-crane

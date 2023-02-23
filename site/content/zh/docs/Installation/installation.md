@@ -1,7 +1,7 @@
 ---
 title: "安装文档"
 description: "如何安装 Crane"
-weight: 12
+weight: 11
 ---
 
 为了让您更快的部署 Crane ，本文档提供清晰的：

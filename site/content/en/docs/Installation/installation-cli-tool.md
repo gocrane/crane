@@ -1,7 +1,7 @@
 ---
 title: "Installation of CLI Tool"
 description: "How to install kubectl-crane"
-weight: 11
+weight: 12
 ---
 
 ## Install kubectl-crane
