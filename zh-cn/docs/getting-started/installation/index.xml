@@ -1,0 +1,427 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Crane – 安装指南</title><link>/zh-cn/docs/getting-started/installation/</link><description>Recent content in 安装指南 on Crane</description><generator>Hugo -- gohugo.io</generator><atom:link href="/zh-cn/docs/getting-started/installation/index.xml" rel="self" type="application/rss+xml"/><item><title>Docs: 快速开始</title><link>/zh-cn/docs/getting-started/installation/quick-start/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/getting-started/installation/quick-start/</guid><description>
+&lt;p>欢迎来到 Crane！在本文档中我们将介绍如何在本地安装 Crane 以及访问 Crane Dashboard：&lt;/p>
+&lt;ul>
+&lt;li>使用 &lt;a href="https://kind.sigs.k8s.io/">Kind&lt;/a> 安装一个本地运行的 Kubernetes 集群&lt;/li>
+&lt;li>使用 &lt;a href="https://helm.sh/">Helm&lt;/a> 安装 Prometheus 和 Grafana&lt;/li>
+&lt;li>使用 &lt;a href="https://helm.sh/">Helm&lt;/a> 安装 Crane&lt;/li>
+&lt;li>通过 kubectl 的 port-forward 访问 Crane Dashboard&lt;/li>
+&lt;/ul>
+&lt;p>更多关于安装的介绍请参考 &lt;a href="/zh-cn/docs/installation/installation">安装文档&lt;/a> 。&lt;/p>
+&lt;h2 id="部署环境要求">部署环境要求&lt;/h2>
+&lt;ul>
+&lt;li>kubectl&lt;/li>
+&lt;li>Kubernetes 1.18+&lt;/li>
+&lt;li>Helm 3.1.0&lt;/li>
+&lt;li>Kind 0.16+&lt;/li>
+&lt;/ul>
+&lt;h2 id="安装">安装&lt;/h2>
+&lt;p>以下命令将安装 Crane 以及其依赖 (Prometheus/Grafana).&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>curl -sf https://raw.githubusercontent.com/gocrane/crane/main/hack/local-env-setup.sh | sh -
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>确保所有 Pod 都正常运行:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>$ export KUBECONFIG&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">${&lt;/span>HOME&lt;span style="color:#e6db74">}&lt;/span>/.kube/config_crane
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>$ kubectl get deploy -n crane-system
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>NAME READY STATUS RESTARTS AGE
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>crane-agent-5r9l2 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m40s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>craned-6dcc5c569f-vnfsf 2/2 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m41s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>fadvisor-5b685f4cd6-xpxzq 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m37s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>grafana-64656f6d54-6l24j 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m46s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>metric-adapter-967c6d57f-swhfv 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m41s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>prometheus-kube-state-metrics-7f9d78cffc-p8l7c 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m46s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>prometheus-node-exporter-4wk8b 1/1 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m40s
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>prometheus-server-fb944f4b7-4qqlv 2/2 Running &lt;span style="color:#ae81ff">0&lt;/span> 4m46s
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="访问-crane-dashboard">访问 Crane Dashboard&lt;/h2>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>kubectl -n crane-system port-forward service/craned 9090:9090
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>点击 &lt;a href="http://127.0.0.1:9090/">这里&lt;/a> 访问 Crane Dashboard&lt;/p>
+&lt;p>&lt;img src="/images/dashboard.png" alt="">&lt;/p></description></item><item><title>Docs: 安装文档</title><link>/zh-cn/docs/getting-started/installation/installation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/getting-started/installation/installation/</guid><description>
+&lt;p>为了让您更快的部署 Crane ，本文档提供清晰的：&lt;/p>
+&lt;ul>
+&lt;li>部署环境要求&lt;/li>
+&lt;li>具体安装步骤&lt;/li>
+&lt;/ul>
+&lt;p>Crane 安装时间在10分钟左右，具体时间也依赖集群规模以及硬件能力。目前安装已经非常成熟，如果您安装中遇到任何问题，可以采取如下几种方式：&lt;/p>
+&lt;ul>
+&lt;li>请首先检查后文的 F&amp;amp;Q&lt;/li>
+&lt;li>可以提出一个 &lt;a href="https://github.com/gocrane/crane/issues/new?assignees=&amp;amp;labels=kind%2Fbug&amp;amp;template=bug_report.md&amp;amp;title=">Issue&lt;/a>，我们会认真对待每一个 &lt;a href="https://github.com/gocrane/crane/issues">Issue&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h2 id="部署环境要求">部署环境要求&lt;/h2>
+&lt;ul>
+&lt;li>Kubernetes 1.18+&lt;/li>
+&lt;li>Helm 3.1.0&lt;/li>
+&lt;/ul>
+&lt;h2 id="安装流程">安装流程&lt;/h2>
+&lt;h3 id="安装-helm">安装 Helm&lt;/h3>
+&lt;p>建议参考 Helm 官网&lt;a href="https://helm.sh/docs/intro/install/">安装文档&lt;/a>。&lt;/p>
+&lt;h3 id="安装-prometheus-和-grafana">安装 Prometheus 和 Grafana&lt;/h3>
+&lt;p>使用 Helm 安装 Prometheus 和 Grafana。&lt;/p>
+&lt;div class="alert alert-warning" role="alert">
+如果您已经在环境中部署了 Prometheus 和 Grafana，可以跳过该步骤。
+&lt;/div>
+&lt;div class="alert alert-warning" role="alert">
+如果你的网络无法访问GitHub资源(GitHub Release, GitHub Raw Content &lt;code>raw.githubusercontent.com&lt;/code>)。
+那么你可以尝试镜像仓库。但镜像仓库具有一定的&lt;strong>时延&lt;/strong>。
+&lt;/div>
+&lt;p>Crane 使用 Prometheus 抓取集群工作负载对资源的使用情况。安装 Prometheus：&lt;/p>
+&lt;ul class="nav nav-tabs" id="tabs-2" role="tablist">&lt;li class="nav-item">
+&lt;a class="nav-link active tab-Main"
+id="tabs-2-0-tab" data-toggle="tab" href="#tabs-2-0" role="tab" onclick="handleClick(&amp;#34;Main&amp;#34;);"
+aria-controls="tabs-2-0" aria-selected="true">
+Main
+&lt;/a>
+&lt;/li>&lt;li class="nav-item">
+&lt;a class="nav-link tab-Mirror"
+id="tabs-2-1-tab" data-toggle="tab" href="#tabs-2-1" role="tab" onclick="handleClick(&amp;#34;Mirror&amp;#34;);"
+aria-controls="tabs-2-1" aria-selected="false">
+Mirror
+&lt;/a>
+&lt;/li>&lt;/ul>
+&lt;div class="tab-content" id="tabs-2-content">&lt;div class="tab-pane fade show active"
+id="tabs-2-0" role="tabpanel" aria-labelled-by="tabs-2-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm install prometheus -n crane-system \
+--set pushgateway.enabled=false \
+--set alertmanager.enabled=false \
+--set server.persistentVolume.enabled=false \
+-f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/prometheus/override_values.yaml \
+--create-namespace prometheus-community/prometheus&lt;/code>&lt;/pre>&lt;/div>
+&lt;div class="tab-pane fade"
+id="tabs-2-1" role="tabpanel" aria-labelled-by="tabs-2-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add prometheus-community https://finops-helm.pkg.coding.net/gocrane/prometheus-community
+helm install prometheus -n crane-system \
+--set pushgateway.enabled=false \
+--set alertmanager.enabled=false \
+--set server.persistentVolume.enabled=false \
+-f https://gitee.com/finops/helm-charts/raw/main/integration/prometheus/override_values.yaml \
+--create-namespace prometheus-community/prometheus&lt;/code>&lt;/pre>&lt;/div>
+&lt;/div>
+&lt;p>Crane 的 Fadvisor 使用 Grafana 展示成本预估。安装 Grafana：&lt;/p>
+&lt;ul class="nav nav-tabs" id="tabs-3" role="tablist">&lt;li class="nav-item">
+&lt;a class="nav-link active tab-Main"
+id="tabs-3-0-tab" data-toggle="tab" href="#tabs-3-0" role="tab" onclick="handleClick(&amp;#34;Main&amp;#34;);"
+aria-controls="tabs-3-0" aria-selected="true">
+Main
+&lt;/a>
+&lt;/li>&lt;li class="nav-item">
+&lt;a class="nav-link tab-Mirror"
+id="tabs-3-1-tab" data-toggle="tab" href="#tabs-3-1" role="tab" onclick="handleClick(&amp;#34;Mirror&amp;#34;);"
+aria-controls="tabs-3-1" aria-selected="false">
+Mirror
+&lt;/a>
+&lt;/li>&lt;/ul>
+&lt;div class="tab-content" id="tabs-3-content">&lt;div class="tab-pane fade show active"
+id="tabs-3-0" role="tabpanel" aria-labelled-by="tabs-3-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add grafana https://grafana.github.io/helm-charts
+helm install grafana \
+-f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/grafana/override_values.yaml \
+-n crane-system \
+--create-namespace grafana/grafana&lt;/code>&lt;/pre>&lt;/div>
+&lt;div class="tab-pane fade"
+id="tabs-3-1" role="tabpanel" aria-labelled-by="tabs-3-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add grafana https://finops-helm.pkg.coding.net/gocrane/grafana
+helm install grafana \
+-f https://gitee.com/finops/helm-charts/raw/main/integration/grafana/override_values.yaml \
+-n crane-system \
+--create-namespace grafana/grafana&lt;/code>&lt;/pre>&lt;/div>
+&lt;/div>
+&lt;h3 id="安装-crane-和-fadvisor">安装 Crane 和 Fadvisor&lt;/h3>
+&lt;ul class="nav nav-tabs" id="tabs-4" role="tablist">&lt;li class="nav-item">
+&lt;a class="nav-link active tab-Main"
+id="tabs-4-0-tab" data-toggle="tab" href="#tabs-4-0" role="tab" onclick="handleClick(&amp;#34;Main&amp;#34;);"
+aria-controls="tabs-4-0" aria-selected="true">
+Main
+&lt;/a>
+&lt;/li>&lt;li class="nav-item">
+&lt;a class="nav-link tab-Mirror"
+id="tabs-4-1-tab" data-toggle="tab" href="#tabs-4-1" role="tab" onclick="handleClick(&amp;#34;Mirror&amp;#34;);"
+aria-controls="tabs-4-1" aria-selected="false">
+Mirror
+&lt;/a>
+&lt;/li>&lt;/ul>
+&lt;div class="tab-content" id="tabs-4-content">&lt;div class="tab-pane fade show active"
+id="tabs-4-0" role="tabpanel" aria-labelled-by="tabs-4-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add crane https://gocrane.github.io/helm-charts
+helm install crane -n crane-system --create-namespace crane/crane
+helm install fadvisor -n crane-system --create-namespace crane/fadvisor&lt;/code>&lt;/pre>&lt;/div>
+&lt;div class="tab-pane fade"
+id="tabs-4-1" role="tabpanel" aria-labelled-by="tabs-4-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add crane https://finops-helm.pkg.coding.net/gocrane/gocrane
+helm install crane -n crane-system --create-namespace crane/crane
+helm install fadvisor -n crane-system --create-namespace crane/fadvisor&lt;/code>&lt;/pre>&lt;/div>
+&lt;/div>
+&lt;p>通过覆盖 Helm/Chart 默认参数可以定制需要安装的组件和配置，例如不安装 Metric-Adapter：&lt;/p>
+&lt;pre tabindex="0">&lt;code>helm install crane -n crane-system --set metricAdapter.enable=false --create-namespace crane/crane
+&lt;/code>&lt;/pre>&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>参数&lt;/th>
+&lt;th>描述&lt;/th>
+&lt;th>默认值&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>&lt;code>craned.containerArgs.prometheus-address&lt;/code>&lt;/td>
+&lt;td>Craned 的 Prometheus 地址&lt;/td>
+&lt;td>&lt;code>http://prometheus-server.crane-system.svc.cluster.local:8080&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>metricAdapter.enable&lt;/code>&lt;/td>
+&lt;td>是否安装 MetricAdapter&lt;/td>
+&lt;td>&lt;code>true&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>metricAdapter.installApiService&lt;/code>&lt;/td>
+&lt;td>是否安装 MetricAdapter 的 ApiService&lt;/td>
+&lt;td>&lt;code>true&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>craneAgent.enable&lt;/code>&lt;/td>
+&lt;td>是否安装 Crane-Agent&lt;/td>
+&lt;td>&lt;code>true&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>craneAgent.containerArgs.feature-gates&lt;/code>&lt;/td>
+&lt;td>Crane-Agent 的 feature-gates&lt;/td>
+&lt;td>&lt;code>NodeResource=false&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>cranedDashboard.enable&lt;/code>&lt;/td>
+&lt;td>是否安装 Crane-Dashboard&lt;/td>
+&lt;td>&lt;code>true&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>完整的 Helm/Chart 参数请参考&lt;a href="https://github.com/gocrane/helm-charts/tree/main/charts/crane">这里&lt;/a>&lt;/p>
+&lt;h3 id="使用外部的-prometheus可选">使用外部的 Prometheus（可选）&lt;/h3>
+&lt;p>通常在生产环境，安装时需要配置外部的 Prometheus，你可以通过以下命令修改 Crane 的 Chart Release 配置或者直接修改 Craned Deployment 的容器 Args。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>helm upgrade crane -n crane-system --set craned.containerArgs.prometheus-address&lt;span style="color:#f92672">=&lt;/span>http://&lt;span style="color:#f92672">{&lt;/span>prometheus-ip&lt;span style="color:#f92672">}&lt;/span>:&lt;span style="color:#f92672">{&lt;/span>port&lt;span style="color:#f92672">}&lt;/span> --create-namespace crane/crane
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>同时，Crane Dashboard 的成本展示需要部署&lt;a href="https://github.com/kubernetes/kube-state-metrics">kube-state-metrics&lt;/a>（Prometheus Chart 中默认会安装），并且需要在你的 Prometheus 中配置额外的 extraScrapeConfigs，可以参考&lt;a href="https://github.com/gocrane/helm-charts/blob/main/integration/prometheus/override_values.yaml#L56">这里&lt;/a>。&lt;/p>
+&lt;p>最后，Fadvisor 需要配置 recording rules 来实现成本数据的聚合，可以参考&lt;a href="https://github.com/gocrane/helm-charts/blob/main/integration/prometheus/override_values.yaml#L6">这里&lt;/a>配置到你的 Prometheus 中。&lt;/p>
+&lt;h3 id="使用外部的-grafana可选">使用外部的 Grafana（可选）&lt;/h3>
+&lt;p>Crane Dashboard 支持通过 Iframe 内嵌 Grafana 报表展示成本分布。如果希望使用外部的 Grafana 内嵌到 Crane Dashboard，首先需要修改 configmap 中的 nginx 配置。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>kubectl edit configmap -n crane-system nginx-conf
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>配置 &lt;code>grafana.{{ .Release.Namespace }}.svc.cluster.local&lt;/code> 成外部的 Grafana 服务地址，配置 &lt;code>http://$upstream_grafana:8082&lt;/code> 成外部的 Grafana 服务端口。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">location /grafana {&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">set $upstream_grafana grafana.{{ .Release.Namespace }}.svc.cluster.local;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">proxy_connect_timeout 180;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">proxy_send_timeout 180;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">proxy_read_timeout 180;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">proxy_pass http://$upstream_grafana:8082;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">proxy_redirect off;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">rewrite /grafana/(.*) /$1 break;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">proxy_http_version 1.1;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">proxy_set_header Host $http_host;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">proxy_set_header Upgrade $http_upgrade;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">proxy_set_header Connection $connection_upgrade;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">proxy_set_header X-Real-IP $remote_addr;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>接下来需要参考&lt;a href="https://github.com/gocrane/helm-charts/blob/main/integration/grafana/override_values.yaml">这里&lt;/a>进行配置，原理是 Grafana 支持前端图表的内嵌，但是需要把对应的权限配置打开。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>kubectl edit configmap -n monitor grafana
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ul>
+&lt;li>确定 Service 和 nginx 配置一致&lt;/li>
+&lt;li>配置 datasources 中的 prometheus 与你的环境一致&lt;/li>
+&lt;li>配置 dashboardProviders&lt;/li>
+&lt;li>配置 dashboards&lt;/li>
+&lt;li>配置 grafana.ini&lt;/li>
+&lt;/ul>
+&lt;p>最后，你需要确保 craned 和 grafana pods 已经重建并重新加载新的配置。&lt;/p>
+&lt;h3 id="安装-crane-scheduler可选">安装 Crane-scheduler（可选）&lt;/h3>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-console" data-lang="console">&lt;span style="display:flex;">&lt;span>helm install scheduler -n crane-system --create-namespace crane/scheduler
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="验证安装是否成功">验证安装是否成功&lt;/h2>
+&lt;p>使用如下命令检查安装的 Deployment 是否正常：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-console" data-lang="console">&lt;span style="display:flex;">&lt;span>kubectl get deploy -n crane-system
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>结果类似如下：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>NAME READY UP-TO-DATE AVAILABLE AGE
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>craned 1/1 &lt;span style="color:#ae81ff">1&lt;/span> &lt;span style="color:#ae81ff">1&lt;/span> 31m
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>fadvisor 1/1 &lt;span style="color:#ae81ff">1&lt;/span> &lt;span style="color:#ae81ff">1&lt;/span> 41m
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>grafana 1/1 &lt;span style="color:#ae81ff">1&lt;/span> &lt;span style="color:#ae81ff">1&lt;/span> 42m
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>metric-adapter 1/1 &lt;span style="color:#ae81ff">1&lt;/span> &lt;span style="color:#ae81ff">1&lt;/span> 31m
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>prometheus-kube-state-metrics 1/1 &lt;span style="color:#ae81ff">1&lt;/span> &lt;span style="color:#ae81ff">1&lt;/span> 43m
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>prometheus-server 1/1 &lt;span style="color:#ae81ff">1&lt;/span> &lt;span style="color:#ae81ff">1&lt;/span> 43m
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>可以查看本篇&lt;a href="https://github.com/gocrane/helm-charts/blob/main/charts/crane/README.md">文档&lt;/a>获取更多有关 Crane Helm Chart 的信息。&lt;/p>
+&lt;h2 id="访问-dashboard">访问 Dashboard&lt;/h2>
+&lt;p>用户可以通过 Dashboard 获取成本信息以及优化建议。&lt;/p>
+&lt;p>&lt;img src="/images/dashboard.png" alt="">&lt;/p>
+&lt;h3 id="端口映射">端口映射&lt;/h3>
+&lt;p>通过端口映射访问 Dashboard：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>kubectl -n crane-system port-forward service/craned 9090:9090
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="nodeport">NodePort&lt;/h3>
+&lt;p>通过 NodePort 访问 Dashboard：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># Change service type&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>kubectl patch svc craned -n crane-system -p &lt;span style="color:#e6db74">&amp;#39;{&amp;#34;spec&amp;#34;: {&amp;#34;type&amp;#34;: &amp;#34;NodePort&amp;#34;}}&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># Get Dashboard link base on your cluster configuration&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>PORT&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#66d9ef">$(&lt;/span>kubectl get svc -n crane-system craned -o jsonpath&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#39;{.spec.ports[?(@.name == &amp;#34;dashboard-service&amp;#34;)].nodePort}&amp;#39;&lt;/span>&lt;span style="color:#66d9ef">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>NODE_IP&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#66d9ef">$(&lt;/span>kubectl get node -ojsonpath&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#39;{.items[].status.addresses[?(@.type == &amp;#34;InternalIP&amp;#34;)].address}&amp;#39;&lt;/span>&lt;span style="color:#66d9ef">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>echo &lt;span style="color:#e6db74">&amp;#34;Dashboard link: http://&lt;/span>&lt;span style="color:#e6db74">${&lt;/span>NODE_IP&lt;span style="color:#e6db74">}&lt;/span>&lt;span style="color:#e6db74">:&lt;/span>&lt;span style="color:#e6db74">${&lt;/span>PORT&lt;span style="color:#e6db74">}&lt;/span>&lt;span style="color:#e6db74">&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="loadbalancer">LoadBalancer&lt;/h3>
+&lt;p>通过 LoadBalancer 访问 Dashboard：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># Change service type&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>kubectl patch svc craned -n crane-system -p &lt;span style="color:#e6db74">&amp;#39;{&amp;#34;spec&amp;#34;: {&amp;#34;type&amp;#34;: &amp;#34;LoadBalancer&amp;#34;}}&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;pre tabindex="0">&lt;code class="language-log" data-lang="log">$ kubectl patch svc craned -n crane-system -p &amp;#39;{&amp;#34;spec&amp;#34;: {&amp;#34;type&amp;#34;: &amp;#34;LoadBalancer&amp;#34;}}&amp;#39;
+service/craned patched
+$ kubectl get svc -n crane-system craned
+NAME TYPE CLUSTER-IP EXTERNAL-IP PORT(S) AGE
+craned LoadBalancer 10.101.123.74 10.200.0.4 443:30908/TCP,8082:32426/TCP,9090:31331/TCP,8080:31072/TCP 57m
+# Access dashboard via 10.200.0.4:9090
+&lt;/code>&lt;/pre>&lt;h3 id="ingress">Ingress&lt;/h3>
+&lt;p>通过 Ingress 访问 Dashboard：&lt;/p>
+&lt;h4 id="kubernetesingress-nginx">kubernetes/ingress-nginx&lt;/h4>
+&lt;p>如果集群版本小于 1.19，可以创建以下 Ingress：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">networking.k8s.io/v1beta1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Ingress&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">ingress-crane-dashboard&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">crane-system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">ingressClassName&lt;/span>: &lt;span style="color:#ae81ff">nginx&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">rules&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">host&lt;/span>: &lt;span style="color:#ae81ff">dashboard.gocrane.io&lt;/span> &lt;span style="color:#75715e"># change to your domain&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">http&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">paths&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">path&lt;/span>: &lt;span style="color:#ae81ff">/&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">backend&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">serviceName&lt;/span>: &lt;span style="color:#ae81ff">craned&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">servicePort&lt;/span>: &lt;span style="color:#ae81ff">9090&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>如果集群版本大于等于 1.19，可以创建以下 Ingress：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">networking.k8s.io/v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Ingress&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">ingress-crane-dashboard&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">crane-system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">rules&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">host&lt;/span>: &lt;span style="color:#ae81ff">dashboard.gocrane.io&lt;/span> &lt;span style="color:#75715e"># change to your domain&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">http&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">paths&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">path&lt;/span>: &lt;span style="color:#ae81ff">/&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">pathType&lt;/span>: &lt;span style="color:#ae81ff">Prefix&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">backend&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">service&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">craned&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">port&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">number&lt;/span>: &lt;span style="color:#ae81ff">9090&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">ingressClassName&lt;/span>: &lt;span style="color:#ae81ff">nginx&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>例子:&lt;/p>
+&lt;pre tabindex="0">&lt;code class="language-log" data-lang="log">$ kubectl get svc -n ingress-nginx
+NAME TYPE CLUSTER-IP EXTERNAL-IP PORT(S) AGE
+ingress-nginx-controller LoadBalancer 10.102.235.229 10.200.0.5 80:32568/TCP,443:30144/TCP 91m
+ingress-nginx-controller-admission ClusterIP 10.102.49.240 &amp;lt;none&amp;gt; 443/TCP 91m
+$ curl -H &amp;#34;Host: dashboard.gocrane.io&amp;#34; 10.200.0.5
+&amp;lt;!DOCTYPE html&amp;gt;
+&amp;lt;html lang=&amp;#34;en&amp;#34;&amp;gt;
+&amp;lt;head&amp;gt;
+&amp;lt;meta charset=&amp;#34;UTF-8&amp;#34; /&amp;gt;
+&amp;lt;meta name=&amp;#34;viewport&amp;#34; content=&amp;#34;width=device-width, initial-scale=1.0&amp;#34; /&amp;gt;
+&amp;lt;title&amp;gt;Crane Dashboard&amp;lt;/title&amp;gt;
+................................................................
+&lt;/code>&lt;/pre>&lt;h4 id="traefik">Traefik&lt;/h4>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">traefik.containo.us/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">IngressRoute&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">dashboard-crane-ingress&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">crane-system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">entryPoints&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">web&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">routes&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Rule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">match&lt;/span>: &lt;span style="color:#ae81ff">Host(`dashboard.gocrane.io`)&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">services&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">craned&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">port&lt;/span>: &lt;span style="color:#ae81ff">9090&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;pre tabindex="0">&lt;code class="language-log" data-lang="log">$ kubectl get svc -n traefik-v2
+NAME TYPE CLUSTER-IP EXTERNAL-IP PORT(S) AGE
+traefik LoadBalancer 10.107.109.44 10.200.0.6 80:30102/TCP,443:30139/TCP 16m
+$ curl -H &amp;#34;Host: dashboard.gocrane.io&amp;#34; 10.200.0.6
+&amp;lt;!DOCTYPE html&amp;gt;
+&amp;lt;html lang=&amp;#34;en&amp;#34;&amp;gt;
+&amp;lt;head&amp;gt;
+&amp;lt;meta charset=&amp;#34;UTF-8&amp;#34; /&amp;gt;
+&amp;lt;meta name=&amp;#34;viewport&amp;#34; content=&amp;#34;width=device-width, initial-scale=1.0&amp;#34; /&amp;gt;
+&amp;lt;title&amp;gt;Crane Dashboard&amp;lt;/title&amp;gt;
+................................................................
+&lt;/code>&lt;/pre>&lt;h2 id="自定义安装">自定义安装&lt;/h2>
+&lt;p>通过 YAML 安装 &lt;code>Crane&lt;/code> 。&lt;/p>
+&lt;ul class="nav nav-tabs" id="tabs-5" role="tablist">&lt;li class="nav-item">
+&lt;a class="nav-link active tab-Main"
+id="tabs-5-0-tab" data-toggle="tab" href="#tabs-5-0" role="tab" onclick="handleClick(&amp;#34;Main&amp;#34;);"
+aria-controls="tabs-5-0" aria-selected="true">
+Main
+&lt;/a>
+&lt;/li>&lt;li class="nav-item">
+&lt;a class="nav-link tab-Mirror"
+id="tabs-5-1-tab" data-toggle="tab" href="#tabs-5-1" role="tab" onclick="handleClick(&amp;#34;Mirror&amp;#34;);"
+aria-controls="tabs-5-1" aria-selected="false">
+Mirror
+&lt;/a>
+&lt;/li>&lt;/ul>
+&lt;div class="tab-content" id="tabs-5-content">&lt;div class="tab-pane fade show active"
+id="tabs-5-0" role="tabpanel" aria-labelled-by="tabs-5-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">git clone https://github.com/gocrane/crane.git
+CRANE_LATEST_VERSION=$(curl -s https://api.github.com/repos/gocrane/crane/releases/latest | grep -oP &amp;#39;&amp;#34;tag_name&amp;#34;: &amp;#34;\K(.*)(?=&amp;#34;)&amp;#39;)
+git checkout $CRANE_LATEST_VERSION
+kubectl apply -f deploy/manifests
+kubectl apply -f deploy/craned
+kubectl apply -f deploy/metric-adapter&lt;/code>&lt;/pre>&lt;/div>
+&lt;div class="tab-pane fade"
+id="tabs-5-1" role="tabpanel" aria-labelled-by="tabs-5-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">git clone https://e.coding.net/finops/gocrane/crane.git
+CRANE_LATEST_VERSION=$(curl -s https://api.github.com/repos/gocrane/crane/releases/latest | grep -oP &amp;#39;&amp;#34;tag_name&amp;#34;: &amp;#34;\K(.*)(?=&amp;#34;)&amp;#39;)
+git checkout $CRANE_LATEST_VERSION
+kubectl apply -f deploy/manifests
+kubectl apply -f deploy/craned
+kubectl apply -f deploy/metric-adapter&lt;/code>&lt;/pre>&lt;/div>
+&lt;/div>
+&lt;p>如果您想自定义 Crane 里配置 Prometheus 的 HTTP 地址，请参考以下的命令。如果您在集群里已存在一个 Prometheus，请将 Server 地址填于&lt;code>CUSTOMIZE_PROMETHEUS&lt;/code> 。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-console" data-lang="console">&lt;span style="display:flex;">&lt;span>export CUSTOMIZE_PROMETHEUS=
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>if [ $CUSTOMIZE_PROMETHEUS ]; then sed -i &amp;#39;&amp;#39; &amp;#34;s/PROMETHEUS_ADDRESS/${CUSTOMIZE_PROMETHEUS}/&amp;#34; deploy/craned/deployment.yaml ; fi
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>
+&lt;div class="alert alert-info" role="alert">
+成本展示和资源推荐功能可以运行在较低版本的 Kubernetes 集群中，如果您的 Kubernetes 集群版本接近 1.13，可以尝试使用 deploy/manifest_1.13 的 crd 定义进行自定义安装
+&lt;/div>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-console" data-lang="console">&lt;span style="display:flex;">&lt;span>kubectl apply -f deploy/manifests_1.13
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>kubectl apply -f deploy/craned
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>kubectl apply -f deploy/metric-adapter
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="安装常见问题">安装常见问题&lt;/h2>
+&lt;h3 id="安装-crane-报错">安装 Crane 报错&lt;/h3>
+&lt;p>当您执行 &lt;code>helm install crane -n crane-system --create-namespace crane/crane&lt;/code> 命令时，可能会遇到如下错误：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>Error: rendered manifests contain a resource that already exists. Unable to &lt;span style="color:#66d9ef">continue&lt;/span> with install: APIService &lt;span style="color:#e6db74">&amp;#34;v1beta1.custom.metrics.k8s.io&amp;#34;&lt;/span> in namespace &lt;span style="color:#e6db74">&amp;#34;&amp;#34;&lt;/span> exists and cannot be imported into the current release: invalid ownership metadata; label validation error: missing key &lt;span style="color:#e6db74">&amp;#34;app.kubernetes.io/managed-by&amp;#34;&lt;/span>: must be set to &lt;span style="color:#e6db74">&amp;#34;Helm&amp;#34;&lt;/span>; annotation validation error: missing key &lt;span style="color:#e6db74">&amp;#34;meta.helm.sh/release-name&amp;#34;&lt;/span>: must be set to &lt;span style="color:#e6db74">&amp;#34;crane&amp;#34;&lt;/span>; annotation validation error: missing key &lt;span style="color:#e6db74">&amp;#34;meta.helm.sh/release-namespace&amp;#34;&lt;/span>: must be set to &lt;span style="color:#e6db74">&amp;#34;crane-system&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>原因：集群安装过 custom metric 的 APIService，所以报错。可以把之前的删除再重新执行安装 Crane 的命令，删除方式：&lt;code>kubectl delete apiservice v1beta1.custom.metrics.k8s.io&lt;/code>。&lt;/p>
+&lt;h3 id="获取-crane-url-的其它方式">获取 Crane URL 的其它方式&lt;/h3>
+&lt;h4 id="nodeport-方式">NodePort 方式&lt;/h4>
+&lt;p>您可以将 Crane 的 Service 的类型换成 NodePort 类型，这样可以直接通过集群任意节点 IP + 该服务里dashboard- service 端口号的方式，打开控制台。&lt;/p>
+&lt;p>具体操作：修改 crane-system 命名空间下名为 craned 的 Service，将其访问方式该为 NodePort 的方式，然后获取某一集群的节点 IP，以及相应的端口号，端口号如下所示：&lt;/p>
+&lt;p>&lt;img src="/images/dashboard_nodeport.png" alt="">&lt;/p>
+&lt;p>注意：若您的集群节点只有内网 IP，则访问该 IP 的计算机需要在同一内网。若集群节点拥有外网 IP，则没有相关问题。&lt;/p>
+&lt;h4 id="loadbalance-方式">LoadBalance 方式&lt;/h4>
+&lt;p>若您使用的是公有云厂商的服务，您可以将 Crane 的 Service 的类型换成公网 LB 类型，这样可以直接通过 LB IP + 9090 端口号的方式，打开控制台。&lt;/p>
+&lt;p>具体操作：修改 crane-system 命名空间下名为 craned 的 Service，将其访问方式该为公网 LB 的方式。&lt;/p></description></item><item><title>Docs: 安装命令行工具</title><link>/zh-cn/docs/getting-started/installation/installation-cli-tool/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/getting-started/installation/installation-cli-tool/</guid><description>
+&lt;h2 id="安装-kubectl-crane">安装 kubectl-crane&lt;/h2>
+&lt;p>你可以通过以下任意方式来安装 &lt;code>kubectl-crane&lt;/code> 命令行工具&lt;/p>
+&lt;ul>
+&lt;li>一键安装.&lt;/li>
+&lt;li>使用 krew 安装.&lt;/li>
+&lt;li>通过源码构建.&lt;/li>
+&lt;/ul>
+&lt;h2 id="前提条件">前提条件&lt;/h2>
+&lt;ul>
+&lt;li>kubectl： &lt;code>kubectl&lt;/code> 是 Kubernetes 命令行工具，可让您控制 Kubernetes 集群。
+有关安装说明，请参阅 &lt;a href="https://kubernetes.io/docs/tasks/tools/#kubectl">安装 kubectl&lt;/a>。&lt;/li>
+&lt;/ul>
+&lt;h3 id="一键安装">一键安装&lt;/h3>
+&lt;h4 id="linux">Linux&lt;/h4>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>export release&lt;span style="color:#f92672">=&lt;/span>v0.2.0
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>export arch&lt;span style="color:#f92672">=&lt;/span>x86_64
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>curl -L -o kubectl-crane.tar.gz https://github.com/gocrane/kubectl-crane/releases/download/&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>/kubectl-crane_&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>_Linux_&lt;span style="color:#e6db74">${&lt;/span>arch&lt;span style="color:#e6db74">}&lt;/span>.tar.gz
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>tar -xvf kubectl-crane.tar.gz
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>cp kubectl-crane_&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>_Linux_&lt;span style="color:#e6db74">${&lt;/span>arch&lt;span style="color:#e6db74">}&lt;/span>/kubectl-crane /usr/local/bin/
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h4 id="mac">Mac&lt;/h4>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>export release&lt;span style="color:#f92672">=&lt;/span>v0.2.0
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>export arch&lt;span style="color:#f92672">=&lt;/span>arm64
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>curl -L -o kubectl-crane.tar.gz https://github.com/gocrane/kubectl-crane/releases/download/&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>/kubectl-crane_&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>_Darwin_&lt;span style="color:#e6db74">${&lt;/span>arch&lt;span style="color:#e6db74">}&lt;/span>.tar.gz
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>tar -xvf kubectl-crane.tar.gz
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>cp kubectl-crane_&lt;span style="color:#e6db74">${&lt;/span>release&lt;span style="color:#e6db74">}&lt;/span>_Darwin_&lt;span style="color:#e6db74">${&lt;/span>arch&lt;span style="color:#e6db74">}&lt;/span>/kubectl-crane /usr/local/bin/
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="使用-krew-安装">使用 krew 安装&lt;/h3>
+&lt;p>&lt;code>Krew&lt;/code> 是 &lt;code>kubectl&lt;/code> 命令行工具的插件管理器。&lt;/p>
+&lt;p>在你的机器上&lt;a href="https://krew.sigs.k8s.io/docs/user-guide/setup/install/">安装和设置&lt;/a> Krew。&lt;/p>
+&lt;p>然后安装 &lt;code>kubectl-crane&lt;/code> 插件：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>kubectl krew install crane
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="通过源码构建">通过源码构建&lt;/h3>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>git clone https://github.com/gocrane/kubectl-crane.git
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>cd kubectl-crane
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>export CGO_ENABLED&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#ae81ff">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>go mod vendor
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>go build -o kubectl-crane ./cmd/
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>然后将项目根目录下的 &lt;code>kubectl-crane&lt;/code> 可执行文件移动到 &lt;code>PATH&lt;/code> 路径下。&lt;/p></description></item></channel></rss>

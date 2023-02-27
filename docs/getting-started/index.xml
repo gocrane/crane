@@ -25,29 +25,4 @@ scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="tru
 &lt;p>&lt;strong>Load-Aware Scheduling&lt;/strong>&lt;/p>
 &lt;p>Provide a simple but efficient scheduler that schedule pods based on actual node utilization data，and filters out those nodes with high load to balance the cluster. &lt;a href="/docs/tutorials/scheduling-pods-based-on-actual-node-load">learn more&lt;/a>.&lt;/p>
 &lt;p>&lt;strong>Colocation with Enhanced QOS&lt;/strong>&lt;/p>
-&lt;p>QOS-related capabilities ensure the running stability of Pods on Kubernetes. It has the ability of interference detection and active avoidance under the condition of multi-dimensional metrics, and supports reasonable operation and custom metrics access; it has the ability to oversell elastic resources enhanced by the prediction algorithm, reuse and limit the idle resources in the cluster; it has the enhanced bypass cpuset Management capabilities, improve resource utilization efficiency while binding cores. &lt;a href="/docs/tutorials/using-qos-ensurance">learn more&lt;/a>.&lt;/p>
-&lt;h2 id="architecture">Architecture&lt;/h2>
-&lt;p>The overall architecture of Crane is shown as below:&lt;/p>
-&lt;p>&lt;img src="/images/crane-arch.png" alt="Crane Arch&amp;quot;">&lt;/p>
-&lt;p>&lt;strong>Craned&lt;/strong>&lt;/p>
-&lt;p>Craned is the core component which manage the lifecycle of CRDs and APIs. It&amp;rsquo;s deployed by a &lt;code>Deployment&lt;/code> which consists of two container:&lt;/p>
-&lt;ul>
-&lt;li>Craned: Operators for management CRDs, WebApi for Dashboard, Predictors that provide query TimeSeries API.&lt;/li>
-&lt;li>Dashboard: Web component that built from TDesign&amp;rsquo;s Starter, provide an easy-to-use UI for crane users.&lt;/li>
-&lt;/ul>
-&lt;p>&lt;strong>Fadvisor&lt;/strong>&lt;/p>
-&lt;p>Fadvisor provides a collection of exporters which collect cloud resource pricing and billing data and ship to your monitoring system like Prometheus. Fadvisor support Multi-Cloud Pricing API by &lt;code>Cloud Provider&lt;/code>.&lt;/p>
-&lt;p>&lt;strong>Metric Adapter&lt;/strong>&lt;/p>
-&lt;p>Metric Adapter implements a &lt;code>Custom Metric Apiserver&lt;/code>. Metric Adapter consume Crane CRDs and provide HPA Metrics by &lt;code>Custom/External Metric API&lt;/code>.&lt;/p>
-&lt;p>&lt;strong>Crane Agent&lt;/strong>&lt;/p>
-&lt;p>Crane Agent is a &lt;code>DaemonSet&lt;/code> that runs in each node.&lt;/p>
-&lt;h2 id="repositories">Repositories&lt;/h2>
-&lt;p>Crane is composed of the following components:&lt;/p>
-&lt;ul>
-&lt;li>&lt;a href="https://github.com/gocrane/crane/tree/main/cmd/craned">craned&lt;/a> - main crane control plane.&lt;/li>
-&lt;li>&lt;a href="https://github.com/gocrane/crane/tree/main/cmd/metric-adapter">metric-adaptor&lt;/a> - Metric server for driving the scaling.&lt;/li>
-&lt;li>&lt;a href="https://github.com/gocrane/crane/tree/main/cmd/crane-agent">crane-agent&lt;/a> - Ensure critical workloads SLO based on abnormally detection.&lt;/li>
-&lt;li>&lt;a href="https://github.com/gocrane/api">gocrane/api&lt;/a> - This repository defines component-level APIs for the Crane platform.&lt;/li>
-&lt;li>&lt;a href="https://github.com/gocrane/fadvisor">gocrane/fadvisor&lt;/a> - Financial advisor which collect resource prices from cloud API.&lt;/li>
-&lt;li>&lt;a href="https://github.com/gocrane/crane-scheduler">gocrane/crane-scheduler&lt;/a> - A Kubernetes scheduler which can schedule pod based on actual node load.&lt;/li>
-&lt;/ul></description></item></channel></rss>
+&lt;p>QOS-related capabilities ensure the running stability of Pods on Kubernetes. It has the ability of interference detection and active avoidance under the condition of multi-dimensional metrics, and supports reasonable operation and custom metrics access; it has the ability to oversell elastic resources enhanced by the prediction algorithm, reuse and limit the idle resources in the cluster; it has the enhanced bypass cpuset Management capabilities, improve resource utilization efficiency while binding cores. &lt;a href="/docs/tutorials/using-qos-ensurance">learn more&lt;/a>.&lt;/p></description></item><item><title>Docs: Installation</title><link>/docs/getting-started/installation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/getting-started/installation/</guid><description/></item></channel></rss>

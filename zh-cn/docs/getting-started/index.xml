@@ -28,29 +28,4 @@ scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="tru
 &lt;p>&lt;strong>拓扑感知的调度器&lt;/strong>&lt;/p>
 &lt;p>Crane Scheduler与Crane Agent配合工作，支持更为精细化的资源拓扑感知调度和多种绑核策略，可解决复杂场景下“吵闹的邻居问题&amp;quot;，使得资源得到更合理高效的利用。&lt;a href="/zh-cn/docs/tutorials/node-resource-tpolology-scheduler-plugins.md">了解更多&lt;/a>。&lt;/p>
 &lt;p>&lt;strong>基于 QOS 的混部&lt;/strong>&lt;/p>
-&lt;p>QOS相关能力保证了运行在 Kubernetes 上的 Pod 的稳定性。具有多维指标条件下的干扰检测和主动回避能力，支持精确操作和自定义指标接入；具有预测算法增强的弹性资源超卖能力，复用和限制集群内的空闲资源；具备增强的旁路cpuset管理能力，在绑核的同时提升资源利用效率。&lt;a href="/zh-cn/docs/tutorials/using-qos-ensurance">了解更多&lt;/a>。&lt;/p>
-&lt;h2 id="架构">架构&lt;/h2>
-&lt;p>Crane 的整体架构如下：&lt;/p>
-&lt;p>&lt;img src="/images/crane-arch.png" alt="Crane Arch">&lt;/p>
-&lt;p>&lt;strong>Craned&lt;/strong>&lt;/p>
-&lt;p>Craned 是 Crane 的最核心组件，它管理了 CRDs 的生命周期以及API。Craned 通过 &lt;code>Deployment&lt;/code> 方式部署且由两个容器组成：&lt;/p>
-&lt;ul>
-&lt;li>Craned: 运行了 Operators 用来管理 CRDs，向 Dashboard 提供了 WebApi，Predictors 提供了 TimeSeries API&lt;/li>
-&lt;li>Dashboard: 基于 TDesign&amp;rsquo;s Starter 脚手架研发的前端项目，提供了易于上手的产品功能&lt;/li>
-&lt;/ul>
-&lt;p>&lt;strong>Fadvisor&lt;/strong>&lt;/p>
-&lt;p>Fadvisor 提供一组 Exporter 计算集群云资源的计费和账单数据并存储到你的监控系统，比如 Prometheus。Fadvisor 通过 &lt;code>Cloud Provider&lt;/code> 支持了多云计费的 API。&lt;/p>
-&lt;p>&lt;strong>Metric Adapter&lt;/strong>&lt;/p>
-&lt;p>Metric Adapter 实现了一个 &lt;code>Custom Metric Apiserver&lt;/code>. Metric Adapter 读取 CRDs 信息并提供基于 &lt;code>Custom/External Metric API&lt;/code> 的 HPA Metric 的数据。&lt;/p>
-&lt;p>&lt;strong>Crane Agent&lt;/strong>&lt;/p>
-&lt;p>Crane Agent 通过 &lt;code>DaemonSet&lt;/code> 部署在集群的节点上。&lt;/p>
-&lt;h2 id="repositories">Repositories&lt;/h2>
-&lt;p>Crane is composed of the following components:&lt;/p>
-&lt;ul>
-&lt;li>&lt;a href="https://github.com/gocrane/crane/tree/main/cmd/craned">craned&lt;/a> - main crane control plane.&lt;/li>
-&lt;li>&lt;a href="https://github.com/gocrane/crane/tree/main/cmd/metric-adapter">metric-adaptor&lt;/a> - Metric server for driving the scaling.&lt;/li>
-&lt;li>&lt;a href="https://github.com/gocrane/crane/tree/main/cmd/crane-agent">crane-agent&lt;/a> - Ensure critical workloads SLO based on abnormally detection.&lt;/li>
-&lt;li>&lt;a href="https://github.com/gocrane/api">gocrane/api&lt;/a> - This repository defines component-level APIs for the Crane platform.&lt;/li>
-&lt;li>&lt;a href="https://github.com/gocrane/fadvisor">gocrane/fadvisor&lt;/a> - Financial advisor which collect resource prices from cloud API.&lt;/li>
-&lt;li>&lt;a href="https://github.com/gocrane/crane-scheduler">gocrane/crane-scheduler&lt;/a> - A Kubernetes scheduler which can schedule pod based on actual node load.&lt;/li>
-&lt;/ul></description></item></channel></rss>
+&lt;p>QOS相关能力保证了运行在 Kubernetes 上的 Pod 的稳定性。具有多维指标条件下的干扰检测和主动回避能力，支持精确操作和自定义指标接入；具有预测算法增强的弹性资源超卖能力，复用和限制集群内的空闲资源；具备增强的旁路cpuset管理能力，在绑核的同时提升资源利用效率。&lt;a href="/zh-cn/docs/tutorials/using-qos-ensurance">了解更多&lt;/a>。&lt;/p></description></item><item><title>Docs: 安装指南</title><link>/zh-cn/docs/getting-started/installation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/getting-started/installation/</guid><description/></item></channel></rss>
