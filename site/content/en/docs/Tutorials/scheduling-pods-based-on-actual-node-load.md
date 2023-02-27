@@ -22,40 +22,40 @@ Configure the rules of Prometheus to get expected aggregated data:
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
-    name: example-record
+  name: example-record
 spec:
-    groups:
-    - name: cpu_mem_usage_active
-        interval: 30s
-        rules:
-        - record: cpu_usage_active
-        expr: 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[30s])) * 100)
-        - record: mem_usage_active
-        expr: 100*(1-node_memory_MemAvailable_bytes/node_memory_MemTotal_bytes)
-    - name: cpu-usage-5m
-        interval: 5m
-        rules:
-        - record: cpu_usage_max_avg_1h
-        expr: max_over_time(cpu_usage_avg_5m[1h])
-        - record: cpu_usage_max_avg_1d
-        expr: max_over_time(cpu_usage_avg_5m[1d])
-    - name: cpu-usage-1m
-        interval: 1m
-        rules:
-        - record: cpu_usage_avg_5m
-        expr: avg_over_time(cpu_usage_active[5m])
-    - name: mem-usage-5m
-        interval: 5m
-        rules:
-        - record: mem_usage_max_avg_1h
-        expr: max_over_time(mem_usage_avg_5m[1h])
-        - record: mem_usage_max_avg_1d
-        expr: max_over_time(mem_usage_avg_5m[1d])
-    - name: mem-usage-1m
-        interval: 1m
-        rules:
-        - record: mem_usage_avg_5m
-        expr: avg_over_time(mem_usage_active[5m])
+  groups:
+  - name: cpu_mem_usage_active
+    interval: 30s
+    rules:
+    - record: cpu_usage_active
+      expr: 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[30s])) * 100)
+    - record: mem_usage_active
+      expr: 100*(1-node_memory_MemAvailable_bytes/node_memory_MemTotal_bytes)
+  - name: cpu-usage-5m
+    interval: 5m
+    rules:
+    - record: cpu_usage_max_avg_1h
+      expr: max_over_time(cpu_usage_avg_5m[1h])
+    - record: cpu_usage_max_avg_1d
+      expr: max_over_time(cpu_usage_avg_5m[1d])
+  - name: cpu-usage-1m
+    interval: 1m
+    rules:
+    - record: cpu_usage_avg_5m
+      expr: avg_over_time(cpu_usage_active[5m])
+  - name: mem-usage-5m
+    interval: 5m
+    rules:
+    - record: mem_usage_max_avg_1h
+      expr: max_over_time(mem_usage_avg_5m[1h])
+    - record: mem_usage_max_avg_1d
+      expr: max_over_time(mem_usage_avg_5m[1d])
+  - name: mem-usage-1m
+    interval: 1m
+    rules:
+    - record: mem_usage_avg_5m
+      expr: avg_over_time(mem_usage_active[5m])
 ```
 !!! warning "️Troubleshooting"
 
