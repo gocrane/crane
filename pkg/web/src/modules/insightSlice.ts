@@ -16,6 +16,11 @@ export interface InsightState {
   selectedNamespace?: string | null;
 
   discount: number;
+
+  selectedWorkloadType?: string;
+
+  selectedWorkload?: string;
+
 }
 
 export const initialInsightState: InsightState = {
@@ -61,6 +66,12 @@ const slice = createSlice({
     },
     customRange: (state, action: PayloadAction<InsightState['customRange']>) => {
       state.customRange = action.payload;
+    },
+    selectedWorkloadType: (state, action: PayloadAction<any>) => {
+      state.selectedWorkloadType = action.payload;
+    },
+    selectedWorkload: (state, action: PayloadAction<any>) => {
+      state.selectedWorkload = action.payload;
     },
   },
 });

@@ -1,8 +1,7 @@
 import { useSelector } from './useSelector';
 import { grafanaApi } from 'services/grafanaApi';
 
-export const useIsNeedSelectNamespace = () => {
-  const selectedDashboard = useSelector((state) => state.insight.selectedDashboard);
+export const useIsNeedSelectNamespace = ({ selectedDashboard }: { selectedDashboard?: any } = {})=> {
 
   const dashboardDetail = grafanaApi.useFetchDashboardDetailQuery(
     { dashboardUid: selectedDashboard?.uid },

@@ -27,6 +27,20 @@ export const useCostRouteConfig = (): IRouter[] => {
             title: t('碳排放分析'),
           },
         },
+        {
+          path: 'workload-overview',
+          Component: lazy(() => import('pages/Cost/WorkloadOverview/WorkloadOverviewPanel')),
+          meta: {
+            title: t('应用总览'),
+          },
+        },
+        {
+          path: 'workload-insight',
+          Component: lazy(() => import('pages/Cost/WorkloadInsight/WorkloadInsightPanel')),
+          meta: {
+            title: t('应用洞察'),
+          },
+        },
       ],
     },
   ];
