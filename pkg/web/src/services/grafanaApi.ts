@@ -1,6 +1,6 @@
 import { buildRetryFetchBaseQuery } from './retryFetchBaseQuery';
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import queryString from "query-string";
+import queryString from 'query-string';
 
 type FetchDashboardDetailArgs = {
   dashboardUid: string;
@@ -14,7 +14,6 @@ interface FetchDashboardListArgs {
 interface FetchSeriesListArgs {
   craneUrl: string | undefined;
   match: string;
-  namespace: string;
   start: string;
   end: string;
 }
@@ -45,11 +44,11 @@ export const grafanaApi = createApi({
     fetchSeriesList: builder.query<any, FetchSeriesListArgs>({
       query: (args) => {
         // trans to second
+        // crane_analysis_resource_recommendation{namespace=~"(crane-system|default|kube-node-lease|kube-public)"}
         const url = queryString.stringifyUrl({
           url: `${args.craneUrl ?? ''}/grafana/api/datasources/1/resources/api/v1/series`,
           query: {
-            match: args.match,
-            namespace: args.namespace,
+            'match[]': args.match,
             start: args.start,
             end: args.end,
           },
