@@ -60,8 +60,8 @@ export const OverviewSearchPanel = React.memo(() => {
       match: `crane_analysis_resource_recommendation{namespace=~"(${
         selectedNamespace === ALL_NAMESPACE_VALUE
           ? namespaceOptions
-              .filter((option) => option.value === ALL_NAMESPACE_VALUE)
-              .map((option) => option.value)
+              .filter((option) => option.label !== ALL_NAMESPACE_VALUE)
+              .map((option) => option.label)
               .join('|')
           : selectedNamespace
      })"}`,
@@ -73,7 +73,7 @@ export const OverviewSearchPanel = React.memo(() => {
     () =>
       _.unionBy(
         (workloadTypeList.data?.data ?? []).map((data: any) => ({
-          text: data.owner_kind,
+          label: data.owner_kind,
           value: data.owner_kind,
        })),
         'value',
@@ -88,8 +88,8 @@ export const OverviewSearchPanel = React.memo(() => {
     match: `crane_analysis_resource_recommendation{namespace=~"(${
       selectedNamespace === ALL_NAMESPACE_VALUE
         ? namespaceOptions
-            .filter((option) => option.value === ALL_NAMESPACE_VALUE)
-            .map((option) => option.value)
+            .filter((option) => option.label !== ALL_NAMESPACE_VALUE)
+            .map((option) => option.label)
             .join('|')
         : selectedNamespace
    })"${selectedWorkloadType ? `, owner_kind="${selectedWorkloadType}"` : ''}}`,
@@ -99,7 +99,7 @@ export const OverviewSearchPanel = React.memo(() => {
     () =>
       _.unionBy(
         (workloadTypeList.data?.data ?? []).map((data: any) => ({
-          text: data.owner_name,
+          label: data.owner_name,
           value: data.owner_name,
        })),
         'value',
@@ -112,6 +112,12 @@ export const OverviewSearchPanel = React.memo(() => {
       dispatch(insightAction.selectedNamespace(namespaceOptions[0].value));
    }
  }, [dispatch, isNeedSelectNamespace, namespaceList.isSuccess, namespaceOptions]);
+
+  React.useEffect(() => {
+    if (workloadTypeList.isSuccess  && workloadTypeOptions?.[0]?.value) {
+      dispatch(insightAction.selectedWorkloadType(namespaceOptions[0].value));
+    }
+  }, [dispatch, isNeedSelectNamespace, namespaceList.isSuccess, namespaceOptions]);
 
   return (
     <div className={classnames(CommonStyle.pageWithPadding, CommonStyle.pageWithColor)}>
@@ -133,7 +139,9 @@ export const OverviewSearchPanel = React.memo(() => {
             value={selectedNamespace ?? undefined}
             onChange={(value: any) => {
               dispatch(insightAction.selectedNamespace(value));
-           }}
+              dispatch(insightAction.selectedWorkloadType(undefined));
+              dispatch(insightAction.selectedWorkload(undefined));
+            }}
           />
         </div>
         <div
@@ -153,6 +161,7 @@ export const OverviewSearchPanel = React.memo(() => {
             value={selectedWorkloadType ?? undefined}
             onChange={(value: any) => {
               dispatch(insightAction.selectedWorkloadType(value));
+              dispatch(insightAction.selectedWorkload(undefined));
            }}
           />
         </div>

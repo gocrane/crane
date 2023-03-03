@@ -17,9 +17,9 @@ export interface InsightState {
 
   discount: number;
 
-  selectedWorkloadType?: string;
+  selectedWorkloadType?: string| null;
 
-  selectedWorkload?: string;
+  selectedWorkload?: string| null;
 
 }
 
@@ -40,6 +40,10 @@ export const initialInsightState: InsightState = {
   selectedClusterId: '',
 
   selectedNamespace: null,
+
+  selectedWorkloadType: null,
+
+  selectedWorkload: null,
 };
 
 const slice = createSlice({
