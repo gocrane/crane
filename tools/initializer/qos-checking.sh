@@ -4,14 +4,13 @@ ready=0
 while [ $ready -eq 0 ]; do
     while read line;
     do
-      echo $line;
-      if [[ $line =~ "gocrane.io/cpu-qos" ]]
-      then
-        echo "into if"
+      if echo "$line" | grep -q "gocrane.io/cpu-qos"; then
+        echo "found annotations" $line
         ready=1
         break
       fi
-    done < ./podinfo
+
+    done < /etc/podinfo/annotations
 
     if [[ $ready -eq 0 ]]
     then

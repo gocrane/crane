@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"io/ioutil"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
@@ -23,7 +24,7 @@ type QOSInitializer struct {
 	Enable bool `json:"enable,omitempty"`
 
 	// LabelSelector is a label query over pods that should match the PodQOS
-	LabelSelector *metav1.LabelSelector `json:"labelSelector,omitempty"`
+	Selector *metav1.LabelSelector `json:"selector,omitempty"`
 
 	// A scope selector represents the AND of the selectors represented
 	// by the scoped-resource selector requirements.

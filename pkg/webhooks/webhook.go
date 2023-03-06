@@ -101,22 +101,9 @@ func SetupWebhookWithManager(mgr ctrl.Manager, autoscalingEnabled, nodeResourceE
 			klog.Errorf("Failed to setup autoscaling webhook: %v", err)
 		}
 		klog.Infof("Succeed to setup autoscaling webhook")
-
-		autoscalingMutating := autoscaling.MutatingAdmission{}
-		err = ctrl.NewWebhookManagedBy(mgr).
-			For(&autoscalingapi.EffectiveHorizontalPodAutoscaler{}).
-			WithDefaulter(&autoscalingMutating).
-			Complete()
-		if err != nil {
-			klog.Errorf("Failed to setup ehpa mutating webhook: %v", err)
-		}
-		klog.Infof("Succeed to setup ehpa mutating webhook")
 	}
 
-	klog.Infof("before qos init")
 	if qosInitializer {
-		klog.Infof("enable qos init")
-
 		qosConfig, err := config.LoadQOSConfigFromFile(qosConfigPath)
 		if err != nil {
 			klog.Errorf("Failed to load qos initializer config: %v", err)

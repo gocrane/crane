@@ -3,7 +3,6 @@ package autoscaling
 import (
 	"context"
 	"fmt"
-	"k8s.io/klog/v2"
 	"time"
 
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
@@ -24,8 +23,6 @@ func (p *ValidationAdmission) Default(ctx context.Context, req runtime.Object) e
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (p *ValidationAdmission) ValidateCreate(ctx context.Context, req runtime.Object) error {
-	klog.Infof("before ehpa ValidateCreate")
-
 	ehpa, ok := req.(*autoscalingapi.EffectiveHorizontalPodAutoscaler)
 	if ok {
 		if len(ehpa.Spec.Crons) > 0 {
