@@ -206,8 +206,9 @@ func initWebhooks(mgr ctrl.Manager, opts *options.Options) {
 		utilfeature.DefaultFeatureGate.Enabled(features.CraneAutoscaling),
 		utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResource),
 		utilfeature.DefaultFeatureGate.Enabled(features.CraneClusterNodePrediction),
-		utilfeature.DefaultFeatureGate.Enabled(features.CraneAnalysis),
-		utilfeature.DefaultFeatureGate.Enabled(features.CraneTimeSeriesPrediction)); err != nil {
+		utilfeature.DefaultMutableFeatureGate.Enabled(features.CraneAnalysis),
+		utilfeature.DefaultFeatureGate.Enabled(features.CraneTimeSeriesPrediction),
+		utilfeature.DefaultFeatureGate.Enabled(features.QOSInitializer), opts.QOSConfigFile); err != nil {
 		klog.Exit(err, "unable to create webhook", "webhook", "TimeSeriesPrediction")
 	}
 }

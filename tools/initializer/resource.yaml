@@ -1,0 +1,236 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: craned
+  namespace: crane-system
+  labels:
+    app: craned
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: craned
+  template:
+    metadata:
+      labels:
+        app: craned
+    spec:
+      serviceAccountName: craned
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+      containers:
+        - name: craned
+          image: docker.io/gocrane/craned:v0.9.0-67-g392a9999
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: TZ
+              value: Asia/Shanghai
+            - name: CRANE_SYSTEM_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          command:
+            - /craned
+            - --prometheus-address=http://prometheus-server.crane-system.svc.cluster.local:8080
+            - --feature-gates=Analysis=true,TimeSeriesPrediction=true,Autoscaling=true,QOSInitializer=true
+            - --recommendation-configuration-file=/tmp/recommendation-config/config.yaml
+            - --qos-config-file=/tmp/recommendation-config/qos.yaml
+            - -v=4
+          volumeMounts:
+            - mountPath: /tmp/k8s-webhook-server/serving-certs
+              name: cert
+              readOnly: true
+            - name: config
+              mountPath: /tmp/recommendation-config
+          readinessProbe:
+            httpGet:
+              path: /api/healthz
+              port: 8082
+              scheme: HTTP
+        - image: docker.io/gocrane/dashboard:v0.8.0
+          imagePullPolicy: IfNotPresent
+          name: dashboard
+          volumeMounts:
+            - mountPath: /etc/nginx/conf.d/
+              name: nginx-conf
+      volumes:
+        - name: cert
+          secret:
+            defaultMode: 420
+            secretName: webhook-server-tls
+        - name: config
+          configMap:
+            name: recommendation-configuration
+        - name: nginx-conf
+          configMap:
+            name: nginx-conf
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: recommendation-configuration
+  namespace: crane-system
+data:
+  config.yaml: |-
+    apiVersion: analysis.crane.io/v1alpha1
+    kind: RecommendationConfiguration
+    recommenders:
+      - name: Replicas
+        acceptedResources:
+          - kind: Deployment
+            apiVersion: apps/v1
+          - kind: StatefulSet
+            apiVersion: apps/v1
+      - name: Resource
+        acceptedResources:
+          - kind: Deployment
+            apiVersion: apps/v1
+          - kind: StatefulSet
+            apiVersion: apps/v1
+      - name: IdleNode
+        acceptedResources:
+          - kind: Node
+            apiVersion: v1
+  qos.yaml: |-
+    apiVersion: ensurance.crane.io/v1alpha1
+    kind: QOSConfig
+    qosInitializer:
+      enable: true
+      selector: 
+        matchLabels:
+          app: nginx
+      initContainerTemplate:
+        name: crane-qos-initializer
+        image: docker.io/gocrane/qos-init:v0.1.4
+        imagePullPolicy: IfNotPresent
+        command:
+          - sh
+          - -x
+          - /qos-checking.sh
+        volumeMounts:
+          - name: podinfo
+            mountPath: /etc/podinfo
+      volumeTemplate:
+        name: podinfo
+        downwardAPI:
+          items:
+          - path: "annotations"
+            fieldRef:
+              fieldPath: metadata.annotations
+
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: crane-mutating-webhook
+webhooks:
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUNuRENDQVlRQ0NRQ292Q0JOblRVSGZqQU5CZ2txaGtpRzl3MEJBUXNGQURBUU1RNHdEQVlEVlFRRERBVmoKY21GdVpUQWVGdzB5TWpBeU1qSXhORE15TVRWYUZ3MHpNakF5TWpBeE5ETXlNVFZhTUJBeERqQU1CZ05WQkFNTQpCV055WVc1bE1JSUJJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBNHVDWTl0YzhicFBxCm9rbFhFbDNZdk1XT280bjI3RWVDTW1rRmorbEE1aGxnMW1EanRlcUhXRVUzUDdJMURsTko4YXcraEdtN2hLdUMKZlFNT2xCQTJ4anNONi8vS0tuNU50YTB1cWY2T0NJeXFXQmtCRzV1WGRQRkoyODVmU1FRS1VqeHBwWmphK3NKLwpXOHJkWnFZVzN5eDc1S3kvZHBYVXlWVDVjbkxaU0V3d25yaDVQeVlZQ2ZNaVN4d2V6TzUzV09ZNmFlL2g2UmtjCjg3VmpMTktWajdhbXgyWUxWVi8zZHJvajFMRmpnU0gzUU1uTVk3ay8xeW1WeWM5YmwrUHFZMmhEZW40Qi85d24KeWYxMTJldnZlckk5bzJ3YVpPQmRUWVlxVVBRQkwzMmFYQWJaU1pHT3QyMk9VdzJKdDZwaGdQOGVYbmsyNzAwWgpMYlZ5TFI2SDBRSURBUUFCTUEwR0NTcUdTSWIzRFFFQkN3VUFBNElCQVFCU1hxQUZ2WVo4dXFHZlIyWmE1TEZzCi94amNXdFpZU0ppVldUM2UxbVFZaytwcHdHMUQ1ZFlzeTd0M2haUDNQRjJ3emxlT3h6ZUdJSGdqd21uc2pQWlMKakpHK2RqMW93OEt0SVY2WDdPR1hEaWxnVnJqazloRWFJOHJTSFlUeGplT2U1cnlLVVZ3MERRUXBmckg1VFVnVAp1WHpYTHdUaHlMWnF5ZDMyaTA3UDBRcGxuOUllRFVzMkdvTktsUE5NVHFLSXliQVg2WW83UWJxMUdLT2xwbXVhCklYbU9lcWJtM0NUY1FYMjNpVktPZzVEZ3R0eTAyNWRFc2s5cjJEV29NVjZtZWtKYmowUzIyd2p6a2Q2OUg5UmsKU1RlbmJ5bUt3bUNZUWJTd2RIZ2J4WjlVSUUwcDI5QkttR2pUdUp4d1B0NE0ySEVhbnBVbzZqSzVVdWZsd2dpbQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+      service:
+        name: craned
+        namespace: crane-system
+        path: /mutate-prediction-crane-io-v1alpha1-timeseriesprediction
+    failurePolicy: Fail
+    name: mprediction.crane.io
+    rules:
+      - apiGroups:
+          - prediction.crane.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - TimeSeriesPrediction
+    sideEffects: None
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUNuRENDQVlRQ0NRQ292Q0JOblRVSGZqQU5CZ2txaGtpRzl3MEJBUXNGQURBUU1RNHdEQVlEVlFRRERBVmoKY21GdVpUQWVGdzB5TWpBeU1qSXhORE15TVRWYUZ3MHpNakF5TWpBeE5ETXlNVFZhTUJBeERqQU1CZ05WQkFNTQpCV055WVc1bE1JSUJJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBNHVDWTl0YzhicFBxCm9rbFhFbDNZdk1XT280bjI3RWVDTW1rRmorbEE1aGxnMW1EanRlcUhXRVUzUDdJMURsTko4YXcraEdtN2hLdUMKZlFNT2xCQTJ4anNONi8vS0tuNU50YTB1cWY2T0NJeXFXQmtCRzV1WGRQRkoyODVmU1FRS1VqeHBwWmphK3NKLwpXOHJkWnFZVzN5eDc1S3kvZHBYVXlWVDVjbkxaU0V3d25yaDVQeVlZQ2ZNaVN4d2V6TzUzV09ZNmFlL2g2UmtjCjg3VmpMTktWajdhbXgyWUxWVi8zZHJvajFMRmpnU0gzUU1uTVk3ay8xeW1WeWM5YmwrUHFZMmhEZW40Qi85d24KeWYxMTJldnZlckk5bzJ3YVpPQmRUWVlxVVBRQkwzMmFYQWJaU1pHT3QyMk9VdzJKdDZwaGdQOGVYbmsyNzAwWgpMYlZ5TFI2SDBRSURBUUFCTUEwR0NTcUdTSWIzRFFFQkN3VUFBNElCQVFCU1hxQUZ2WVo4dXFHZlIyWmE1TEZzCi94amNXdFpZU0ppVldUM2UxbVFZaytwcHdHMUQ1ZFlzeTd0M2haUDNQRjJ3emxlT3h6ZUdJSGdqd21uc2pQWlMKakpHK2RqMW93OEt0SVY2WDdPR1hEaWxnVnJqazloRWFJOHJTSFlUeGplT2U1cnlLVVZ3MERRUXBmckg1VFVnVAp1WHpYTHdUaHlMWnF5ZDMyaTA3UDBRcGxuOUllRFVzMkdvTktsUE5NVHFLSXliQVg2WW83UWJxMUdLT2xwbXVhCklYbU9lcWJtM0NUY1FYMjNpVktPZzVEZ3R0eTAyNWRFc2s5cjJEV29NVjZtZWtKYmowUzIyd2p6a2Q2OUg5UmsKU1RlbmJ5bUt3bUNZUWJTd2RIZ2J4WjlVSUUwcDI5QkttR2pUdUp4d1B0NE0ySEVhbnBVbzZqSzVVdWZsd2dpbQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+      service:
+        name: craned
+        namespace: crane-system
+        path: /mutate-ensurance-crane-io-v1alpha1-nodeqosensurancepolicy
+    failurePolicy: Fail
+    name: mnodeqosensurancepolicies.ensurance.crane.io
+    rules:
+      - apiGroups:
+          - ensurance.crane.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - NodeQOSEnsurancePolicy
+    sideEffects: None
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUNuRENDQVlRQ0NRQ292Q0JOblRVSGZqQU5CZ2txaGtpRzl3MEJBUXNGQURBUU1RNHdEQVlEVlFRRERBVmoKY21GdVpUQWVGdzB5TWpBeU1qSXhORE15TVRWYUZ3MHpNakF5TWpBeE5ETXlNVFZhTUJBeERqQU1CZ05WQkFNTQpCV055WVc1bE1JSUJJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBNHVDWTl0YzhicFBxCm9rbFhFbDNZdk1XT280bjI3RWVDTW1rRmorbEE1aGxnMW1EanRlcUhXRVUzUDdJMURsTko4YXcraEdtN2hLdUMKZlFNT2xCQTJ4anNONi8vS0tuNU50YTB1cWY2T0NJeXFXQmtCRzV1WGRQRkoyODVmU1FRS1VqeHBwWmphK3NKLwpXOHJkWnFZVzN5eDc1S3kvZHBYVXlWVDVjbkxaU0V3d25yaDVQeVlZQ2ZNaVN4d2V6TzUzV09ZNmFlL2g2UmtjCjg3VmpMTktWajdhbXgyWUxWVi8zZHJvajFMRmpnU0gzUU1uTVk3ay8xeW1WeWM5YmwrUHFZMmhEZW40Qi85d24KeWYxMTJldnZlckk5bzJ3YVpPQmRUWVlxVVBRQkwzMmFYQWJaU1pHT3QyMk9VdzJKdDZwaGdQOGVYbmsyNzAwWgpMYlZ5TFI2SDBRSURBUUFCTUEwR0NTcUdTSWIzRFFFQkN3VUFBNElCQVFCU1hxQUZ2WVo4dXFHZlIyWmE1TEZzCi94amNXdFpZU0ppVldUM2UxbVFZaytwcHdHMUQ1ZFlzeTd0M2haUDNQRjJ3emxlT3h6ZUdJSGdqd21uc2pQWlMKakpHK2RqMW93OEt0SVY2WDdPR1hEaWxnVnJqazloRWFJOHJTSFlUeGplT2U1cnlLVVZ3MERRUXBmckg1VFVnVAp1WHpYTHdUaHlMWnF5ZDMyaTA3UDBRcGxuOUllRFVzMkdvTktsUE5NVHFLSXliQVg2WW83UWJxMUdLT2xwbXVhCklYbU9lcWJtM0NUY1FYMjNpVktPZzVEZ3R0eTAyNWRFc2s5cjJEV29NVjZtZWtKYmowUzIyd2p6a2Q2OUg5UmsKU1RlbmJ5bUt3bUNZUWJTd2RIZ2J4WjlVSUUwcDI5QkttR2pUdUp4d1B0NE0ySEVhbnBVbzZqSzVVdWZsd2dpbQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+      service:
+        name: craned
+        namespace: crane-system
+        path: /mutate-ensurance-crane-io-v1alpha1-avoidanceaction
+    failurePolicy: Fail
+    name: mavoidanceactions.ensurance.crane.io
+    rules:
+      - apiGroups:
+          - ensurance.crane.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - AvoidanceAction
+    sideEffects: None
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUNuRENDQVlRQ0NRQ292Q0JOblRVSGZqQU5CZ2txaGtpRzl3MEJBUXNGQURBUU1RNHdEQVlEVlFRRERBVmoKY21GdVpUQWVGdzB5TWpBeU1qSXhORE15TVRWYUZ3MHpNakF5TWpBeE5ETXlNVFZhTUJBeERqQU1CZ05WQkFNTQpCV055WVc1bE1JSUJJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBNHVDWTl0YzhicFBxCm9rbFhFbDNZdk1XT280bjI3RWVDTW1rRmorbEE1aGxnMW1EanRlcUhXRVUzUDdJMURsTko4YXcraEdtN2hLdUMKZlFNT2xCQTJ4anNONi8vS0tuNU50YTB1cWY2T0NJeXFXQmtCRzV1WGRQRkoyODVmU1FRS1VqeHBwWmphK3NKLwpXOHJkWnFZVzN5eDc1S3kvZHBYVXlWVDVjbkxaU0V3d25yaDVQeVlZQ2ZNaVN4d2V6TzUzV09ZNmFlL2g2UmtjCjg3VmpMTktWajdhbXgyWUxWVi8zZHJvajFMRmpnU0gzUU1uTVk3ay8xeW1WeWM5YmwrUHFZMmhEZW40Qi85d24KeWYxMTJldnZlckk5bzJ3YVpPQmRUWVlxVVBRQkwzMmFYQWJaU1pHT3QyMk9VdzJKdDZwaGdQOGVYbmsyNzAwWgpMYlZ5TFI2SDBRSURBUUFCTUEwR0NTcUdTSWIzRFFFQkN3VUFBNElCQVFCU1hxQUZ2WVo4dXFHZlIyWmE1TEZzCi94amNXdFpZU0ppVldUM2UxbVFZaytwcHdHMUQ1ZFlzeTd0M2haUDNQRjJ3emxlT3h6ZUdJSGdqd21uc2pQWlMKakpHK2RqMW93OEt0SVY2WDdPR1hEaWxnVnJqazloRWFJOHJTSFlUeGplT2U1cnlLVVZ3MERRUXBmckg1VFVnVAp1WHpYTHdUaHlMWnF5ZDMyaTA3UDBRcGxuOUllRFVzMkdvTktsUE5NVHFLSXliQVg2WW83UWJxMUdLT2xwbXVhCklYbU9lcWJtM0NUY1FYMjNpVktPZzVEZ3R0eTAyNWRFc2s5cjJEV29NVjZtZWtKYmowUzIyd2p6a2Q2OUg5UmsKU1RlbmJ5bUt3bUNZUWJTd2RIZ2J4WjlVSUUwcDI5QkttR2pUdUp4d1B0NE0ySEVhbnBVbzZqSzVVdWZsd2dpbQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+      service:
+        name: craned
+        namespace: crane-system
+        path: /mutate-autoscaling-crane-io-v1alpha1-effectivehorizontalpodautoscaler
+    failurePolicy: Fail
+    name: mautoscaling.crane.io
+    rules:
+      - apiGroups:
+          - autoscaling.crane.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - EffectiveHorizontalPodAutoscaler
+    sideEffects: None
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUNuRENDQVlRQ0NRQ292Q0JOblRVSGZqQU5CZ2txaGtpRzl3MEJBUXNGQURBUU1RNHdEQVlEVlFRRERBVmoKY21GdVpUQWVGdzB5TWpBeU1qSXhORE15TVRWYUZ3MHpNakF5TWpBeE5ETXlNVFZhTUJBeERqQU1CZ05WQkFNTQpCV055WVc1bE1JSUJJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBNHVDWTl0YzhicFBxCm9rbFhFbDNZdk1XT280bjI3RWVDTW1rRmorbEE1aGxnMW1EanRlcUhXRVUzUDdJMURsTko4YXcraEdtN2hLdUMKZlFNT2xCQTJ4anNONi8vS0tuNU50YTB1cWY2T0NJeXFXQmtCRzV1WGRQRkoyODVmU1FRS1VqeHBwWmphK3NKLwpXOHJkWnFZVzN5eDc1S3kvZHBYVXlWVDVjbkxaU0V3d25yaDVQeVlZQ2ZNaVN4d2V6TzUzV09ZNmFlL2g2UmtjCjg3VmpMTktWajdhbXgyWUxWVi8zZHJvajFMRmpnU0gzUU1uTVk3ay8xeW1WeWM5YmwrUHFZMmhEZW40Qi85d24KeWYxMTJldnZlckk5bzJ3YVpPQmRUWVlxVVBRQkwzMmFYQWJaU1pHT3QyMk9VdzJKdDZwaGdQOGVYbmsyNzAwWgpMYlZ5TFI2SDBRSURBUUFCTUEwR0NTcUdTSWIzRFFFQkN3VUFBNElCQVFCU1hxQUZ2WVo4dXFHZlIyWmE1TEZzCi94amNXdFpZU0ppVldUM2UxbVFZaytwcHdHMUQ1ZFlzeTd0M2haUDNQRjJ3emxlT3h6ZUdJSGdqd21uc2pQWlMKakpHK2RqMW93OEt0SVY2WDdPR1hEaWxnVnJqazloRWFJOHJTSFlUeGplT2U1cnlLVVZ3MERRUXBmckg1VFVnVAp1WHpYTHdUaHlMWnF5ZDMyaTA3UDBRcGxuOUllRFVzMkdvTktsUE5NVHFLSXliQVg2WW83UWJxMUdLT2xwbXVhCklYbU9lcWJtM0NUY1FYMjNpVktPZzVEZ3R0eTAyNWRFc2s5cjJEV29NVjZtZWtKYmowUzIyd2p6a2Q2OUg5UmsKU1RlbmJ5bUt3bUNZUWJTd2RIZ2J4WjlVSUUwcDI5QkttR2pUdUp4d1B0NE0ySEVhbnBVbzZqSzVVdWZsd2dpbQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+      service:
+        name: craned
+        namespace: crane-system
+        path: /mutate--v1-pod
+    failurePolicy: Ignore
+    name: m.v1.pod
+    rules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE"]
+        resources: ["pods"]
+    sideEffects: None
+    namespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values:
+            - kube-system
+            - crane-system
