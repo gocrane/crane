@@ -75,7 +75,7 @@ echo "Step2: Installing Prometheus finished."
 
 echo "Step3: Installing Grafana "
 helm repo add ${GRAFANA_HELM_NAME} ${GRAFANA_HELM_URL}
-helm install grafana --version 6.12.0 \
+helm install grafana --version 6.11.0 \
              -f ${GRAFANA_VALUE_URL} \
              -n crane-system \
              --create-namespace ${GRAFANA_HELM_NAME}/grafana

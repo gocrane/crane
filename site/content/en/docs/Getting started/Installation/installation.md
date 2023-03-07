@@ -56,14 +56,14 @@ Fadvisor use grafana to present cost estimates. Using following command to insta
 {{< tabpane right=true >}}
 {{< tab header="Main" lang="en" >}}
 helm repo add grafana https://grafana.github.io/helm-charts
-helm install grafana --version 6.12.0 \
+helm install grafana --version 6.11.0 \
     -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/grafana/override_values.yaml \
     -n crane-system \
     --create-namespace grafana/grafana
 {{< /tab >}}
 {{< tab header="Mirror" lang="en" >}}
 helm repo add grafana https://finops-helm.pkg.coding.net/gocrane/grafana
-helm install grafana --version 6.12.0 \
+helm install grafana --version 6.11.0 \
     -f https://gitee.com/finops/helm-charts/raw/main/integration/grafana/override_values.yaml \
     -n crane-system \
     --create-namespace grafana/grafana
