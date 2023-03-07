@@ -1,4 +1,23 @@
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Crane – 路线图</title><link>/zh-cn/docs/roadmap/</link><description>Recent content in 路线图 on Crane</description><generator>Hugo -- gohugo.io</generator><atom:link href="/zh-cn/docs/roadmap/index.xml" rel="self" type="application/rss+xml"/><item><title>Docs: Roadmap for 2022</title><link>/zh-cn/docs/roadmap/roadmap-2022/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/roadmap/roadmap-2022/</guid><description>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Crane – 路线图</title><link>/zh-cn/docs/roadmap/</link><description>Recent content in 路线图 on Crane</description><generator>Hugo -- gohugo.io</generator><atom:link href="/zh-cn/docs/roadmap/index.xml" rel="self" type="application/rss+xml"/><item><title>Docs: Roadmap for 2023</title><link>/zh-cn/docs/roadmap/roadmap-2023/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/roadmap/roadmap-2023/</guid><description>
+&lt;p>Please refer the following sections for Crane release plan of 2023.&lt;/p>
+&lt;p>Please let us know if you have urgent needs which are not presented in the plan.&lt;/p>
+&lt;h3 id="0100">0.10.0&lt;/h3>
+&lt;ul>
+&lt;li>Optimization of Grafana &amp;amp; Crane Dashboard Phase 2, adding resource optimization model charts&lt;/li>
+&lt;li>Carbon Footprint, carbon emissions display Phase 2&lt;/li>
+&lt;li>Support for immediately executable recommendations&lt;/li>
+&lt;/ul>
+&lt;h3 id="0110">0.11.0&lt;/h3>
+&lt;ul>
+&lt;li>Utilization analysis and resource recommendation for GPU resources (no implementation of GPU sharing technology, only integration)&lt;/li>
+&lt;li>Integration of recommendation framework with CICD platforms such as ArgoCD, Jenkins&lt;/li>
+&lt;/ul>
+&lt;h3 id="0120">0.12.0&lt;/h3>
+&lt;ul>
+&lt;li>More idle resource recognition, nodes, PV, LB&lt;/li>
+&lt;li>Cost allocation based on Project and Department application dimensions&lt;/li>
+&lt;li>Node resource amplification&lt;/li>
+&lt;/ul></description></item><item><title>Docs: Roadmap for 2022</title><link>/zh-cn/docs/roadmap/roadmap-2022/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/roadmap/roadmap-2022/</guid><description>
 &lt;p>Please refer the following sections for Crane release plan of H1 2022, new release will be cut on monthly basis.&lt;/p>
 &lt;p>Please let us know if you have urgent needs which are not presented in the plan.&lt;/p>
 &lt;h3 id="010-released">0.1.0 [released]&lt;/h3>
@@ -41,37 +60,23 @@
 &lt;li>Support remote adapter for external metric&lt;/li>
 &lt;li>Prediction with business metrics&lt;/li>
 &lt;/ul>
-&lt;h3 id="070-july">0.7.0 [July]&lt;/h3>
+&lt;h3 id="070-released">0.7.0 [released]&lt;/h3>
 &lt;ul>
 &lt;li>Recommendation Framework&lt;/li>
 &lt;li>Crane-Descheduler based on CPU/Memory metrics&lt;/li>
 &lt;li>Offline Algorithm Evaluator&lt;/li>
 &lt;/ul>
-&lt;h3 id="080-august">0.8.0 [August]&lt;/h3>
+&lt;h3 id="080-released">0.8.0 [released]&lt;/h3>
 &lt;ul>
 &lt;li>External recommendation plugins&lt;/li>
 &lt;li>Built-in CICD Pipeline integration&lt;/li>
 &lt;li>CPU topology aware scheduler&lt;/li>
 &lt;li>Enhanced Console with resource optimization&lt;/li>
 &lt;/ul>
-&lt;h3 id="090-september">0.9.0 [September]&lt;/h3>
+&lt;h3 id="090-released">0.9.0 [released]&lt;/h3>
 &lt;ul>
 &lt;li>Flexible conflict prediction and detection&lt;/li>
 &lt;li>Builtin AI Prediction&lt;/li>
 &lt;li>Wastes discovery and dashboard&lt;/li>
 &lt;li>Enhanced Console with more cost visibility dashboard&lt;/li>
-&lt;/ul>
-&lt;h3 id="0100-october">0.10.0 [October]&lt;/h3>
-&lt;ul>
-&lt;li>Business Maturity Model Dashboard&lt;/li>
-&lt;li>In-place Update support by EVPA&lt;/li>
-&lt;li>Kubernetes and Elastic Kubernetes Service price comparison&lt;/li>
-&lt;/ul>
-&lt;h3 id="0110-november">0.11.0 [November]&lt;/h3>
-&lt;ul>
-&lt;li>Multi-cluster cost dashboard&lt;/li>
-&lt;/ul>
-&lt;h3 id="0120-december">0.12.0 [December]&lt;/h3>
-&lt;ul>
-&lt;li>Multi-cluster cost optimization&lt;/li>
 &lt;/ul></description></item></channel></rss>

@@ -90,6 +90,25 @@ But kubelet will always exclude assigned cores in shared cores, which may waste 
 &lt;ul>
 &lt;li>kubelet cpu manger policy need to be set to none, otherwise will be conflicted with crane-agent&lt;/li>
 &lt;li>if crane-agent can not allocate CPUs for pods, it will not refuse to start pod as kubelet&lt;/li>
+&lt;/ul></description></item><item><title>Docs: Roadmap for 2023</title><link>/zh-cn/docs/roadmap/roadmap-2023/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/roadmap/roadmap-2023/</guid><description>
+&lt;p>Please refer the following sections for Crane release plan of 2023.&lt;/p>
+&lt;p>Please let us know if you have urgent needs which are not presented in the plan.&lt;/p>
+&lt;h3 id="0100">0.10.0&lt;/h3>
+&lt;ul>
+&lt;li>Optimization of Grafana &amp;amp; Crane Dashboard Phase 2, adding resource optimization model charts&lt;/li>
+&lt;li>Carbon Footprint, carbon emissions display Phase 2&lt;/li>
+&lt;li>Support for immediately executable recommendations&lt;/li>
+&lt;/ul>
+&lt;h3 id="0110">0.11.0&lt;/h3>
+&lt;ul>
+&lt;li>Utilization analysis and resource recommendation for GPU resources (no implementation of GPU sharing technology, only integration)&lt;/li>
+&lt;li>Integration of recommendation framework with CICD platforms such as ArgoCD, Jenkins&lt;/li>
+&lt;/ul>
+&lt;h3 id="0120">0.12.0&lt;/h3>
+&lt;ul>
+&lt;li>More idle resource recognition, nodes, PV, LB&lt;/li>
+&lt;li>Cost allocation based on Project and Department application dimensions&lt;/li>
+&lt;li>Node resource amplification&lt;/li>
 &lt;/ul></description></item><item><title>Docs: 基于 Effective HPA 实现自定义指标的智能弹性实践</title><link>/zh-cn/docs/best-practices/effective-hpa-with-prometheus-adapter/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/best-practices/effective-hpa-with-prometheus-adapter/</guid><description>
 &lt;p>Kubernetes HPA 支持了丰富的弹性扩展能力，Kubernetes 平台开发者部署服务实现自定义 Metric 的服务，Kubernetes 用户配置多项内置的资源指标或者自定义 Metric 指标实现自定义水平弹性。
 Effective HPA 兼容社区的 Kubernetes HPA 的能力，提供了更智能的弹性策略，比如基于预测的弹性和基于 Cron 周期的弹性等。
@@ -1220,39 +1239,25 @@ make decisions based on input and policies.&lt;/p>
 &lt;li>Support remote adapter for external metric&lt;/li>
 &lt;li>Prediction with business metrics&lt;/li>
 &lt;/ul>
-&lt;h3 id="070-july">0.7.0 [July]&lt;/h3>
+&lt;h3 id="070-released">0.7.0 [released]&lt;/h3>
 &lt;ul>
 &lt;li>Recommendation Framework&lt;/li>
 &lt;li>Crane-Descheduler based on CPU/Memory metrics&lt;/li>
 &lt;li>Offline Algorithm Evaluator&lt;/li>
 &lt;/ul>
-&lt;h3 id="080-august">0.8.0 [August]&lt;/h3>
+&lt;h3 id="080-released">0.8.0 [released]&lt;/h3>
 &lt;ul>
 &lt;li>External recommendation plugins&lt;/li>
 &lt;li>Built-in CICD Pipeline integration&lt;/li>
 &lt;li>CPU topology aware scheduler&lt;/li>
 &lt;li>Enhanced Console with resource optimization&lt;/li>
 &lt;/ul>
-&lt;h3 id="090-september">0.9.0 [September]&lt;/h3>
+&lt;h3 id="090-released">0.9.0 [released]&lt;/h3>
 &lt;ul>
 &lt;li>Flexible conflict prediction and detection&lt;/li>
 &lt;li>Builtin AI Prediction&lt;/li>
 &lt;li>Wastes discovery and dashboard&lt;/li>
 &lt;li>Enhanced Console with more cost visibility dashboard&lt;/li>
-&lt;/ul>
-&lt;h3 id="0100-october">0.10.0 [October]&lt;/h3>
-&lt;ul>
-&lt;li>Business Maturity Model Dashboard&lt;/li>
-&lt;li>In-place Update support by EVPA&lt;/li>
-&lt;li>Kubernetes and Elastic Kubernetes Service price comparison&lt;/li>
-&lt;/ul>
-&lt;h3 id="0110-november">0.11.0 [November]&lt;/h3>
-&lt;ul>
-&lt;li>Multi-cluster cost dashboard&lt;/li>
-&lt;/ul>
-&lt;h3 id="0120-december">0.12.0 [December]&lt;/h3>
-&lt;ul>
-&lt;li>Multi-cluster cost optimization&lt;/li>
 &lt;/ul></description></item><item><title>Docs: 安装文档</title><link>/zh-cn/docs/getting-started/installation/installation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/getting-started/installation/installation/</guid><description>
 &lt;p>为了让您更快的部署 Crane ，本文档提供清晰的：&lt;/p>
 &lt;ul>
@@ -1297,7 +1302,7 @@ Mirror
 &lt;/li>&lt;/ul>
 &lt;div class="tab-content" id="tabs-2-content">&lt;div class="tab-pane fade show active"
 id="tabs-2-0" role="tabpanel" aria-labelled-by="tabs-2-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm install prometheus -n crane-system \
+helm install prometheus -n crane-system --version 19.6.1 \
 --set pushgateway.enabled=false \
 --set alertmanager.enabled=false \
 --set server.persistentVolume.enabled=false \
@@ -1305,7 +1310,7 @@ helm install prometheus -n crane-system \
 --create-namespace prometheus-community/prometheus&lt;/code>&lt;/pre>&lt;/div>
 &lt;div class="tab-pane fade"
 id="tabs-2-1" role="tabpanel" aria-labelled-by="tabs-2-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add prometheus-community https://finops-helm.pkg.coding.net/gocrane/prometheus-community
-helm install prometheus -n crane-system \
+helm install prometheus -n crane-system --version 19.6.1 \
 --set pushgateway.enabled=false \
 --set alertmanager.enabled=false \
 --set server.persistentVolume.enabled=false \
@@ -1328,13 +1333,13 @@ Mirror
 &lt;/li>&lt;/ul>
 &lt;div class="tab-content" id="tabs-3-content">&lt;div class="tab-pane fade show active"
 id="tabs-3-0" role="tabpanel" aria-labelled-by="tabs-3-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add grafana https://grafana.github.io/helm-charts
-helm install grafana \
+helm install grafana --version 6.12.0 \
 -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/grafana/override_values.yaml \
 -n crane-system \
 --create-namespace grafana/grafana&lt;/code>&lt;/pre>&lt;/div>
 &lt;div class="tab-pane fade"
 id="tabs-3-1" role="tabpanel" aria-labelled-by="tabs-3-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add grafana https://finops-helm.pkg.coding.net/gocrane/grafana
-helm install grafana \
+helm install grafana --version 6.12.0 \
 -f https://gitee.com/finops/helm-charts/raw/main/integration/grafana/override_values.yaml \
 -n crane-system \
 --create-namespace grafana/grafana&lt;/code>&lt;/pre>&lt;/div>
