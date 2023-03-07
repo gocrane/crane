@@ -65,7 +65,7 @@ echo "Step1: Create local cluster finished."
 
 echo "Step2: Installing Prometheus "
 helm repo add ${PROMETHEUS_HELM_NAME} ${PROMETHEUS_HELM_URL}
-helm install prometheus -n crane-system \
+helm install prometheus -n crane-system --version 19.6.1 \
                         --set prometheus-pushgateway.enabled=false \
                         --set alertmanager.enabled=false \
                         --set server.persistentVolume.enabled=false \
@@ -75,7 +75,7 @@ echo "Step2: Installing Prometheus finished."
 
 echo "Step3: Installing Grafana "
 helm repo add ${GRAFANA_HELM_NAME} ${GRAFANA_HELM_URL}
-helm install grafana \
+helm install grafana --version 6.12.0 \
              -f ${GRAFANA_VALUE_URL} \
              -n crane-system \
              --create-namespace ${GRAFANA_HELM_NAME}/grafana
