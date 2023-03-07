@@ -11,7 +11,7 @@ import (
 	"github.com/gocrane/crane/pkg/ensurance/config"
 )
 
-func TestValidateNodeQualityProbe(t *testing.T) {
+func TestDefaultingPodQOSInitializer(t *testing.T) {
 	configYaml := "apiVersion: ensurance.crane.io/v1alpha1\nkind: QOSConfig\nqosInitializer:\n  enable: true\n  selector: \n    matchLabels:\n      app: nginx\n  initContainerTemplate:\n    name: crane-qos-initializer\n    image: docker.io/gocrane/qos-init:v0.1.1\n    imagePullPolicy: IfNotPresent\n    command:\n      - sh\n      - -x\n      - /qos-checking.sh\n    volumeMounts:\n      - name: podinfo\n        mountPath: /etc/podinfo\n  volumeTemplate:\n    name: podinfo\n    downwardAPI:\n      items:\n      - path: \"annotations\"\n        fieldRef:\n          fieldPath: metadata.annotations"
 
 	config := &config.QOSConfig{}

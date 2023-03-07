@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	"github.com/robfig/cron/v3"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+
+	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/metricprovider"
 )
