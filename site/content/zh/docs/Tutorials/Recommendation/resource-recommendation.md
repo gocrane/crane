@@ -161,7 +161,7 @@ container_memory_working_set_bytes{container!="POD",namespace="crane-system",pod
 | mem-request-margin-fraction | 0.15         | Memory 推荐值扩大系数，0.15指推荐值乘以 1.15 |
 | mem-target-utilization      | 1            | Memory 目标利用率，0.8 指推荐值除以 0.8    |
 | specification               | false        | 是否开启资源规格规整                     |
-| specification-config        | ""           | 资源规格，注意格式，详细的默认配置请见下方表格        |
+| specification-config        | ""           | 资源规格，格式类似：2c4g,4c8g,2c5g,2c1g,0.25c0.25g,0.5c1g,4c16g，详细的默认配置请见下方表格        |
 | oom-protection              | true         | 是否开启 OOM 保护                    |
 | oom-history-length          | 168h         | OOM 历史事件的事件，过期事件会被忽略           |
 | oom-bump-ratio              | 1.2          | OOM 内存放大系数                     |
