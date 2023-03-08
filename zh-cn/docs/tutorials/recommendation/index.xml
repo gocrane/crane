@@ -447,7 +447,7 @@ TargetRef&lt;/li>
 &lt;tr>
 &lt;td>specification-config&lt;/td>
 &lt;td>&amp;quot;&amp;quot;&lt;/td>
-&lt;td>资源规格，注意格式，详细的默认配置请见下方表格&lt;/td>
+&lt;td>资源规格，格式类似：2c4g,4c8g,2c5g,2c1g,0.25c0.25g,0.5c1g,4c16g，详细的默认配置请见下方表格&lt;/td>
 &lt;/tr>
 &lt;tr>
 &lt;td>oom-protection&lt;/td>
