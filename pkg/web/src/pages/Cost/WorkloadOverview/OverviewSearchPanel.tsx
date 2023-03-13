@@ -15,7 +15,7 @@ import {nanoid} from '@reduxjs/toolkit';
 import dayjs from 'dayjs';
 import _ from 'lodash';
 
-const ALL_NAMESPACE_VALUE = nanoid();
+const ALL_NAMESPACE_VALUE = "ALL";
 
 export const OverviewSearchPanel = React.memo(() => {
   const dispatch = useDispatch();
@@ -26,7 +26,6 @@ export const OverviewSearchPanel = React.memo(() => {
   const selectedNamespace = useSelector((state) => state.insight.selectedNamespace);
   const selectedWorkload = useSelector((state) => state.insight.selectedWorkload);
   const selectedWorkloadType = useSelector((state) => state.insight.selectedWorkloadType);
-  const discount = useSelector((state) => state.insight.discount);
   const clusterId = useSelector((state) => state.insight.selectedClusterId);
 
   const isNeedSelectNamespace = true;
@@ -53,12 +52,10 @@ export const OverviewSearchPanel = React.memo(() => {
   const workloadTypeList = useFetchSeriesListQuery(
     {
       craneUrl,
-      // start: dayjs(customRange.start).toDate().getTime(),
-      // end: dayjs(customRange.end).toDate().getTime(),
-      start: '1677721627',
-      end: '1677743227',
+      start: (Date.parse(customRange.start)/1000).toString(),
+      end: (Date.parse(customRange.end)/1000).toString(),
       match: `crane_analysis_resource_recommendation{namespace=~"(${
-        selectedNamespace === ALL_NAMESPACE_VALUE
+        selectedNamespace === "ALL"
           ? namespaceOptions
               .filter((option) => option.label !== ALL_NAMESPACE_VALUE)
               .map((option) => option.label)
@@ -66,7 +63,7 @@ export const OverviewSearchPanel = React.memo(() => {
           : selectedNamespace
      })"}`,
    },
-    {},
+    {skip: !selectedNamespace},
   );
 
   const workloadTypeOptions: any[] = React.useMemo(
@@ -83,10 +80,10 @@ export const OverviewSearchPanel = React.memo(() => {
 
   const workloadList = useFetchSeriesListQuery({
     craneUrl,
-    start: '1677721627',
-    end: '1677743227',
+    start: (Date.parse(customRange.start)/1000).toString(),
+    end: (Date.parse(customRange.end)/1000).toString(),
     match: `crane_analysis_resource_recommendation{namespace=~"(${
-      selectedNamespace === ALL_NAMESPACE_VALUE
+      selectedNamespace === "ALL"
         ? namespaceOptions
             .filter((option) => option.label !== ALL_NAMESPACE_VALUE)
             .map((option) => option.label)
@@ -95,17 +92,20 @@ export const OverviewSearchPanel = React.memo(() => {
    })"${selectedWorkloadType ? `, owner_kind="${selectedWorkloadType}"` : ''}}`,
  });
 
-  const workloadOptions: any[] = React.useMemo(
-    () =>
-      _.unionBy(
-        (workloadTypeList.data?.data ?? []).map((data: any) => ({
+  const workloadOptions: any[] = React.useMemo(() => {
+    const options = _.uniqBy(
+      [
+        { label: 'ALL', value: 'ALL' },
+        ...(workloadList.data?.data ?? []).map((data: any) => ({
           label: data.owner_name,
           value: data.owner_name,
-       })),
-        'value',
-      ),
-    [workloadList],
-  );
+        })),
+      ],
+      'value'
+    )
+
+    return options;
+  }, [workloadList.data]);
 
   React.useEffect(() => {
     if (namespaceList.isSuccess && isNeedSelectNamespace && namespaceOptions?.[0]?.value) {
@@ -115,9 +115,15 @@ export const OverviewSearchPanel = React.memo(() => {
 
   React.useEffect(() => {
     if (workloadTypeList.isSuccess  && workloadTypeOptions?.[0]?.value) {
-      dispatch(insightAction.selectedWorkloadType(namespaceOptions[0].value));
+      dispatch(insightAction.selectedWorkloadType(workloadTypeOptions[0].value));
     }
-  }, [dispatch, isNeedSelectNamespace, namespaceList.isSuccess, namespaceOptions]);
+  }, [dispatch, workloadTypeList.isSuccess, workloadTypeOptions]);
+
+  React.useEffect(() => {
+    if (workloadList.isSuccess  && workloadOptions?.[0]?.value) {
+      dispatch(insightAction.selectedWorkload(workloadOptions[0].value));
+    }
+  }, [dispatch, workloadList.isSuccess, workloadOptions]);
 
   return (
     <div className={classnames(CommonStyle.pageWithPadding, CommonStyle.pageWithColor)}>
