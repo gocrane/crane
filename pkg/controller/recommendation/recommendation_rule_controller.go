@@ -41,18 +41,16 @@ import (
 
 type RecommendationRuleController struct {
 	client.Client
-	Scheme                   *runtime.Scheme
-	Recorder                 record.EventRecorder
-	RestMapper               meta.RESTMapper
-	ScaleClient              scale.ScalesGetter
-	RecommenderMgr           recommender.RecommenderManager
-	PredictorMgr             predictormgr.Manager
-	kubeClient               kubernetes.Interface
-	dynamicClient            dynamic.Interface
-	discoveryClient          discovery.DiscoveryInterface
-	Provider                 providers.History
-	RecommendationRuleStatus map[string]bool
-	lock                     sync.RWMutex
+	Scheme          *runtime.Scheme
+	Recorder        record.EventRecorder
+	RestMapper      meta.RESTMapper
+	ScaleClient     scale.ScalesGetter
+	RecommenderMgr  recommender.RecommenderManager
+	PredictorMgr    predictormgr.Manager
+	kubeClient      kubernetes.Interface
+	dynamicClient   dynamic.Interface
+	discoveryClient discovery.DiscoveryInterface
+	Provider        providers.History
 }
 
 func (c *RecommendationRuleController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -97,11 +95,8 @@ func (c *RecommendationRuleController) Reconcile(ctx context.Context, req ctrl.R
 		}
 	}
 
-	// set isRunning true for rr
-	c.setStatus(recommendationRule, true)
 	finished := c.doReconcile(ctx, recommendationRule, interval)
 	if finished && len(strings.TrimSpace(recommendationRule.Spec.RunInterval)) != 0 {
-		c.setStatus(recommendationRule, false)
 		klog.V(4).InfoS("Will re-sync", "after", interval)
 		// Arrange for next round.
 		return ctrl.Result{
@@ -120,7 +115,7 @@ func (c *RecommendationRuleController) doReconcile(ctx context.Context, recommen
 		c.Recorder.Event(recommendationRule, corev1.EventTypeWarning, "FailedSelectResource", err.Error())
 		msg := fmt.Sprintf("Failed to get idenitities, RecommendationRule %s error %v", klog.KObj(recommendationRule), err)
 		klog.Errorf(msg)
-		c.UpdateStatus(ctx, recommendationRule, newStatus)
+		updateRecommendationRuleStatus(ctx, c.Client, c.Recorder, recommendationRule, newStatus)
 		return false
 	}
 
@@ -167,7 +162,7 @@ func (c *RecommendationRuleController) doReconcile(ctx context.Context, recommen
 		c.Recorder.Event(recommendationRule, corev1.EventTypeWarning, "FailedSelectResource", err.Error())
 		msg := fmt.Sprintf("Failed to get recomendations, RecommendationRule %s error %v", klog.KObj(recommendationRule), err)
 		klog.Errorf(msg)
-		c.UpdateStatus(ctx, recommendationRule, newStatus)
+		updateRecommendationRuleStatus(ctx, c.Client, c.Recorder, recommendationRule, newStatus)
 		return false
 	}
 
@@ -204,7 +199,7 @@ func (c *RecommendationRuleController) doReconcile(ctx context.Context, recommen
 			}
 		}
 
-		go c.executeMission(ctx, &wg, recommendationRule, identities, &currMissions[index], existingRecommendation, timeNow, newStatus.RunNumber)
+		go executeMission(ctx, &wg, c.RecommenderMgr, c.Provider, c.PredictorMgr, recommendationRule, identities, &currMissions[index], existingRecommendation, c.Client, c.ScaleClient, timeNow, newStatus.RunNumber)
 	}
 
 	wg.Wait()
@@ -240,45 +235,8 @@ func (c *RecommendationRuleController) doReconcile(ctx context.Context, recommen
 
 	newStatus.Recommendations = currMissions
 
-	c.UpdateStatus(ctx, recommendationRule, newStatus)
+	updateRecommendationRuleStatus(ctx, c.Client, c.Recorder, recommendationRule, newStatus)
 	return finished
-}
-
-func (c *RecommendationRuleController) CreateRecommendationObject(recommendationRule *analysisv1alph1.RecommendationRule,
-	target corev1.ObjectReference, id ObjectIdentity, recommenderName string) *analysisv1alph1.Recommendation {
-
-	namespace := known.CraneSystemNamespace
-	if id.Namespace != "" {
-		namespace = id.Namespace
-	}
-
-	recommendation := &analysisv1alph1.Recommendation{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: fmt.Sprintf("%s-%s-", recommendationRule.Name, strings.ToLower(recommenderName)),
-			Namespace:    namespace,
-			OwnerReferences: []metav1.OwnerReference{
-				*newOwnerRef(recommendationRule),
-			},
-		},
-		Spec: analysisv1alph1.RecommendationSpec{
-			TargetRef: target,
-			Type:      analysisv1alph1.AnalysisType(recommenderName),
-		},
-	}
-
-	labels := map[string]string{}
-	labels[known.RecommendationRuleNameLabel] = recommendationRule.Name
-	labels[known.RecommendationRuleUidLabel] = string(recommendationRule.UID)
-	labels[known.RecommendationRuleRecommenderLabel] = recommenderName
-	labels[known.RecommendationRuleTargetKindLabel] = target.Kind
-	labels[known.RecommendationRuleTargetVersionLabel] = target.GroupVersionKind().Version
-	labels[known.RecommendationRuleTargetNameLabel] = target.Name
-	for k, v := range id.Labels {
-		labels[k] = v
-	}
-
-	recommendation.Labels = labels
-	return recommendation
 }
 
 func (c *RecommendationRuleController) SetupWithManager(mgr ctrl.Manager) error {
@@ -286,106 +244,9 @@ func (c *RecommendationRuleController) SetupWithManager(mgr ctrl.Manager) error 
 	c.discoveryClient = discovery.NewDiscoveryClientForConfigOrDie(mgr.GetConfig())
 	c.dynamicClient = dynamic.NewForConfigOrDie(mgr.GetConfig())
 
-	c.RecommendationRuleStatus = map[string]bool{}
-	c.startChecking()
-
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&analysisv1alph1.RecommendationRule{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(c)
-}
-
-func (c *RecommendationRuleController) startChecking() {
-	checkingTick := time.NewTicker(time.Duration(10) * time.Second)
-	go func() {
-		for {
-			select {
-			case <-checkingTick.C:
-				recommendationRuleList := &analysisv1alph1.RecommendationRuleList{}
-				err := c.Client.List(context.TODO(), recommendationRuleList)
-				if err != nil {
-					klog.Errorf("Failed to check recommendationRule : %v", err)
-					return
-				}
-
-				for _, rr := range recommendationRuleList.Items {
-					isRunning, _ := c.getStatus(&rr)
-					if isRunning {
-						klog.V(6).Infof("Skip running recommendationRule %s", klog.KObj(&rr))
-						continue
-					}
-
-					var recommendations analysisv1alph1.RecommendationList
-					opts := []client.ListOption{
-						client.MatchingLabels(map[string]string{known.RecommendationRuleUidLabel: string(rr.UID)}),
-					}
-					err = c.Client.List(context.TODO(), &recommendations, opts...)
-					if err != nil {
-						klog.Errorf("Failed to check recommendationRule %s: %v", klog.KObj(&rr), err)
-						continue
-					}
-
-					identities, err := c.getIdentities(context.TODO(), &rr)
-					if err != nil {
-						klog.Errorf("Failed to get Identities for recommendationRule %s: %v", klog.KObj(&rr), err)
-						continue
-					}
-
-					for _, recommend := range recommendations.Items {
-						runNumber := int32(0)
-						if recommend.Annotations != nil {
-							val, ok := recommend.Annotations[known.RunNumberAnnotation]
-							if ok && len(val) != 0 {
-								runNumberInt, err := strconv.ParseInt(val, 10, 32)
-								if err == nil {
-									runNumber = int32(runNumberInt)
-								}
-							}
-						}
-
-						if rr.Status.RunNumber > runNumber {
-							newStatus := rr.Status.DeepCopy()
-							currentMissionIndex := -1
-							for index, mission := range newStatus.Recommendations {
-								if mission.UID == recommend.UID {
-									currentMissionIndex = index
-								}
-							}
-
-							if currentMissionIndex == -1 {
-								continue
-							}
-
-							c.executeMission(context.TODO(), nil, &rr, identities, &newStatus.Recommendations[currentMissionIndex], &recommend, metav1.Now(), newStatus.RunNumber)
-							if newStatus.Recommendations[currentMissionIndex].Message != "Success" {
-								err = c.Client.Delete(context.TODO(), &recommend)
-								if err != nil {
-									klog.Errorf("Failed to delete recommendation %s when checking: %v", klog.KObj(&recommend), err)
-								}
-							}
-
-							c.UpdateStatus(context.TODO(), &rr, newStatus)
-						}
-					}
-
-				}
-
-			}
-		}
-	}()
-}
-
-func (c *RecommendationRuleController) setStatus(recommendationRule *analysisv1alph1.RecommendationRule, isRunning bool) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	c.RecommendationRuleStatus[string(recommendationRule.UID)] = isRunning
-}
-
-func (c *RecommendationRuleController) getStatus(recommendationRule *analysisv1alph1.RecommendationRule) (bool, bool) {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-
-	val, ok := c.RecommendationRuleStatus[string(recommendationRule.UID)]
-	return val, ok
 }
 
 func (c *RecommendationRuleController) getIdentities(ctx context.Context, recommendationRule *analysisv1alph1.RecommendationRule) (map[string]ObjectIdentity, error) {
@@ -451,81 +312,7 @@ func (c *RecommendationRuleController) getIdentities(ctx context.Context, recomm
 	return identities, nil
 }
 
-func (c *RecommendationRuleController) executeMission(ctx context.Context, wg *sync.WaitGroup, recommendationRule *analysisv1alph1.RecommendationRule, identities map[string]ObjectIdentity, mission *analysisv1alph1.RecommendationMission, existingRecommendation *analysisv1alph1.Recommendation, timeNow metav1.Time, currentRunNumber int32) {
-	defer func() {
-		mission.LastStartTime = &timeNow
-		klog.Infof("Mission message: %s", mission.Message)
-		if wg != nil {
-			wg.Done()
-		}
-	}()
-
-	k := objRefKey(mission.TargetRef.Kind, mission.TargetRef.APIVersion, mission.TargetRef.Namespace, mission.TargetRef.Name)
-	if id, exist := identities[k]; !exist {
-		mission.Message = fmt.Sprintf("Failed to get identity, key %s. ", k)
-		return
-	} else {
-		recommendation := existingRecommendation
-		if recommendation == nil {
-			recommendation = c.CreateRecommendationObject(recommendationRule, mission.TargetRef, id, mission.RecommenderRef.Name)
-		}
-
-		r, err := c.RecommenderMgr.GetRecommenderWithRule(mission.RecommenderRef.Name, *recommendationRule)
-		if err != nil {
-			mission.Message = fmt.Sprintf("get recommender %s failed, %v", mission.RecommenderRef.Name, err)
-			return
-		}
-		p := make(map[providers.DataSourceType]providers.History)
-		p[providers.PrometheusDataSource] = c.Provider
-		identity := framework.ObjectIdentity{
-			Namespace:  identities[k].Namespace,
-			Name:       identities[k].Name,
-			Kind:       identities[k].Kind,
-			APIVersion: identities[k].APIVersion,
-			Labels:     identities[k].Labels,
-			Object:     identities[k].Object,
-		}
-		recommendationContext := framework.NewRecommendationContext(ctx, identity, recommendationRule, c.PredictorMgr, p, recommendation, c.Client, c.ScaleClient)
-		err = recommender.Run(&recommendationContext, r)
-		if err != nil {
-			mission.Message = fmt.Sprintf("Failed to run recommendation flow in recommender %s: %s", r.Name(), err.Error())
-			return
-		}
-
-		recommendation.Status.LastUpdateTime = &timeNow
-		if recommendation.Annotations == nil {
-			recommendation.Annotations = map[string]string{}
-		}
-		recommendation.Annotations[known.RunNumberAnnotation] = strconv.Itoa(int(currentRunNumber))
-
-		if existingRecommendation != nil {
-			klog.Infof("Update recommendation %s", klog.KObj(recommendation))
-			if err := c.Update(ctx, recommendation); err != nil {
-				mission.Message = fmt.Sprintf("Failed to create recommendation %s: %v", klog.KObj(recommendation), err)
-				return
-			}
-
-			klog.Infof("Successfully to update Recommendation %s", klog.KObj(recommendation))
-		} else {
-			klog.Infof("Create recommendation %s", klog.KObj(recommendation))
-			if err := c.Create(ctx, recommendation); err != nil {
-				mission.Message = fmt.Sprintf("Failed to create recommendation %s: %v", klog.KObj(recommendation), err)
-				return
-			}
-
-			klog.Infof("Successfully to create Recommendation %s", klog.KObj(recommendation))
-		}
-
-		mission.Message = "Success"
-		mission.UID = recommendation.UID
-		mission.Name = recommendation.Name
-		mission.Namespace = recommendation.Namespace
-		mission.Kind = recommendation.Kind
-		mission.APIVersion = recommendation.APIVersion
-	}
-}
-
-func (c *RecommendationRuleController) UpdateStatus(ctx context.Context, recommendationRule *analysisv1alph1.RecommendationRule, newStatus *analysisv1alph1.RecommendationRuleStatus) {
+func updateRecommendationRuleStatus(ctx context.Context, c client.Client, recorder record.EventRecorder, recommendationRule *analysisv1alph1.RecommendationRule, newStatus *analysisv1alph1.RecommendationRuleStatus) {
 	if !equality.Semantic.DeepEqual(&recommendationRule.Status, newStatus) {
 		klog.V(2).Infof("Updating RecommendationRule %s status", klog.KObj(recommendationRule))
 		recommendationRuleCopy := recommendationRule.DeepCopy()
@@ -546,7 +333,7 @@ func (c *RecommendationRuleController) UpdateStatus(ctx context.Context, recomme
 		})
 
 		if err != nil {
-			c.Recorder.Event(recommendationRule, corev1.EventTypeWarning, "FailedUpdateStatus", err.Error())
+			recorder.Event(recommendationRule, corev1.EventTypeWarning, "FailedUpdateStatus", err.Error())
 			klog.Errorf("Failed to update status, RecommendationRule %s error %v", klog.KObj(recommendationRule), err)
 			return
 		}
@@ -582,4 +369,117 @@ func newOwnerRef(a *analysisv1alph1.RecommendationRule) *metav1.OwnerReference {
 
 func objRefKey(kind, apiVersion, namespace, name string) string {
 	return fmt.Sprintf("%s#%s#%s#%s", kind, apiVersion, namespace, name)
+}
+
+func CreateRecommendationObject(recommendationRule *analysisv1alph1.RecommendationRule,
+	target corev1.ObjectReference, id ObjectIdentity, recommenderName string) *analysisv1alph1.Recommendation {
+
+	namespace := known.CraneSystemNamespace
+	if id.Namespace != "" {
+		namespace = id.Namespace
+	}
+
+	recommendation := &analysisv1alph1.Recommendation{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: fmt.Sprintf("%s-%s-", recommendationRule.Name, strings.ToLower(recommenderName)),
+			Namespace:    namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				*newOwnerRef(recommendationRule),
+			},
+		},
+		Spec: analysisv1alph1.RecommendationSpec{
+			TargetRef: target,
+			Type:      analysisv1alph1.AnalysisType(recommenderName),
+		},
+	}
+
+	labels := map[string]string{}
+	labels[known.RecommendationRuleNameLabel] = recommendationRule.Name
+	labels[known.RecommendationRuleUidLabel] = string(recommendationRule.UID)
+	labels[known.RecommendationRuleRecommenderLabel] = recommenderName
+	labels[known.RecommendationRuleTargetKindLabel] = target.Kind
+	labels[known.RecommendationRuleTargetVersionLabel] = target.GroupVersionKind().Version
+	labels[known.RecommendationRuleTargetNameLabel] = target.Name
+	for k, v := range id.Labels {
+		labels[k] = v
+	}
+
+	recommendation.Labels = labels
+	return recommendation
+}
+
+func executeMission(ctx context.Context, wg *sync.WaitGroup, recommenderMgr recommender.RecommenderManager, provider providers.History, predictorMgr predictormgr.Manager,
+	recommendationRule *analysisv1alph1.RecommendationRule, identities map[string]ObjectIdentity, mission *analysisv1alph1.RecommendationMission,
+	existingRecommendation *analysisv1alph1.Recommendation, client client.Client, scaleClient scale.ScalesGetter, timeNow metav1.Time, currentRunNumber int32) {
+	defer func() {
+		mission.LastStartTime = &timeNow
+		klog.Infof("Mission message: %s", mission.Message)
+		if wg != nil {
+			wg.Done()
+		}
+	}()
+
+	k := objRefKey(mission.TargetRef.Kind, mission.TargetRef.APIVersion, mission.TargetRef.Namespace, mission.TargetRef.Name)
+	if id, exist := identities[k]; !exist {
+		mission.Message = fmt.Sprintf("Failed to get identity, key %s. ", k)
+		return
+	} else {
+		recommendation := existingRecommendation
+		if recommendation == nil {
+			recommendation = CreateRecommendationObject(recommendationRule, mission.TargetRef, id, mission.RecommenderRef.Name)
+		}
+
+		r, err := recommenderMgr.GetRecommenderWithRule(mission.RecommenderRef.Name, *recommendationRule)
+		if err != nil {
+			mission.Message = fmt.Sprintf("get recommender %s failed, %v", mission.RecommenderRef.Name, err)
+			return
+		}
+		p := make(map[providers.DataSourceType]providers.History)
+		p[providers.PrometheusDataSource] = provider
+		identity := framework.ObjectIdentity{
+			Namespace:  identities[k].Namespace,
+			Name:       identities[k].Name,
+			Kind:       identities[k].Kind,
+			APIVersion: identities[k].APIVersion,
+			Labels:     identities[k].Labels,
+			Object:     identities[k].Object,
+		}
+		recommendationContext := framework.NewRecommendationContext(ctx, identity, recommendationRule, predictorMgr, p, recommendation, client, scaleClient)
+		err = recommender.Run(&recommendationContext, r)
+		if err != nil {
+			mission.Message = fmt.Sprintf("Failed to run recommendation flow in recommender %s: %s", r.Name(), err.Error())
+			return
+		}
+
+		recommendation.Status.LastUpdateTime = &timeNow
+		if recommendation.Annotations == nil {
+			recommendation.Annotations = map[string]string{}
+		}
+		recommendation.Annotations[known.RunNumberAnnotation] = strconv.Itoa(int(currentRunNumber))
+
+		if existingRecommendation != nil {
+			klog.Infof("Update recommendation %s", klog.KObj(recommendation))
+			if err := client.Update(ctx, recommendation); err != nil {
+				mission.Message = fmt.Sprintf("Failed to create recommendation %s: %v", klog.KObj(recommendation), err)
+				return
+			}
+
+			klog.Infof("Successfully to update Recommendation %s", klog.KObj(recommendation))
+		} else {
+			klog.Infof("Create recommendation %s", klog.KObj(recommendation))
+			if err := client.Create(ctx, recommendation); err != nil {
+				mission.Message = fmt.Sprintf("Failed to create recommendation %s: %v", klog.KObj(recommendation), err)
+				return
+			}
+
+			klog.Infof("Successfully to create Recommendation %s", klog.KObj(recommendation))
+		}
+
+		mission.Message = "Success"
+		mission.UID = recommendation.UID
+		mission.Name = recommendation.Name
+		mission.Namespace = recommendation.Namespace
+		mission.Kind = recommendation.Kind
+		mission.APIVersion = recommendation.APIVersion
+	}
 }
