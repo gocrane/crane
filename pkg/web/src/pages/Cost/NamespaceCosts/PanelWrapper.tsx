@@ -18,7 +18,7 @@ export const PanelWrapper = React.memo(({panel, selectedDashboard}: PanelWrapper
   const isValidPanel = useIsValidPanel({panel});
   const isNeedSelectNamespace = useIsNeedSelectNamespace({selectedDashboard});
   const queryStr = useGrafanaQueryStr({panelId: panel.id, selectedDashboard: selectedDashboard});
-
+  
   const span = panel?.gridPos?.w > 0 && panel?.gridPos?.w <= 24 ? Math.floor(panel.gridPos.w / 2) : 6;
   const minHeight = panel?.gridPos?.h ? Math.max(panel.gridPos.h * baselineHeight, defaultHeight) : defaultHeight;
 

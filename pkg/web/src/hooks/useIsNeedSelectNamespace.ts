@@ -9,6 +9,6 @@ export const useIsNeedSelectNamespace = ({ selectedDashboard }: { selectedDashbo
   );
 
   return (dashboardDetail?.data?.dashboard?.templating?.list ?? []).find(
-    (item: { name: string }) => item.name === 'namespace',
+    (item: { name: string }) => (item.name === 'namespace' || item.name === 'Namespace'),
   );
 };

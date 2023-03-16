@@ -1,4 +1,4 @@
-import { InsightSearchPanel } from './InsightSearchPanel';
+import { NamespaceCostSearchPanel } from './NamespaceCostSearchPanel';
 import { PanelWrapper } from './PanelWrapper';
 import {useCraneUrl, useSelector} from 'hooks';
 import React, { memo } from 'react';
@@ -11,7 +11,7 @@ export default memo(() => {
 
   const craneUrl: any = useCraneUrl();
   const dashboardList = useFetchDashboardListQuery({ craneUrl }, { skip: !craneUrl });
-  const selectedDashboard = (dashboardList?.data ?? []).find((dashboard: any) => dashboard.uid === 'workload-insight');
+  const selectedDashboard = (dashboardList?.data ?? []).find((dashboard: any) => dashboard.uid === 'namespace-costs');
 
   const dashboardDetail = useFetchDashboardDetailQuery(
     { dashboardUid: selectedDashboard?.uid },
@@ -20,7 +20,7 @@ export default memo(() => {
 
   return (
     <>
-      <InsightSearchPanel />
+      <NamespaceCostSearchPanel />
       <Row style={{ marginTop: 10 }}>
         {!selectedDashboard?.uid || dashboardDetail?.data?.dashboard?.panels?.length === 0 ? (
           <span>{t('暂无数据')}</span>

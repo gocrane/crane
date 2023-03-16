@@ -46,7 +46,7 @@ export const grafanaApi = createApi({
         // trans to second
         // crane_analysis_resource_recommendation{namespace=~"(crane-system|default|kube-node-lease|kube-public)"}
         const url = queryString.stringifyUrl({
-          url: `${args.craneUrl ?? ''}/grafana/api/datasources/1/resources/api/v1/series`,
+          url: `${args.craneUrl ?? ''}/grafana/api/datasources/proxy/1/api/v1/series`,
           query: {
             'match[]': args.match,
             start: args.start,
