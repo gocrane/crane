@@ -35,7 +35,7 @@ func (rr *ReplicasRecommender) CollectData(ctx *framework.RecommendationContext)
 	ctx.MetricNamer = metricNamer
 
 	// get workload cpu usage
-	klog.Infof("%s: CpuQuery %s", ctx.String(), rr.Name(), ctx.MetricNamer.BuildUniqueKey())
+	klog.Infof("%s: %s CpuQuery %s", ctx.String(), rr.Name(), ctx.MetricNamer.BuildUniqueKey())
 	timeNow := time.Now()
 	tsList, err := ctx.DataProviders[providers.PrometheusDataSource].QueryTimeSeries(ctx.MetricNamer, timeNow.Add(-time.Hour*24*7), timeNow, time.Minute)
 	if err != nil {

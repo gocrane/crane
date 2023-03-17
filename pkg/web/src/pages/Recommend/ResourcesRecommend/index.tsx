@@ -217,6 +217,13 @@ export const SelectTable = () => {
                   <Button
                     theme='primary'
                     variant='text'
+                    onClick={() => navigate('/cost/workload-insight')}
+                  >
+                    {t('查看监控')}
+                  </Button>
+                  <Button
+                    theme='primary'
+                    variant='text'
                     onClick={() => {
                       const result: any = dispatch(recommendationApi.endpoints.adoptRecommendation.initiate({
                         craneUrl: craneUrl,
@@ -252,6 +259,13 @@ export const SelectTable = () => {
               ) :
                 (
                   <>
+                    <Button
+                      theme='primary'
+                      variant='text'
+                      onClick={() => navigate('/cost/workload-insight')}
+                    >
+                      {t('查看监控')}
+                    </Button>
                     <Button
                       theme='primary'
                       variant='text'
