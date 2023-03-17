@@ -49,7 +49,6 @@ var defaultFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	CraneCPUManager:            {Default: false, PreRelease: featuregate.Alpha},
 	QOSInitializer:             {Default: false, PreRelease: featuregate.Alpha},
 	CraneDashboardControl:      {Default: false, PreRelease: featuregate.Alpha},
-	QOSInitializer:             {Default: false, PreRelease: featuregate.Alpha},
 }
 
 func init() {
