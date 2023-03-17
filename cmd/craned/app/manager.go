@@ -391,6 +391,17 @@ func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.O
 		}).SetupWithManager(mgr); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "RecommendationRuleController")
 		}
+
+		if err := (&recommendationctrl.RecommendationTriggerController{
+			Client:         mgr.GetClient(),
+			RecommenderMgr: recommenderMgr,
+			ScaleClient:    scaleClient,
+			Provider:       historyDataSource,
+			PredictorMgr:   predictorMgr,
+			Recorder:       mgr.GetEventRecorderFor("recommendation-trigger-controller"),
+		}).SetupWithManager(mgr); err != nil {
+			klog.Exit(err, "unable to create controller", "controller", "RecommendationTriggerController")
+		}
 	}
 
 	// CnpController
