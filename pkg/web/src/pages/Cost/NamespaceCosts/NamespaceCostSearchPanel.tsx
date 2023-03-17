@@ -89,6 +89,26 @@ export const NamespaceCostSearchPanel = React.memo(() => {
            }}
           />
         </div>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginRight: '1rem',
+            marginTop: 5,
+            marginBottom: 5,
+          }}
+        >
+          <div style={{marginRight: '1rem', width: '70px'}}>{t('Discount')}</div>
+          <InputNumber
+            min={0}
+            theme='column'
+            value={discount}
+            onChange={(value) => {
+              dispatch(insightAction.discount(value));
+            }}
+          />
+        </div>
       </Card>
     </div>
   );

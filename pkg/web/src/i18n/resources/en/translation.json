@@ -162,5 +162,13 @@
   "节点名": "Node Name",
   "闲置节点": "Idle Node",
   "采纳推荐": "Adopt Recommendation",
-  "查看采纳命令": "View Adoption Command"
+  "查看采纳命令": "View Adoption Command",
+  "Workload类型": "Workload Type",
+  "Workload": "Workload",
+  "查看监控": "View Metrics",
+  "采纳推荐成功": "Adopt Recommendation Successful",
+  "采纳推荐失败": "Adopt Recommendation Failed",
+  "应用总览": "Workload Overview",
+  "应用洞察": "Workload Insight",
+  "应用成本分布": "Workload Cost Dimension"
 }

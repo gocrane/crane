@@ -15,7 +15,7 @@ import {nanoid} from '@reduxjs/toolkit';
 import dayjs from 'dayjs';
 import _ from 'lodash';
 
-const ALL_NAMESPACE_VALUE = "ALL";
+const ALL_NAMESPACE_VALUE = "All";
 
 export const OverviewSearchPanel = React.memo(() => {
   const dispatch = useDispatch();
@@ -39,7 +39,7 @@ export const OverviewSearchPanel = React.memo(() => {
     () => [
       {
         value: ALL_NAMESPACE_VALUE,
-        label: 'ALL',
+        label: 'All',
      },
       ...(namespaceList?.data?.data?.items ?? []).map((namespace) => ({
         label: namespace,
@@ -55,7 +55,7 @@ export const OverviewSearchPanel = React.memo(() => {
       start: (Date.parse(customRange.start)/1000).toString(),
       end: (Date.parse(customRange.end)/1000).toString(),
       match: `crane_analysis_resource_recommendation{namespace=~"(${
-        selectedNamespace === "ALL"
+        selectedNamespace === "All"
           ? namespaceOptions
               .filter((option) => option.label !== ALL_NAMESPACE_VALUE)
               .map((option) => option.label)
@@ -83,7 +83,7 @@ export const OverviewSearchPanel = React.memo(() => {
     start: (Date.parse(customRange.start)/1000).toString(),
     end: (Date.parse(customRange.end)/1000).toString(),
     match: `crane_analysis_resource_recommendation{namespace=~"(${
-      selectedNamespace === "ALL"
+      selectedNamespace === "All"
         ? namespaceOptions
             .filter((option) => option.label !== ALL_NAMESPACE_VALUE)
             .map((option) => option.label)
@@ -95,7 +95,7 @@ export const OverviewSearchPanel = React.memo(() => {
   const workloadOptions: any[] = React.useMemo(() => {
     const options = _.uniqBy(
       [
-        { label: 'ALL', value: 'ALL' },
+        { label: 'All', value: 'All' },
         ...(workloadList.data?.data ?? []).map((data: any) => ({
           label: data.owner_name,
           value: data.owner_name,
