@@ -92,9 +92,11 @@ Full documentation is available on the [Crane website](https://gocrane.io).
 
 - Slack(English): [https://gocrane.slack.com](https://join.slack.com/t/gocrane/shared_invite/zt-1rirt4xgk-N1ckyMW4acbPLWA8AemhxA)
 
-- Wechat Group (Chinese): Add it and Reply "Crane"，Robot will add you in Wechat group.
+- Wechat Group (Chinese): 
 
+<img alt="Wechat" src="https://user-images.githubusercontent.com/6251116/226240172-53bae906-3abc-4b04-89d5-eee11c13faaa.png" title="Wechat" width="200"/>
 <img alt="Wechat" src="docs/images/wechat.jpeg" title="Wechat" width="200"/>
+Add it and Reply "Crane"，Robot will add you in Wechat group.
 
 - Bi-weekly Community Call(APAC, Chinese)
   - [Meeting Link](https://meeting.tencent.com/dm/ri7x8wCCEUut)
