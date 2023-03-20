@@ -90,7 +90,7 @@ Full documentation is available on the [Crane website](https://gocrane.io).
 
 ## Community
 
-- Slack(English): [https://gocrane.slack.com](https://join.slack.com/t/gocrane/shared_invite/zt-1oilo15lj-gQ8JLMlfby0XwzON~0ydYg)
+- Slack(English): [https://gocrane.slack.com](https://join.slack.com/t/gocrane/shared_invite/zt-1rirt4xgk-N1ckyMW4acbPLWA8AemhxA)
 
 - Wechat Group (Chinese): Add it and Reply "Crane"，Robot will add you in Wechat group.
 
