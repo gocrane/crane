@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { useDispatch } from 'react-redux';
 import { Prism } from '@mantine/prism';
 import { copyToClipboard } from "../../../utils/copyToClipboard";
+import {insightAction} from "../../../modules/insightSlice";
 
 const Editor = React.lazy(() => import('components/common/Editor'));
 
@@ -190,7 +191,12 @@ export const SelectTable = () => {
                     <Button
                       theme='primary'
                       variant='text'
-                      onClick={() => navigate('/cost/workload-insight')}
+                      onClick={() => {
+                        dispatch(insightAction.selectedWorkloadType(record.row.spec.targetRef.kind));
+                        dispatch(insightAction.selectedWorkload(record.row.spec.targetRef.name));
+                        dispatch(insightAction.selectedNamespace(record.row.namespace));
+                        navigate('/cost/workload-insight');
+                      }}
                     >
                       {t('查看监控')}
                     </Button>
@@ -234,7 +240,12 @@ export const SelectTable = () => {
                   <Button
                     theme='primary'
                     variant='text'
-                    onClick={() => navigate('/cost/workload-insight')}
+                    onClick={() => {
+                      dispatch(insightAction.selectedWorkloadType(record.row.spec.targetRef.kind));
+                      dispatch(insightAction.selectedWorkload(record.row.spec.targetRef.name));
+                      dispatch(insightAction.selectedNamespace(record.row.namespace));
+                      navigate('/cost/workload-insight');
+                    }}
                   >
                     {t('查看监控')}
                   </Button>

@@ -22,7 +22,7 @@ export const InsightSearchPanel = React.memo(() => {
   const {t} = useTranslation();
 
   const customRange = useSelector((state) => state.insight.customRange);
-  const window = useSelector((state) => state.insight.window);
+  const selectedWindow = useSelector((state) => state.insight.window);
   const selectedNamespace = useSelector((state) => state.insight.selectedNamespace);
   const selectedWorkload = useSelector((state) => state.insight.selectedWorkload);
   const selectedWorkloadType = useSelector((state) => state.insight.selectedWorkloadType);
@@ -102,23 +102,52 @@ export const InsightSearchPanel = React.memo(() => {
     return options;
   }, [workloadList.data]);
 
+
   React.useEffect(() => {
-    if (namespaceList.isSuccess && isNeedSelectNamespace && namespaceOptions?.[0]?.value) {
+    if (namespaceList.isSuccess && isNeedSelectNamespace && namespaceOptions?.[0]?.value && !selectedNamespace) {
       dispatch(insightAction.selectedNamespace(namespaceOptions[0].value));
    }
  }, [dispatch, isNeedSelectNamespace, namespaceList.isSuccess, namespaceOptions]);
 
   React.useEffect(() => {
-    if (workloadTypeList.isSuccess  && workloadTypeOptions?.[0]?.value) {
+    if (workloadTypeList.isSuccess  && workloadTypeOptions?.[0]?.value && !selectedWorkloadType) {
       dispatch(insightAction.selectedWorkloadType(workloadTypeOptions[0].value));
     }
   }, [dispatch, workloadTypeList.isSuccess, workloadTypeOptions]);
 
   React.useEffect(() => {
-    if (workloadList.isSuccess  && workloadOptions?.[0]?.value) {
+    if (workloadList.isSuccess  && workloadOptions?.[0]?.value && !selectedWorkload) {
       dispatch(insightAction.selectedWorkload(workloadOptions[0].value));
     }
   }, [dispatch, workloadList.isSuccess, workloadOptions]);
+
+ /* React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlWorkload = urlParams.get('workload');
+    const urlWorkloadType = urlParams.get('workloadType');
+
+    if (urlWorkloadType) {
+      dispatch(insightAction.selectedWorkloadType(urlWorkloadType));
+    }
+
+    if (urlWorkload) {
+      dispatch(insightAction.selectedWorkload(urlWorkload));
+    }
+  }, []);
+
+  React.useEffect(() => {
+    const params = new URLSearchParams();
+    if (selectedWorkloadType) {
+      params.set('workloadType', selectedWorkloadType);
+    }
+    if (selectedWorkload) {
+      params.set('workload', selectedWorkload);
+    }
+    const search = params.toString();
+    const url = window.location.origin + window.location.pathname + window.location.hash.split('?')[0]; + (search ? `?${search}` : '');
+    window.history.replaceState({path: url}, '', url);
+  }, [selectedWorkloadType, selectedWorkload]);
+*/
 
   return (
     <div className={classnames(CommonStyle.pageWithPadding, CommonStyle.pageWithColor)}>
@@ -199,7 +228,7 @@ export const InsightSearchPanel = React.memo(() => {
           <div style={{marginRight: '0.5rem', width: '70px'}}>{t('时间范围')}</div>
           <div style={{marginRight: '0.5rem'}}>
             <Radio.Group
-              value={window}
+              value={selectedWindow}
               onChange={(value: RadioValue) => {
                 dispatch(insightAction.window(value as QueryWindow));
                 const [start, end] = rangeMap[value as QueryWindow];
