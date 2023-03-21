@@ -27,7 +27,8 @@ func TestDefaultingPodQOSInitializer(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "pod1",
 			Labels: map[string]string{
-				"app": "nginx",
+				"app":  "nginx",
+				"type": "offline",
 			},
 		},
 	}
