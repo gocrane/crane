@@ -46,7 +46,7 @@ func TestBuildQuery(t *testing.T) {
 					APIVersion: "v1",
 				},
 			},
-			want: utils.GetWorkloadCpuUsageExpression("default", "test", ""),
+			want: utils.GetWorkloadCpuUsageExpression("default", "test", "Deployment"),
 		},
 		{
 			desc: "tc2-workload-mem",
@@ -60,7 +60,7 @@ func TestBuildQuery(t *testing.T) {
 					APIVersion: "v1",
 				},
 			},
-			want: utils.GetWorkloadMemUsageExpression("default", "test", ""),
+			want: utils.GetWorkloadMemUsageExpression("default", "test", "Deployment"),
 		},
 		{
 			desc: "tc3-container-cpu",
@@ -70,10 +70,11 @@ func TestBuildQuery(t *testing.T) {
 				Container: &metricquery.ContainerNamerInfo{
 					Namespace:    "default",
 					WorkloadName: "workload",
+					WorkloadKind: "Deployment",
 					Name:         "container",
 				},
 			},
-			want: utils.GetContainerCpuUsageExpression("default", "workload", "", "container"),
+			want: utils.GetContainerCpuUsageExpression("default", "workload", "Deployment", "container"),
 		},
 		{
 			desc: "tc4-container-mem",
@@ -83,10 +84,11 @@ func TestBuildQuery(t *testing.T) {
 				Container: &metricquery.ContainerNamerInfo{
 					Namespace:    "default",
 					WorkloadName: "workload",
+					WorkloadKind: "Deployment",
 					Name:         "container",
 				},
 			},
-			want: utils.GetContainerMemUsageExpression("default", "workload", "", "container"),
+			want: utils.GetContainerMemUsageExpression("default", "workload", "Deployment", "container"),
 		},
 		{
 			desc: "tc5-node-cpu",

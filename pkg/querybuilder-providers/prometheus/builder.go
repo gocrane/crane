@@ -59,12 +59,12 @@ func (b *builder) workloadQuery(metric *metricquery.Metric) (query *metricquery.
 	case v1.ResourceCPU.String():
 		metricRule = prometheus_adapter.MatchMetricRule(mrs.MetricRulesExternal, prometheus_adapter.WorkloadCpuUsageExpression)
 		if metricRule == nil {
-			queryExpr = utils.GetWorkloadCpuUsageExpression(metric.Workload.Namespace, metric.Workload.Name, "")
+			queryExpr = utils.GetWorkloadCpuUsageExpression(metric.Workload.Namespace, metric.Workload.Name, metric.Workload.Kind)
 		}
 	case v1.ResourceMemory.String():
 		metricRule = prometheus_adapter.MatchMetricRule(mrs.MetricRulesExternal, prometheus_adapter.WorkloadMemUsageExpression)
 		if metricRule == nil {
-			queryExpr = utils.GetWorkloadMemUsageExpression(metric.Workload.Namespace, metric.Workload.Name, "")
+			queryExpr = utils.GetWorkloadMemUsageExpression(metric.Workload.Namespace, metric.Workload.Name, metric.Workload.Kind)
 		}
 	default:
 		return nil, fmt.Errorf("metric type %v do not support resource metric %v. only support %v now", metric.Type, metric.MetricName, supportedResources.List())
@@ -118,12 +118,12 @@ func (b *builder) containerQuery(metric *metricquery.Metric) (query *metricquery
 	case v1.ResourceCPU.String():
 		metricRule = prometheus_adapter.MatchMetricRule(mrs.MetricRulesExternal, prometheus_adapter.ContainerCpuUsageExpression)
 		if metricRule == nil {
-			queryExpr = utils.GetContainerCpuUsageExpression(metric.Container.Namespace, metric.Container.WorkloadName, "", metric.Container.Name)
+			queryExpr = utils.GetContainerCpuUsageExpression(metric.Container.Namespace, metric.Container.WorkloadName, metric.Container.WorkloadKind, metric.Container.Name)
 		}
 	case v1.ResourceMemory.String():
 		metricRule = prometheus_adapter.MatchMetricRule(mrs.MetricRulesExternal, prometheus_adapter.ContainerMemUsageExpression)
 		if metricRule == nil {
-			queryExpr = utils.GetContainerMemUsageExpression(metric.Container.Namespace, metric.Container.WorkloadName, "", metric.Container.Name)
+			queryExpr = utils.GetContainerMemUsageExpression(metric.Container.Namespace, metric.Container.WorkloadName, metric.Container.WorkloadKind, metric.Container.Name)
 		}
 	default:
 		return nil, fmt.Errorf("metric type %v do not support resource metric %v. only support %v now", metric.Type, metric.MetricName, supportedResources.List())
