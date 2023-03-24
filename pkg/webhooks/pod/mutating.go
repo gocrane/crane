@@ -13,6 +13,10 @@ import (
 	"github.com/gocrane/crane/pkg/ensurance/config"
 )
 
+var (
+	SystemNamespaces = map[string]interface{}{"kube-system": nil, "crane-system": nil}
+)
+
 type MutatingAdmission struct {
 	Config *config.QOSConfig
 }
@@ -23,7 +27,12 @@ func (m *MutatingAdmission) Default(ctx context.Context, obj runtime.Object) err
 	if !ok {
 		return fmt.Errorf("expected a Pod but got a %T", obj)
 	}
+
 	klog.Infof("Into Pod injection %s/%s", pod.Namespace, pod.Name)
+
+	if _, exist := SystemNamespaces[pod.Namespace]; exist {
+		return nil
+	}
 
 	if m.Config == nil || !m.Config.QOSInitializer.Enable {
 		return nil

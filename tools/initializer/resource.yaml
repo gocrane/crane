@@ -21,7 +21,7 @@ spec:
           operator: Exists
       containers:
         - name: craned
-          image: docker.io/gocrane/craned:v0.9.0-67-g392a9999
+          image: docker.io/gocrane/craned:v0.9.0-98-gbc4b90fe
           imagePullPolicy: IfNotPresent
           env:
             - name: TZ
@@ -32,10 +32,11 @@ spec:
                   fieldPath: metadata.namespace
           command:
             - /craned
-            - --prometheus-address=http://prometheus-server.crane-system.svc.cluster.local:8080
+            - --prometheus-address=http://kvass-thanos.kube-system:9090
             - --feature-gates=Analysis=true,TimeSeriesPrediction=true,Autoscaling=true,QOSInitializer=true
             - --recommendation-configuration-file=/tmp/recommendation-config/config.yaml
             - --qos-config-file=/tmp/recommendation-config/qos.yaml
+            - --leader-elect=false
             - -v=4
           volumeMounts:
             - mountPath: /tmp/k8s-webhook-server/serving-certs
@@ -104,7 +105,7 @@ data:
           app: nginx
       initContainerTemplate:
         name: crane-qos-initializer
-        image: docker.io/gocrane/qos-init:v0.1.4
+        image: docker.io/gocrane/qos-init:v0.1.6
         imagePullPolicy: IfNotPresent
         command:
           - sh
