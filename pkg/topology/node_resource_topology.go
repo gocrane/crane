@@ -2,6 +2,7 @@ package topology
 
 import (
 	"sort"
+	"strconv"
 
 	topologyapi "github.com/gocrane/api/topology/v1alpha1"
 	"github.com/jaypipes/ghw"
@@ -10,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
+	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 
 	"github.com/gocrane/crane/pkg/utils"
 )
@@ -23,6 +25,8 @@ type NRTBuilder struct {
 	reserved              corev1.ResourceList
 	reservedCPUs          int
 	topologyInfo          *topology.Info
+	attributes            map[string]string
+	systemReservedCPUs    cpuset.CPUSet
 }
 
 // NewNRTBuilder returns a new NRTBuilder.
@@ -55,6 +59,11 @@ func (b *NRTBuilder) WithReservedCPUs(reservedCPUs int) {
 	b.reservedCPUs = reservedCPUs
 }
 
+// WithSystemReservedCPUs sets the systemReservedCPUs property of a Builder.
+func (b *NRTBuilder) WithSystemReservedCPUs(systemReservedCPUs cpuset.CPUSet) {
+	b.systemReservedCPUs = systemReservedCPUs
+}
+
 // WithTopologyInfo sets the topologyInfo property of a Builder.
 func (b *NRTBuilder) WithTopologyInfo(topologyInfo *topology.Info) {
 	sort.Slice(topologyInfo.Nodes, func(i, j int) bool {
@@ -63,12 +72,18 @@ func (b *NRTBuilder) WithTopologyInfo(topologyInfo *topology.Info) {
 	b.topologyInfo = topologyInfo
 }
 
+// WithAttributes sets the attributes of a Builder.
+func (b *NRTBuilder) WithAttributes(attributes map[string]string) {
+	b.attributes = attributes
+}
+
 // Build initializes and build all fields of NRT.
 func (b *NRTBuilder) Build() *topologyapi.NodeResourceTopology {
 	nrt := &topologyapi.NodeResourceTopology{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: b.node.Name,
 		},
+		Attributes: b.attributes,
 	}
 	b.buildNodeScopeFields(nrt)
 	b.buildZoneScopeFields(nrt)
@@ -95,7 +110,7 @@ func (b *NRTBuilder) buildZoneScopeFields(nrt *topologyapi.NodeResourceTopology)
 			Name:      utils.BuildZoneName(node.ID),
 			Type:      topologyapi.ZoneTypeNode,
 			Costs:     buildCostsPerNUMANode(node),
-			Resources: buildNodeResource(node, reserved, &reservedCPUs),
+			Resources: buildNodeResource(node, reserved, &reservedCPUs, b.systemReservedCPUs),
 		}
 		for j < len(nrt.Zones) && nrt.Zones[j].Name != zone.Name {
 			j++
@@ -121,25 +136,40 @@ func buildCostsPerNUMANode(node *ghw.TopologyNode) []topologyapi.CostInfo {
 	return nodeCosts
 }
 
-func buildNodeResource(node *ghw.TopologyNode, reserved corev1.ResourceList, reservedCPUs *int) *topologyapi.ResourceInfo {
+func buildNodeResource(node *ghw.TopologyNode, reserved corev1.ResourceList,
+	totalReservedCPUNums *int, systemReservedCPUs cpuset.CPUSet) *topologyapi.ResourceInfo {
 	logicalCores := 0
+	var logicalCoreList []int
 	for _, core := range node.Cores {
 		logicalCores += len(core.LogicalProcessors)
+		logicalCoreList = append(logicalCoreList, core.LogicalProcessors...)
 	}
+	logicalCoreSet := cpuset.NewCPUSet(logicalCoreList...)
+
 	capacity := make(corev1.ResourceList)
 	capacity[corev1.ResourceCPU] = *resource.NewQuantity(int64(logicalCores), resource.DecimalSI)
 	if node.Memory != nil {
 		capacity[corev1.ResourceMemory] = *resource.NewQuantity(node.Memory.TotalUsableBytes, resource.BinarySI)
 	}
-	allocatable := getNodeAllocatable(capacity, reserved)
-	var reservedCPUNums int
-	if logicalCores >= *reservedCPUs {
-		reservedCPUNums = *reservedCPUs
-		*reservedCPUs = 0
+
+	reservedCPUNums := 0
+	nodeReservedCPUs := cpuset.NewCPUSet()
+	// if `systemReservedCPUs` specified, build reserved cpu according to the systemReservedCPUs only
+	if systemReservedCPUs.Size() != 0 {
+		nodeReservedCPUs = logicalCoreSet.Intersection(systemReservedCPUs)
+		reservedCPUNums = nodeReservedCPUs.Size()
 	} else {
-		reservedCPUNums = logicalCores
-		*reservedCPUs -= logicalCores
+		if logicalCores >= *totalReservedCPUNums {
+			reservedCPUNums = *totalReservedCPUNums
+		} else {
+			reservedCPUNums = logicalCores
+		}
 	}
+	// update total reserved cpu nums
+	*totalReservedCPUNums -= reservedCPUNums
+
+	allocatable := getNodeAllocatable(capacity, reserved, systemReservedCPUs, nodeReservedCPUs)
+
 	return &topologyapi.ResourceInfo{
 		Capacity:        capacity,
 		Allocatable:     allocatable,
@@ -147,19 +177,25 @@ func buildNodeResource(node *ghw.TopologyNode, reserved corev1.ResourceList, res
 	}
 }
 
-func getNodeAllocatable(capacity, reserved corev1.ResourceList) corev1.ResourceList {
+func getNodeAllocatable(capacity, reserved corev1.ResourceList, systemReservedCPUs, nodeReservedCPUs cpuset.CPUSet) corev1.ResourceList {
 	result := make(corev1.ResourceList)
 	if reserved == nil {
 		return result
 	}
+
 	for k, v := range capacity {
 		value := v.DeepCopy()
-		value.Sub(reserved[k])
+		toReserve := reserved[k]
+		if k == corev1.ResourceCPU && systemReservedCPUs.Size() != 0 {
+			toReserve = resource.MustParse(strconv.Itoa(nodeReservedCPUs.Size()))
+		}
+
+		value.Sub(toReserve)
 		if value.Sign() >= 0 {
 			delete(reserved, k)
 		} else {
 			// Negative Allocatable resources don't make sense.
-			quantity := reserved[k]
+			quantity := toReserve
 			quantity.Sub(value)
 			reserved[k] = quantity
 			value.Set(0)

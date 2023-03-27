@@ -1,6 +1,6 @@
 
 ---
-apiVersion: apiextensions.k8s.io/v1
+apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -20,17 +20,17 @@ spec:
   versions:
   - additionalPrinterColumns:
     - description: CPUManagerPolicy represents policy of the crane agent cpu manager.
-      jsonPath: .craneAgentConfiguration.cpuManagerPolicy
+      JSONPath: .craneAgentConfiguration.cpuManagerPolicy
       name: CRANE CPU MANAGER POLICY
       type: string
     - description: TopologyManagerPolicy represents policy of the crane agent resource
         management component. Defaults to SingleNUMANodePodLevel.
-      jsonPath: .craneAgentConfiguration.topologyManagerPolicy
+      JSONPath: .craneAgentConfiguration.topologyManagerPolicy
       name: CRANE TOPOLOGY MANAGER POLICY
       type: string
     - description: CreationTimestamp is a timestamp representing the server time when
         this object was created.
-      jsonPath: .metadata.creationTimestamp
+      JSONPath: .metadata.creationTimestamp
       name: AGE
       type: date
     name: v1alpha1
@@ -84,7 +84,6 @@ spec:
               - type: integer
               - type: string
               pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-              x-kubernetes-int-or-string: true
             description: Reserved describes resources reserved for system and kubernetes
               components.
             type: object
@@ -132,7 +131,6 @@ spec:
                         - type: integer
                         - type: string
                         pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                        x-kubernetes-int-or-string: true
                       description: Allocatable quantity of the resource, corresponding
                         to allocatable in node status, i.e. total amount of this resource
                         available to be used by pods.
@@ -143,7 +141,6 @@ spec:
                         - type: integer
                         - type: string
                         pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                        x-kubernetes-int-or-string: true
                       description: Capacity of the resource, corresponding to capacity
                         in node status, i.e. total amount of this resource that the
                         node has.

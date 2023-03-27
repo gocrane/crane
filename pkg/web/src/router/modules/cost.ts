@@ -14,10 +14,38 @@ export const useCostRouteConfig = (): IRouter[] => {
       },
       children: [
         {
-          path: 'insight',
-          Component: lazy(() => import('pages/Cost/insight/InsightPanel')),
+          path: 'cluster-overview',
+          Component: lazy(() => import('pages/Cost/ClusterOverview/ClusterOverviewPanel')),
           meta: {
-            title: t('成本分布'),
+            title: t('集群总览'),
+          },
+        },
+        {
+          path: 'workload-overview',
+          Component: lazy(() => import('pages/Cost/WorkloadOverview/WorkloadOverviewPanel')),
+          meta: {
+            title: t('应用总览'),
+          },
+        },
+        {
+          path: 'workload-insight',
+          Component: lazy(() => import('pages/Cost/WorkloadInsight/WorkloadInsightPanel')),
+          meta: {
+            title: t('应用洞察'),
+          },
+        },
+        {
+          path: 'namespace-costs',
+          Component: lazy(() => import('pages/Cost/NamespaceCosts/NamespaceCostsPanel')),
+          meta: {
+            title: t('命名空间成本分布'),
+          },
+        },
+        {
+          path: 'costs-by-dimension',
+          Component: lazy(() => import('pages/Cost/CostsByDimension/CostsByDimensionPanel')),
+          meta: {
+            title: t('应用成本分布'),
           },
         },
         {

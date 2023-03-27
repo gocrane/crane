@@ -1,7 +1,7 @@
 ---
 title: "安装文档"
 description: "如何安装 Crane"
-weight: 12
+weight: 11
 ---
 
 为了让您更快的部署 Crane ，本文档提供清晰的：
@@ -43,7 +43,7 @@ Crane 使用 Prometheus 抓取集群工作负载对资源的使用情况。安�
 {{< tabpane right=true >}}
 {{< tab header="Main" lang="en" >}}
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm install prometheus -n crane-system \
+helm install prometheus -n crane-system --version 19.6.1 \
     --set pushgateway.enabled=false \
     --set alertmanager.enabled=false \
     --set server.persistentVolume.enabled=false \
@@ -52,7 +52,7 @@ helm install prometheus -n crane-system \
 {{< /tab >}}
 {{< tab header="Mirror" lang="en" >}}
 helm repo add prometheus-community https://finops-helm.pkg.coding.net/gocrane/prometheus-community
-helm install prometheus -n crane-system \
+helm install prometheus -n crane-system --version 19.6.1 \
     --set pushgateway.enabled=false \
     --set alertmanager.enabled=false \
     --set server.persistentVolume.enabled=false \
@@ -66,14 +66,14 @@ Crane 的 Fadvisor 使用 Grafana 展示成本预估。安装 Grafana：
 {{< tabpane right=true >}}
 {{< tab header="Main" lang="en" >}}
 helm repo add grafana https://grafana.github.io/helm-charts
-helm install grafana \
+helm install grafana --version 6.11.0 \
     -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/grafana/override_values.yaml \
     -n crane-system \
     --create-namespace grafana/grafana
 {{< /tab >}}
 {{< tab header="Mirror" lang="en" >}}
 helm repo add grafana https://finops-helm.pkg.coding.net/gocrane/grafana
-helm install grafana \
+helm install grafana --version 6.11.0 \
     -f https://gitee.com/finops/helm-charts/raw/main/integration/grafana/override_values.yaml \
     -n crane-system \
     --create-namespace grafana/grafana

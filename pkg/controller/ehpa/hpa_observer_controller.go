@@ -51,12 +51,7 @@ func (c *HPAObserverController) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	// Watch for changes to HPA
-	err = controller.Watch(&source.Kind{Type: &autoscalingv2.HorizontalPodAutoscaler{}}, &hpaEventHandler{
+	return controller.Watch(&source.Kind{Type: &autoscalingv2.HorizontalPodAutoscaler{}}, &hpaEventHandler{
 		enqueueHandler: handler.EnqueueRequestForObject{},
 	})
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

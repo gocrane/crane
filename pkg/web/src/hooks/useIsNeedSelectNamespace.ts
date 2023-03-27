@@ -1,8 +1,7 @@
 import { useSelector } from './useSelector';
 import { grafanaApi } from 'services/grafanaApi';
 
-export const useIsNeedSelectNamespace = () => {
-  const selectedDashboard = useSelector((state) => state.insight.selectedDashboard);
+export const useIsNeedSelectNamespace = ({ selectedDashboard }: { selectedDashboard?: any } = {})=> {
 
   const dashboardDetail = grafanaApi.useFetchDashboardDetailQuery(
     { dashboardUid: selectedDashboard?.uid },
@@ -10,6 +9,6 @@ export const useIsNeedSelectNamespace = () => {
   );
 
   return (dashboardDetail?.data?.dashboard?.templating?.list ?? []).find(
-    (item: { name: string }) => item.name === 'namespace',
+    (item: { name: string }) => (item.name === 'namespace' || item.name === 'Namespace'),
   );
 };

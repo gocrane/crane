@@ -93,7 +93,7 @@ func (c *CraneMetricCollector) Collect(ch chan<- prometheus.Metric) {
 
 			err := c.Get(context.TODO(), client.ObjectKey{Namespace: namespace, Name: tspName}, &tsp)
 			if err != nil {
-				klog.Error("Failed to get tsp: %v", err)
+				klog.Errorf("Failed to get tsp: %v", err)
 				return
 			}
 			metricListTsp := c.getMetricsTsp(&tsp)
@@ -194,7 +194,7 @@ func (c *CraneMetricCollector) computePredictionMetric(tsp *predictionapi.TimeSe
 				ts := time.Unix(v.Timestamp, 0)
 				value, err := strconv.ParseFloat(v.Value, 64)
 				if err != nil {
-					klog.Error(err, "Failed to parse sample value", "value", value)
+					klog.ErrorS(err, "Failed to parse sample value", "value", value)
 					continue
 				}
 				//collect model metric of tsp for Prediction
@@ -221,7 +221,7 @@ func (c *CraneMetricCollector) computePredictionMetric(tsp *predictionapi.TimeSe
 
 			valueFloat, err := strconv.ParseFloat(v.Value, 32)
 			if err != nil {
-				klog.Error(err, "Failed to parse sample value", "value", v.Value)
+				klog.ErrorS(err, "Failed to parse sample value", "value", v.Value)
 				continue
 			}
 
@@ -232,7 +232,7 @@ func (c *CraneMetricCollector) computePredictionMetric(tsp *predictionapi.TimeSe
 		}
 
 		if !hasValidSample {
-			klog.Error("TimeSeries is outdated, ResourceIdentifier name %s", status.ResourceIdentifier)
+			klog.Errorf("TimeSeries is outdated, ResourceIdentifier name %s", status.ResourceIdentifier)
 			return predictionMetrics
 		}
 

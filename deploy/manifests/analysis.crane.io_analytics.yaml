@@ -266,6 +266,11 @@ spec:
                       description: RecommenderRef presents recommender info for recommendation
                         mission.
                       properties:
+                        config:
+                          additionalProperties:
+                            type: string
+                          description: Override Recommendation configs
+                          type: object
                         name:
                           description: Recommender's Name
                           type: string

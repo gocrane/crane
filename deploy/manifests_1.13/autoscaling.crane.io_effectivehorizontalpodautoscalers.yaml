@@ -1,6 +1,6 @@
 
 ---
-apiVersion: apiextensions.k8s.io/v1
+apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -20,28 +20,28 @@ spec:
   versions:
   - additionalPrinterColumns:
     - description: The scale strategy of ahpa.
-      jsonPath: .spec.scaleStrategy
+      JSONPath: .spec.scaleStrategy
       name: STRATEGY
       type: string
     - description: The min replicas of target workload.
-      jsonPath: .spec.minReplicas
+      JSONPath: .spec.minReplicas
       name: MINPODS
       type: integer
     - description: The max replicas of target workload.
-      jsonPath: .spec.maxReplicas
+      JSONPath: .spec.maxReplicas
       name: MAXPODS
       type: integer
     - description: The specific replicas of target workload.
-      jsonPath: .spec.specificReplicas
+      JSONPath: .spec.specificReplicas
       name: SPECIFICPODS
       type: integer
     - description: The desired replicas of target workload.
-      jsonPath: .status.expectReplicas
+      JSONPath: .status.expectReplicas
       name: REPLICAS
       type: integer
     - description: CreationTimestamp is a timestamp representing the server time when
         this object was created.
-      jsonPath: .metadata.creationTimestamp
+      JSONPath: .metadata.creationTimestamp
       name: AGE
       type: date
     name: v1alpha1

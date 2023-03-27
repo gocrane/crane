@@ -1,6 +1,6 @@
 
 ---
-apiVersion: apiextensions.k8s.io/v1
+apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -154,7 +154,6 @@ spec:
                         description: Name or number of the port to access on the container.
                           Number must be in the range 1 to 65535. Name must be an
                           IANA_SVC_NAME.
-                        x-kubernetes-int-or-string: true
                       scheme:
                         description: Scheme to use for connecting to the host. Defaults
                           to HTTP.
@@ -251,7 +250,6 @@ spec:
                           description: Value is the target value of the metric (as
                             a quantity).
                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                          x-kubernetes-int-or-string: true
                       required:
                       - name
                       type: object

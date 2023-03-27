@@ -87,6 +87,14 @@ func NewRecommendationContext(context context.Context, identity ObjectIdentity, 
 	}
 }
 
+func NewRecommendationContextForObserve(recommendation *v1alpha1.Recommendation, restMapper meta.RESTMapper, scaleClient scale.ScalesGetter) RecommendationContext {
+	return RecommendationContext{
+		Recommendation: recommendation,
+		RestMapper:     restMapper,
+		ScaleClient:    scaleClient,
+	}
+}
+
 func (ctx RecommendationContext) String() string {
 	return fmt.Sprintf("RecommendationRule(%s) Target(%s/%s)", ctx.RecommendationRule.Name, ctx.Object.GetNamespace(), ctx.Object.GetName())
 }

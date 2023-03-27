@@ -97,7 +97,7 @@ func (c *EffectiveHPAController) UpdateSubstituteIfNeed(ctx context.Context, ehp
 			return nil, err
 		}
 
-		klog.Infof("Update Substitute successful, Substitute %s", klog.KObj(substituteExist))
+		klog.V(2).Infof("Update Substitute successful, Substitute %s", klog.KObj(substituteExist))
 	}
 
 	return substituteExist, nil

@@ -67,6 +67,11 @@ spec:
                 items:
                   description: Recommender referring to the Recommender in RecommendationConfiguration
                   properties:
+                    config:
+                      additionalProperties:
+                        type: string
+                      description: Override Recommendation configs
+                      type: object
                     name:
                       description: Recommender's Name
                       type: string
@@ -199,6 +204,11 @@ spec:
                       description: RecommenderRef presents recommender info for recommendation
                         mission.
                       properties:
+                        config:
+                          additionalProperties:
+                            type: string
+                          description: Override Recommendation configs
+                          type: object
                         name:
                           description: Recommender's Name
                           type: string
@@ -277,6 +287,10 @@ spec:
                   type: object
                 type: array
                 x-kubernetes-list-type: atomic
+              runNumber:
+                description: RunNumber is the numbers of runs
+                format: int32
+                type: integer
             type: object
         type: object
     served: true

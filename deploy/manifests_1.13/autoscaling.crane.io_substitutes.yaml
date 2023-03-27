@@ -1,6 +1,6 @@
 
 ---
-apiVersion: apiextensions.k8s.io/v1
+apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -20,12 +20,12 @@ spec:
   versions:
   - additionalPrinterColumns:
     - description: The replicas presents the dryRun result.
-      jsonPath: .status.replicas
+      JSONPath: .status.replicas
       name: REPLICAS
       type: integer
     - description: CreationTimestamp is a timestamp representing the server time when
         this object was created.
-      jsonPath: .metadata.creationTimestamp
+      JSONPath: .metadata.creationTimestamp
       name: AGE
       type: date
     name: v1alpha1

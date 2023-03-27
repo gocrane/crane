@@ -11,6 +11,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -161,12 +163,28 @@ func (c *EffectiveHPAController) UpdateHPAIfNeed(ctx context.Context, ehpa *auto
 	}
 
 	if needUpdate {
-		err := c.Update(ctx, hpaExist)
+		hpaCopy := hpaExist.DeepCopy()
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			err := c.Update(ctx, hpaCopy)
+			if err == nil {
+				return nil
+			}
+
+			updated := &autoscalingv2.HorizontalPodAutoscaler{}
+			errGet := c.Get(context.TODO(), types.NamespacedName{Namespace: hpaCopy.Namespace, Name: hpaCopy.Name}, updated)
+			if errGet == nil {
+				hpaCopy = updated
+			}
+
+			return err
+		})
+
 		if err != nil {
 			c.Recorder.Event(ehpa, v1.EventTypeWarning, "FailedUpdateHPA", err.Error())
 			klog.Errorf("Failed to update HorizontalPodAutoscaler %s error %v", klog.KObj(hpaExist), err)
 			return nil, err
 		}
+
 		klog.Infof("Update HorizontalPodAutoscaler successful, HorizontalPodAutoscaler %s", klog.KObj(hpaExist))
 	}
 

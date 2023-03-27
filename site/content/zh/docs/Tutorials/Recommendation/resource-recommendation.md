@@ -149,22 +149,26 @@ container_memory_working_set_bytes{container!="POD",namespace="crane-system",pod
 
 ## 参数配置
 
-| 配置项                         | 默认值   | 描述                             |
-|-----------------------------|-------|--------------------------------|
-| cpu-sample-interval         | 1m    | 请求 CPU 监控数据的 Metric 采样点时间间隔    |
-| cpu-request-percentile      | 0.99  | CPU 百分位值                       |
-| cpu-request-margin-fraction | 0.15  | CPU 推荐值扩大系数，0.15指推荐值乘以 1.15    |
-| cpu-target-utilization      | 1     | CPU 目标利用率，0.8 指推荐值除以 0.8       |
-| cpu-model-history-length    | 168h  | CPU 历史监控数据的时间                  |
-| mem-sample-interval         | 1m    | 请求 Memory 监控数据的 Metric 采样点时间间隔 |
-| mem-request-percentile      | 0.99  | Memory 百分位值                    |
-| mem-request-margin-fraction | 0.15  | Memory 推荐值扩大系数，0.15指推荐值乘以 1.15 |
-| mem-target-utilization      | 1     | Memory 目标利用率，0.8 指推荐值除以 0.8    |
-| specification               | false | 是否开启资源规格规整                     |
-| specification-config        | ""    | 资源规格，注意格式，详细的默认配置请见下方表格        |
-| oom-protection              | true  | 是否开启 OOM 保护                    |
-| oom-history-length          | 168h  | OOM 历史事件的事件，过期事件会被忽略           |
-| oom-bump-ratio              | 1.2   | OOM 内存放大系数                     |
+| 配置项                         | 默认值          | 描述                             |
+|-----------------------------|--------------|--------------------------------|
+| cpu-sample-interval         | 1m           | 请求 CPU 监控数据的 Metric 采样点时间间隔    |
+| cpu-request-percentile      | 0.99         | CPU 百分位值                       |
+| cpu-request-margin-fraction | 0.15         | CPU 推荐值扩大系数，0.15指推荐值乘以 1.15    |
+| cpu-target-utilization      | 1            | CPU 目标利用率，0.8 指推荐值除以 0.8       |
+| cpu-model-history-length    | 168h         | CPU 历史监控数据的时间                  |
+| mem-sample-interval         | 1m           | 请求 Memory 监控数据的 Metric 采样点时间间隔 |
+| mem-request-percentile      | 0.99         | Memory 百分位值                    |
+| mem-request-margin-fraction | 0.15         | Memory 推荐值扩大系数，0.15指推荐值乘以 1.15 |
+| mem-target-utilization      | 1            | Memory 目标利用率，0.8 指推荐值除以 0.8    |
+| specification               | false        | 是否开启资源规格规整                     |
+| specification-config        | ""           | 资源规格，格式类似：2c4g,4c8g,2c5g,2c1g,0.25c0.25g,0.5c1g,4c16g，详细的默认配置请见下方表格        |
+| oom-protection              | true         | 是否开启 OOM 保护                    |
+| oom-history-length          | 168h         | OOM 历史事件的事件，过期事件会被忽略           |
+| oom-bump-ratio              | 1.2          | OOM 内存放大系数                     |
+| cpu-histogram-bucket-size   | 0.1          | 均衡桶的大小，同时也等于cpu推荐的最小值          |
+| cpu-histogram-max-value     | 100          | 均衡桶的最大值，同时也等于cpu推荐的最大值         |
+| mem-histogram-bucket-size   | 104857600    | 均衡桶的大小，同时也等于mem推荐的最小值          |
+| mem-histogram-max-value     | 104857600000 | 均衡桶的最大值，同时也等于mem推荐的最大值         |
 
 如何更新推荐的配置请参考：[**推荐框架**](/zh-cn/docs/tutorials/recommendation/recommendation-framework)
 

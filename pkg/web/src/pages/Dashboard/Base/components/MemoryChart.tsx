@@ -28,7 +28,7 @@ const MemoryChart = () => {
       },
       {
         name: 'usage',
-        query: `SUM(label_replace(container_memory_working_set_bytes{id="/"}, "node", "$1", "instance",  "(.*)")  * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!="eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)) / 1024 / 1024 / 1024`,
+        query: `SUM(label_replace(container_memory_working_set_bytes{id="/"}, "node", "$1", "instance",  "(^[^:]+)")  * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!="eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)) / 1024 / 1024 / 1024`,
       },
     ],
   };

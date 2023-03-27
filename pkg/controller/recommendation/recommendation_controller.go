@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/klog/v2"
-
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -13,32 +11,36 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/scale"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
+	analysisv1alpha1 "github.com/gocrane/api/analysis/v1alpha1"
 	predictormgr "github.com/gocrane/crane/pkg/predictor"
 	"github.com/gocrane/crane/pkg/providers"
+	recommender "github.com/gocrane/crane/pkg/recommendation"
+	"github.com/gocrane/crane/pkg/recommendation/framework"
 )
 
 // RecommendationController is responsible for reconcile Recommendation
 type RecommendationController struct {
 	client.Client
-	ConfigSet    *analysisv1alph1.ConfigSet
-	Scheme       *runtime.Scheme
-	Recorder     record.EventRecorder
-	RestMapper   meta.RESTMapper
-	ScaleClient  scale.ScalesGetter
-	PredictorMgr predictormgr.Manager
-	Provider     providers.History
+	ConfigSet      *analysisv1alpha1.ConfigSet
+	Scheme         *runtime.Scheme
+	Recorder       record.EventRecorder
+	RestMapper     meta.RESTMapper
+	RecommenderMgr recommender.RecommenderManager
+	ScaleClient    scale.ScalesGetter
+	PredictorMgr   predictormgr.Manager
+	Provider       providers.History
 }
 
 func (c *RecommendationController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	klog.V(4).Infof("Got Recommendation %s", req.NamespacedName)
 
-	recommendation := &analysisv1alph1.Recommendation{}
+	recommendation := &analysisv1alpha1.Recommendation{}
 	err := c.Client.Get(ctx, req.NamespacedName, recommendation)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -46,6 +48,17 @@ func (c *RecommendationController) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if recommendation.DeletionTimestamp != nil {
 		return ctrl.Result{}, nil
+	}
+
+	r, err := c.RecommenderMgr.GetRecommender(string(recommendation.Spec.Type))
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	recommendationContext := framework.NewRecommendationContextForObserve(recommendation, c.RestMapper, c.ScaleClient)
+	err = r.Observe(&recommendationContext)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
 	// defaulting for TargetRef.Namespace
@@ -74,7 +87,7 @@ func (c *RecommendationController) Reconcile(ctx context.Context, req ctrl.Reque
 	return ctrl.Result{}, nil
 }
 
-func (c *RecommendationController) UpdateStatus(ctx context.Context, recommendation *analysisv1alph1.Recommendation, newStatus *analysisv1alph1.RecommendationStatus) error {
+func (c *RecommendationController) UpdateStatus(ctx context.Context, recommendation *analysisv1alpha1.Recommendation, newStatus *analysisv1alpha1.RecommendationStatus) error {
 	if !equality.Semantic.DeepEqual(&recommendation.Status, newStatus) {
 		recommendation.Status = *newStatus
 		timeNow := metav1.Now()
@@ -87,7 +100,7 @@ func (c *RecommendationController) UpdateStatus(ctx context.Context, recommendat
 			return err
 		}
 
-		klog.Infof("Update Recommendation status successful, Recommendation %s", klog.KObj(recommendation))
+		klog.V(2).Infof("Update Recommendation status successful, Recommendation %s", klog.KObj(recommendation))
 	}
 
 	return nil
@@ -95,11 +108,11 @@ func (c *RecommendationController) UpdateStatus(ctx context.Context, recommendat
 
 func (c *RecommendationController) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&analysisv1alph1.Recommendation{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		For(&analysisv1alpha1.Recommendation{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(c)
 }
 
-func setReadyCondition(status *analysisv1alph1.RecommendationStatus, conditionStatus metav1.ConditionStatus, reason string, message string) {
+func setReadyCondition(status *analysisv1alpha1.RecommendationStatus, conditionStatus metav1.ConditionStatus, reason string, message string) {
 	for i := range status.Conditions {
 		if status.Conditions[i].Type == "Ready" {
 			status.Conditions[i].Status = conditionStatus

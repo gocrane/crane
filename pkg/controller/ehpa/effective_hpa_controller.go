@@ -10,10 +10,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/scale"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -153,15 +155,31 @@ func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request
 
 func (c *EffectiveHPAController) UpdateStatus(ctx context.Context, ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler, newStatus *autoscalingapi.EffectiveHorizontalPodAutoscalerStatus) {
 	if !equality.Semantic.DeepEqual(&ehpa.Status, newStatus) {
-		ehpa.Status = *newStatus
-		err := c.Status().Update(ctx, ehpa)
+		ehpaCopy := ehpa.DeepCopy()
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			ehpaCopy.Status = *newStatus
+			err := c.Status().Update(ctx, ehpaCopy)
+			if err == nil {
+				return nil
+			}
+
+			updated := &autoscalingapi.EffectiveHorizontalPodAutoscaler{}
+			errGet := c.Get(context.TODO(), types.NamespacedName{Namespace: ehpaCopy.Namespace, Name: ehpaCopy.Name}, updated)
+			if errGet == nil {
+				ehpaCopy = updated
+			}
+
+			return err
+
+		})
+
 		if err != nil {
 			c.Recorder.Event(ehpa, v1.EventTypeWarning, "FailedUpdateStatus", err.Error())
-			klog.Errorf("Failed to update status, ehpa %s error %v", klog.KObj(ehpa), err)
+			klog.Errorf("Failed to update status, EffectiveHorizontalPodAutoscaler %s error %v", klog.KObj(ehpa), err)
 			return
 		}
 
-		klog.Infof("Update EffectiveHorizontalPodAutoscaler status successful, ehpa %s", klog.KObj(ehpa))
+		klog.V(2).Infof("Update EffectiveHorizontalPodAutoscaler %s status successful ", klog.KObj(ehpa))
 	}
 }
 

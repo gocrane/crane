@@ -46,6 +46,9 @@ type Options struct {
 	// If unspecified, a default is provided.
 	RecommendationConfigFile string
 
+	// QOSConfigFile is the configuration file for QOS.
+	QOSConfigFile string
+
 	// ServerOptions hold the craned web server options
 	ServerOptions *ServerOptions
 
@@ -58,6 +61,9 @@ type Options struct {
 
 	// OOMRecordMaxNumber is the max number for oom record
 	OOMRecordMaxNumber int
+
+	// TimeSeriesPredictionMaxConcurrentReconciles is the max concurrent reconciles for TimeSeriesPrediction controller
+	TimeSeriesPredictionMaxConcurrentReconciles int
 }
 
 // NewOptions builds an empty options.
@@ -122,10 +128,11 @@ func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&o.WebhookConfig.Enabled, "webhook-enabled", true, "whether enable webhook or not, default to true")
 	flags.StringVar(&o.RecommendationConfigFile, "recommendation-config-file", "", "recommendation configuration file")
 	flags.StringVar(&o.RecommendationConfiguration, "recommendation-configuration-file", "/tmp/recommendation-framework/recommendation_configuration.yaml", "recommendation configuration file")
+	flags.StringVar(&o.QOSConfigFile, "qos-config-file", "", "qos configuration file")
 	flags.StringSliceVar(&o.EhpaControllerConfig.PropagationConfig.LabelPrefixes, "ehpa-propagation-label-prefixes", []string{}, "propagate labels whose key has the prefix to hpa")
 	flags.StringSliceVar(&o.EhpaControllerConfig.PropagationConfig.AnnotationPrefixes, "ehpa-propagation-annotation-prefixes", []string{}, "propagate annotations whose key has the prefix to hpa")
 	flags.StringSliceVar(&o.EhpaControllerConfig.PropagationConfig.Labels, "ehpa-propagation-labels", []string{}, "propagate labels whose key is complete matching to hpa")
 	flags.StringSliceVar(&o.EhpaControllerConfig.PropagationConfig.Annotations, "ehpa-propagation-annotations", []string{}, "propagate annotations whose key is complete matching to hpa")
 	flags.IntVar(&o.OOMRecordMaxNumber, "oom-record-max-number", 10000, "Max number for oom records to store in configmap")
-
+	flags.IntVar(&o.TimeSeriesPredictionMaxConcurrentReconciles, "time-series-prediction-max-concurrent-reconciles", 10, "Max concurrent reconciles for TimeSeriesPrediction controller")
 }

@@ -7,6 +7,7 @@ import (
 	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	vpatypes "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
@@ -16,7 +17,6 @@ import (
 
 	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
-
 	"github.com/gocrane/crane/pkg/known"
 	recommendtypes "github.com/gocrane/crane/pkg/recommend/types"
 	"github.com/gocrane/crane/pkg/recommendation/recommender"
@@ -41,6 +41,14 @@ func (c *RecommendationController) UpdateRecommendation(ctx context.Context, rec
 	unstructed.SetKind(recommendation.Spec.TargetRef.Kind)
 	err = c.Client.Get(ctx, client.ObjectKey{Name: recommendation.Spec.TargetRef.Name, Namespace: recommendation.Spec.TargetRef.Namespace}, unstructed)
 	if err != nil {
+		if apierrors.IsNotFound(err) && utils.IsRecommendationControlledByRule(recommendation) {
+			err = c.Client.Delete(ctx, recommendation)
+			if err != nil {
+				return false, fmt.Errorf("target object not found, delete recommendation failed: %v", err)
+			}
+			klog.Infof("Target object not found, delete recommendation %s", klog.KObj(recommendation))
+			return false, nil
+		}
 		return false, fmt.Errorf("get target object failed: %v. ", err)
 	}
 

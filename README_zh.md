@@ -17,7 +17,7 @@ Crane 是一个基于 FinOps 的云资源分析与成本优化平台。它的愿
 
 <img alt="fcs logo" height="200" src="docs/images/Crane-FinOps-Certified-Solution.png" title="FinOps Certified Solution" width="200"/>
 
-Crane 是 [FinOps 基金会](https://www.finops.org/)认证的[云优化方案](https://www.finops.org/members/finops-certified-solution/)。
+Crane 是 [FinOps 基金会](https://www.finops.org/)认证的[云优化方案](https://www.finops.org/certifications/finops-certified-solution/)。
 
 **如何在 Crane 中开启成本优化之旅？**
 
@@ -92,9 +92,13 @@ Crane Agent 通过 `DaemonSet` 部署在集群的节点上。
 
 - Slack(English): [https://gocrane.slack.com](https://join.slack.com/t/gocrane/shared_invite/zt-1k3beos1i-ejN6sV0jx5_MAkKRbl~MFQ)
 
-- 微信群: 添加微信后回复 "Crane"，小助手会定期将您加入微信群。
+- 微信群: 
+
+<img alt="Wechat" src="https://user-images.githubusercontent.com/6251116/226240172-53bae906-3abc-4b04-89d5-eee11c13faaa.png" title="Wechat" width="200"/>
 
 <img alt="Wechat" src="docs/images/wechat.jpeg" title="Wechat" width="200"/>
+
+添加微信后回复 "Crane"，小助手会定期将您加入微信群。
 
 - 社区双周会(APAC, Chinese)
   - [Meeting Link](https://meeting.tencent.com/dm/SjY20wCJHy5F)

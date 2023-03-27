@@ -36,25 +36,17 @@ Please let us know if you have urgent needs which are not presented in the plan.
 - DSP Algorithm Optimization
 - Support remote adapter for external metric
 - Prediction with business metrics
-### 0.7.0 [July]
+### 0.7.0 [released]
 - Recommendation Framework
 - Crane-Descheduler based on CPU/Memory metrics
 - Offline Algorithm Evaluator
-### 0.8.0 [August]
+### 0.8.0 [released]
 - External recommendation plugins
 - Built-in CICD Pipeline integration
 - CPU topology aware scheduler
 - Enhanced Console with resource optimization
-### 0.9.0 [September]
+### 0.9.0 [released]
 - Flexible conflict prediction and detection 
 - Builtin AI Prediction
 - Wastes discovery and dashboard
 - Enhanced Console with more cost visibility dashboard
-### 0.10.0 [October]
-- Business Maturity Model Dashboard 
-- In-place Update support by EVPA
-- Kubernetes and Elastic Kubernetes Service price comparison
-### 0.11.0 [November]
-- Multi-cluster cost dashboard
-### 0.12.0 [December]
-- Multi-cluster cost optimization

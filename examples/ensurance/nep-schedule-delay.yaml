@@ -1,16 +1,15 @@
 apiVersion: ensurance.crane.io/v1alpha1
-kind: NodeQOSEnsurancePolicy
+kind: NodeQOS
 metadata:
   name: "schedule-delay"
   labels:
     app: "system"
 spec:
   nodeQualityProbe:
-    initialDelaySeconds: 10
     timeoutSeconds: 10
     nodeLocalGet:
       localCacheTTLSeconds: 60
-  objectiveEnsurances:
+  rules:
     - name: "container-schedule-delay-time"
       avoidanceThreshold: 1
       restoreThreshold: 10

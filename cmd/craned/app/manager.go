@@ -206,8 +206,9 @@ func initWebhooks(mgr ctrl.Manager, opts *options.Options) {
 		utilfeature.DefaultFeatureGate.Enabled(features.CraneAutoscaling),
 		utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResource),
 		utilfeature.DefaultFeatureGate.Enabled(features.CraneClusterNodePrediction),
-		utilfeature.DefaultFeatureGate.Enabled(features.CraneAnalysis),
-		utilfeature.DefaultFeatureGate.Enabled(features.CraneTimeSeriesPrediction)); err != nil {
+		utilfeature.DefaultMutableFeatureGate.Enabled(features.CraneAnalysis),
+		utilfeature.DefaultFeatureGate.Enabled(features.CraneTimeSeriesPrediction),
+		utilfeature.DefaultFeatureGate.Enabled(features.QOSInitializer), opts.QOSConfigFile); err != nil {
 		klog.Exit(err, "unable to create webhook", "webhook", "TimeSeriesPrediction")
 	}
 }
@@ -300,6 +301,7 @@ func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.O
 		} else if opts.DataSourcePromConfig.AdapterConfig != "" {
 			// PrometheusAdapterConfigFetcher
 			pac := &prometheus_adapter.PrometheusAdapterConfigFetcher{
+				RestMapper:    mgr.GetRESTMapper(),
 				AdapterConfig: opts.DataSourcePromConfig.AdapterConfig,
 			}
 			prometheus_adapter.SetExtensionLabels(opts.DataSourcePromConfig.AdapterExtensionLabels)
@@ -346,7 +348,7 @@ func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.O
 			predictorMgr,
 			targetSelectorFetcher,
 		)
-		if err := tspController.SetupWithManager(mgr); err != nil {
+		if err := tspController.SetupWithManager(mgr, opts.TimeSeriesPredictionMaxConcurrentReconciles); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "TspController")
 		}
 	}
@@ -367,11 +369,12 @@ func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.O
 		}
 
 		if err := (&recommendationctrl.RecommendationController{
-			Client:      mgr.GetClient(),
-			Scheme:      mgr.GetScheme(),
-			RestMapper:  mgr.GetRESTMapper(),
-			ScaleClient: scaleClient,
-			Recorder:    mgr.GetEventRecorderFor("recommendation-controller"),
+			Client:         mgr.GetClient(),
+			Scheme:         mgr.GetScheme(),
+			RestMapper:     mgr.GetRESTMapper(),
+			RecommenderMgr: recommenderMgr,
+			ScaleClient:    scaleClient,
+			Recorder:       mgr.GetEventRecorderFor("recommendation-controller"),
 		}).SetupWithManager(mgr); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "RecommendationController")
 		}
@@ -387,6 +390,17 @@ func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.O
 			Recorder:       mgr.GetEventRecorderFor("recommendationrule-controller"),
 		}).SetupWithManager(mgr); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "RecommendationRuleController")
+		}
+
+		if err := (&recommendationctrl.RecommendationTriggerController{
+			Client:         mgr.GetClient(),
+			RecommenderMgr: recommenderMgr,
+			ScaleClient:    scaleClient,
+			Provider:       historyDataSource,
+			PredictorMgr:   predictorMgr,
+			Recorder:       mgr.GetEventRecorderFor("recommendation-trigger-controller"),
+		}).SetupWithManager(mgr); err != nil {
+			klog.Exit(err, "unable to create controller", "controller", "RecommendationTriggerController")
 		}
 	}
 

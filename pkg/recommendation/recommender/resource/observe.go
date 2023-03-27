@@ -31,15 +31,20 @@ func (rr *ResourceRecommender) Observe(ctx *framework.RecommendationContext) err
 		return err
 	}
 
+	resourceNameList := []v1.ResourceName{v1.ResourceCPU, v1.ResourceMemory}
 	for _, container := range newPodTemplate.Spec.Containers {
-		rr.recordResourceRecommendation(ctx, container.Name, v1.ResourceCPU, container.Resources.Requests[v1.ResourceCPU])
-		rr.recordResourceRecommendation(ctx, container.Name, v1.ResourceMemory, container.Resources.Requests[v1.ResourceMemory])
+		for _, resourceName := range resourceNameList {
+			err = rr.recordResourceRecommendation(ctx, container.Name, resourceName, container.Resources.Requests[resourceName])
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
 }
 
-func (rr *ResourceRecommender) recordResourceRecommendation(ctx *framework.RecommendationContext, containerName string, resName v1.ResourceName, quantity resource.Quantity) {
+func (rr *ResourceRecommender) recordResourceRecommendation(ctx *framework.RecommendationContext, containerName string, resName v1.ResourceName, quantity resource.Quantity) error {
 	labels := map[string]string{
 		"apiversion": ctx.Recommendation.Spec.TargetRef.APIVersion,
 		"owner_kind": ctx.Recommendation.Spec.TargetRef.Kind,
@@ -49,12 +54,12 @@ func (rr *ResourceRecommender) recordResourceRecommendation(ctx *framework.Recom
 		"resource":   resName.String(),
 	}
 
-	labels["owner_replicas"] = fmt.Sprintf("%d", len(ctx.Pods))
-
 	switch resName {
 	case v1.ResourceCPU:
 		metrics.ResourceRecommendation.With(labels).Set(float64(quantity.MilliValue()) / 1000.)
 	case v1.ResourceMemory:
 		metrics.ResourceRecommendation.With(labels).Set(float64(quantity.Value()))
 	}
+
+	return nil
 }

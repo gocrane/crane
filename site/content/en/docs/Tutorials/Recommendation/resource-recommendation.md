@@ -149,23 +149,27 @@ Support StatefulSet and Deployment by default，but all workloads that support `
 
 ## Configuration
 
-| Configuration items         | Default | Description                                                                                  |
-|-----------------------------|---------|----------------------------------------------------------------------------------------------|
-| cpu-sample-interval         | 1m      | Metric sampling interval for requesting CPU monitoring data                                  |
-| cpu-request-percentile      | 0.99    | Target CPU Percentile that used for VPA                                                      |
-| cpu-request-margin-fraction | 0.15    | CPU recommend value margin factor，0.15 means recommended value = recommended value * 1.15    |
-| cpu-target-utilization      | 1       | CPU target utilization，0.8 means recommended value = recommended value / 0.8                 |
-| cpu-model-history-length    | 168h    | Historical length for CPU monitoring data                                                    |
-| mem-sample-interval         | 1m      | Metric sampling interval for requesting Memory monitoring data                               |
-| mem-request-percentile      | 0.99    | Target Memory Percentile that used for VPA                                                   |
-| mem-request-margin-fraction | 0.15    | Memory recommend value margin factor，0.15 means recommended value = recommended value * 1.15 |
-| mem-target-utilization      | 1       | Memory target utilization，0.8 means recommended value = recommended value / 0.8              |
-| mem-model-history-length    | 168h    | Historical length for Memory monitoring data                                                 |
-| specification               | false   | Enable for resource rpecification                                                            |
-| specification-config        | ""      | resource specifications configuration                                                        |
-| oom-protection              | true    | Enable for OOM Prodection                                                                    |
-| oom-history-length          | 168h    | OOM event history length, ignore too old events                                              |
-| oom-bump-ratio              | 1.2     | OOM memory bump up ratio                                                                     |
+| Configuration items         | Default      | Description                                                                                       |
+|-----------------------------|--------------|---------------------------------------------------------------------------------------------------|
+| cpu-sample-interval         | 1m           | Metric sampling interval for requesting CPU monitoring data                                       |
+| cpu-request-percentile      | 0.99         | Target CPU Percentile that used for VPA                                                           |
+| cpu-request-margin-fraction | 0.15         | CPU recommend value margin factor，0.15 means recommended value = recommended value * 1.15         |
+| cpu-target-utilization      | 1            | CPU target utilization，0.8 means recommended value = recommended value / 0.8                      |
+| cpu-model-history-length    | 168h         | Historical length for CPU monitoring data                                                         |
+| mem-sample-interval         | 1m           | Metric sampling interval for requesting Memory monitoring data                                    |
+| mem-request-percentile      | 0.99         | Target Memory Percentile that used for VPA                                                        |
+| mem-request-margin-fraction | 0.15         | Memory recommend value margin factor，0.15 means recommended value = recommended value * 1.15      |
+| mem-target-utilization      | 1            | Memory target utilization，0.8 means recommended value = recommended value / 0.8                   |
+| mem-model-history-length    | 168h         | Historical length for Memory monitoring data                                                      |
+| specification               | false        | Enable for resource rpecification                                                                 |
+| specification-config        | ""           | resource specifications configuration                                                             |
+| oom-protection              | true         | Enable for OOM Prodection                                                                         |
+| oom-history-length          | 168h         | OOM event history length, ignore too old events                                                   |
+| oom-bump-ratio              | 1.2          | OOM memory bump up ratio                                                                          |
+| cpu-histogram-bucket-size   | 0.1          | The size of the balanced bucket is also equal to the minimum value recommended by the CPU         |
+| cpu-histogram-max-value     | 100          | The maximum value of the balance bucket is also equal to the maximum value recommended by the CPU |
+| mem-histogram-bucket-size   | 104857600    | The size of the balanced bucket is also equal to the minimum value recommended by the MEM         |
+| mem-histogram-max-value     | 104857600000 | The maximum value of the balance bucket is also equal to the maximum value recommended by the MEM |
 
 How to update recommendation configuration please refer to：[**Recommendation Framework**](/docs/tutorials/recommendation/recommendation-framework)
 
