@@ -216,18 +216,16 @@ func calculateGaps(stateMap map[string][]common.TimeSeries,
 			throttleUpWatermark, throttleUpExist := throttleExecutor.ThrottleUpWatermark[m.Name]
 
 			if throttleDownExist && throttleUpExist {
-				klog.V(6).Infof("BuildThrottleDownWatermarkGap & BuildThrottleUpWatermarkGap: For metrics %s, maxUsed is %f, watermark is %f", m.Name, maxUsed, float64(throttleDownWatermark.PopSmallest().Value()))
-				result[m.Name] = (1 + executeExcessPercent) * (maxUsed - float64(throttleDownWatermark.PopSmallest().Value()))
-
-				// Attention: different with throttleDown and evict, use watermark - used
-				result[m.Name] = (1 + executeExcessPercent) * (float64(throttleUpWatermark.PopSmallest().Value()) - maxUsed)
+				// Wrong case: throttleUpExist && throttleDownExist won't co-exist
+				klog.Warningf("throttleUpExist && throttleDownExist won't co-exist: For metrics %s, maxUsed is %f, watermark is %f", m.Name, maxUsed, float64(throttleDownWatermark.PopSmallest().Value()))
+				continue
 			} else if throttleDownExist {
 				klog.V(6).Infof("BuildThrottleDownWatermarkGap: For metrics %s, maxUsed is %f, watermark is %f", m.Name, maxUsed, float64(throttleDownWatermark.PopSmallest().Value()))
 				result[m.Name] = (1 + executeExcessPercent) * (maxUsed - float64(throttleDownWatermark.PopSmallest().Value()))
 			} else if throttleUpExist {
 				klog.V(6).Infof("BuildThrottleUpWatermarkGap: For metrics %s, maxUsed is %f, watermark is %f", m.Name, maxUsed, float64(throttleUpWatermark.PopSmallest().Value()))
 				// Attention: different with throttleDown and evict, use watermark - used
-				result[m.Name] = (1 + executeExcessPercent) * (float64(throttleUpWatermark.PopSmallest().Value()) - maxUsed)
+				result[m.Name] = (1 - executeExcessPercent) * (float64(throttleUpWatermark.PopSmallest().Value()) - maxUsed)
 			} else {
 				delete(result, m.Name)
 			}
