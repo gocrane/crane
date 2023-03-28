@@ -10,7 +10,7 @@ ifeq ($(GIT_DIFF), 1)
 endif
 BUILDDATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 
-LDFLAGS = "-X github.com/gocrane/crane/pkg/version.gitVersion=$(GIT_VERSION) \
+LDFLAGS = "-X github.com/gocrane/crane/pkg/version.gitTag=$(GIT_VERSION) \
                       -X github.com/gocrane/crane/pkg/version.gitCommit=$(GIT_COMMIT_HASH) \
                       -X github.com/gocrane/crane/pkg/version.gitTreeState=$(GIT_TREESTATE) \
                       -X github.com/gocrane/crane/pkg/version.buildDate=$(BUILDDATE)"
