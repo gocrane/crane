@@ -64,6 +64,9 @@ type Options struct {
 
 	// TimeSeriesPredictionMaxConcurrentReconciles is the max concurrent reconciles for TimeSeriesPrediction controller
 	TimeSeriesPredictionMaxConcurrentReconciles int
+
+	// CacheUnstructured indicates whether to cache Unstructured objects. When enabled, it will speed up reading Unstructured objects, but will increase memory usage.
+	CacheUnstructured bool
 }
 
 // NewOptions builds an empty options.
@@ -135,4 +138,5 @@ func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.StringSliceVar(&o.EhpaControllerConfig.PropagationConfig.Annotations, "ehpa-propagation-annotations", []string{}, "propagate annotations whose key is complete matching to hpa")
 	flags.IntVar(&o.OOMRecordMaxNumber, "oom-record-max-number", 10000, "Max number for oom records to store in configmap")
 	flags.IntVar(&o.TimeSeriesPredictionMaxConcurrentReconciles, "time-series-prediction-max-concurrent-reconciles", 10, "Max concurrent reconciles for TimeSeriesPrediction controller")
+	flags.BoolVar(&o.CacheUnstructured, "cache-unstructured", true, "whether to cache Unstructured objects. When enabled, it will speed up reading Unstructured objects but will increase memory usage")
 }
