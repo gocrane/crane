@@ -15,9 +15,11 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/scale"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
@@ -92,7 +94,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 	config.QPS = float32(opts.ApiQps)
 	config.Burst = opts.ApiBurst
 
-	mgr, err := ctrl.NewManager(config, ctrl.Options{
+	ctrlOptions := ctrl.Options{
 		Scheme:                  scheme,
 		MetricsBindAddress:      opts.MetricsAddr,
 		Port:                    9443,
@@ -100,7 +102,12 @@ func Run(ctx context.Context, opts *options.Options) error {
 		LeaderElection:          opts.LeaderElection.LeaderElect,
 		LeaderElectionID:        "craned",
 		LeaderElectionNamespace: known.CraneSystemNamespace,
-	})
+	}
+	if opts.CacheUnstructured {
+		ctrlOptions.NewClient = NewCacheUnstructuredClient
+	}
+
+	mgr, err := ctrl.NewManager(config, ctrlOptions)
 	if err != nil {
 		klog.ErrorS(err, "unable to start crane manager")
 		return err
@@ -461,4 +468,18 @@ func runAll(ctx context.Context, mgr ctrl.Manager, predictorMgr predictor.Manage
 	if err := eg.Wait(); err != nil {
 		klog.Fatal(err)
 	}
+}
+
+func NewCacheUnstructuredClient(cache cache.Cache, config *rest.Config, options client.Options, uncachedObjects ...client.Object) (client.Client, error) {
+	c, err := client.New(config, options)
+	if err != nil {
+		return nil, err
+	}
+
+	return client.NewDelegatingClient(client.NewDelegatingClientInput{
+		CacheReader:       cache,
+		Client:            c,
+		UncachedObjects:   uncachedObjects,
+		CacheUnstructured: true,
+	})
 }
