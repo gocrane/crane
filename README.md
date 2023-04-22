@@ -81,7 +81,7 @@ Crane Agent is a `DaemonSet` that runs in each node.
 ## Getting Started
 
 - [Introduction](https://gocrane.io/docs/getting-started/introduction/)
-- [Quick Start](https://gocrane.io/docs/getting-started/quick-start/)
+- [Quick Start](https://gocrane.io/docs/getting-started/installation/quick-start/)
 - [Tutorials](https://gocrane.io/docs/tutorials/)
 
 ## Documentation
