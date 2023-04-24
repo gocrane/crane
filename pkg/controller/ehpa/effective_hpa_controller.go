@@ -42,10 +42,12 @@ type EffectiveHPAController struct {
 	Config      EhpaControllerConfig
 }
 
-//+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get
 //+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
+//+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;update
+//+kubebuilder:rbac:groups=core,resources=events,verbs=create
 //+kubebuilder:rbac:groups=apps,resources=deployments;statefulsets,verbs=get;list;watch
 //+kubebuilder:rbac:groups=autoscaling,resources=horizontalpodautoscalers,verbs=*
+//+kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;update
 //+kubebuilder:rbac:groups=analysis.crane.io,resources=*,verbs=*
 //+kubebuilder:rbac:groups=autoscaling.crane.io,resources=*,verbs=*
 //+kubebuilder:rbac:groups=prediction.crane.io,resources=*,verbs=*
