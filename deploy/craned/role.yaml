@@ -55,9 +55,12 @@ rules:
   - events
   verbs:
   - create
+  - patch
+  - update
 - apiGroups:
   - ""
   resources:
+  - nodes
   - pods
   verbs:
   - get
