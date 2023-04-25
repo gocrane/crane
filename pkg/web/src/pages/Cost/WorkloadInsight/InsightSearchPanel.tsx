@@ -166,6 +166,7 @@ export const InsightSearchPanel = React.memo(() => {
           <Select
             options={namespaceOptions}
             placeholder={t('命名空间')}
+            filterable
             value={selectedNamespace ?? undefined}
             onChange={(value: any) => {
               dispatch(insightAction.selectedNamespace(value));
@@ -188,6 +189,7 @@ export const InsightSearchPanel = React.memo(() => {
           <Select
             options={workloadTypeOptions}
             placeholder={t('Workload类型')}
+            filterable
             value={selectedWorkloadType ?? undefined}
             onChange={(value: any) => {
               dispatch(insightAction.selectedWorkloadType(value));
@@ -209,6 +211,7 @@ export const InsightSearchPanel = React.memo(() => {
           <Select
             options={workloadOptions}
             placeholder={t('Workload')}
+            filterable
             value={selectedWorkload ?? undefined}
             onChange={(value: any) => {
               dispatch(insightAction.selectedWorkload(value));
