@@ -148,7 +148,7 @@ export const SelectTable = () => {
             colKey: 'status.currentInfo',
             cell({ row }) {
               console.log('row', row);
-              if (typeof row.status.currentInfo == 'string') {
+              if (typeof row.status.currentInfo === 'string') {
                 const replicas = JSON.parse(row?.status?.currentInfo).spec?.replicas;
                 return replicas
               }
