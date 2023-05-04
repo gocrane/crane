@@ -1,25 +1,25 @@
-import {QueryWindow, useQueryWindowOptions} from '../../../models';
+import { QueryWindow, useQueryWindowOptions } from '../../../models';
 import CommonStyle from '../../../styles/common.module.less';
 import classnames from 'classnames';
-import {Card} from 'components/common/Card';
-import {useCraneUrl, useIsNeedSelectNamespace, useSelector} from 'hooks';
-import {insightAction} from 'modules/insightSlice';
+import { Card } from 'components/common/Card';
+import { useCraneUrl, useIsNeedSelectNamespace, useSelector } from 'hooks';
+import { insightAction } from 'modules/insightSlice';
 import React from 'react';
-import {useTranslation} from 'react-i18next';
-import {useDispatch} from 'react-redux';
-import {DatePicker, DateValue, InputNumber, Radio, RadioValue, Select} from 'tdesign-react';
-import {rangeMap} from 'utils/rangeMap';
-import {useFetchNamespaceListQuery} from '../../../services/namespaceApi';
-import {useFetchSeriesListQuery} from '../../../services/grafanaApi';
-import {nanoid} from '@reduxjs/toolkit';
+import { useTranslation } from 'react-i18next';
+import { useDispatch } from 'react-redux';
+import { DatePicker, DateValue, InputNumber, Radio, RadioValue, Select } from 'tdesign-react';
+import { rangeMap } from 'utils/rangeMap';
+import { useFetchNamespaceListQuery } from '../../../services/namespaceApi';
+import { useFetchSeriesListQuery } from '../../../services/grafanaApi';
+import { nanoid } from '@reduxjs/toolkit';
 import dayjs from 'dayjs';
 import _ from 'lodash';
 
-const ALL_NAMESPACE_VALUE = "ALL";
+const ALL_NAMESPACE_VALUE = 'ALL';
 
 export const NamespaceCostSearchPanel = React.memo(() => {
   const dispatch = useDispatch();
-  const {t} = useTranslation();
+  const { t } = useTranslation();
 
   const customRange = useSelector((state) => state.insight.customRange);
   const window = useSelector((state) => state.insight.window);
@@ -30,7 +30,7 @@ export const NamespaceCostSearchPanel = React.memo(() => {
 
   return (
     <div className={classnames(CommonStyle.pageWithPadding, CommonStyle.pageWithColor)}>
-      <Card style={{display: 'flex', flexDirection: 'row', flexWrap: 'wrap'}}>
+      <Card style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap' }}>
         <div
           style={{
             display: 'flex',
@@ -39,19 +39,19 @@ export const NamespaceCostSearchPanel = React.memo(() => {
             marginRight: '1rem',
             marginTop: 5,
             marginBottom: 5,
-         }}
+          }}
         >
-          <div style={{marginRight: '0.5rem', width: '70px'}}>{t('时间范围')}</div>
-          <div style={{marginRight: '0.5rem'}}>
+          <div style={{ marginRight: '0.5rem', width: '70px' }}>{t('时间范围')}</div>
+          <div style={{ marginRight: '0.5rem' }}>
             <Radio.Group
               value={window}
               onChange={(value: RadioValue) => {
                 dispatch(insightAction.window(value as QueryWindow));
                 const [start, end] = rangeMap[value as QueryWindow];
                 dispatch(
-                  insightAction.customRange({start: start.toDate().toISOString(), end: end.toDate().toISOString()}),
+                  insightAction.customRange({ start: start.toDate().toISOString(), end: end.toDate().toISOString() }),
                 );
-             }}
+              }}
             >
               {queryWindowOptions.map((option) => (
                 <Radio.Button key={option.value} value={option.value}>
@@ -62,7 +62,7 @@ export const NamespaceCostSearchPanel = React.memo(() => {
           </div>
           <DatePicker
             mode='date'
-            style={{marginRight: '0.5rem'}}
+            style={{ marginRight: '0.5rem' }}
             value={customRange?.start}
             onChange={(start: DateValue) => {
               dispatch(insightAction.window(null as any));
@@ -70,13 +70,13 @@ export const NamespaceCostSearchPanel = React.memo(() => {
                 insightAction.customRange({
                   ...customRange,
                   start: start as string,
-               }),
+                }),
               );
-           }}
+            }}
           />
           <DatePicker
             mode='date'
-            style={{marginRight: '0.5rem'}}
+            style={{ marginRight: '0.5rem' }}
             value={customRange?.end ?? null}
             onChange={(end: any) => {
               dispatch(insightAction.window(null as any));
@@ -84,9 +84,9 @@ export const NamespaceCostSearchPanel = React.memo(() => {
                 insightAction.customRange({
                   ...customRange,
                   end,
-               }),
+                }),
               );
-           }}
+            }}
           />
         </div>
         <div
@@ -99,7 +99,7 @@ export const NamespaceCostSearchPanel = React.memo(() => {
             marginBottom: 5,
           }}
         >
-          <div style={{marginRight: '1rem', width: '70px'}}>{t('Discount')}</div>
+          <div style={{ marginRight: '1rem', width: '70px' }}>{t('Discount')}</div>
           <InputNumber
             min={0}
             theme='column'

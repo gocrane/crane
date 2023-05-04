@@ -1,9 +1,9 @@
 import { NamespaceCostSearchPanel } from './NamespaceCostSearchPanel';
 import { PanelWrapper } from './PanelWrapper';
-import {useCraneUrl, useSelector} from 'hooks';
+import { useCraneUrl, useSelector } from 'hooks';
 import React, { memo } from 'react';
 import { useTranslation } from 'react-i18next';
-import {useFetchDashboardDetailQuery, useFetchDashboardListQuery} from 'services/grafanaApi';
+import { useFetchDashboardDetailQuery, useFetchDashboardListQuery } from 'services/grafanaApi';
 import { Row } from 'tdesign-react';
 
 export default memo(() => {
