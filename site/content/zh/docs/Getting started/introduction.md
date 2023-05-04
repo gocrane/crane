@@ -45,8 +45,8 @@ EffectiveHorizontalPodAutoscaler 支持了预测驱动的弹性。它基于社�
 
 **拓扑感知的调度器**
 
-Crane Scheduler与Crane Agent配合工作，支持更为精细化的资源拓扑感知调度和多种绑核策略，可解决复杂场景下“吵闹的邻居问题"，使得资源得到更合理高效的利用。[了解更多](/zh-cn/docs/tutorials/node-resource-tpolology-scheduler-plugins.md)。
+Crane Scheduler与Crane Agent配合工作，支持更为精细化的资源拓扑感知调度和多种绑核策略，可解决复杂场景下“吵闹的邻居问题"，使得资源得到更合理高效的利用。[了解更多](/zh-cn/docs/tutorials/node-resource-tpolology-scheduler-plugins)。
 
 **基于 QOS 的混部**
 
-QOS相关能力保证了运行在 Kubernetes 上的 Pod 的稳定性。具有多维指标条件下的干扰检测和主动回避能力，支持精确操作和自定义指标接入；具有预测算法增强的弹性资源超卖能力，复用和限制集群内的空闲资源；具备增强的旁路cpuset管理能力，在绑核的同时提升资源利用效率。[了解更多](/zh-cn/docs/tutorials/using-qos-ensurance)。
+QOS相关能力保证了运行在 Kubernetes 上的 Pod 的稳定性。具有多维指标条件下的干扰检测和主动回避能力，支持精确操作和自定义指标接入；具有预测算法增强的弹性资源超卖能力，复用和限制集群内的空闲资源；具备增强的旁路cpuset管理能力，在绑核的同时提升资源利用效率。[了解更多](/zh-cn/docs/tutorials/colocation-with-enhanced-qos/using-qos-ensurance.zh)。
