@@ -12,7 +12,7 @@ environments:
 - Install Crane by [Helm](https://helm.sh/)
 - Visit Crane Dashboard via kubectl port-forward
 
-Please referring to [Installation](/docs/installation/installation) to know more about how to install crane 。
+Please referring to [Installation](/docs/getting-started/installation/installation/) to know more about how to install crane 。
 
 ## Prerequisites
 
