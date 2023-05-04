@@ -1,3 +1,9 @@
+/*
+ * @Description: 
+ * @Author: 若城
+ * @Date: 2023-05-04 22:20:52
+ * @LastEditTime: 2023-05-04 22:23:49
+ */
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { v4 } from 'uuid';
 
@@ -22,7 +28,7 @@ const defaultCluster = {
   id: v4(),
   clusterName: '',
   craneUrl: '',
-  discount: 100,
+  discount: 1,
   preinstallRecommendation: true,
 };
 
@@ -53,7 +59,7 @@ const slice = createSlice({
           id: v4(),
           clusterName: '',
           craneUrl: '',
-          discount: 100,
+          discount: 1,
           preinstallRecommendation: true,
         },
       ];
