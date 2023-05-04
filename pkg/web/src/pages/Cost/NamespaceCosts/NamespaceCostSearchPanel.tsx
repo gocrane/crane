@@ -2,20 +2,15 @@ import { QueryWindow, useQueryWindowOptions } from '../../../models';
 import CommonStyle from '../../../styles/common.module.less';
 import classnames from 'classnames';
 import { Card } from 'components/common/Card';
-import { useCraneUrl, useIsNeedSelectNamespace, useSelector } from 'hooks';
+import { useSelector } from 'hooks';
 import { insightAction } from 'modules/insightSlice';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDispatch } from 'react-redux';
-import { DatePicker, DateValue, InputNumber, Radio, RadioValue, Select } from 'tdesign-react';
+import { DatePicker, DateValue, InputNumber, Radio, RadioValue } from 'tdesign-react';
 import { rangeMap } from 'utils/rangeMap';
-import { useFetchNamespaceListQuery } from '../../../services/namespaceApi';
-import { useFetchSeriesListQuery } from '../../../services/grafanaApi';
-import { nanoid } from '@reduxjs/toolkit';
-import dayjs from 'dayjs';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import _ from 'lodash';
-
-const ALL_NAMESPACE_VALUE = 'ALL';
 
 export const NamespaceCostSearchPanel = React.memo(() => {
   const dispatch = useDispatch();
@@ -23,7 +18,6 @@ export const NamespaceCostSearchPanel = React.memo(() => {
 
   const customRange = useSelector((state) => state.insight.customRange);
   const window = useSelector((state) => state.insight.window);
-  const clusterId = useSelector((state) => state.insight.selectedClusterId);
   const discount = useSelector((state) => state.insight.discount);
 
   const queryWindowOptions = useQueryWindowOptions();

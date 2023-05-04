@@ -10,15 +10,12 @@ import { useDispatch } from 'react-redux';
 import { DatePicker, DateValue, InputNumber, Radio, RadioValue } from 'tdesign-react';
 import { rangeMap } from 'utils/rangeMap';
 
-const ALL_NAMESPACE_VALUE = 'ALL';
-
 export const OverviewSearchPanel = React.memo(() => {
   const dispatch = useDispatch();
   const { t } = useTranslation();
 
   const customRange = useSelector((state) => state.insight.customRange);
   const window = useSelector((state) => state.insight.window);
-  const clusterId = useSelector((state) => state.insight.selectedClusterId);
   const discount = useSelector((state) => state.insight.discount);
 
   const queryWindowOptions = useQueryWindowOptions();

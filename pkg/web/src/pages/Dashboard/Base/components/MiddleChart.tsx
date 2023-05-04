@@ -1,6 +1,7 @@
 import React from 'react';
 import { Col, Row } from 'tdesign-react';
 import Style from './MiddleChart.module.less';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import SeriesLineChart, { LineStyle } from '../../../../components/SeriesLineChart';
 import PieChart from '../../../../components/PieChart';
 import { useTranslation } from 'react-i18next';

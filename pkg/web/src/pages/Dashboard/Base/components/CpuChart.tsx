@@ -1,10 +1,11 @@
 import React from 'react';
 import { Col, Row } from 'tdesign-react';
 import Style from './CpuChart.module.less';
-import SeriesLineChart, { ISeriesLineChart, LineStyle } from '../../../../components/SeriesLineChart';
+import SeriesLineChart, { ISeriesLineChart } from '../../../../components/SeriesLineChart';
 import { useTranslation } from 'react-i18next';
 
 const CpuChart = () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { t } = useTranslation();
 
   const item: ISeriesLineChart = {

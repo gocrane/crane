@@ -14,7 +14,6 @@ import {
   Input,
   InputValue,
   MessagePlugin,
-  Slider,
   Switch,
   SwitchValue,
   Tabs,

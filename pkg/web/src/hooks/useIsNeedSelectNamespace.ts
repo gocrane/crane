@@ -1,4 +1,3 @@
-import { useSelector } from './useSelector';
 import { grafanaApi } from 'services/grafanaApi';
 
 export const useIsNeedSelectNamespace = ({ selectedDashboard }: { selectedDashboard?: any } = {}) => {

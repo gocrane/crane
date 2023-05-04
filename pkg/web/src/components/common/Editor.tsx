@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 
 import 'monaco-editor/esm/vs/basic-languages/dockerfile/dockerfile.contribution';
 import 'monaco-editor/esm/vs/basic-languages/yaml/yaml.contribution';

@@ -75,10 +75,12 @@ export const SelectTable = () => {
     setSelectedRowKeys(value);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function rehandleClickOp(record: any) {
     console.log(record);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function handleClickDelete(record: any) {
     console.log(record);
     setVisible(true);

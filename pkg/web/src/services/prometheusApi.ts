@@ -49,6 +49,7 @@ export const prometheusApi = createApi({
       cache: 'no-cache',
       baseUrl: ``,
       timeout: 15000,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       prepareHeaders: (headers, api) => {
         headers.set('Content-Type', 'application/json');
         return headers;
@@ -73,6 +74,7 @@ export const prometheusApi = createApi({
           method: 'get',
         };
       },
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       transformResponse: (res: QueryInstantPrometheusResult, meta, arg: QueryInstantPrometheusArgs) => {
         if (res.data.length > 0) {
           res.data.map((value) => {
@@ -120,6 +122,7 @@ export const prometheusApi = createApi({
           method: 'get',
         };
       },
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       transformResponse: (res: QueryRangePrometheusResult, meta, args: QueryRangePrometheusArgs) => {
         // Single Value - Line
         if (res.data.length > 0) {

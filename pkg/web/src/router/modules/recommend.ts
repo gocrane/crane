@@ -1,4 +1,3 @@
-import { IRouter } from '../index';
 import { lazy } from 'react';
 import { ScanIcon } from 'tdesign-icons-react';
 import { useTranslation } from 'react-i18next';

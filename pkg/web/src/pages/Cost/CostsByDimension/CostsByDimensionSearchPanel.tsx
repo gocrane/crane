@@ -2,12 +2,12 @@ import { QueryWindow, useQueryWindowOptions } from '../../../models';
 import CommonStyle from '../../../styles/common.module.less';
 import classnames from 'classnames';
 import { Card } from 'components/common/Card';
-import { useCraneUrl, useIsNeedSelectNamespace, useSelector } from 'hooks';
+import { useSelector } from 'hooks';
 import { insightAction } from 'modules/insightSlice';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDispatch } from 'react-redux';
-import { DatePicker, DateValue, InputNumber, Radio, RadioValue, Select } from 'tdesign-react';
+import { DatePicker, DateValue, InputNumber, Radio, RadioValue } from 'tdesign-react';
 import { rangeMap } from 'utils/rangeMap';
 
 export const CostsByDimensionSearchPanel = React.memo(() => {
@@ -16,11 +16,7 @@ export const CostsByDimensionSearchPanel = React.memo(() => {
 
   const customRange = useSelector((state) => state.insight.customRange);
   const window = useSelector((state) => state.insight.window);
-  const clusterId = useSelector((state) => state.insight.selectedClusterId);
   const discount = useSelector((state) => state.insight.discount);
-
-  const isNeedSelectNamespace = true;
-  const craneUrl: any = useCraneUrl();
 
   const queryWindowOptions = useQueryWindowOptions();
 

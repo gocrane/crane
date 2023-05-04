@@ -34,6 +34,7 @@ export const clusterApi = createApi({
       cache: 'no-cache',
       baseUrl: `/api/v1/cluster`,
       timeout: 15000,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       prepareHeaders: (headers, api) => {
         headers.set('Content-Type', 'application/json');
         return headers;

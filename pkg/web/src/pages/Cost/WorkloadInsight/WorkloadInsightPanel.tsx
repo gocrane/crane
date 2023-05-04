@@ -1,5 +1,6 @@
 import { InsightSearchPanel } from './InsightSearchPanel';
 import { PanelWrapper } from './PanelWrapper';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useCraneUrl, useSelector } from 'hooks';
 import React, { memo } from 'react';
 import { useTranslation } from 'react-i18next';

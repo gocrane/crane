@@ -9,7 +9,7 @@ import JsYaml from 'js-yaml';
 import classnames from 'classnames';
 import { useCraneUrl } from 'hooks';
 import React, { memo, useState } from 'react';
-import { Button, Col, Dialog, Divider, MessagePlugin, Row, Space, Table, Tag } from 'tdesign-react';
+import { Button, Col, Dialog, MessagePlugin, Row, Space, Table, Tag } from 'tdesign-react';
 import { useTranslation } from 'react-i18next';
 
 const Editor = React.lazy(() => import('components/common/Editor'));
@@ -50,10 +50,12 @@ export const SelectTable = () => {
     setSelectedRowKeys(value);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function rehandleClickOp(record: any) {
     console.log(record);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function handleClickDelete(record: any) {
     console.log(record);
     setVisible(true);

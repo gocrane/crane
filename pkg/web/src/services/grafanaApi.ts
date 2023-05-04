@@ -24,6 +24,7 @@ export const grafanaApi = createApi({
     fetchBaseQuery({
       baseUrl: '',
       timeout: 15000,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       prepareHeaders: (headers, api) => headers,
       fetchFn: (input, init) => fetch(input, { ...init }),
     }),

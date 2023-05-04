@@ -52,6 +52,7 @@ export const recommendationRuleApi = createApi({
       cache: 'no-cache',
       baseUrl: ``,
       timeout: 15000,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       prepareHeaders: (headers, api) => {
         headers.set('Content-Type', 'application/json');
         return headers;
@@ -88,6 +89,7 @@ export const recommendationRuleApi = createApi({
         url: `${args.craneUrl}${URI}`,
         method: 'get',
       }),
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       transformResponse: (res, meta, arg) => {
         if (res?.data?.items?.length > 0) {
           res.data.items.map((value) => {

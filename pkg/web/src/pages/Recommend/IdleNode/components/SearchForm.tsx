@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
-import { Button, Col, Form, Input, Row, Select } from 'tdesign-react';
+import { Button, Col, Form, Input, Row } from 'tdesign-react';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import _ from 'lodash';
 import { useTranslation } from 'react-i18next';
 
@@ -10,6 +11,7 @@ export type SearchFormProps = {
   setFilterParams: any;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const SearchForm: React.FC<SearchFormProps> = ({ recommendation, setFilterParams }) => {
   const { t } = useTranslation();
   const onValuesChange = (changeValues: any, allValues: any) => {

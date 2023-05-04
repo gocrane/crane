@@ -1,6 +1,6 @@
 import { OverviewSearchPanel } from './OverviewSearchPanel';
 import { PanelWrapper } from './PanelWrapper';
-import { useCraneUrl, useSelector } from 'hooks';
+import { useCraneUrl } from 'hooks';
 import React, { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFetchDashboardDetailQuery, useFetchDashboardListQuery } from 'services/grafanaApi';

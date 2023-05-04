@@ -20,6 +20,7 @@ export const namespaceApi = createApi({
     fetchBaseQuery({
       baseUrl: '/api/v1/namespaces',
       timeout: 15000,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       prepareHeaders: (headers, api) => {
         headers.set('Content-Type', 'application/json');
         headers.set('Accept', 'application/json');
