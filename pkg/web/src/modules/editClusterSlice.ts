@@ -1,9 +1,4 @@
-/*
- * @Description: 
- * @Author: 若城
- * @Date: 2023-05-04 22:20:52
- * @LastEditTime: 2023-05-04 22:23:49
- */
+
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { v4 } from 'uuid';
 
