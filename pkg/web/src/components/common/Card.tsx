@@ -13,7 +13,7 @@ export const Card = ({
   style?: React.CSSProperties;
   className?: string;
 }) => (
-  <div className={className} style={{ padding: 20, background: 'white', ...style }}>
+  <div className={className} style={{ padding: 20, ...style }}>
     <div>
       {title}
       {operations}
