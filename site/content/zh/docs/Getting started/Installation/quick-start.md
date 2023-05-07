@@ -11,7 +11,7 @@ weight: 10
 - 使用 [Helm](https://helm.sh/) 安装 Crane
 - 通过 kubectl 的 port-forward 访问 Crane Dashboard
 
-更多关于安装的介绍请参考 [安装文档](/zh-cn/docs/installation/installation) 。
+更多关于安装的介绍请参考 [安装文档](/zh-cn/docs/getting-started/installation/installation/) 。
 
 ## 部署环境要求
 
