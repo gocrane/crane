@@ -7,7 +7,7 @@ environments:&lt;/p>
 &lt;li>Install Crane by &lt;a href="https://helm.sh/">Helm&lt;/a>&lt;/li>
 &lt;li>Visit Crane Dashboard via kubectl port-forward&lt;/li>
 &lt;/ul>
-&lt;p>Please referring to &lt;a href="/docs/installation/installation">Installation&lt;/a> to know more about how to install crane 。&lt;/p>
+&lt;p>Please referring to &lt;a href="/docs/getting-started/installation/installation/">Installation&lt;/a> to know more about how to install crane 。&lt;/p>
 &lt;h2 id="prerequisites">Prerequisites&lt;/h2>
 &lt;ul>
 &lt;li>kubectl&lt;/li>

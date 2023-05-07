@@ -6,7 +6,7 @@
 &lt;li>使用 &lt;a href="https://helm.sh/">Helm&lt;/a> 安装 Crane&lt;/li>
 &lt;li>通过 kubectl 的 port-forward 访问 Crane Dashboard&lt;/li>
 &lt;/ul>
-&lt;p>更多关于安装的介绍请参考 &lt;a href="/zh-cn/docs/installation/installation">安装文档&lt;/a> 。&lt;/p>
+&lt;p>更多关于安装的介绍请参考 &lt;a href="/zh-cn/docs/getting-started/installation/installation/">安装文档&lt;/a> 。&lt;/p>
 &lt;h2 id="部署环境要求">部署环境要求&lt;/h2>
 &lt;ul>
 &lt;li>kubectl&lt;/li>
