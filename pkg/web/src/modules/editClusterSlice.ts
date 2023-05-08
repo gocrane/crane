@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: 若城
  * @Date: 2023-05-04 22:20:52
- * @LastEditTime: 2023-05-08 09:45:17
+ * @LastEditTime: 2023-05-08 10:15:00
  */
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
@@ -69,11 +69,14 @@ const slice = createSlice({
       // Remove /
       // craneUrl = http://localhost:3000/ => http://localhost:3000
       const { craneUrl } = action.payload.data;
-      if (craneUrl) {
-        action.payload.data.craneUrl = craneUrl.endsWith('/')
-          ? craneUrl.substring(0, craneUrl.lastIndexOf('/'))
-          : craneUrl;
-      }
+
+      console.log("🚀 ~ file: editClusterSlice.ts:73 ~ craneUrl:", action);
+
+      // if (craneUrl) {
+      //   action.payload.data.craneUrl = craneUrl.endsWith('/')
+      //     ? craneUrl.substring(0, craneUrl.lastIndexOf('/'))
+      //     : craneUrl;
+      // }
       state.clusters = state.clusters.map((cluster) => {
         if (cluster.id === action.payload.id) {
           return {

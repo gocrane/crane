@@ -85,14 +85,24 @@ export const EditClusterModal = React.memo(() => {
   const validateCraneUrl = (id: string) => {
     const res = { error: false, msg: '' };
     const cluster = clusters.find((cluster: any) => cluster.id === id);
-
+    let reg = /^(?=^.{3,255}$)(http(s)?:\/\/)?(www\.)?[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+(:\d+)*(\/\w+\.\w+)*$/;
+    
+// console.log(`cluster`, cluster);
     if (!cluster?.craneUrl) {
       res.error = true;
       res.msg = t('Crane URL不能为空');
-    } else if (!cluster.craneUrl.startsWith('http://') && !cluster.craneUrl.startsWith('https://')) {
+    }else if(!reg.test(cluster.craneUrl)){
       res.error = true;
       res.msg = t('Crane URL格式不正确，请输入正确的URL');
     }
+
+/**
+ *  原有校验方式
+ *    else if (!cluster.craneUrl.startsWith('http://') && !cluster.craneUrl.startsWith('https://')) {
+      res.error = true;
+      res.msg = t('Crane URL格式不正确，请输入正确的URL');
+    }
+ * **/ 
 
     setValidation((validation) => ({
       ...validation,
