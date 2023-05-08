@@ -332,13 +332,13 @@ export const EditClusterModal = React.memo(() => {
                 >
                   <div style={{ width: '100%' }}>
                     <Input
-                      placeholder='1'
+                      placeholder='100'
                       prefixIcon={<RootListIcon />}
                       type='number'
                       value={cluster.discount}
                       onChange={(value: InputValue) => {
                         let discount = value;
-                        let reg = /^(?=1\.[1-9]|[1-9]\.\d).{3}$|^([1-9])$/
+                        let reg = /^\d+(\.{0,1}\d+){0,1}$/
                         if (!reg.test(discount+'')) {
                           discount = ''
                         }
