@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: 若城
  * @Date: 2023-05-04 22:20:52
- * @LastEditTime: 2023-05-08 10:15:00
+ * @LastEditTime: 2023-05-08 10:34:27
  */
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
@@ -71,7 +71,10 @@ const slice = createSlice({
       const { craneUrl } = action.payload.data;
 
       console.log("🚀 ~ file: editClusterSlice.ts:73 ~ craneUrl:", action);
-
+      if(craneUrl){
+        let reg = /^(?=^.{3,255}$)(http(s)?:\/\/)?(www\.)?[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+(:\d+)*(\/\w+\.\w+)*$/;
+        
+      }
       // if (craneUrl) {
       //   action.payload.data.craneUrl = craneUrl.endsWith('/')
       //     ? craneUrl.substring(0, craneUrl.lastIndexOf('/'))
