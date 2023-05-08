@@ -72,14 +72,14 @@ const SelectTable = () => {
     setSelectedRowKeys(value);
   }
 
-  function rehandleClickOp(record: any) {
-    console.log(record);
-  }
+  // function rehandleClickOp(record: any) {
+  //   console.log(record);
+  // }
 
-  function handleClickDelete(record: any) {
-    console.log(record);
-    setVisible(true);
-  }
+  // function handleClickDelete(record: any) {
+  //   console.log(record);
+  //   setVisible(true);
+  // }
 
   function handleClose() {
     setVisible(false);

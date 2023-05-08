@@ -1,5 +1,5 @@
-import { buildRetryFetchBaseQuery } from './retryFetchBaseQuery';
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { buildRetryFetchBaseQuery } from './retryFetchBaseQuery';
 
 type FetchRecommendationRuleListArgs = { craneUrl?: string };
 
@@ -52,7 +52,7 @@ export const recommendationRuleApi = createApi({
       cache: 'no-cache',
       baseUrl: ``,
       timeout: 15000,
-      prepareHeaders: (headers, api) => {
+      prepareHeaders: (headers, _api) => {
         headers.set('Content-Type', 'application/json');
         return headers;
       },
@@ -88,7 +88,7 @@ export const recommendationRuleApi = createApi({
         url: `${args.craneUrl}${URI}`,
         method: 'get',
       }),
-      transformResponse: (res, meta, arg) => {
+      transformResponse: (res, _meta, _arg) => {
         if (res?.data?.items?.length > 0) {
           res.data.items.map((value) => {
             if (value?.spec?.recommenders[0]?.name) value.recommenderType = value.spec.recommenders[0].name;
