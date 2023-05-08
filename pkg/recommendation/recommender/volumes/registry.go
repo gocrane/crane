@@ -18,7 +18,7 @@ func init() {
 	recommender.RegisterRecommenderProvider(recommender.VolumesRecommender, NewVolumesRecommender)
 }
 
-func (s *VolumesRecommender) Name() string {
+func (vr *VolumesRecommender) Name() string {
 	return recommender.VolumesRecommender
 }
 

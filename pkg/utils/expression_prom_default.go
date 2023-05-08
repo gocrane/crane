@@ -37,16 +37,24 @@ const (
 	ContainerMemUsageExprTemplate = `container_memory_working_set_bytes{container!="POD",namespace="%s",pod=~"%s",container="%s"}`
 
 	CustomerExprTemplate = `sum(%s{%s})`
+
+	// Container network cumulative count of bytes received
+	queryFmtNetReceiveBytes = `sum(increase(container_network_receive_bytes_total{pod=~"%s"}[1h])) by (namespace)`
+	// Container network cumulative count of bytes transmitted
+	queryFmtNetTransferBytes = `sum(increase(container_network_transmit_bytes_total{pod=~"%s"}[1h])) by (namespace)`
 )
 
 const (
 	PostRegMatchesPodDeployment  = `[a-z0-9]+-[a-z0-9]{5}$`
 	PostRegMatchesPodReplicaset  = `[a-z0-9]+$`
+	PostRegMatchesPodDaemonSet   = `[a-z0-9]{5}$`
 	PostRegMatchesPodStatefulset = `[0-9]+$`
 )
 
 func GetPodNameReg(resourceName string, resourceType string) string {
 	switch resourceType {
+	case "DaemonSet":
+		return fmt.Sprintf("^%s-%s", resourceName, PostRegMatchesPodDaemonSet)
 	case "ReplicaSet":
 		return fmt.Sprintf("^%s-%s", resourceName, PostRegMatchesPodReplicaset)
 	case "Deployment":
@@ -107,4 +115,12 @@ func GetNodeCpuUsageUtilizationExpression(nodeName string) string {
 
 func GetNodeMemUsageUtilizationExpression(nodeName string) string {
 	return fmt.Sprintf(NodeMemUsageUtilizationExprTemplate, nodeName, nodeName)
+}
+
+func GetWorkloadNetReceiveBytesExpression(podName string) string {
+	return fmt.Sprintf(queryFmtNetReceiveBytes, podName)
+}
+
+func GetWorkloadNetTransferBytesExpression(podName string) string {
+	return fmt.Sprintf(queryFmtNetTransferBytes, podName)
 }
