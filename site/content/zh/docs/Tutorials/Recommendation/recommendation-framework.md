@@ -27,7 +27,7 @@ apiVersion: analysis.crane.io/v1alpha1
 kind: RecommendationRule
 metadata:
   name: workloads-rule
- spec:
+spec:
   runInterval: 24h                            # 每24h运行一次
   resourceSelectors:                          # 资源的信息
     - kind: Deployment
