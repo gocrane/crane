@@ -60,7 +60,7 @@ const slice = createSlice({
           id: v4(),
           clusterName: '',
           craneUrl: '',
-          discount: 1,
+          discount: 100,
           preinstallRecommendation: true,
         },
       ];
