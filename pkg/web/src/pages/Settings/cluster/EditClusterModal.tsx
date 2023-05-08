@@ -338,12 +338,8 @@ export const EditClusterModal = React.memo(() => {
                       value={cluster.discount}
                       onChange={(value: InputValue) => {
                         let discount = value;
-                        let reg = /^\d+(\.{0,1}\d+){0,1}$/
-                        if (!reg.test(discount+'')) {
-                          discount = ''
-                        }
                         if (typeof discount === 'string') {
-                          discount = parseFloat(discount);
+                          discount = parseInt(discount, 10);
                         }
                         dispatch(
                           editClusterActions.updateCluster({

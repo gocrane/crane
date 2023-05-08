@@ -2,7 +2,7 @@
  * @Description: 
  * @Author: 若城
  * @Date: 2023-05-04 22:20:52
- * @LastEditTime: 2023-05-08 09:27:05
+ * @LastEditTime: 2023-05-08 09:45:17
  */
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
@@ -60,7 +60,7 @@ const slice = createSlice({
           id: v4(),
           clusterName: '',
           craneUrl: '',
-          discount: 1,
+          discount: 100,
           preinstallRecommendation: true,
         },
       ];
