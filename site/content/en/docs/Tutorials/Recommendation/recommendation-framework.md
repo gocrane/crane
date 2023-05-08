@@ -27,7 +27,7 @@ apiVersion: analysis.crane.io/v1alpha1
 kind: RecommendationRule
 metadata:
   name: workloads-rule
- spec:
+spec:
   runInterval: 24h                            # Run every 24 hours
   resourceSelectors:                          # configuration for resources
     - kind: Deployment
