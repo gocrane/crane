@@ -174,3 +174,47 @@ $ kubectl get pod -o custom-columns=name:metadata.name,topology-result:metadata.
 name                                topology-result
 nginx-deployment-754d99dcdf-mtcdp   [{"name":"node0","type":"Node","resources":{"capacity":{"cpu":"2"}}}]
 ```
+
+### 为系统组件预留CPU
+在某些场景下，我们希望能对kubelet预留的cpu做一些保护，使用场景包括但不限于：
+- 在混布场景下，不希望离线任务绑定系统预留的CPU核心，防止对k8s系统组件产生影响
+- 0号核心在linux有独特用途，比如处理网络包、内核调用、处理中断等，因此不希望任务绑定0号核心
+
+在Crane中，我们可以通过以下方式为系统组件预留CPU：
+1. `kubelet`设置预留CPU：按照[官方指引](https://kubernetes.io/docs/tasks/administer-cluster/reserve-compute-resources/#explicitly-reserved-cpu-list)设置预留的CPU列表
+2. 查看`NodeResourceTopology`对象，`.spec.attributes`中的`go.crane.io/reserved-system-cpus`存储了预留的CPU 列表
+3. 在Pod的annotations中添加`topology.crane.io/exclude-reserved-cpus`，表征Pod不绑定预留的CPU核心
+
+```yaml
+apiVersion: apps
+kind: Deployment
+metadata:
+  name: nginx-reserve-cpus
+  labels:
+    app: nginx-reserve-cpus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-reserve-cpus
+  template:
+    metadata:
+      labels:
+        app: nginx-reserve-cpus
+      annotations:
+        topology.crane.io/exclude-reserved-cpus: "true"  ##不绑定系统预留cpu核心
+    spec:
+      schedulerName: crane-scheduler
+      containers:
+        - image: nginx:latest
+          name: nginx
+```
+4. 登录到节点上，查看Pod绑定的CPUSet, 发现Pod在被分配了共享池中除预留核心外的其他CPU核心。
+```bash
+# 未设置预留
+$ /sys/fs/cgroup/cpuset/kubepods J# cat besteffort/pod760a7e79-4+0b-4a16-8393-0f0c253ce26c/3c6bd8251e88543235f01bacf72406c5b249edd26747cc12fd1e6fc5535edec/cpuset.cpus
+0-15,20-47,52-63
+# 预留0号核心
+$ /sys/fs/cgroup/cpuset/kubepods ]# cat besteffort/pod6afa5fe5-ba43-490a-9fa0-034fc23f440b/b574be6egedc916517bc4feb66078d3148d29bf5db5eb2cd379873e1157c1d4/cpuset.cpus
+1-15,20-47,52-63
+```
