@@ -129,7 +129,7 @@ func (rr *ReplicasRecommender) GetMinReplicas(ctx *framework.RecommendationConte
 	var cpuUsages []float64
 	var cpuMax float64
 	// combine values from historic and prediction
-	for _, sample := range ctx.InputValues[0].Samples {
+	for _, sample := range ctx.InputValue(string(corev1.ResourceCPU))[0].Samples {
 		cpuUsages = append(cpuUsages, sample.Value)
 		if sample.Value > cpuMax {
 			cpuMax = sample.Value
@@ -164,7 +164,7 @@ func (rr *ReplicasRecommender) GetMinReplicas(ctx *framework.RecommendationConte
 
 	var memUsages []float64
 	// combine values from historic and prediction
-	for _, sample := range ctx.InputValues2[0].Samples {
+	for _, sample := range ctx.InputValue(string(corev1.ResourceMemory))[0].Samples {
 		memUsages = append(memUsages, sample.Value)
 	}
 

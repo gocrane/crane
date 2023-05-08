@@ -1,8 +1,6 @@
 package replicas
 
 import (
-	"strconv"
-
 	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
 	"github.com/gocrane/crane/pkg/recommendation/config"
 	"github.com/gocrane/crane/pkg/recommendation/recommender"
@@ -32,84 +30,44 @@ func (rr *ReplicasRecommender) Name() string {
 func NewReplicasRecommender(recommender apis.Recommender, recommendationRule analysisv1alph1.RecommendationRule) (*ReplicasRecommender, error) {
 	recommender = config.MergeRecommenderConfigFromRule(recommender, recommendationRule)
 
-	workloadMinReplicas, exists := recommender.Config["workload-min-replicas"]
-	if !exists {
-		workloadMinReplicas = "1"
-	}
-
-	workloadMinReplicasInt, err := strconv.ParseInt(workloadMinReplicas, 10, 32)
+	workloadMinReplicasInt, err := recommender.GetConfigInt("workload-min-replicas", 1)
 	if err != nil {
 		return nil, err
 	}
 
-	minReadySeconds, exists := recommender.Config["pod-min-ready-seconds"]
-	if !exists {
-		minReadySeconds = "30"
-	}
-
-	podMinReadySeconds, err := strconv.ParseInt(minReadySeconds, 10, 32)
+	podMinReadySeconds, err := recommender.GetConfigInt("pod-min-ready-seconds", 30)
 	if err != nil {
 		return nil, err
 	}
 
-	availableRatio, exists := recommender.Config["pod-available-ratio"]
-	if !exists {
-		availableRatio = "0.5"
-	}
-
-	podAvailableRatio, err := strconv.ParseFloat(availableRatio, 64)
+	podAvailableRatio, err := recommender.GetConfigFloat("pod-available-ratio", 0.5)
 	if err != nil {
 		return nil, err
 	}
 
-	cpuPercentile, exists := recommender.Config["cpu-percentile"]
-	if !exists {
-		cpuPercentile = "0.95"
-	}
-
-	cpuPercentileFloat, err := strconv.ParseFloat(cpuPercentile, 64)
+	cpuPercentileFloat, err := recommender.GetConfigFloat("cpu-percentile", 0.95)
 	if err != nil {
 		return nil, err
 	}
 	cpuPercentileFloat = cpuPercentileFloat * 100
 
-	memPercentile, exists := recommender.Config["mem-percentile"]
-	if !exists {
-		memPercentile = "0.95"
-	}
-
-	memPercentileFloat, err := strconv.ParseFloat(memPercentile, 64)
+	memPercentileFloat, err := recommender.GetConfigFloat("mem-percentile", 0.95)
 	if err != nil {
 		return nil, err
 	}
 	memPercentileFloat = memPercentileFloat * 100
 
-	defaultMinReplicas, exists := recommender.Config["default-min-replicas"]
-	if !exists {
-		defaultMinReplicas = "1"
-	}
-
-	defaultMinReplicasInt, err := strconv.ParseInt(defaultMinReplicas, 10, 32)
+	defaultMinReplicasInt, err := recommender.GetConfigInt("default-min-replicas", 1)
 	if err != nil {
 		return nil, err
 	}
 
-	cpuTargetUtilization, exists := recommender.Config["cpu-target-utilization"]
-	if !exists {
-		cpuTargetUtilization = "0.5"
-	}
-
-	cpuTargetUtilizationFloat, err := strconv.ParseFloat(cpuTargetUtilization, 64)
+	cpuTargetUtilizationFloat, err := recommender.GetConfigFloat("cpu-target-utilization", 0.5)
 	if err != nil {
 		return nil, err
 	}
 
-	memTargetUtilization, exists := recommender.Config["mem-target-utilization"]
-	if !exists {
-		memTargetUtilization = "0.5"
-	}
-
-	memTargetUtilizationFloat, err := strconv.ParseFloat(memTargetUtilization, 64)
+	memTargetUtilizationFloat, err := recommender.GetConfigFloat("mem-target-utilization", 0.5)
 	if err != nil {
 		return nil, err
 	}

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	klog "k8s.io/klog/v2"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 
 	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
