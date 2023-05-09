@@ -218,7 +218,7 @@ func GetMetricRulesFromDiscoveryRule(cfg []config.DiscoveryRule, mapper meta.RES
 // get MetricRule for metricName
 func MatchMetricRule(mrs []MetricRule, metricName string) *MetricRule {
 	for _, metricRule := range mrs {
-		if match, _ := (regexp.Match(metricRule.MetricMatches, []byte(metricName))); match {
+		if match, _ := regexp.Match(metricRule.MetricMatches, []byte(metricName)); match {
 			return &metricRule
 		}
 	}
