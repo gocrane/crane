@@ -158,7 +158,7 @@ func (ch *ClusterHandler) AddClusters(c *gin.Context) {
 			return
 		}
 
-		if cluster.PreinstallRecommendation && err == nil {
+		if cluster.PreinstallRecommendation {
 			err := ch.upsertRecommendationRule(RecommendationRuleWorkloadsName, RecommendationRuleWorkloadsYAML)
 			if err != nil {
 				ginwrapper.WriteResponse(c, err, nil)
@@ -170,9 +170,6 @@ func (ch *ClusterHandler) AddClusters(c *gin.Context) {
 				ginwrapper.WriteResponse(c, err, nil)
 				return
 			}
-		} else if err != nil {
-			ginwrapper.WriteResponse(c, err, nil)
-			return
 		}
 	}
 
