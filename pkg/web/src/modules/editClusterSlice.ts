@@ -68,12 +68,12 @@ const slice = createSlice({
     updateCluster: (state, action: PayloadAction<{ id: string; data: Partial<Omit<Cluster, 'id'>> }>) => {
       // Remove /
       // craneUrl = http://localhost:3000/ => http://localhost:3000
-      const { craneUrl } = action.payload.data;
-      if (craneUrl) {
-        action.payload.data.craneUrl = craneUrl.endsWith('/')
-          ? craneUrl.substring(0, craneUrl.lastIndexOf('/'))
-          : craneUrl;
-      }
+      // const { craneUrl } = action.payload.data;
+      // if (craneUrl) {
+      //   action.payload.data.craneUrl = craneUrl.endsWith('/')
+      //     ? craneUrl.substring(0, craneUrl.lastIndexOf('/'))
+      //     : craneUrl;
+      // }
       state.clusters = state.clusters.map((cluster) => {
         if (cluster.id === action.payload.id) {
           return {
