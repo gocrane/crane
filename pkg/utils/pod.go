@@ -312,6 +312,43 @@ func GetNodePods(kubeClient client.Client, nodeName string) ([]corev1.Pod, error
 	return podList.Items, nil
 }
 
+// GetOrphanVolumes returns Orphan Volumes
+func GetOrphanVolumes(kubeClient client.Client) ([]corev1.PersistentVolume, error) {
+	// Get a list of all volumes
+	volumes := &corev1.PersistentVolumeList{}
+	if err := kubeClient.List(context.Background(), volumes); err != nil {
+		return nil, err
+	}
+
+	// Get a list of all pods
+	pods := &corev1.PodList{}
+	if err := kubeClient.List(context.Background(), pods); err != nil {
+		return nil, err
+	}
+
+	// Check if each volume is being used by any pods
+	orphanVolumes := []corev1.PersistentVolume{}
+	for _, volume := range volumes.Items {
+		if isOrphanVolume(&volume, pods) {
+			orphanVolumes = append(orphanVolumes, volume)
+		}
+	}
+
+	return orphanVolumes, nil
+}
+
+// volume is not being used by any pod
+func isOrphanVolume(volume *corev1.PersistentVolume, pods *corev1.PodList) bool {
+	for _, pod := range pods.Items {
+		for _, volumeClaim := range pod.Spec.Volumes {
+			if volumeClaim.PersistentVolumeClaim != nil && volumeClaim.PersistentVolumeClaim.ClaimName == volume.Spec.ClaimRef.Name {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 func IsPodTerminated(pod *corev1.Pod) bool {
 	return pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed
 }

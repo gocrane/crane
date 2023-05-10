@@ -18,6 +18,7 @@ import (
 	"github.com/gocrane/crane/pkg/recommendation/recommender/idlenode"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/replicas"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/resource"
+	"github.com/gocrane/crane/pkg/recommendation/recommender/volumes"
 )
 
 type RecommenderManager interface {
@@ -74,6 +75,8 @@ func (m *manager) GetRecommenderWithRule(recommenderName string, recommendationR
 				return resource.NewResourceRecommender(r, recommendationRule, m.oomRecorder)
 			case recommender.IdleNodeRecommender:
 				return idlenode.NewIdleNodeRecommender(r, recommendationRule)
+			case recommender.VolumesRecommender:
+				return volumes.NewServiceRecommender(r, recommendationRule)
 			default:
 				return nil, fmt.Errorf("unknown recommender name: %s", recommenderName)
 			}

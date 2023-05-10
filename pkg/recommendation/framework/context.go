@@ -69,6 +69,8 @@ type RecommendationContext struct {
 	HPA *autoscalingv2.HorizontalPodAutoscaler
 	// HPA Object
 	EHPA *autoscalingapi.EffectiveHorizontalPodAutoscaler
+	// Orphan Volumes
+	Volumes []corev1.PersistentVolume
 }
 
 func NewRecommendationContext(context context.Context, identity ObjectIdentity, recommendationRule *v1alpha1.RecommendationRule, predictorMgr predictormgr.Manager, dataProviders map[providers.DataSourceType]providers.History, recommendation *v1alpha1.Recommendation, client client.Client, scaleClient scale.ScalesGetter) RecommendationContext {
@@ -173,6 +175,13 @@ func RetrievePods(ctx *RecommendationContext) error {
 		pods, err := utils.GetDaemonSetPods(ctx.Client, ctx.Recommendation.Spec.TargetRef.Namespace, ctx.Recommendation.Spec.TargetRef.Name)
 		ctx.Pods = pods
 		return err
+	} else if ctx.Recommendation.Spec.TargetRef.Kind == "PersistentVolume" {
+		volumes, err := utils.GetOrphanVolumes(ctx.Client)
+		if err != nil {
+			return err
+		}
+		ctx.Volumes = volumes
+		return nil
 	} else {
 		pods, err := utils.GetPodsFromScale(ctx.Client, ctx.Scale)
 		ctx.Pods = pods
