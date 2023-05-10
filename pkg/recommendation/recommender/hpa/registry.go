@@ -21,12 +21,16 @@ type HPARecommender struct {
 	MaxReplicasFactor       float64
 }
 
+func init() {
+	recommender.RegisterRecommenderProvider(recommender.HPARecommender, NewHPARecommender)
+}
+
 func (rr *HPARecommender) Name() string {
 	return recommender.HPARecommender
 }
 
 // NewHPARecommender create a new hpa recommender.
-func NewHPARecommender(recommender apis.Recommender, recommendationRule analysisv1alph1.RecommendationRule) (*HPARecommender, error) {
+func NewHPARecommender(recommender apis.Recommender, recommendationRule analysisv1alph1.RecommendationRule) (recommender.Recommender, error) {
 	recommender = config.MergeRecommenderConfigFromRule(recommender, recommendationRule)
 
 	predictableEnabled, err := recommender.GetConfigBool("predictable", false)
@@ -70,7 +74,7 @@ func NewHPARecommender(recommender apis.Recommender, recommendationRule analysis
 	}
 
 	return &HPARecommender{
-		*replicasRecommender,
+		*(replicasRecommender.(*replicas.ReplicasRecommender)),
 		predictableEnabled,
 		referenceHpaEnabled,
 		minCpuUsageThresholdFloat,

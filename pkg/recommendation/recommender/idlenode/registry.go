@@ -25,12 +25,16 @@ type IdleNodeRecommender struct {
 	memoryUsageUtilization   float64
 }
 
+func init() {
+	recommender.RegisterRecommenderProvider(recommender.IdleNodeRecommender, NewIdleNodeRecommender)
+}
+
 func (inr *IdleNodeRecommender) Name() string {
 	return recommender.IdleNodeRecommender
 }
 
 // NewIdleNodeRecommender create a new idle node recommender.
-func NewIdleNodeRecommender(recommender apis.Recommender, recommendationRule analysisv1alph1.RecommendationRule) (*IdleNodeRecommender, error) {
+func NewIdleNodeRecommender(recommender apis.Recommender, recommendationRule analysisv1alph1.RecommendationRule) (recommender.Recommender, error) {
 	recommender = config.MergeRecommenderConfigFromRule(recommender, recommendationRule)
 
 	cpuRequestUtilization, err := recommender.GetConfigFloat(cpuRequestUtilizationKey, 0)
