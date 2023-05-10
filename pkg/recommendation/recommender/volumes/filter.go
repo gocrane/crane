@@ -13,14 +13,6 @@ func (rr *VolumesRecommender) Filter(ctx *framework.RecommendationContext) error
 		return err
 	}
 
-	if err = framework.RetrievePodTemplate(ctx); err != nil {
-		return err
-	}
-
-	if err = framework.RetrieveScale(ctx); err != nil {
-		return err
-	}
-
 	if err = framework.RetrievePods(ctx); err != nil {
 		return err
 	}
