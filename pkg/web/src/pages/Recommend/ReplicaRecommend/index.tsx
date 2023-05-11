@@ -43,6 +43,13 @@ export const SelectTable = () => {
     craneUrl,
     recommendationType: RecommendationType.Replicas,
   });
+
+  const [pageCurrent, setPageCurrent] = useState<object>({
+    current: 1,
+    pageSize: 5,
+    previous: 2
+  })
+
   // const recommendation = data?.data?.items || [];
 
   let recommendation: any[];
@@ -69,6 +76,11 @@ export const SelectTable = () => {
       return true;
     });
 
+    let nowTotal = (pageCurrent.current -1 ) * pageCurrent.pageSize
+
+    let newResult = filterResult.slice(nowTotal,filterResult.length >= (nowTotal + pageCurrent.pageSize)  ? nowTotal + pageCurrent.pageSize  : filterResult.length)
+  
+  
   function onSelectChange(value: (string | number)[]) {
     setSelectedRowKeys(value);
   }
@@ -85,6 +97,8 @@ export const SelectTable = () => {
   function handleClose() {
     setVisible(false);
   }
+
+
 
   const toYaml = (resource: any) => {
     let yaml = null;
@@ -110,7 +124,7 @@ export const SelectTable = () => {
       </Row>
       <Table
         loading={isFetching || isError}
-        data={filterResult}
+        data={newResult}
         verticalAlign='middle'
         columns={[
           {
@@ -280,11 +294,13 @@ export const SelectTable = () => {
         onSelectChange={onSelectChange}
         pagination={{
           defaultCurrent: 1,
-          defaultPageSize: 10,
+          defaultPageSize: 5,
           total: filterResult.length,
           showJumper: true,
           onChange(pageInfo) {
             console.log(pageInfo, 'onChange pageInfo');
+            setPageCurrent(pageInfo)
+
           },
           onCurrentChange(current, pageInfo) {
             console.log(current, 'onCurrentChange current');

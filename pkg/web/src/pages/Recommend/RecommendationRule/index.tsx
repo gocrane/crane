@@ -24,6 +24,12 @@ export const SelectTable = () => {
     recommenderType: undefined,
     name: undefined,
   });
+
+  const [pageCurrent, setPageCurrent] = useState<object>({
+  current: 1,
+  pageSize: 5,
+  previous: 2
+})
   const craneUrl: any = useCraneUrl();
   const { data, isFetching, isError, isSuccess, error } = useFetchRecommendationRuleListQuery({ craneUrl });
   let recommendationRuleList: any[];
@@ -45,6 +51,12 @@ export const SelectTable = () => {
       if (filterParams?.recommenderType) return filterParams?.recommenderType === recommendationRule.recommenderType;
       return true;
     });
+
+
+
+    let nowTotal = (pageCurrent.current -1 ) * pageCurrent.pageSize
+
+    let newResult = filterResult.slice(nowTotal,filterResult.length >= (nowTotal + pageCurrent.pageSize)  ? nowTotal + pageCurrent.pageSize  : filterResult.length)
 
   function onSelectChange(value: (string | number)[]) {
     setSelectedRowKeys(value);
@@ -86,7 +98,7 @@ export const SelectTable = () => {
       </Row>
       <Table
         loading={isFetching || isError}
-        data={filterResult}
+        data={newResult}
         columns={[
           {
             title: t('名称'),
@@ -211,11 +223,13 @@ export const SelectTable = () => {
         onSelectChange={onSelectChange}
         pagination={{
           defaultCurrent: 1,
-          defaultPageSize: 10,
+          defaultPageSize: 5,
           total: filterResult.length,
           showJumper: true,
           onChange(pageInfo) {
             console.log(pageInfo, 'onChange pageInfo');
+            // setPageCurrent(pageInfo)
+
           },
           onCurrentChange(current, pageInfo) {
             console.log(current, 'onCurrentChange current');

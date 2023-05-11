@@ -32,7 +32,11 @@ const SelectTable = () => {
     name: undefined,
   });
   const craneUrl: any = useCraneUrl();
-
+  const [pageCurrent, setPageCurrent] = useState<object>({
+    current: 1,
+    pageSize: 5,
+    previous: 2
+  })
   const { data, isFetching, isError, isSuccess, error } = useFetchRecommendationListQuery(
     {
       craneUrl,
@@ -68,6 +72,11 @@ const SelectTable = () => {
       return true;
     });
 
+
+    let nowTotal = (pageCurrent.current -1 ) * pageCurrent.pageSize
+
+    let newResult = filterResult.slice(nowTotal,filterResult.length >= (nowTotal + pageCurrent.pageSize)  ? nowTotal + pageCurrent.pageSize  : filterResult.length)
+  
   function onSelectChange(value: (string | number)[]) {
     setSelectedRowKeys(value);
   }
@@ -109,7 +118,7 @@ const SelectTable = () => {
       </Row>
       <Table
         loading={isFetching || isError}
-        data={filterResult}
+        data={newResult}
         verticalAlign='middle'
         columns={[
           {
@@ -187,6 +196,8 @@ const SelectTable = () => {
           showJumper: true,
           onChange(pageInfo) {
             console.log(pageInfo, 'onChange pageInfo');
+            setPageCurrent(pageInfo)
+
           },
           onCurrentChange(current, pageInfo) {
             console.log(current, 'onCurrentChange current');
