@@ -18,7 +18,7 @@ import { useDispatch } from 'react-redux';
 import { Prism } from '@mantine/prism';
 import { copyToClipboard } from '../../../utils/copyToClipboard';
 import { K8SUNIT, transformK8sUnit } from 'utils/transformK8sUnit';
-import {insightAction} from "../../../modules/insightSlice";
+import { insightAction } from '../../../modules/insightSlice';
 
 const Editor = React.lazy(() => import('components/common/Editor'));
 
@@ -75,14 +75,14 @@ export const SelectTable = () => {
     setSelectedRowKeys(value);
   }
 
-  function rehandleClickOp(record: any) {
-    console.log(record);
-  }
+  // function rehandleClickOp(record: any) {
+  //   console.log(record);
+  // }
 
-  function handleClickDelete(record: any) {
-    console.log(record);
-    setVisible(true);
-  }
+  // function handleClickDelete(record: any) {
+  //   console.log(record);
+  //   setVisible(true);
+  // }
 
   function handleClose() {
     setVisible(false);
@@ -98,7 +98,7 @@ export const SelectTable = () => {
     return yaml;
   };
 
-    return (
+  return (
     <>
       <Row>
         <Button onClick={() => navigate('/recommend/recommendationRule')}>{t('查看推荐规则')}</Button>
@@ -231,12 +231,15 @@ export const SelectTable = () => {
                     theme='primary'
                     variant='text'
                     onClick={() => {
-                      const result: any = dispatch(recommendationApi.endpoints.adoptRecommendation.initiate({
-                        craneUrl: craneUrl,
-                        namespace: record.row.namespace,
-                        name: record.row.name,
-                      }));
-                      result.unwrap()
+                      const result: any = dispatch(
+                        recommendationApi.endpoints.adoptRecommendation.initiate({
+                          craneUrl,
+                          namespace: record.row.namespace,
+                          name: record.row.name,
+                        }),
+                      );
+                      result
+                        .unwrap()
                         .then(() => MessagePlugin.success(t('采纳推荐成功')))
                         .catch(() =>
                           MessagePlugin.error(
@@ -246,7 +249,7 @@ export const SelectTable = () => {
                             },
                             10000,
                           ),
-                        )
+                        );
                     }}
                   >
                     {t('采纳推荐')}
@@ -262,43 +265,42 @@ export const SelectTable = () => {
                     {t('查看YAML')}
                   </Button>
                 </>
-              ) :
-                (
-                  <>
-                    <Button
-                      theme='primary'
-                      variant='text'
-                      onClick={() => {
-                        dispatch(insightAction.selectedWorkloadType(record.row.spec.targetRef.kind));
-                        dispatch(insightAction.selectedWorkload(record.row.spec.targetRef.name));
-                        dispatch(insightAction.selectedNamespace(record.row.namespace));
-                        navigate('/cost/workload-insight');
-                      }}
-                    >
-                      {t('查看监控')}
-                    </Button>
-                    <Button
-                      theme='primary'
-                      variant='text'
-                      onClick={() => {
-                        setCurrentSelection(record.row as RecommendationSimpleInfo);
-                        setCommandDialogVisible(true);
-                      }}
-                    >
-                      {t('查看采纳命令')}
-                    </Button>
-                    <Button
-                      theme='primary'
-                      variant='text'
-                      onClick={() => {
-                        setCurrentSelection(record.row as RecommendationSimpleInfo);
-                        setYamlDialogVisible(true);
-                      }}
-                    >
-                      {t('查看YAML')}
-                    </Button>
-                  </>
-                );
+              ) : (
+                <>
+                  <Button
+                    theme='primary'
+                    variant='text'
+                    onClick={() => {
+                      dispatch(insightAction.selectedWorkloadType(record.row.spec.targetRef.kind));
+                      dispatch(insightAction.selectedWorkload(record.row.spec.targetRef.name));
+                      dispatch(insightAction.selectedNamespace(record.row.namespace));
+                      navigate('/cost/workload-insight');
+                    }}
+                  >
+                    {t('查看监控')}
+                  </Button>
+                  <Button
+                    theme='primary'
+                    variant='text'
+                    onClick={() => {
+                      setCurrentSelection(record.row as RecommendationSimpleInfo);
+                      setCommandDialogVisible(true);
+                    }}
+                  >
+                    {t('查看采纳命令')}
+                  </Button>
+                  <Button
+                    theme='primary'
+                    variant='text'
+                    onClick={() => {
+                      setCurrentSelection(record.row as RecommendationSimpleInfo);
+                      setYamlDialogVisible(true);
+                    }}
+                  >
+                    {t('查看YAML')}
+                  </Button>
+                </>
+              );
             },
           },
         ]}

@@ -49,7 +49,7 @@ export const prometheusApi = createApi({
       cache: 'no-cache',
       baseUrl: ``,
       timeout: 15000,
-      prepareHeaders: (headers, api) => {
+      prepareHeaders: (headers, _api) => {
         headers.set('Content-Type', 'application/json');
         return headers;
       },
@@ -73,7 +73,7 @@ export const prometheusApi = createApi({
           method: 'get',
         };
       },
-      transformResponse: (res: QueryInstantPrometheusResult, meta, arg: QueryInstantPrometheusArgs) => {
+      transformResponse: (res: QueryInstantPrometheusResult, _meta, _arg: QueryInstantPrometheusArgs) => {
         if (res.data.length > 0) {
           res.data.map((value) => {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -120,7 +120,7 @@ export const prometheusApi = createApi({
           method: 'get',
         };
       },
-      transformResponse: (res: QueryRangePrometheusResult, meta, args: QueryRangePrometheusArgs) => {
+      transformResponse: (res: QueryRangePrometheusResult, _meta, _args: QueryRangePrometheusArgs) => {
         // Single Value - Line
         if (res.data.length > 0) {
           res.data.map(({ values }) => {

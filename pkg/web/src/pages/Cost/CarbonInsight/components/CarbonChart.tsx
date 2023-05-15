@@ -12,7 +12,7 @@ const CarbonChart = () => {
     subTitle: t('(瓦特/小时)'),
     datePicker: true,
     step: '1h',
-    xAxis: {type: 'time'},
+    xAxis: { type: 'time' },
     lines: [
       {
         name: t('energy consumption'),
