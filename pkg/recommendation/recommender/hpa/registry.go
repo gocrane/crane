@@ -1,8 +1,6 @@
 package hpa
 
 import (
-	"strconv"
-
 	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
 	"github.com/gocrane/crane/pkg/recommendation/config"
 	"github.com/gocrane/crane/pkg/recommendation/recommender"
@@ -31,65 +29,37 @@ func (rr *HPARecommender) Name() string {
 func NewHPARecommender(recommender apis.Recommender, recommendationRule analysisv1alph1.RecommendationRule) (*HPARecommender, error) {
 	recommender = config.MergeRecommenderConfigFromRule(recommender, recommendationRule)
 
-	predictable, exists := recommender.Config["predictable"]
-	if !exists {
-		predictable = "false"
-	}
-	predictableEnabled, err := strconv.ParseBool(predictable)
+	predictableEnabled, err := recommender.GetConfigBool("predictable", false)
 	if err != nil {
 		return nil, err
 	}
 
-	referenceHPA, exists := recommender.Config["reference-hpa"]
-	if !exists {
-		referenceHPA = "true"
-	}
-	referenceHpaEnabled, err := strconv.ParseBool(referenceHPA)
+	referenceHpaEnabled, err := recommender.GetConfigBool("reference-hpa", true)
 	if err != nil {
 		return nil, err
 	}
 
-	minCpuUsageThreshold, exists := recommender.Config["min-cpu-usage-threshold"]
-	if !exists {
-		minCpuUsageThreshold = "1"
-	}
-	minCpuUsageThresholdFloat, err := strconv.ParseFloat(minCpuUsageThreshold, 64)
+	minCpuUsageThresholdFloat, err := recommender.GetConfigFloat("min-cpu-usage-threshold", 1)
 	if err != nil {
 		return nil, err
 	}
 
-	fluctuationThreshold, exists := recommender.Config["fluctuation-threshold"]
-	if !exists {
-		fluctuationThreshold = "1.5"
-	}
-	fluctuationThresholdFloat, err := strconv.ParseFloat(fluctuationThreshold, 64)
+	fluctuationThresholdFloat, err := recommender.GetConfigFloat("fluctuation-threshold", 1.5)
 	if err != nil {
 		return nil, err
 	}
 
-	minCpuTargetUtilization, exists := recommender.Config["min-cpu-target-utilization"]
-	if !exists {
-		minCpuTargetUtilization = "30"
-	}
-	minCpuTargetUtilizationInt, err := strconv.ParseInt(minCpuTargetUtilization, 10, 32)
+	minCpuTargetUtilizationInt, err := recommender.GetConfigInt("min-cpu-target-utilization", 30)
 	if err != nil {
 		return nil, err
 	}
 
-	maxCpuTargetUtilization, exists := recommender.Config["max-cpu-target-utilization"]
-	if !exists {
-		maxCpuTargetUtilization = "75"
-	}
-	maxCpuTargetUtilizationInt, err := strconv.ParseInt(maxCpuTargetUtilization, 10, 32)
+	maxCpuTargetUtilizationInt, err := recommender.GetConfigInt("max-cpu-target-utilization", 75)
 	if err != nil {
 		return nil, err
 	}
 
-	maxReplicasFactor, exists := recommender.Config["max-replicas-factor"]
-	if !exists {
-		maxReplicasFactor = "3"
-	}
-	maxReplicasFactorFloat, err := strconv.ParseFloat(maxReplicasFactor, 64)
+	maxReplicasFactorFloat, err := recommender.GetConfigFloat("max-replicas-factor", 3)
 	if err != nil {
 		return nil, err
 	}

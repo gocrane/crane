@@ -14,8 +14,17 @@ const (
 	// following is node exporter metric for node cpu/memory usage
 	// NodeCpuUsageExprTemplate is used to query node cpu usage by promql,  param is node name which prometheus scrape, duration str
 	NodeCpuUsageExprTemplate = `sum(count(node_cpu_seconds_total{mode="idle",instance=~"(%s)(:\\d+)?"}) by (mode, cpu)) - sum(irate(node_cpu_seconds_total{mode="idle",instance=~"(%s)(:\\d+)?"}[%s]))`
-	// NodeMemUsageExprTemplate is used to query node cpu memory by promql,  param is node name, node name which prometheus scrape
+	// NodeMemUsageExprTemplate is used to query node memory usage by promql,  param is node name, node name which prometheus scrape
 	NodeMemUsageExprTemplate = `sum(node_memory_MemTotal_bytes{instance=~"(%s)(:\\d+)?"} - node_memory_MemAvailable_bytes{instance=~"(%s)(:\\d+)?"})`
+
+	// NodeCpuRequestUtilizationExprTemplate is used to query node cpu request utilization by promql, param is node name, node name which prometheus scrape
+	NodeCpuRequestUtilizationExprTemplate = `sum(kube_pod_container_resource_requests{node="%s", resource="cpu", unit="core"} * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)) by (node) / sum(kube_node_status_capacity{node="%s", resource="cpu", unit="core"} * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)) by (node) * 100`
+	// NodeMemRequestUtilizationExprTemplate is used to query node memory request utilization by promql, param is node name, node name which prometheus scrape
+	NodeMemRequestUtilizationExprTemplate = `sum(kube_pod_container_resource_requests{node="%s", resource="memory", unit="byte", namespace!=""} * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)) by (node) / sum(kube_node_status_capacity{node="%s", resource="memory", unit="byte"} * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)) by (node) * 100`
+	// NodeCpuUsageUtilizationExprTemplate is used to query node memory usage utilization by promql, param is node name, node name which prometheus scrape
+	NodeCpuUsageUtilizationExprTemplate = `sum(label_replace(irate(container_cpu_usage_seconds_total{instance="%s", container!="POD", container!="",image!=""}[1h]), "node", "$1", "instance",  "(^[^:]+)") * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)) by (node) / sum(kube_node_status_capacity{node="%s", resource="cpu", unit="core"} * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)) by (node) * 100`
+	// NodeMemUsageUtilizationExprTemplate is used to query node memory usage utilization by promql, param is node name, node name which prometheus scrape
+	NodeMemUsageUtilizationExprTemplate = `sum(label_replace(container_memory_usage_bytes{instance="%s", namespace!="",container!="POD", container!="",image!=""}, "node", "$1", "instance", "(^[^:]+)") * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)) by (node) / sum(kube_node_status_capacity{node="%s", resource="memory", unit="byte"} * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)) by (node) * 100`
 
 	// PodCpuUsageExprTemplate is used to query pod cpu usage by promql,  param is namespace,pod, duration str
 	PodCpuUsageExprTemplate = `sum(irate(container_cpu_usage_seconds_total{container!="POD",namespace="%s",pod="%s"}[%s]))`
@@ -82,4 +91,20 @@ func GetNodeCpuUsageExpression(nodeName string) string {
 
 func GetNodeMemUsageExpression(nodeName string) string {
 	return fmt.Sprintf(NodeMemUsageExprTemplate, nodeName, nodeName)
+}
+
+func GetNodeCpuRequestUtilizationExpression(nodeName string) string {
+	return fmt.Sprintf(NodeCpuRequestUtilizationExprTemplate, nodeName, nodeName)
+}
+
+func GetNodeMemRequestUtilizationExpression(nodeName string) string {
+	return fmt.Sprintf(NodeMemRequestUtilizationExprTemplate, nodeName, nodeName)
+}
+
+func GetNodeCpuUsageUtilizationExpression(nodeName string) string {
+	return fmt.Sprintf(NodeCpuUsageUtilizationExprTemplate, nodeName, nodeName)
+}
+
+func GetNodeMemUsageUtilizationExpression(nodeName string) string {
+	return fmt.Sprintf(NodeMemUsageUtilizationExprTemplate, nodeName, nodeName)
 }

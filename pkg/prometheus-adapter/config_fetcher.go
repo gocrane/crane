@@ -78,7 +78,7 @@ func (pc *PrometheusAdapterConfigFetcher) SetupWithManager(mgr ctrl.Manager) err
 		Complete(pc)
 }
 
-// fetched metricRule if configmap is updated
+// Update fetched metricRule if configmap is updated
 func (paCm *PrometheusAdapterConfigChangedPredicate) Update(e event.UpdateEvent) bool {
 	if e.ObjectOld == nil {
 		return false
