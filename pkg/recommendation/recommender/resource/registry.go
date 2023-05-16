@@ -4,7 +4,6 @@ import (
 	"time"
 
 	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
-	"github.com/gocrane/crane/pkg/oom"
 	"github.com/gocrane/crane/pkg/recommendation/config"
 	"github.com/gocrane/crane/pkg/recommendation/recommender"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/apis"
@@ -25,7 +24,6 @@ type ResourceRecommender struct {
 	MemMarginFraction        string
 	MemTargetUtilization     string
 	MemHistoryLength         string
-	oomRecorder              oom.Recorder
 	OOMProtection            bool
 	OOMHistoryLength         time.Duration
 	OOMBumpRatio             float64
@@ -37,12 +35,16 @@ type ResourceRecommender struct {
 	MemHistogramMaxValue     string
 }
 
+func init() {
+	recommender.RegisterRecommenderProvider(recommender.ResourceRecommender, NewResourceRecommender)
+}
+
 func (rr *ResourceRecommender) Name() string {
 	return recommender.ResourceRecommender
 }
 
 // NewResourceRecommender create a new resource recommender.
-func NewResourceRecommender(recommender apis.Recommender, recommendationRule analysisv1alph1.RecommendationRule, oomRecorder oom.Recorder) (*ResourceRecommender, error) {
+func NewResourceRecommender(recommender apis.Recommender, recommendationRule analysisv1alph1.RecommendationRule) (recommender.Recommender, error) {
 	recommender = config.MergeRecommenderConfigFromRule(recommender, recommendationRule)
 
 	cpuSampleInterval := recommender.GetConfigString("cpu-sample-interval", "1m")
@@ -99,7 +101,6 @@ func NewResourceRecommender(recommender apis.Recommender, recommendationRule ana
 		memMarginFraction,
 		memTargetUtilization,
 		memHistoryLength,
-		oomRecorder,
 		oomProtectionBool,
 		oomHistoryLengthDuration,
 		OOMBumpRatioFloat,

@@ -21,6 +21,7 @@ import (
 
 	analysisv1alpha1 "github.com/gocrane/api/analysis/v1alpha1"
 
+	"github.com/gocrane/crane/pkg/oom"
 	predictormgr "github.com/gocrane/crane/pkg/predictor"
 	"github.com/gocrane/crane/pkg/providers"
 	recommender "github.com/gocrane/crane/pkg/recommendation"
@@ -33,6 +34,7 @@ type RecommendationTriggerController struct {
 	Recorder        record.EventRecorder
 	RecommenderMgr  recommender.RecommenderManager
 	ScaleClient     scale.ScalesGetter
+	OOMRecorder     oom.Recorder
 	discoveryClient discovery.DiscoveryInterface
 	dynamicClient   dynamic.Interface
 	PredictorMgr    predictormgr.Manager
@@ -104,7 +106,7 @@ func (c *RecommendationTriggerController) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, nil
 	}
 
-	executeMission(context.TODO(), nil, c.RecommenderMgr, c.Provider, c.PredictorMgr, recommendationRule, identities, &newStatus.Recommendations[currentMissionIndex], recommendation, c.Client, c.ScaleClient, metav1.Now(), newStatus.RunNumber)
+	executeMission(context.TODO(), nil, c.RecommenderMgr, c.Provider, c.PredictorMgr, recommendationRule, identities, &newStatus.Recommendations[currentMissionIndex], recommendation, c.Client, c.ScaleClient, c.OOMRecorder, metav1.Now(), newStatus.RunNumber)
 	if newStatus.Recommendations[currentMissionIndex].Message != "Success" {
 		err = c.Client.Delete(context.TODO(), recommendation)
 		if err != nil {

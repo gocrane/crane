@@ -22,12 +22,16 @@ type ReplicasRecommender struct {
 	MemTargetUtilization float64
 }
 
+func init() {
+	recommender.RegisterRecommenderProvider(recommender.ReplicasRecommender, NewReplicasRecommender)
+}
+
 func (rr *ReplicasRecommender) Name() string {
 	return recommender.ReplicasRecommender
 }
 
 // NewReplicasRecommender create a new replicas recommender.
-func NewReplicasRecommender(recommender apis.Recommender, recommendationRule analysisv1alph1.RecommendationRule) (*ReplicasRecommender, error) {
+func NewReplicasRecommender(recommender apis.Recommender, recommendationRule analysisv1alph1.RecommendationRule) (recommender.Recommender, error) {
 	recommender = config.MergeRecommenderConfigFromRule(recommender, recommendationRule)
 
 	workloadMinReplicasInt, err := recommender.GetConfigInt("workload-min-replicas", 1)

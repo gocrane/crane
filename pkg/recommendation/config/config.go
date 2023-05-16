@@ -60,14 +60,17 @@ func loadConfigFromBytes(buf []byte) (*apis.RecommenderConfiguration, error) {
 	return config, nil
 }
 
-func GetRecommendersFromConfiguration(file string) ([]apis.Recommender, error) {
+func GetRecommendersFromConfiguration(file string) (map[string]apis.Recommender, error) {
 	config, err := LoadRecommenderConfigFromFile(file)
 	if err != nil {
 		klog.Errorf("load recommender configuration failed, %v", err)
 		return nil, err
 	}
-
-	return config.Recommenders, nil
+	recommenders := make(map[string]apis.Recommender, len(config.Recommenders))
+	for _, recommender := range config.Recommenders {
+		recommenders[recommender.Name] = recommender
+	}
+	return recommenders, nil
 }
 
 func GetKeysOfMap(m map[string]string) (keys []string) {

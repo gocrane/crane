@@ -22,6 +22,7 @@ import (
 
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/metricnaming"
+	"github.com/gocrane/crane/pkg/oom"
 	"github.com/gocrane/crane/pkg/prediction/config"
 	predictormgr "github.com/gocrane/crane/pkg/predictor"
 	"github.com/gocrane/crane/pkg/providers"
@@ -62,6 +63,8 @@ type RecommendationContext struct {
 	RestMapper meta.RESTMapper
 	// ScalesGetter
 	ScaleClient scale.ScalesGetter
+	// oom.Recorder
+	OOMRecorder oom.Recorder
 	// Scale
 	Scale *autoscalingapiv1.Scale
 	// Pods in recommendation
@@ -72,7 +75,7 @@ type RecommendationContext struct {
 	EHPA *autoscalingapi.EffectiveHorizontalPodAutoscaler
 }
 
-func NewRecommendationContext(context context.Context, identity ObjectIdentity, recommendationRule *v1alpha1.RecommendationRule, predictorMgr predictormgr.Manager, dataProviders map[providers.DataSourceType]providers.History, recommendation *v1alpha1.Recommendation, client client.Client, scaleClient scale.ScalesGetter) RecommendationContext {
+func NewRecommendationContext(context context.Context, identity ObjectIdentity, recommendationRule *v1alpha1.RecommendationRule, predictorMgr predictormgr.Manager, dataProviders map[providers.DataSourceType]providers.History, recommendation *v1alpha1.Recommendation, client client.Client, scaleClient scale.ScalesGetter, oomRecorder oom.Recorder) RecommendationContext {
 	return RecommendationContext{
 		Context:            context,
 		Identity:           identity,
@@ -85,6 +88,8 @@ func NewRecommendationContext(context context.Context, identity ObjectIdentity, 
 		Client:             client,
 		RestMapper:         client.RESTMapper(),
 		ScaleClient:        scaleClient,
+		OOMRecorder:        oomRecorder,
+		//CancelCh:       context.Done(),
 	}
 }
 

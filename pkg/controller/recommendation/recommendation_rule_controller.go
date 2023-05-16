@@ -32,6 +32,7 @@ import (
 	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/known"
+	"github.com/gocrane/crane/pkg/oom"
 	predictormgr "github.com/gocrane/crane/pkg/predictor"
 	"github.com/gocrane/crane/pkg/providers"
 	recommender "github.com/gocrane/crane/pkg/recommendation"
@@ -45,6 +46,7 @@ type RecommendationRuleController struct {
 	Recorder        record.EventRecorder
 	RestMapper      meta.RESTMapper
 	ScaleClient     scale.ScalesGetter
+	OOMRecorder     oom.Recorder
 	RecommenderMgr  recommender.RecommenderManager
 	PredictorMgr    predictormgr.Manager
 	kubeClient      kubernetes.Interface
@@ -199,7 +201,7 @@ func (c *RecommendationRuleController) doReconcile(ctx context.Context, recommen
 			}
 		}
 
-		go executeMission(ctx, &wg, c.RecommenderMgr, c.Provider, c.PredictorMgr, recommendationRule, identities, &currMissions[index], existingRecommendation, c.Client, c.ScaleClient, timeNow, newStatus.RunNumber)
+		go executeMission(ctx, &wg, c.RecommenderMgr, c.Provider, c.PredictorMgr, recommendationRule, identities, &currMissions[index], existingRecommendation, c.Client, c.ScaleClient, c.OOMRecorder, timeNow, newStatus.RunNumber)
 	}
 
 	wg.Wait()
@@ -410,7 +412,7 @@ func CreateRecommendationObject(recommendationRule *analysisv1alph1.Recommendati
 
 func executeMission(ctx context.Context, wg *sync.WaitGroup, recommenderMgr recommender.RecommenderManager, provider providers.History, predictorMgr predictormgr.Manager,
 	recommendationRule *analysisv1alph1.RecommendationRule, identities map[string]ObjectIdentity, mission *analysisv1alph1.RecommendationMission,
-	existingRecommendation *analysisv1alph1.Recommendation, client client.Client, scaleClient scale.ScalesGetter, timeNow metav1.Time, currentRunNumber int32) {
+	existingRecommendation *analysisv1alph1.Recommendation, client client.Client, scaleClient scale.ScalesGetter, oomRecorder oom.Recorder, timeNow metav1.Time, currentRunNumber int32) {
 	defer func() {
 		mission.LastStartTime = &timeNow
 		klog.Infof("Mission message: %s", mission.Message)
@@ -444,7 +446,7 @@ func executeMission(ctx context.Context, wg *sync.WaitGroup, recommenderMgr reco
 			Labels:     identities[k].Labels,
 			Object:     identities[k].Object,
 		}
-		recommendationContext := framework.NewRecommendationContext(ctx, identity, recommendationRule, predictorMgr, p, recommendation, client, scaleClient)
+		recommendationContext := framework.NewRecommendationContext(ctx, identity, recommendationRule, predictorMgr, p, recommendation, client, scaleClient, oomRecorder)
 		err = recommender.Run(&recommendationContext, r)
 		if err != nil {
 			mission.Message = fmt.Sprintf("Failed to run recommendation flow in recommender %s: %s", r.Name(), err.Error())
