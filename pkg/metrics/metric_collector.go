@@ -10,6 +10,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/apimachinery/pkg/api/meta"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/scale"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -17,6 +18,7 @@ import (
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
+	"github.com/gocrane/crane/pkg/features"
 	. "github.com/gocrane/crane/pkg/metricprovider"
 )
 
@@ -79,42 +81,44 @@ func (c *CraneMetricCollector) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (c *CraneMetricCollector) Collect(ch chan<- prometheus.Metric) {
-	var ehpaList autoscalingapi.EffectiveHorizontalPodAutoscalerList
-	err := c.List(context.TODO(), &ehpaList)
-	if err != nil {
-		klog.Errorf("Failed to list ehpa: %v", err)
-	}
-	var predictionMetrics []PredictionMetric
-	for _, ehpa := range ehpaList.Items {
-		namespace := ehpa.Namespace
-		if ehpa.Spec.Prediction != nil {
-			var tsp predictionapi.TimeSeriesPrediction
-			tspName := "ehpa-" + ehpa.Name
+	if utilfeature.DefaultFeatureGate.Enabled(features.CraneAutoscaling) {
+		var ehpaList autoscalingapi.EffectiveHorizontalPodAutoscalerList
+		err := c.List(context.TODO(), &ehpaList)
+		if err != nil {
+			klog.Errorf("Failed to list ehpa: %v", err)
+		}
+		var predictionMetrics []PredictionMetric
+		for _, ehpa := range ehpaList.Items {
+			namespace := ehpa.Namespace
+			if ehpa.Spec.Prediction != nil {
+				var tsp predictionapi.TimeSeriesPrediction
+				tspName := "ehpa-" + ehpa.Name
 
-			err := c.Get(context.TODO(), client.ObjectKey{Namespace: namespace, Name: tspName}, &tsp)
-			if err != nil {
-				klog.Errorf("Failed to get tsp: %v", err)
-				return
+				err := c.Get(context.TODO(), client.ObjectKey{Namespace: namespace, Name: tspName}, &tsp)
+				if err != nil {
+					klog.Errorf("Failed to get tsp: %v", err)
+					return
+				}
+				metricListTsp := c.getMetricsTsp(&tsp)
+				for _, metric := range metricListTsp {
+					if MetricContains(predictionMetrics, metric) {
+						continue
+					}
+
+					ch <- prometheus.NewMetricWithTimestamp(metric.Timestamp, prometheus.MustNewConstMetric(metric.Desc, prometheus.GaugeValue, metric.MetricValue, metric.TargetKind, metric.TargetName, metric.TargetNamespace, metric.ResourceIdentifier, metric.Algorithm))
+					predictionMetrics = append(predictionMetrics, metric)
+				}
 			}
-			metricListTsp := c.getMetricsTsp(&tsp)
-			for _, metric := range metricListTsp {
-				if MetricContains(predictionMetrics, metric) {
-					continue
+
+			if ehpa.Spec.Crons != nil {
+				metricCron, err := c.getMetricsCron(&ehpa)
+				if err != nil {
+					klog.Errorf("Failed to get metricCron: %v", err)
+					return
 				}
 
-				ch <- prometheus.NewMetricWithTimestamp(metric.Timestamp, prometheus.MustNewConstMetric(metric.Desc, prometheus.GaugeValue, metric.MetricValue, metric.TargetKind, metric.TargetName, metric.TargetNamespace, metric.ResourceIdentifier, metric.Algorithm))
-				predictionMetrics = append(predictionMetrics, metric)
+				ch <- metricCron
 			}
-		}
-
-		if ehpa.Spec.Crons != nil {
-			metricCron, err := c.getMetricsCron(&ehpa)
-			if err != nil {
-				klog.Errorf("Failed to get metricCron: %v", err)
-				return
-			}
-
-			ch <- metricCron
 		}
 	}
 }
