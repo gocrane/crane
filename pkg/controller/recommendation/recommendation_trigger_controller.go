@@ -56,7 +56,7 @@ func (c *RecommendationTriggerController) Reconcile(ctx context.Context, req ctr
 
 	recommendationRuleRef := utils.GetRecommendationRuleOwnerReference(recommendation)
 	if recommendationRuleRef == nil {
-		klog.Warningf("cannot found referred recommendation rule %s/%s", recommendation.Namespace, recommendationRuleRef.Name)
+		klog.Warning("cannot found referred recommendation rule")
 		return ctrl.Result{}, nil
 	}
 

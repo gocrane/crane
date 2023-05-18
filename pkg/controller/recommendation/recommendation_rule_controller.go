@@ -159,6 +159,12 @@ func (c *RecommendationRuleController) doReconcile(ctx context.Context, recommen
 	opts := []client.ListOption{
 		client.MatchingLabels(map[string]string{known.RecommendationRuleUidLabel: string(recommendationRule.UID)}),
 	}
+	if convert, uid := IsConvertFromAnalytics(recommendationRule); convert {
+		opts = []client.ListOption{
+			client.MatchingLabels(map[string]string{known.AnalyticsUidLabel: uid}),
+		}
+	}
+
 	err = c.Client.List(ctx, &currRecommendations, opts...)
 	if err != nil {
 		c.Recorder.Event(recommendationRule, corev1.EventTypeWarning, "FailedSelectResource", err.Error())
@@ -380,6 +386,9 @@ func CreateRecommendationObject(recommendationRule *analysisv1alph1.Recommendati
 	if id.Namespace != "" {
 		namespace = id.Namespace
 	}
+	if convert, _ := IsConvertFromAnalytics(recommendationRule); convert {
+		namespace = known.CraneSystemNamespace
+	}
 
 	recommendation := &analysisv1alph1.Recommendation{
 		ObjectMeta: metav1.ObjectMeta{
@@ -398,6 +407,9 @@ func CreateRecommendationObject(recommendationRule *analysisv1alph1.Recommendati
 	labels := map[string]string{}
 	labels[known.RecommendationRuleNameLabel] = recommendationRule.Name
 	labels[known.RecommendationRuleUidLabel] = string(recommendationRule.UID)
+	if convert, uid := IsConvertFromAnalytics(recommendationRule); convert {
+		labels[known.AnalyticsUidLabel] = uid
+	}
 	labels[known.RecommendationRuleRecommenderLabel] = recommenderName
 	labels[known.RecommendationRuleTargetKindLabel] = target.Kind
 	labels[known.RecommendationRuleTargetVersionLabel] = target.GroupVersionKind().Version
@@ -484,4 +496,14 @@ func executeMission(ctx context.Context, wg *sync.WaitGroup, recommenderMgr reco
 		mission.Kind = recommendation.Kind
 		mission.APIVersion = recommendation.APIVersion
 	}
+}
+
+func IsConvertFromAnalytics(recommendationRule *analysisv1alph1.RecommendationRule) (bool, string) {
+	if recommendationRule.Annotations != nil {
+		if uid, exist := recommendationRule.Annotations[known.AnalyticsConversionAnnotation]; exist {
+			return true, uid
+		}
+	}
+
+	return false, ""
 }
