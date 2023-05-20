@@ -1,6 +1,5 @@
 import React, { memo } from 'react';
-import { Button, Col, Form, Input, Row, Select } from 'tdesign-react';
-import _ from 'lodash';
+import { Button, Col, Form, Input, Row } from 'tdesign-react';
 import { useTranslation } from 'react-i18next';
 
 const { FormItem } = Form;
@@ -10,7 +9,7 @@ export type SearchFormProps = {
   setFilterParams: any;
 };
 
-const SearchForm: React.FC<SearchFormProps> = ({ recommendation, setFilterParams }) => {
+const SearchForm: React.FC<SearchFormProps> = ({ setFilterParams }) => {
   const { t } = useTranslation();
   const onValuesChange = (changeValues: any, allValues: any) => {
     if (!allValues.name) delete allValues.name;

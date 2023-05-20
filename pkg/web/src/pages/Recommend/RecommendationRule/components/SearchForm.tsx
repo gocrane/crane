@@ -1,9 +1,7 @@
 import { RECOMMENDATION_RULE_TYPE_OPTIONS } from '../consts';
 import React, { memo, useRef } from 'react';
-import { Button, Col, Form, Input, MessagePlugin, Row, Select } from 'tdesign-react';
-import { FormInstanceFunctions, SubmitContext } from 'tdesign-react/es/form/type';
-import _ from 'lodash';
-import { useDispatch } from 'react-redux';
+import { Button, Col, Form, Input, Row, Select } from 'tdesign-react';
+import { FormInstanceFunctions } from 'tdesign-react/es/form/type';
 import { useTranslation } from 'react-i18next';
 
 const { FormItem } = Form;
@@ -21,7 +19,7 @@ export type SearchFormProps = {
   filterParams: any;
 };
 
-const SearchForm: React.FC<SearchFormProps> = ({ setFilterParams, filterParams }) => {
+const SearchForm: React.FC<SearchFormProps> = ({ setFilterParams }) => {
   const { t } = useTranslation();
   const formRef = useRef<FormInstanceFunctions>();
 

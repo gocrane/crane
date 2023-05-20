@@ -6,14 +6,14 @@ import React from 'react';
 import { useIsNeedSelectNamespace } from './useIsNeedSelectNamespace';
 import { useSelector } from './useSelector';
 
-export const useGrafanaQueryStr = ({ panelId, selectedDashboard }: { panelId: string, selectedDashboard: any }) => {
+export const useGrafanaQueryStr = ({ panelId, selectedDashboard }: { panelId: string; selectedDashboard: any }) => {
   const customRange = useSelector((state) => state.insight.customRange);
   const selectedNamespace = useSelector((state) => state.insight.selectedNamespace);
   const discount = useSelector((state) => state.insight.discount);
   const selectedWorkload = useSelector((state) => state.insight.selectedWorkload);
   const selectedWorkloadType = useSelector((state) => state.insight.selectedWorkloadType);
 
-  const isNeedSelectNamespace = useIsNeedSelectNamespace({selectedDashboard});
+  const isNeedSelectNamespace = useIsNeedSelectNamespace({ selectedDashboard });
 
   const [from, to] = React.useMemo(
     () => [dayjs(customRange.start).toDate().getTime(), dayjs(customRange.end).toDate().getTime()],

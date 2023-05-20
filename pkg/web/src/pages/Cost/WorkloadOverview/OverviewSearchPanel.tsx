@@ -1,25 +1,23 @@
-import {QueryWindow, useQueryWindowOptions} from '../../../models';
+import { QueryWindow, useQueryWindowOptions } from '../../../models';
 import CommonStyle from '../../../styles/common.module.less';
 import classnames from 'classnames';
-import {Card} from 'components/common/Card';
-import {useCraneUrl, useIsNeedSelectNamespace, useSelector} from 'hooks';
-import {insightAction} from 'modules/insightSlice';
+import { Card } from 'components/common/Card';
+import { useCraneUrl, useSelector } from 'hooks';
+import { insightAction } from 'modules/insightSlice';
 import React from 'react';
-import {useTranslation} from 'react-i18next';
-import {useDispatch} from 'react-redux';
-import {DatePicker, DateValue, InputNumber, Radio, RadioValue, Select} from 'tdesign-react';
-import {rangeMap} from 'utils/rangeMap';
-import {useFetchNamespaceListQuery} from '../../../services/namespaceApi';
-import {useFetchSeriesListQuery} from '../../../services/grafanaApi';
-import {nanoid} from '@reduxjs/toolkit';
-import dayjs from 'dayjs';
+import { useTranslation } from 'react-i18next';
+import { useDispatch } from 'react-redux';
+import { DatePicker, DateValue, Radio, RadioValue, Select } from 'tdesign-react';
+import { rangeMap } from 'utils/rangeMap';
+import { useFetchNamespaceListQuery } from '../../../services/namespaceApi';
+import { useFetchSeriesListQuery } from '../../../services/grafanaApi';
 import _ from 'lodash';
 
-const ALL_NAMESPACE_VALUE = "All";
+const ALL_NAMESPACE_VALUE = 'All';
 
 export const OverviewSearchPanel = React.memo(() => {
   const dispatch = useDispatch();
-  const {t} = useTranslation();
+  const { t } = useTranslation();
 
   const customRange = useSelector((state) => state.insight.customRange);
   const window = useSelector((state) => state.insight.window);
@@ -31,7 +29,7 @@ export const OverviewSearchPanel = React.memo(() => {
   const isNeedSelectNamespace = true;
   const craneUrl: any = useCraneUrl();
 
-  const namespaceList = useFetchNamespaceListQuery({clusterId}, {skip: !clusterId || !isNeedSelectNamespace});
+  const namespaceList = useFetchNamespaceListQuery({ clusterId }, { skip: !clusterId || !isNeedSelectNamespace });
 
   const queryWindowOptions = useQueryWindowOptions();
 
@@ -40,11 +38,11 @@ export const OverviewSearchPanel = React.memo(() => {
       {
         value: ALL_NAMESPACE_VALUE,
         label: 'All',
-     },
+      },
       ...(namespaceList?.data?.data?.items ?? []).map((namespace) => ({
         label: namespace,
         value: namespace,
-     })),
+      })),
     ],
     [namespaceList?.data?.data?.items],
   );
@@ -52,18 +50,18 @@ export const OverviewSearchPanel = React.memo(() => {
   const workloadTypeList = useFetchSeriesListQuery(
     {
       craneUrl,
-      start: (Date.parse(customRange.start)/1000).toString(),
-      end: (Date.parse(customRange.end)/1000).toString(),
+      start: (Date.parse(customRange.start) / 1000).toString(),
+      end: (Date.parse(customRange.end) / 1000).toString(),
       match: `crane_analysis_resource_recommendation{namespace=~"(${
-        selectedNamespace === "All"
+        selectedNamespace === 'All'
           ? namespaceOptions
               .filter((option) => option.label !== ALL_NAMESPACE_VALUE)
               .map((option) => option.label)
               .join('|')
           : selectedNamespace
-     })"}`,
-   },
-    {skip: !selectedNamespace},
+      })"}`,
+    },
+    { skip: !selectedNamespace },
   );
 
   const workloadTypeOptions: any[] = React.useMemo(
@@ -72,7 +70,7 @@ export const OverviewSearchPanel = React.memo(() => {
         (workloadTypeList.data?.data ?? []).map((data: any) => ({
           label: data.owner_kind,
           value: data.owner_kind,
-       })),
+        })),
         'value',
       ),
     [workloadTypeList.data],
@@ -80,17 +78,17 @@ export const OverviewSearchPanel = React.memo(() => {
 
   const workloadList = useFetchSeriesListQuery({
     craneUrl,
-    start: (Date.parse(customRange.start)/1000).toString(),
-    end: (Date.parse(customRange.end)/1000).toString(),
+    start: (Date.parse(customRange.start) / 1000).toString(),
+    end: (Date.parse(customRange.end) / 1000).toString(),
     match: `crane_analysis_resource_recommendation{namespace=~"(${
-      selectedNamespace === "All"
+      selectedNamespace === 'All'
         ? namespaceOptions
             .filter((option) => option.label !== ALL_NAMESPACE_VALUE)
             .map((option) => option.label)
             .join('|')
         : selectedNamespace
-   })"${selectedWorkloadType ? `, owner_kind="${selectedWorkloadType}"` : ''}}`,
- });
+    })"${selectedWorkloadType ? `, owner_kind="${selectedWorkloadType}"` : ''}}`,
+  });
 
   const workloadOptions: any[] = React.useMemo(() => {
     const options = _.uniqBy(
@@ -101,8 +99,8 @@ export const OverviewSearchPanel = React.memo(() => {
           value: data.owner_name,
         })),
       ],
-      'value'
-    )
+      'value',
+    );
 
     return options;
   }, [workloadList.data]);
@@ -110,24 +108,24 @@ export const OverviewSearchPanel = React.memo(() => {
   React.useEffect(() => {
     if (namespaceList.isSuccess && isNeedSelectNamespace && namespaceOptions?.[0]?.value) {
       dispatch(insightAction.selectedNamespace(namespaceOptions[0].value));
-   }
- }, [dispatch, isNeedSelectNamespace, namespaceList.isSuccess, namespaceOptions]);
+    }
+  }, [dispatch, isNeedSelectNamespace, namespaceList.isSuccess, namespaceOptions]);
 
   React.useEffect(() => {
-    if (workloadTypeList.isSuccess  && workloadTypeOptions?.[0]?.value) {
+    if (workloadTypeList.isSuccess && workloadTypeOptions?.[0]?.value) {
       dispatch(insightAction.selectedWorkloadType(workloadTypeOptions[0].value));
     }
   }, [dispatch, workloadTypeList.isSuccess, workloadTypeOptions]);
 
   React.useEffect(() => {
-    if (workloadList.isSuccess  && workloadOptions?.[0]?.value) {
+    if (workloadList.isSuccess && workloadOptions?.[0]?.value) {
       dispatch(insightAction.selectedWorkload(workloadOptions[0].value));
     }
   }, [dispatch, workloadList.isSuccess, workloadOptions]);
 
   return (
     <div className={classnames(CommonStyle.pageWithPadding, CommonStyle.pageWithColor)}>
-      <Card style={{display: 'flex', flexDirection: 'row', flexWrap: 'wrap'}}>
+      <Card style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap' }}>
         <div
           style={{
             display: 'flex',
@@ -136,9 +134,9 @@ export const OverviewSearchPanel = React.memo(() => {
             marginRight: '1rem',
             marginTop: 5,
             marginBottom: 5,
-         }}
+          }}
         >
-          <div style={{marginRight: '1rem', width: '80px'}}>{t('命名空间')}</div>
+          <div style={{ marginRight: '1rem', width: '80px' }}>{t('命名空间')}</div>
           <Select
             options={namespaceOptions}
             placeholder={t('命名空间')}
@@ -159,9 +157,9 @@ export const OverviewSearchPanel = React.memo(() => {
             marginRight: '1rem',
             marginTop: 5,
             marginBottom: 5,
-         }}
+          }}
         >
-          <div style={{marginRight: '1rem', width: '140px'}}>{t('Workload类型')}</div>
+          <div style={{ marginRight: '1rem', width: '140px' }}>{t('Workload类型')}</div>
           <Select
             options={workloadTypeOptions}
             placeholder={t('Workload类型')}
@@ -170,7 +168,7 @@ export const OverviewSearchPanel = React.memo(() => {
             onChange={(value: any) => {
               dispatch(insightAction.selectedWorkloadType(value));
               dispatch(insightAction.selectedWorkload(undefined));
-           }}
+            }}
           />
         </div>
         <div
@@ -181,9 +179,9 @@ export const OverviewSearchPanel = React.memo(() => {
             marginRight: '1rem',
             marginTop: 5,
             marginBottom: 5,
-         }}
+          }}
         >
-          <div style={{marginRight: '1rem', width: '80px'}}>{t('Workload')}</div>
+          <div style={{ marginRight: '1rem', width: '80px' }}>{t('Workload')}</div>
           <Select
             options={workloadOptions}
             placeholder={t('Workload')}
@@ -191,7 +189,7 @@ export const OverviewSearchPanel = React.memo(() => {
             value={selectedWorkload ?? undefined}
             onChange={(value: any) => {
               dispatch(insightAction.selectedWorkload(value));
-           }}
+            }}
           />
         </div>
         <div
@@ -202,19 +200,19 @@ export const OverviewSearchPanel = React.memo(() => {
             marginRight: '1rem',
             marginTop: 5,
             marginBottom: 5,
-         }}
+          }}
         >
-          <div style={{marginRight: '0.5rem', width: '70px'}}>{t('时间范围')}</div>
-          <div style={{marginRight: '0.5rem'}}>
+          <div style={{ marginRight: '0.5rem', width: '70px' }}>{t('时间范围')}</div>
+          <div style={{ marginRight: '0.5rem' }}>
             <Radio.Group
               value={window}
               onChange={(value: RadioValue) => {
                 dispatch(insightAction.window(value as QueryWindow));
                 const [start, end] = rangeMap[value as QueryWindow];
                 dispatch(
-                  insightAction.customRange({start: start.toDate().toISOString(), end: end.toDate().toISOString()}),
+                  insightAction.customRange({ start: start.toDate().toISOString(), end: end.toDate().toISOString() }),
                 );
-             }}
+              }}
             >
               {queryWindowOptions.map((option) => (
                 <Radio.Button key={option.value} value={option.value}>
@@ -225,7 +223,7 @@ export const OverviewSearchPanel = React.memo(() => {
           </div>
           <DatePicker
             mode='date'
-            style={{marginRight: '0.5rem'}}
+            style={{ marginRight: '0.5rem' }}
             value={customRange?.start}
             onChange={(start: DateValue) => {
               dispatch(insightAction.window(null as any));
@@ -233,13 +231,13 @@ export const OverviewSearchPanel = React.memo(() => {
                 insightAction.customRange({
                   ...customRange,
                   start: start as string,
-               }),
+                }),
               );
-           }}
+            }}
           />
           <DatePicker
             mode='date'
-            style={{marginRight: '0.5rem'}}
+            style={{ marginRight: '0.5rem' }}
             value={customRange?.end ?? null}
             onChange={(end: any) => {
               dispatch(insightAction.window(null as any));
@@ -247,9 +245,9 @@ export const OverviewSearchPanel = React.memo(() => {
                 insightAction.customRange({
                   ...customRange,
                   end,
-               }),
+                }),
               );
-           }}
+            }}
           />
         </div>
       </Card>

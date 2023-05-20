@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	jsonpatch "github.com/evanphx/json-patch"
 	appsv1 "k8s.io/api/apps/v1"
@@ -21,6 +22,7 @@ import (
 
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/metricnaming"
+	"github.com/gocrane/crane/pkg/oom"
 	"github.com/gocrane/crane/pkg/prediction/config"
 	predictormgr "github.com/gocrane/crane/pkg/predictor"
 	"github.com/gocrane/crane/pkg/providers"
@@ -33,10 +35,10 @@ type RecommendationContext struct {
 	Identity ObjectIdentity
 	// Target Object
 	Object client.Object
+	// Protecting inputValues
+	inputValuesMutex sync.RWMutex
 	// Time series data from data source.
-	InputValues []*common.TimeSeries
-	// Time series data 2 from data source.
-	InputValues2 []*common.TimeSeries
+	inputValues map[string][]*common.TimeSeries
 	// Result series from prediction
 	ResultValues []*common.TimeSeries
 	// DataProviders contains data source of your recommendation flow.
@@ -61,6 +63,8 @@ type RecommendationContext struct {
 	RestMapper meta.RESTMapper
 	// ScalesGetter
 	ScaleClient scale.ScalesGetter
+	// oom.Recorder
+	OOMRecorder oom.Recorder
 	// Scale
 	Scale *autoscalingapiv1.Scale
 	// Pods in recommendation
@@ -73,11 +77,12 @@ type RecommendationContext struct {
 	Volumes []corev1.PersistentVolume
 }
 
-func NewRecommendationContext(context context.Context, identity ObjectIdentity, recommendationRule *v1alpha1.RecommendationRule, predictorMgr predictormgr.Manager, dataProviders map[providers.DataSourceType]providers.History, recommendation *v1alpha1.Recommendation, client client.Client, scaleClient scale.ScalesGetter) RecommendationContext {
+func NewRecommendationContext(context context.Context, identity ObjectIdentity, recommendationRule *v1alpha1.RecommendationRule, predictorMgr predictormgr.Manager, dataProviders map[providers.DataSourceType]providers.History, recommendation *v1alpha1.Recommendation, client client.Client, scaleClient scale.ScalesGetter, oomRecorder oom.Recorder) RecommendationContext {
 	return RecommendationContext{
+		Context:            context,
 		Identity:           identity,
 		Object:             &identity.Object,
-		Context:            context,
+		inputValues:        make(map[string][]*common.TimeSeries),
 		PredictorMgr:       predictorMgr,
 		DataProviders:      dataProviders,
 		RecommendationRule: recommendationRule,
@@ -85,19 +90,33 @@ func NewRecommendationContext(context context.Context, identity ObjectIdentity, 
 		Client:             client,
 		RestMapper:         client.RESTMapper(),
 		ScaleClient:        scaleClient,
+		OOMRecorder:        oomRecorder,
 		//CancelCh:       context.Done(),
 	}
 }
 
 func NewRecommendationContextForObserve(recommendation *v1alpha1.Recommendation, restMapper meta.RESTMapper, scaleClient scale.ScalesGetter) RecommendationContext {
 	return RecommendationContext{
+		inputValues:    make(map[string][]*common.TimeSeries),
 		Recommendation: recommendation,
 		RestMapper:     restMapper,
 		ScaleClient:    scaleClient,
 	}
 }
 
-func (ctx RecommendationContext) String() string {
+func (ctx *RecommendationContext) AddInputValue(key string, timeSeries []*common.TimeSeries) {
+	ctx.inputValuesMutex.Lock()
+	defer ctx.inputValuesMutex.Unlock()
+	ctx.inputValues[key] = timeSeries
+}
+
+func (ctx *RecommendationContext) InputValue(key string) []*common.TimeSeries {
+	ctx.inputValuesMutex.RLock()
+	defer ctx.inputValuesMutex.RUnlock()
+	return ctx.inputValues[key]
+}
+
+func (ctx *RecommendationContext) String() string {
 	return fmt.Sprintf("RecommendationRule(%s) Target(%s/%s)", ctx.RecommendationRule.Name, ctx.Object.GetNamespace(), ctx.Object.GetName())
 }
 

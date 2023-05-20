@@ -8,17 +8,14 @@ import (
 	"k8s.io/klog/v2"
 
 	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
-	"github.com/gocrane/crane/pkg/oom"
-	"github.com/gocrane/crane/pkg/providers"
 	"github.com/gocrane/crane/pkg/recommendation/config"
 	"github.com/gocrane/crane/pkg/recommendation/framework"
 	"github.com/gocrane/crane/pkg/recommendation/recommender"
 	"github.com/gocrane/crane/pkg/recommendation/recommender/apis"
-	"github.com/gocrane/crane/pkg/recommendation/recommender/hpa"
-	"github.com/gocrane/crane/pkg/recommendation/recommender/idlenode"
-	"github.com/gocrane/crane/pkg/recommendation/recommender/replicas"
-	"github.com/gocrane/crane/pkg/recommendation/recommender/resource"
-	"github.com/gocrane/crane/pkg/recommendation/recommender/volumes"
+	_ "github.com/gocrane/crane/pkg/recommendation/recommender/hpa"
+	_ "github.com/gocrane/crane/pkg/recommendation/recommender/idlenode"
+	_ "github.com/gocrane/crane/pkg/recommendation/recommender/replicas"
+	_ "github.com/gocrane/crane/pkg/recommendation/recommender/resource"
 )
 
 type RecommenderManager interface {
@@ -28,10 +25,9 @@ type RecommenderManager interface {
 	GetRecommenderWithRule(recommenderName string, recommendationRule analysisv1alph1.RecommendationRule) (recommender.Recommender, error)
 }
 
-func NewRecommenderManager(recommendationConfiguration string, oomRecorder oom.Recorder, realtimeDataSources map[providers.DataSourceType]providers.RealTime, historyDataSources map[providers.DataSourceType]providers.History) RecommenderManager {
+func NewRecommenderManager(recommendationConfiguration string) RecommenderManager {
 	m := &manager{
 		recommendationConfiguration: recommendationConfiguration,
-		oomRecorder:                 oomRecorder,
 	}
 
 	m.loadConfigFile() // nolint:errcheck
@@ -52,8 +48,7 @@ type manager struct {
 	recommendationConfiguration string
 
 	lock               sync.Mutex
-	recommenderConfigs []apis.Recommender
-	oomRecorder        oom.Recorder
+	recommenderConfigs map[string]apis.Recommender
 }
 
 func (m *manager) GetRecommender(recommenderName string) (recommender.Recommender, error) {
@@ -64,24 +59,10 @@ func (m *manager) GetRecommenderWithRule(recommenderName string, recommendationR
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	for _, r := range m.recommenderConfigs {
-		if r.Name == recommenderName {
-			switch recommenderName {
-			case recommender.ReplicasRecommender:
-				return replicas.NewReplicasRecommender(r, recommendationRule)
-			case recommender.HPARecommender:
-				return hpa.NewHPARecommender(r, recommendationRule)
-			case recommender.ResourceRecommender:
-				return resource.NewResourceRecommender(r, recommendationRule, m.oomRecorder)
-			case recommender.IdleNodeRecommender:
-				return idlenode.NewIdleNodeRecommender(r, recommendationRule)
-			case recommender.VolumesRecommender:
-				return volumes.NewServiceRecommender(r, recommendationRule)
-			default:
-				return nil, fmt.Errorf("unknown recommender name: %s", recommenderName)
-			}
-		}
+	if recommenderConfig, ok := m.recommenderConfigs[recommenderName]; ok {
+		return recommender.GetRecommenderProvider(recommenderName, recommenderConfig, recommendationRule)
 	}
+
 	return nil, fmt.Errorf("unknown recommender name: %s", recommenderName)
 }
 
@@ -136,12 +117,12 @@ func (m *manager) loadConfigFile() error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	apiRecommenders, err := config.GetRecommendersFromConfiguration(m.recommendationConfiguration)
+	recommenderConfigs, err := config.GetRecommendersFromConfiguration(m.recommendationConfiguration)
 	if err != nil {
 		klog.ErrorS(err, "Failed to load recommendation config file", "file", m.recommendationConfiguration)
 		return err
 	}
-	m.recommenderConfigs = apiRecommenders
+	m.recommenderConfigs = recommenderConfigs
 	klog.Info("Recommendation Config updated.")
 	return nil
 }

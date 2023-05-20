@@ -113,7 +113,12 @@ func Run(ctx context.Context, opts *options.Options) error {
 		return err
 	}
 
-	if err := mgr.AddHealthzCheck("ping", healthz.Ping); err != nil {
+	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+		klog.ErrorS(err, "failed to add health check endpoint")
+		return err
+	}
+
+	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
 		klog.ErrorS(err, "failed to add health check endpoint")
 		return err
 	}
@@ -138,7 +143,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 		}
 	}()
 
-	recommenderMgr := initRecommenderManager(opts, podOOMRecorder, realtimeDataSources, historyDataSources)
+	recommenderMgr := initRecommenderManager(opts)
 	initControllers(podOOMRecorder, mgr, opts, predictorMgr, recommenderMgr, historyDataSources[providers.PrometheusDataSource])
 	// initialize custom collector metrics
 	initMetricCollector(mgr)
@@ -147,8 +152,8 @@ func Run(ctx context.Context, opts *options.Options) error {
 	return nil
 }
 
-func initRecommenderManager(opts *options.Options, oomRecorder oom.Recorder, realtimeDataSources map[providers.DataSourceType]providers.RealTime, historyDataSources map[providers.DataSourceType]providers.History) recommendation.RecommenderManager {
-	return recommendation.NewRecommenderManager(opts.RecommendationConfiguration, oomRecorder, realtimeDataSources, historyDataSources)
+func initRecommenderManager(opts *options.Options) recommendation.RecommenderManager {
+	return recommendation.NewRecommenderManager(opts.RecommendationConfiguration)
 }
 
 func initScheme() {
@@ -392,6 +397,7 @@ func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.O
 			RestMapper:     mgr.GetRESTMapper(),
 			RecommenderMgr: recommenderMgr,
 			ScaleClient:    scaleClient,
+			OOMRecorder:    oomRecorder,
 			Provider:       historyDataSource,
 			PredictorMgr:   predictorMgr,
 			Recorder:       mgr.GetEventRecorderFor("recommendationrule-controller"),
@@ -403,6 +409,7 @@ func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.O
 			Client:         mgr.GetClient(),
 			RecommenderMgr: recommenderMgr,
 			ScaleClient:    scaleClient,
+			OOMRecorder:    oomRecorder,
 			Provider:       historyDataSource,
 			PredictorMgr:   predictorMgr,
 			Recorder:       mgr.GetEventRecorderFor("recommendation-trigger-controller"),

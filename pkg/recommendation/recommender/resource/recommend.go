@@ -94,7 +94,7 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 	var newContainers []corev1.Container
 	var oldContainers []corev1.Container
 
-	oomRecords, err := rr.oomRecorder.GetOOMRecord()
+	oomRecords, err := ctx.OOMRecorder.GetOOMRecord()
 	if err != nil {
 		return err
 	}

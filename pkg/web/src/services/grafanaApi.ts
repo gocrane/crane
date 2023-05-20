@@ -24,7 +24,7 @@ export const grafanaApi = createApi({
     fetchBaseQuery({
       baseUrl: '',
       timeout: 15000,
-      prepareHeaders: (headers, api) => headers,
+      prepareHeaders: (headers, _api) => headers,
       fetchFn: (input, init) => fetch(input, { ...init }),
     }),
   ),

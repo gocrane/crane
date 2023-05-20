@@ -226,7 +226,6 @@ function getPercentageChange(oldNumber: any, newNumber: any) {
 
 const BoardChart = ({
   title,
-  prefix,
   countPrefix,
   desc,
   Icon,

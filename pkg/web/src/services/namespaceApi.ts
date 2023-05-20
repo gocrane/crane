@@ -20,7 +20,7 @@ export const namespaceApi = createApi({
     fetchBaseQuery({
       baseUrl: '/api/v1/namespaces',
       timeout: 15000,
-      prepareHeaders: (headers, api) => {
+      prepareHeaders: (headers, _api) => {
         headers.set('Content-Type', 'application/json');
         headers.set('Accept', 'application/json');
         return headers;

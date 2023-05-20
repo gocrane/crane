@@ -16,8 +16,8 @@ import JsYaml from 'js-yaml';
 import { useTranslation } from 'react-i18next';
 import { useDispatch } from 'react-redux';
 import { Prism } from '@mantine/prism';
-import { copyToClipboard } from "../../../utils/copyToClipboard";
-import {insightAction} from "../../../modules/insightSlice";
+import { copyToClipboard } from '../../../utils/copyToClipboard';
+import { insightAction } from '../../../modules/insightSlice';
 
 const Editor = React.lazy(() => import('components/common/Editor'));
 
@@ -73,14 +73,14 @@ export const SelectTable = () => {
     setSelectedRowKeys(value);
   }
 
-  function rehandleClickOp(record: any) {
-    console.log(record);
-  }
+  // function rehandleClickOp(record: any) {
+  //   console.log(record);
+  // }
 
-  function handleClickDelete(record: any) {
-    console.log(record);
-    setVisible(true);
-  }
+  // function handleClickDelete(record: any) {
+  //   console.log(record);
+  //   setVisible(true);
+  // }
 
   function handleClose() {
     setVisible(false);
@@ -150,7 +150,7 @@ export const SelectTable = () => {
               console.log('row', row);
               if (typeof row.status.currentInfo === 'string') {
                 const replicas = JSON.parse(row?.status?.currentInfo).spec?.replicas;
-                return replicas
+                return replicas;
               }
               return '';
             },
@@ -185,57 +185,59 @@ export const SelectTable = () => {
             colKey: 'op',
             title: t('操作'),
             cell(record) {
-              return dashboardControl ?
-                (
-                  <>
-                    <Button
-                      theme='primary'
-                      variant='text'
-                      onClick={() => {
-                        dispatch(insightAction.selectedWorkloadType(record.row.spec.targetRef.kind));
-                        dispatch(insightAction.selectedWorkload(record.row.spec.targetRef.name));
-                        dispatch(insightAction.selectedNamespace(record.row.namespace));
-                        navigate('/cost/workload-insight');
-                      }}
-                    >
-                      {t('查看监控')}
-                    </Button>
-                    <Button
-                      theme='primary'
-                      variant='text'
-                      onClick={() => {
-                        const result: any = dispatch(recommendationApi.endpoints.adoptRecommendation.initiate({
-                          craneUrl: craneUrl,
+              return dashboardControl ? (
+                <>
+                  <Button
+                    theme='primary'
+                    variant='text'
+                    onClick={() => {
+                      dispatch(insightAction.selectedWorkloadType(record.row.spec.targetRef.kind));
+                      dispatch(insightAction.selectedWorkload(record.row.spec.targetRef.name));
+                      dispatch(insightAction.selectedNamespace(record.row.namespace));
+                      navigate('/cost/workload-insight');
+                    }}
+                  >
+                    {t('查看监控')}
+                  </Button>
+                  <Button
+                    theme='primary'
+                    variant='text'
+                    onClick={() => {
+                      const result: any = dispatch(
+                        recommendationApi.endpoints.adoptRecommendation.initiate({
+                          craneUrl,
                           namespace: record.row.namespace,
                           name: record.row.name,
-                        }));
-                        result.unwrap()
-                          .then(() => MessagePlugin.success(t('采纳推荐成功')))
-                          .catch(() =>
-                            MessagePlugin.error(
-                              {
-                                content: t('采纳推荐失败'),
-                                closeBtn: true,
-                              },
-                              10000,
-                            ),
-                          )
-                      }}
-                    >
-                      {t('采纳建议')}
-                    </Button>
-                    <Button
-                      theme='primary'
-                      variant='text'
-                      onClick={() => {
-                        setCurrentSelection(record.row as RecommendationSimpleInfo);
-                        setYamlDialogVisible(true);
-                      }}
-                    >
-                      {t('查看YAML')}
-                    </Button>
-                  </>
-                ) : (
+                        }),
+                      );
+                      result
+                        .unwrap()
+                        .then(() => MessagePlugin.success(t('采纳推荐成功')))
+                        .catch(() =>
+                          MessagePlugin.error(
+                            {
+                              content: t('采纳推荐失败'),
+                              closeBtn: true,
+                            },
+                            10000,
+                          ),
+                        );
+                    }}
+                  >
+                    {t('采纳建议')}
+                  </Button>
+                  <Button
+                    theme='primary'
+                    variant='text'
+                    onClick={() => {
+                      setCurrentSelection(record.row as RecommendationSimpleInfo);
+                      setYamlDialogVisible(true);
+                    }}
+                  >
+                    {t('查看YAML')}
+                  </Button>
+                </>
+              ) : (
                 <>
                   <Button
                     theme='primary'

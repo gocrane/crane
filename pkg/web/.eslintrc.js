@@ -8,7 +8,7 @@ module.exports = {
     'plugin:@typescript-eslint/recommended',
     // 'plugin:i18next/recommended',
   ],
-  plugins: ['eslint-plugin-prettier'],
+  plugins: ['eslint-plugin-prettier', 'unused-imports'],
   parser: '@typescript-eslint/parser',
   env: {
     jest: true,
@@ -28,6 +28,16 @@ module.exports = {
         allowForLoopAfterthoughts: true,
       },
     ],
+    'no-unused-vars': 0,
+    '@typescript-eslint/no-unused-vars': 0,
+    'unused-imports/no-unused-imports': 'error',
+    'unused-imports/no-unused-vars': [
+      'warn',
+      { vars: 'all', varsIgnorePattern: '^_', args: 'after-used', argsIgnorePattern: '^_' },
+    ],
+    'prefer-destructuring': 0,
+    'array-callback-return': 0,
+    'no-useless-escape': 0,
     'react/display-name': 'off',
     // jsx 单引号
     'jsx-quotes': [2, 'prefer-single'],
