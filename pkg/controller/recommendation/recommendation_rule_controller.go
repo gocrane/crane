@@ -141,7 +141,10 @@ func (c *RecommendationRuleController) doReconcile(ctx context.Context, recommen
 		for _, id := range identities {
 			for _, recommender := range recommendationRule.Spec.Recommenders {
 				currMissions = append(currMissions, analysisv1alph1.RecommendationMission{
-					TargetRef: id.GetObjectReference(),
+					TargetRef: corev1.ObjectReference{
+						Name:      id.Name,
+						Namespace: id.Namespace,
+					},
 					RecommenderRef: analysisv1alph1.Recommender{
 						Name: recommender.Name,
 					},
@@ -488,11 +491,11 @@ func executeMission(ctx context.Context, wg *sync.WaitGroup, recommenderMgr reco
 		}
 
 		mission.Message = "Success"
-		mission.UID = recommendation.UID
+		//mission.UID = recommendation.UID
 		mission.Name = recommendation.Name
 		mission.Namespace = recommendation.Namespace
-		mission.Kind = recommendation.Kind
-		mission.APIVersion = recommendation.APIVersion
+		//mission.Kind = recommendation.Kind
+		//mission.APIVersion = recommendation.APIVersion
 	}
 }
 
