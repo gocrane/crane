@@ -5,15 +5,15 @@ import (
 )
 
 // Filter out k8s resources that are not supported by the recommender.
-func (rr *VolumesRecommender) Filter(ctx *framework.RecommendationContext) error {
+func (vr *VolumesRecommender) Filter(ctx *framework.RecommendationContext) error {
 	var err error
 
 	// filter resource that not match objectIdentity
-	if err = rr.BaseRecommender.Filter(ctx); err != nil {
+	if err = vr.BaseRecommender.Filter(ctx); err != nil {
 		return err
 	}
 
-	if err = framework.RetrievePods(ctx); err != nil {
+	if err = framework.RetrieveVolumes(ctx); err != nil {
 		return err
 	}
 

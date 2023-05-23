@@ -313,7 +313,7 @@ func GetNodePods(kubeClient client.Client, nodeName string) ([]corev1.Pod, error
 }
 
 // GetOrphanVolumes returns Orphan Volumes
-func GetOrphanVolumes(kubeClient client.Client) ([]corev1.PersistentVolume, error) {
+func GetOrphanVolumes(kubeClient client.Client) ([]string, error) {
 	// Get a list of all volumes
 	volumes := &corev1.PersistentVolumeList{}
 	if err := kubeClient.List(context.Background(), volumes); err != nil {
@@ -327,14 +327,14 @@ func GetOrphanVolumes(kubeClient client.Client) ([]corev1.PersistentVolume, erro
 	}
 
 	// Check if each volume is being used by any pods
-	orphanVolumes := []corev1.PersistentVolume{}
+	orphanVolumesName := []string{}
 	for _, volume := range volumes.Items {
 		if isOrphanVolume(&volume, pods) {
-			orphanVolumes = append(orphanVolumes, volume)
+			orphanVolumesName = append(orphanVolumesName, volume.Spec.ClaimRef.Name)
 		}
 	}
 
-	return orphanVolumes, nil
+	return orphanVolumesName, nil
 }
 
 // volume is not being used by any pod

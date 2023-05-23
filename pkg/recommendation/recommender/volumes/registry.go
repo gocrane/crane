@@ -14,12 +14,16 @@ type VolumesRecommender struct {
 	base.BaseRecommender
 }
 
+func init() {
+	recommender.RegisterRecommenderProvider(recommender.VolumesRecommender, NewVolumesRecommender)
+}
+
 func (s *VolumesRecommender) Name() string {
 	return recommender.VolumesRecommender
 }
 
 // NewVolumesRecommender create a new Volumes recommender.
-func NewServiceRecommender(recommender apis.Recommender, recommendationRule analysisv1alph1.RecommendationRule) (*VolumesRecommender, error) {
+func NewVolumesRecommender(recommender apis.Recommender, recommendationRule analysisv1alph1.RecommendationRule) (recommender.Recommender, error) {
 	recommender = config.MergeRecommenderConfigFromRule(recommender, recommendationRule)
 	return &VolumesRecommender{
 		*base.NewBaseRecommender(recommender),
