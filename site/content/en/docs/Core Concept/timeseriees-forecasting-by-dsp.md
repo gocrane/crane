@@ -91,7 +91,6 @@ $$r_k={\displaystyle\sum_{i=-k}^{N-k-1} (x_i-\mu)(x_{i+k}-\mu) \over \displaysty
 Instead of directly computing the ACF using the definition mentioned above, Crane uses the following formula and performs two FFT operations to calculate the ACF in $O(nlogn)$ time.
 $$\vec r = IFFT(|FFT({\vec x - \mu \over \sigma})|^2)\ \ \ \mu: mean,\ \sigma: standard\ deviation$$
 
-ACF的图像如下所示，横轴代表信号平移的时间长度$k$；纵轴代表自相关系数$r_k$，反应了平移信号与原始信号的「相似」程度。
 The ACF is represented graphically as shown below, where the x-axis represents the time lag $k$ and the y-axis represents the autocorrelation coefficient $r_k$, which reflects the degree of similarity between the shifted signal and the original signal.
 
 ![](/images/algorithm/dsp/acf.png)
