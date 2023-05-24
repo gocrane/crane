@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 
 	jsonpatch "github.com/evanphx/json-patch"
@@ -174,6 +175,19 @@ func RetrieveScale(ctx *RecommendationContext) error {
 			return err
 		}
 		ctx.Scale = scale
+	}
+	return nil
+}
+
+func RetrieveVolumes(ctx *RecommendationContext) error {
+	if ctx.Recommendation.Spec.TargetRef.Kind == "PersistentVolume" {
+		volumes, err := utils.GetOrphanVolumes(ctx.Client)
+		if len(volumes) == 0 {
+			return err
+		}
+		str := strings.Join(volumes, ",")
+		ctx.Recommendation.Status.RecommendedValue = str
+		return err
 	}
 	return nil
 }
