@@ -48,9 +48,9 @@ As the formula shows, improving workload utilization can not only reduce the Req
 The Canadian software company Densify summarized common resource configuration issues in "12 RISK OF KUBERNETES RESOURCE MANAGEMENT" [1]. In the table below, we have added an analysis dimension of replica counts based on their findings.
 |     | CPU Request                                                | Memory Request                                                  | CPU Limit                                           | Memory Limit                                      | Replicas                                  |
 |-----|------------------------------------------------------------|-----------------------------------------------------------------|-----------------------------------------------------|---------------------------------------------------|-------------------------------------------|
-| 过大  | 多余的CPU资源导致更多节点和资源的浪费	                                      | 调度器会申请过多Memory资源，导致更多节点和资源的浪费                                   | 允许Pod申请过多的CPU资源从而产生“吵闹邻居”风险，影响同一节点上的其他Pod           | 允许Pod申请过多的Memory资源从而产生“吵闹邻居”风险，从而影响同一节点上的其他Pod    | 多余的Pod会导致更多节点和资源的浪费                       |
-| 过小  | 会导致在节点上过度堆叠Pod，如果所有CPU资源被用尽，则会在节点级别上产生争抢和CPU throttling的风险 | 	会导致在节点上过度堆叠Pod，如果所有Memory资源都被用尽，则会在节点级别上产生Pod终止的风险（OOM Killer） | 会限制Pod的CPU使用，如果实际业务压力超过Limit，会导致CPU throttling和性能下降 | 会限制Pod的Memory使用，如果实际业务压力超过Limit，会触发OOM Killer杀死进程 | 过少的Pod会带来过高的利用率，引发诸如性能下降，OOM Killer等稳定性问题 |
-| 不设置 | 调度器将不确定在集群中可以调度多少Pod，并且过度堆叠的Pod会产生显著的性能风险和不均匀的负载           | 调度器将不确定在集群中可以调度多少Pod，从而产生过度堆叠和Pod被OOM Kill的风险                   | Pod将不受约束，放大“吵闹邻居”效应，并产生CPU throttling的风险            | Pod将不受约束，放大了“吵闹邻居”风险，如果节点内存耗尽，可能会导致OOM Killer启动   | N/A                                       |
+| Oversized  | Excess CPU resources lead to more waste of nodes and resources	                                      | K8s scheduler may request excessive Memory resources, leading to more waste of nodes and resources.                                   | Allowing Pods to request excessive CPU resources can create a 'noisy neighbor' risk, affecting other Pods on the same node           | Allowing Pods to request excessive Memory resources can create a 'noisy neighbor' risk, which in turn can affect other Pods running on the same node    | Excessive Pods can lead to more waste of nodes and resources                      |
+| Undersized | This can lead to excessive stacking of Pods on nodes, and if all CPU resources are exhausted, it can result in contention and risk of CPU throttling at the node level | This can lead to excessive stacking of Pods on nodes, and if all Memory resources are exhausted, it can result in the risk of Pod termination (OOM Killer) at the node level | The Pod's CPU usage will be limited, and if the actual workload exceeds the limit, it can result in CPU throttling and performance degradation | The Pod's Memory usage will be limited, and if the actual workload exceeds the limit, it can trigger the OOM Killer to terminate processes | Having too few Pods can result in high utilization rates, leading to stability issues such as performance degradation and OOM Killer |
+| Unset      | K8s scheduler will be uncertain about how many Pods can be scheduled in the cluster, and excessive stacking of Pods can create significant performance risks and uneven workloads | The scheduler will be uncertain about how many Pods can be scheduled in the cluster, which can lead to excessive stacking and the risk of Pods being OOM killed                   | Unconstrained Pods can amplify the 'noisy neighbor' effect and create the risk of CPU throttling            | Unconstrained Pods can amplify the 'noisy neighbor' risk, and if the node's memory is exhausted, it can trigger the OOM Killer to terminate processes   | N/A                                       |
 
 As we can see, setting resource limits too low can lead to stability issues, while setting them too high only results in "mere" resource waste, which can be acceptable during periods of rapid business growth. This is the main reason why resource utilization rates are generally low for many businesses after migrating to the cloud. The following graph shows the resource usage of an application, with 30% resource waste between the peak historical usage of the Pod and its Request amount.
 ![Resource Waste](/images/resource-waste.jpg)
@@ -78,10 +78,10 @@ Total Slack = Resource Slack + Usage Slack
 
 The goal of resource optimization is to reduce Resource Slack and Usage Slack. The model provides four steps for reducing waste, in order from top to bottom:
 
-1. 提升装箱率：提升装箱率能够让 Capacity 和 Request 更加接近。手段有很多，例如：[动态调度器](/zh-cn/docs/tutorials/scheduling-pods-based-on-actual-node-load)、腾讯云原生节点的节点放大功能等
-2. 业务规格调整减少资源锁定：根据周峰值资源用量调整业务规格使的 Request 可以减少到周峰值线。[资源推荐](/zh-cn/docs/tutorials/recommendation/resource-recommendation)和[副本推荐](/zh-cn/docs/tutorials/recommendation/replicas-recommendation)可以帮助应用实现此目标。
-3. 业务规格调整+扩缩容兜底流量突发：在规格优化的基础上再通过 HPA 兜底突发流量使的 Request 可以减少到日均峰值线。此时 HPA 的目标利用率偏低，仅为应对突发流量，绝大多数时间内不发生自动弹性
-4. 业务规格调整+扩缩容应对日常流量变化：在规格优化的基础上再通过 HPA 应用日常流量使的 Request 可以减少到均值。此时 HPA 的目标利用率等于应用的平均利用率
+1. Improving packing rate: Improving the packing rate can bring the Capacity and Request closer together. There are many ways to achieve this, such as:[Dynamic scheduler](/zh-cn/docs/tutorials/scheduling-pods-based-on-actual-node-load)、Tencent Cloud Native Node's node amplification function, etc.
+2. Adjusting business specifications to reduce resource locking: Adjusting business specifications based on the weekly peak resource usage can reduce the Request to the weekly peak line.[Resource recommendation](/docs/tutorials/recommendation/resource-recommendation)和[Replicas Recommendation](/docs/tutorials/recommendation/replicas-recommendation)can help applications achieve this goal.
+3. Adjusting business specifications + scaling to handle burst traffic: Based on the optimization of specifications, HPA can handle burst traffic to reduce the Request to the daily peak line. At this time, the target utilization rate of HPA is low, only to handle burst traffic, and automatic elasticity does not occur most of the time.
+4. Adjusting business specifications + scaling to handle daily traffic changes: Based on the optimization of specifications, HPA can handle daily traffic to reduce the Request to the mean. At this time, the target utilization rate of HPA is equal to the average utilization rate of the application.
 
 Based on this model, the open-source project Crane provides dynamic scheduling, recommendation framework, intelligent elasticity, and mixed deployment capabilities, realizing an all-in-one FinOps cloud resource optimization platform. In this article, we will focus on the recommendation framework.
 ## Optimizing resource configuration through the Crane recommendation framework
@@ -92,58 +92,58 @@ In the following example, we will demonstrate how to quickly start a full cluste
 
 Before embarking on this cost-cutting journey, you need to install Crane in your environment. Please refer to Crane's installation documentation for guidance.
 
-### 创建 RecommendationRule
+### Create RecommendationRule
 
-下面是一个 RecommendationRule 示例： workload-rule.yaml。
+Here's a RecommendationRule example： workload-rule.yaml。
 ```yaml
 apiVersion: analysis.crane.io/v1alpha1
 kind: RecommendationRule
 metadata:
   name: workloads-rule
  spec:
-  runInterval: 24h                            # 每24h运行一次
-  resourceSelectors:                          # 资源的信息
+  runInterval: 24h                            # run once every 24 hours
+  resourceSelectors:                          # information about resources
     - kind: Deployment
       apiVersion: apps/v1
     - kind: StatefulSet
       apiVersion: apps/v1
   namespaceSelector:
-    any: true                                 # 扫描所有namespace
-  recommenders:                               # 使用 Workload 的副本和资源推荐器
+    any: true                                 # scan all namespaces
+  recommenders:                               # Use replica and resource recommenders for Workloads
     - name: Replicas
     - name: Resource
 ```
 
-在该示例中： 
-- 每隔24小时运行一次分析推荐，runInterval格式为时间间隔，比如: 1h，1m，设置为空表示只运行一次。
-- 待分析的资源通过配置 resourceSelectors 数组设置，每个 resourceSelector 通过 kind，apiVersion，name 选择 k8s 中的资源，当不指定 name 时表示在 namespaceSelector 基础上的所有资源
-- namespaceSelector 定义了待分析资源的 namespace，any: true 表示选择所有 namespace
-- recommenders 定义了待分析的资源需要通过哪些 Recommender 进行分析。目前支持的类型：recommenders
-- 资源类型和 recommenders 需要可以匹配，比如 Resource 推荐默认只支持 Deployments 和 StatefulSets，每种 Recommender 支持哪些资源类型请参考 recommender 的文档
+In this example:
+- Analysis recommendations are run every 24 hours, with the runInterval format set as an interval of time, such as 1h or 1m. Setting it to empty means running only once.
+- The resources to be analyzed are set through the resourceSelectors array. Each resourceSelector selects resources in the k8s cluster based on kind, apiVersion, and name. When name is not specified, it means all resources under the namespaceSelector.
+- The namespaceSelector defines the namespaces of the resources to be analyzed. "any: true" means selecting all namespaces.
+- The recommenders define which Recommender(s) should be used for analyzing the resources. Currently supported types are: recommenders.
+- The resource types and recommenders need to be matched. For example, the Resource Recommender only supports Deployments and StatefulSets by default. Please refer to the recommender's documentation for which resource types each Recommender supports.
 
-1. 通过以下命令创建 RecommendationRule，刚创建时会立刻开始一次推荐。
+1. Create a RecommendationRule with the following command, and the recommendation will start immediately after creation.
 
 ```shell
 kubectl apply -f workload-rules.yaml
 ```
 
-这个例子会对所有 namespace 中的 Deployments 和 StatefulSets 做资源推荐和副本数推荐。
-2. 检查 RecommendationRule 的推荐进度。通过 Status.recommendations 观察推荐任务的进度，推荐任务是顺序执行，如果所有任务的 lastStartTime 为最近时间且 message 有值，则表示这一次推荐完成
+This example will perform resource and replica recommendations for Deployments and StatefulSets in all namespaces.
+2. Check the recommendation progress of the RecommendationRule. Observe the progress of the recommendation task through Status.recommendations. The recommendation tasks are executed sequentially. If the lastStartTime of all tasks is the latest time and the message has a value, it indicates that the current recommendation has been completed.
 
 ```shell
 kubectl get rr workloads-rule
 ```
 
-3. 通过以下命令查询推荐结果：
+3. Query the recommendation results with the following command:
 
 ```shell
 kubectl get recommend
 ```
 
-可通过以下 label 筛选 Recommendation，比如 kubectl get recommend -l analysis.crane.io/recommendation-rule-name=workloads-rule
+You can filter the Recommendation by the following labels, for example: kubectl get recommend -l analysis.crane.io/recommendation-rule-name=workloads-rule
 
-### 根据优化建议 Recommendation 调整资源配置
-对于资源推荐和副本数推荐建议，用户可以 PATCH status.recommendedInfo 到 workload 更新资源配置，例如：
+### Adjust resource configurations based on optimization recommendations from the Recommendation.
+For resource and replica recommendations, users can PATCH status.recommendedInfo to the Workload to update the resource configurations. For example:
 
 ```shell
 patchData=`kubectl get recommend workloads-rule-replicas-rckvb -n default -o jsonpath='{.status.recommendedInfo}'`;kubectl patch Deployment php-apache -n default --patch "${patchData}"
@@ -151,18 +151,18 @@ patchData=`kubectl get recommend workloads-rule-replicas-rckvb -n default -o jso
 
 ### Recommender
 
-目前 Crane 支持了以下 Recommender：
+Currently, Crane supports the following Recommenders:
 
-- [**资源推荐**](/zh-cn/docs/tutorials/recommendation/resource-recommendation): 通过 VPA 算法分析应用的真实用量推荐更合适的资源配置
-- [**副本数推荐**](/zh-cn/docs/tutorials/recommendation/replicas-recommendation): 通过 HPA 算法分析应用的真实用量推荐更合适的副本数量
-- [**HPA 推荐**](/zh-cn/docs/tutorials/recommendation/hpa-recommendation): 扫描集群中的 Workload，针对适合适合水平弹性的 Workload 推荐 HPA 配置
-- [**闲置节点推荐**](/zh-cn/docs/tutorials/recommendation/idlenode-recommendation): 扫描集群中的闲置节点
+- [**Resource Recommendation**](/docs/tutorials/recommendation/resource-recommendation): By using the VPA algorithm to analyze the actual usage of applications, Crane recommends more appropriate resource configurations.
+- [**Replicas Recommendation**](/docs/tutorials/recommendation/replicas-recommendation): By using the HPA algorithm to analyze the actual usage of applications, Crane recommends more appropriate replica numbers.
+- [**HPA Recommendation**](/docs/tutorials/recommendation/hpa-recommendation): Scan the Workloads in the cluster and recommend HPA configurations for Workloads that are suitable for horizontal scaling.
+- [**Idlenode Recommendation**](/docs/tutorials/recommendation/idlenode-recommendation): Scan for idle nodes in the k8s cluster.
 
-本文重点讨论 Workload 的资源配置优化，因此下面重点介绍资源推荐和副本推荐。
+This article focuses on optimizing resource configurations for Workloads, therefore, the following section will focus on resource recommendations and replica recommendations.
 
-### 资源推荐
+### Resource recommendations
 
-以下是一个资源推荐结果的样例：
+Here's an example of resource recommendations:
 
 ```yaml
 status:
@@ -180,9 +180,9 @@ status:
   lastUpdateTime: '2022-11-30T03:07:49Z'
 ```
 
-recommendedInfo 显示了推荐的资源配置，currentInfo 显示了当前的资源配置，格式是 Json ，可以通过 Kubectl Patch 将推荐结果更新到 TargetRef
+recommendedInfo displays the recommended resource configuration, while currentInfo displays the current resource configuration. The format is JSON, and the recommended results can be updated to TargetRef using Kubectl Patch.
 
-#### 计算资源规格算法
+#### Compute resource specification algorithm
 
 The resource recommendation process is completed in the following steps:
 
@@ -192,9 +192,9 @@ The resource recommendation process is completed in the following steps:
 4. Resource Specification Regularization: Round up the recommended results to the specified container specifications.
 The basic principle is to set the Request slightly higher than the maximum historical usage based on historical resource usage, and consider factors such as OOM and Pod specifications.
 
-#### 副本推荐
+#### Replica recommendations
 
-以下是一个副本推荐结果的样例：
+Here's an example of replica recommendations:
 
 ```yaml
 status:
@@ -218,34 +218,33 @@ The replica recommendation process is completed in the following steps:
 2. Use the DSP algorithm to predict the future CPU usage for the next week.
 3. Calculate the replica count for CPU and memory separately, and take the larger value.
 
-#### 计算副本算法
+#### Compute replica algorithm
 
-以 CPU 举例，假设工作负载 CPU 历史用量的 P99 是10核，Pod CPU Request 是5核，目标峰值利用率是50%，可知副本数是4个可以满足峰值利用率不小于50%。
+Taking CPU as an example, assuming that the P99 of the historical CPU usage of the workload is 10 cores, and the Pod CPU Request is 5 cores, the target peak utilization is 50%. It can be inferred that 4 replicas are needed to meet the requirement of the peak utilization not being less than 50%.
 
 ```yaml
-replicas := int32(math.Ceil(workloadUsage / (TargetUtilization * float64(requestTotal) )))
+replicas := int32(math.Ceil(workloadUsage / (TargetUtilization * float64(requestTotal))))
 ```
 
-### 和社区的差异
+### Differences with the community
 
-由资源优化模型可知，推荐框架能够将应用的 Request 降低到周峰值，并且推荐框架只做规格推荐，不执行变更，安全性更高、适用于更多业务类型。如果需要进一步降低 Request，可以考虑通过 HPA 等方案实现。
+According to the resource optimization model, the recommendation framework can reduce the Request of the application to the weekly peak, and the recommendation framework only provides specification recommendations without executing changes, which is more secure and applicable to more business types. If further Request reduction is needed, HPA and other solutions can be considered.
 
-|            | 利用率                                    | 管理配置类型                    | 变更类型                                           |
-|------------|----------------------------------------|---------------------------|------------------------------------------------|
-| 社区 HPA	    | 平均利用率                                  | 副本数                       | 自动变更                                           |
-| 社区 VPA     | 近似峰值利用率                                | 资源 Request                | 自动变更/建议                                        |
-| Crane 推荐框架 | 周峰值利用率                                 | 副本数+资源 Request            | 自动变更/建议                                        |
-| 推荐框架的优势    | 虽然周峰值利用率带来的降本空间较小，但是配置简单，更加安全，适用更多应用类型 | 可以同时推荐副本数+资源 Request，按需调整 | 提供CRD/Metric方式的推荐建议，方便集成用户的系统，未来支持通过CICD实现自动更新 |
+|            | utilization rate                                    | management configuration type                    | change type                                           |
+|------------|-------------------------------------|---------------------|--------------------------------------------|
+| Community HPA	  | average utilization rate                               | replica number                 | automatic scaling                                       |
+| Community VPA   | approximate peak utilization rate                             | resource Request          | automatic scaling/recommendation                                    |
+| Crane recommendation framework | weekly peak utilization rate                              | replica number + resources Request      | automatic scaling/recommendation                                    |
+| advantages of the recommendation framework    | Although the weekly peak utilization rate provides relatively small cost reduction space, it is simple to configure, safer, and applicable to more types of applications. | Both replica number and resource Request can be recommended simultaneously, and adjustments can be made as needed. | Provide recommendation suggestions through CRD/Metric, which is convenient for integration into user systems. In the future, it will support automatic updates through CICD |
 
-## 最佳实践
+## Best practices
 
-FinOps 建议采用迭代方法来管理云服务的可变成本。持续管理的迭代由三个阶段组成：成本观测（Inform）、 成本分析（Recommend）和 成本优化（Operate）。下面我们将基于这三个阶段+腾讯内部的实践经验介绍如何使用 Crane 实现 K8S 资源的配置管理。
+FinOps recommends using an iterative approach to manage variable costs of cloud services. The continuous management iteration consists of three phases: cost observation (Inform), cost analysis (Recommend), and cost optimization (Operate). In the following section, we will introduce how to use Crane for K8S resource configuration management based on these three phases and the internal practice experience of Tencent.
 
-### 成本观测--计算成本/收益
+### Cost Monitoring--Calculating Costs/Benefits
 
-成本观测是降本之旅的核心关键。只有明确了目标，降本优化才会有的放矢。因此，用户需要建立集群资源的监控观测系统，来评估是否需要进行降本增效。例如，集群的装箱率是多少？集群的平均/峰值利用率是多少？Namespace 的资源用量分布，Workload 的平均/峰值利用率是多少？
-
-### 成本分析--建立系统
+Cost observation is the core key to the cost reduction journey. Only by setting clear goals can cost reduction optimization be targeted. Therefore, users need to establish a monitoring and observation system for cluster resources to evaluate whether cost reduction and efficiency improvement are necessary. For example, what is the packing rate of the cluster? What is the average/peak utilization rate of the cluster? What is the resource usage distribution of each Namespace, and what is the average/peak utilization rate of each Workload?
+### Cost Analysis--Establishing Systems
 The Crane recommendation framework provides a complete set of analysis and optimization tools for full-fledged analysis of cluster resources, and records the recommended results in CRD and Metrics for easy integration into business systems.
 
 The practice within Tencent is as follows:
@@ -255,7 +254,7 @@ The practice within Tencent is as follows:
 4. Display observation data of the workload in Grafana charts.
 5. Provide OpenAPI for businesses to obtain recommendations and optimize them according to business needs.
 
-### 成本优化--渐进式推进
+### Cost Optimization--Progressive Recommendations
 
 The FinOps Foundation has defined a "crawl, walk, run" maturity method for FinOps, enabling enterprises to start small and gradually expand in scale, scope, and complexity. Similarly, the premise of cost reduction is to ensure stability, as changes in resource configuration and unreasonable configurations may affect business stability. User optimization processes should follow the same approach:
 
@@ -270,9 +269,9 @@ In the book "Cloud FinOps" which introduces FinOps, it shares an example of a Fo
 
 ![Resource flow](/images/resource-flow.png)
 
-自动的配置优化在 FinOps 中属于高级阶段，推荐在实践 FinOps 的高级阶段中使用。不过至少，你应该考虑跟踪你的推荐，并且让对应的团队手动执行所需的变更。
+Automated configuration optimization is considered an advanced stage in FinOps and is recommended for use in the advanced stages of FinOps implementation. However, you should consider tracking the recommendations and have the corresponding team manually implement the necessary changes.
 
-## 展望未来
+## Roadmap
 
 Whether or not resource optimization is needed, Crane can be used as a trial object when practicing FinOps. You can first understand the current state of the Kubernetes cluster through cost display, and choose the optimization method based on the problem. Resource configuration optimization, as introduced in this article, is the most direct and common method.
 
