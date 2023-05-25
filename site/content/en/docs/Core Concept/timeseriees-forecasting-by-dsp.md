@@ -4,110 +4,121 @@ description: "Introduction for DSP Algorithm"
 weight: 16
 ---
 
-时间序列预测是指使用过去的时间序列数据来预测未来的值。时间序列数据通常包括时间和相应的数值，例如资源用量、股票价格或气温。时间序列预测算法 DSP（Digital Signal Processing）是一种数字信号处理技术，可以用于分析和处理时间序列数据。
+Time series forecasting refers to using historical time series data to predict future values. Time series data typically consists of time and corresponding values, such as resource usage, stock prices, or temperature. DSP (Digital Signal Processing) is a digital signal processing technique that can be used for analyzing and processing time series data.
 
-离散傅里叶变换（DFT）就是DSP领域常用的一种算法。DFT是一种将时域信号转换为频域信号的技术。通过将时域信号分解成不同的频率成分，可以更好地理解和分析信号的特征和结构。在时间序列预测中，DFT可以用于分析和预测信号的周期性和趋势性，从而提高预测的准确性。
+Discrete Fourier Transform (DFT) is a commonly used algorithm in the field of DSP. DFT is a technique that transforms time domain signals into frequency domain signals. By decomposing time domain signals into different frequency components, the characteristics and structures of the signals can be better understood and analyzed. In time series forecasting, DFT can be used to analyze and predict the periodicity and trend of signals, thereby improving the accuracy of forecasts.
 
-Crane使用在数字信号处理（Digital Signal Processing）领域中常用的的`离散傅里叶变换`、`自相关函数`等手段，识别、预测周期性的时间序列。
+Crane uses commonly used techniques in the field of Digital Signal Processing (DSP), such as `Discrete Fourier Transform (DFT)` and `autocorrelation function`, to identify and predict periodic time series.
 
-本文将介绍DSP算法的实现流程和参数设置，以便帮助大家了解算法背后的原理，并将它应用到实际场景中。 （相关代码位于`pkg/prediction/dsp`目录下）
+This article will introduce the implementation process and parameter settings of DSP algorithms to help readers understand the principles behind the algorithms and apply them to practical scenarios. (The related code is located in the `pkg/prediction/dsp` directory.)
 
-## 流程
+## Flow
+
 ![](/images/algorithm/dsp/dsp.png)
-### 预处理
 
-#### 填充缺失数据
-监控数据在某些时间点上缺失是很常见的现象，Crane会根据前后的数据对缺失的采样点进行填充。做法如下：
+### Preprocessing
 
-假设第$m$个与第$n$个采样点之间采样数据缺失（$m+1 < n$）,设在$m$和$n$点的采样值分别为$v_m$和$v_n$，令$$\Delta = {v_n-v_m \over n-m}$$，则$m$和$n$之间的填充数据依次为$v_m+\Delta , v_m+2\Delta , ...$
+#### Data imputation
+
+It is common for monitoring data to be missing at certain time points, and Crane will fill in the missing sampling points based on the surrounding data. The method is as follows:
+
+Assume that the sampling data between the m-th and n-th sampling points are missing (m+1<n). Let the sampling values at points m-th and n-th be $v_m$ and $v_n$. Then, let $$\Delta = {v_n - v_m \over n-m}$$, the missing data between m-th and n-th are $v_m+\Delta , v_m+2\Delta , ...$
 
 ![](/images/algorithm/dsp/missing_data_fill.png)
-#### 去除异常点
-监控数据中偶尔会出现一些极端的异常数据点，导致这些异常点（outliers）的原因有很多，例如：
-1. 监控系统用0值填充缺失的采样点；
-2. 被监控组件由于自身的bug上报了错误的指标数据；
-3. 应用启动时会消耗远超正常运行时的资源
 
-这些极端的异常点对于信号的周期判断会造成干扰，需要进行去除。做法如下：
+#### Remove outliers
 
-选取实际序列中所有采样点的$P99.9$和$P0.1$，分别作为上、下限阈值，如果某个采样值低于下限或者高于上限，将采样点的值设置为前一个采样值。
+Occasionally, there may be some extreme outlier data points in the monitoring data, and there are many reasons for these outliers, such as:
+
+1. The monitoring system fills missing sampling points with 0 values;
+2. The monitored component reports incorrect indicator data due to its own bugs;
+3. The application consumes resources far beyond normal operation when starting up.
+
+These extreme outlier points will interfere with the periodic judgment of the signal and need to be removed. try as follows:
+
+Select the $P99.9$ and $P0.1$ of all sampling points in the actual sequence as the upper and lower threshold values, respectively. If a sampling value is lower than the lower limit or higher than the upper limit, set the value of the sampling point to the previous sampling value.
 
 ![](/images/algorithm/dsp/remove_outliers.png)
 
-#### 离散傅里叶变换
-对监控的时间序列（设长度为$N$）做快速离散傅里叶变换（FFT），得到信号的频谱图（spectrogram），频谱图直观地表现为在各个离散点$k$处的「冲击」。
-冲击的高度为$k$对应周期分量的「幅度」，$k$的取值范围$\(0,1,2, ... N-1\)$。
+#### Discrete Fourier Transform
 
-$k = 0$对应信号的「直流分量」，对于周期没有影响，因此忽略。
+Performing a fast discrete Fourier transform (FFT) on the monitored time series (assuming a length of $N$) generates a spectrogram that intuitively displays the signal's frequency spectrum as "impulses" at various discrete points $k$.
+The vertical height of each impulse represents the "amplitude" of the periodic component corresponding to $k$, where $k$ takes values in the range $\(0,1,2, ... N-1\)$.
 
-由于离散傅里叶变换后的频谱序列前一半和后一半是共轭对称的，反映到频谱图上就是关于轴对称，因此只看前一半$N/2$即可。
+$k = 0$ corresponds to the "DC component" of the signal, which has no effect on the signal's periodicity and can be ignored.
 
-$k$所对应的周期$$T = {N \over k} \bullet SampleInterval$$
+Due to the conjugate symmetry of the first half and second half of the frequency spectrum sequence after the discrete Fourier transform, the graph is symmetric about the axis and only the first half $N/2$ needs to be considered.
 
-要观察一个信号是不是以$T$为周期，至少需要观察两倍的$T$的长度，因此通过长度为$N$的序列能够识别出的最长周期为$N/2$。所以可以忽略$k = 1$。
+The period corresponding to $k$ is $$T = {N \over k} \bullet SampleInterval$$
 
-至此，$k$的取值范围为$(2, 3, ... , N/2)$，对应的周期为$N/2, N/3, ...$，这也就是FFT能够提供的周期信息的「分辨率」。如果一个信号的周期没有落到$N/k$上，它会散布到整个频域，导致「频率泄漏」。
-好在在实际生产环境中，我们通常遇到的应用（尤其是在线业务），如果有规律，都是以「天」为周期的，某些业务可能会有所谓的「周末」效应，即周末和工作日不太一样，如果扩大到「周」的粒度去观察，它们同样具有良好的周期性。
+To determine whether a signal has a period $T$, it is necessary to observe at least double of length $T$. Therefore, the maximum period that can be identified through a sequence of length $N$ is $N/2$. Thus, $k = 1$ can be ignored.
 
-Crane没有尝试发现任意长度的周期，而是指定几个固定的周期长度（$1d、7d$）去判断。并通过截取、填充的方式，保证序列的长度$N$为待检测周期$T$的整倍数，例如：$T=1d，N=3d；T=7d，N=14d$。
+Therefore, the range of values for $k$ is $(2, 3, ... , N/2)$, corresponding to periods of $N/2, N/3, ...$ This is the "resolution" of period information that FFT can provide. If a signal's period does not fall on $N/k$, it will be spread over the entire frequency domain, leading to "frequency leakage."
 
-我们从生产环境中抓取了一些应用的监控指标，保存为csv格式，放到`pkg/prediction/dsp/test_data`目录下。
-例如，`input0.csv`文件包括了一个应用连续8天的CPU监控数据，对应的时间序列如下图：
+Fortunately, in actual production environments, the applications we usually encounter (especially online services) have regular cycles, often on a "daily" basis. Certain businesses may exhibit a "weekend effect," where behavior on weekends differs from that on weekdays. However, when observed at the "weekly" level, they still exhibit good periodicity.
 
+Crane does not attempt to discover periodicity of arbitrary lengths, but instead specifies several fixed cycle lengths（$1d、7d$）for detection. The sequence length $N$ is ensured to be a multiple of the target detection period $T$ by trimming or padding the sequence, for example: $T=1d，N=3d；T=7d，N=14d$.
+
+We have collected some monitoring indicators for applications from production environments and saved them in CSV format under the `pkg/prediction/dsp/test_data` directory.
+
+For example, the `input0.csv` file contains 8 days of CPU monitoring data for an application, with the corresponding time series shown in the following graph:
 ![](/images/algorithm/dsp/input0.png)
 
-我们看到，尽管每天的数据不尽相同，但大体「模式」还是基本一致的。
+As we can see, although the data varies from day to day, the overall "pattern" is still quite consistent.
 
-对它做FFT，会得到下面的频谱图：
-
+Performing an FFT on this sequence yields the following frequency spectrum:
 ![](/images/algorithm/dsp/spectrum.png)
 
-我们发现在几个点上的「幅值」明显高于其它点，这些点便可以作为我们的「候选周期」，待进一步的验证。
+We can see that the "amplitude" is significantly higher at several points than at other points in the spectrum. These points can be used as our "candidate periods" for further verification.
 
-上面是我们通过直觉判断的，Crane是如何挑选「候选周期」的呢？
+The previous explanation was based on our intuitive judgement, how does Crane select its "candidate periods"?
 
-1. 对原始序列$\vec x(n)$进行一个随机排列后得到序列$\vec x'(n)$，再对$\vec x'(n)$做FFT得到$\vec X'(k)$，令$P_{max} = argmax\|\vec X'(k)\|$。
+1. Performing a random permutation of the original sequence $\vec x(n)$ results in the sequence $\vec x'(n)$. Applying the FFT to $\vec x'(n)$ yields $\vec X'(k)$, let $P_{max} = argmax\|\vec X'(k)\|$.
 
-2. 重复100次上述操作，得到100个$P_{max}$，取$P99$作为阈值$P_{threshold}$。
+2. Repeat the above operation 100 times to obtain 100 values of $P_{max}$, then set $P_{threshold}$=$P99$.
 
-3. 对原始序列$\vec x(n)$做FFT得到$\vec X(f)$，遍历$k = 2, 3, ...$，如果$P_k = \|X(k)\| > P_{threshold}$，则将$k$加入候选周期。
+3. Compute the FFT of the original sequence $\vec x(n)$ to obtain $\vec X(f)$. Traverse $k = 2, 3, ...$, and if $P_k = \|X(k)\| > P_{threshold}$, then add $k$ to the list of candidate periods.
 
-#### 循环自相关函数
-自相关函数（Auto Correlation Function，ACF）是一个信号于其自身在不同时间点的互相关。通俗的讲，它就是两次观察之间的相似度对它们之间的时间差的函数。
+#### Auto Correlation Function
 
-Crane使用循环自相关函数（Circular ACF），先对长度为$N$的时间序列以$N$为周期做扩展，也就是在$..., [-N, -1], [N, 2N-1], ...$区间上复制$\vec x(n)$，得到一个新的序列$\vec x'(n)$。
-再依次计算将$\vec x'(n)$依次平移$k=1,2,3,...N/2$后的$\vec x'(n+k)$与$\vec x'(n)$的相关系数
+Auto Correlation Function (ACF) is the cross-correlation of a signal with itself at different time points. In simple terms, it is a function of the time lag between two observations that measures the similarity between them.
 
+Crane uses circular autocorrelation function (Circular ACF), which first extends the time series of length $N$ by using $N$ as the period. This means that the sequence $\vec x(n)$ is copied over the interval $..., [-N, -1], [N, 2N-1], ...$, resulting in a new sequence $\vec x'(n)$ that is used for analysis.
+
+The correlation coefficient between $\vec x'(n+k)$ and $\vec x'(n)$ is computed for each shift $k=1,2,3,...N/2$, where $\vec x'(n)$is shifted by k.
 $$r_k={\displaystyle\sum_{i=-k}^{N-k-1} (x_i-\mu)(x_{i+k}-\mu) \over \displaystyle\sum_{i=0}^{N-1} (x_i-\mu)^2}\ \ \ \mu: mean$$
 
-Crane没有直接使用上面的定义去计算ACF，而是根据下面的公式，通过两次$(I)FFT$，从而能够在$O(nlogn)$的时间内完成ACF的计算。
+Instead of directly computing the ACF using the definition mentioned above, Crane uses the following formula and performs two FFT operations to calculate the ACF in $O(nlogn)$ time.
 $$\vec r = IFFT(|FFT({\vec x - \mu \over \sigma})|^2)\ \ \ \mu: mean,\ \sigma: standard\ deviation$$
 
-ACF的图像如下所示，横轴代表信号平移的时间长度$k$；纵轴代表自相关系数$r_k$，反应了平移信号与原始信号的「相似」程度。
+The ACF is represented graphically as shown below, where the x-axis represents the time lag $k$ and the y-axis represents the autocorrelation coefficient $r_k$, which reflects the degree of similarity between the shifted signal and the original signal.
 
 ![](/images/algorithm/dsp/acf.png)
 
-Crane会依次验证每一个候选周期对应的自相关系数是否位于「山顶」上；并且选择对应「最高峰」的那个候选周期为整个时间序列的主周期（基波周期），并以此为基础进行预测。
+Crane verifies if the autocorrelation coefficient at each candidate period is located at the "peak of the curve". It selects the candidate period that corresponds to the highest peak as the primary cycle (fundamental period) of the entire time series and uses it for prediction.
 
-如何判断「山顶」？
+How to determine the "peak of the curve"?
 
-Crane在两侧个各选取一段曲线，分别做线性回归，当回归后左、右的直线斜率分别大于、小于零时，则认为这个点是在一个「山顶」上。
+Crane selects a section of the curve on each side and performs linear regression separately. If the slope of the left and right lines after regression are greater than and less than zero respectively, then the point is considered to be at a "peak".
 
 ![](/images/algorithm/dsp/linear_regression.png)
 
-#### 预测
-根据上一步得到的主周期，Crane提供了两种方式去拟合（预测）下一个周期的时序数据
+#### Predict
+
+Based on the primary cycle obtained in the previous step, Crane provides two methods to fit (predict) the time series data for the next cycle.
 **maxValue**
 
-选取过去几个周期中相同时刻$t$（例如：下午6:00）中的最大值，作为下一个周期$t$时刻的预测值。
+The first method is to select the maximum value at time $t$(e.g. 6:00 PM) for each of the past few cycles, and use it as the predicted value for the next cycle at time $t$
 
 ![](/images/algorithm/dsp/max_value.png)
 **fft**
 
-对原始时间序列做FFT得到频谱序列，去除「高频噪声」后，再做IFFT（逆快速傅里叶变换），将得到的时间序列作为下一个周期的预测结果。
+The second method is to perform FFT on the original time series to obtain a frequency spectrum sequence, remove the "high-frequency noise", and then perform IFFT (inverse fast Fourier transform). The resulting time series is used as the predicted result for the next cycle.
 
-## 应用
-Crane提供了`TimeSeriesPrediction`，通过这个CRD，用户可以对各种时间序列进行预测，例如工作负责的CPU利用率、应用的QPS等等。
+## Applicate
+
+Crane provides TimeSeriesPrediction as a CRD, allowing users to predict various time series data, such as CPU utilization rates of the workload, application QPS, and so on.
+
 ```yaml
 apiVersion: prediction.crane.io/v1alpha1
 kind: TimeSeriesPrediction
@@ -120,18 +131,18 @@ spec:
     kind: Deployment
     name: test
     namespace: default
-  predictionWindowSeconds: 7200 # 提供未来7200秒（2小时）的预测数据。Crane会把预测数据写到status中。
+  predictionWindowSeconds: 7200 # Provide the predicted data for the next 7200 seconds (2 hours) and write it to the status field in Crane
   predictionMetrics:
     - resourceIdentifier: workload-cpu
       type: ExpressionQuery
       expressionQuery:
-        expression: 'sum (irate (container_cpu_usage_seconds_total{container!="",image!="",container!="POD",pod=~"^test-.*$"}[1m]))' # 获取历史监控数据的查询语句
+        expression: 'sum (irate (container_cpu_usage_seconds_total{container!="",image!="",container!="POD",pod=~"^test-.*$"}[1m]))' # Query statement to retrieve historical monitoring data
       algorithm:
-        algorithmType: "dsp" # 指定dsp为预测算法
+        algorithmType: "dsp" # Specify the prediction algorithm as dsp
         dsp:
-          sampleInterval: "60s" # 监控数据的采样间隔为1分钟
-          historyLength: "15d"  # 拉取过去15天的监控指标作为预测的依据
-          estimators:           # 指定预测方式，包括'maxValue'和'fft'，每一类可以指定多个estimator，配置不同的参数，crane会选取一个拟合度最高的去产生预测结果。如果不指定的话，默认使用'fft'。
+          sampleInterval: "60s" # The sampling interval for monitoring data is 1 minute.
+          historyLength: "15d"  # Pull the monitoring metrics from the past 15 days as the basis for prediction
+          estimators:           # Specify the prediction method, including maxValue and fft. Multiple estimators with different configurations can be specified for each method, and Crane will select the one with the highest fitting degree to generate the prediction results. If not specified, fft will be used by default
 #            maxValue:
 #              - marginFraction: "0.1"
             fft:
@@ -141,50 +152,51 @@ spec:
                 minNumOfSpectrumItems: 10
                 maxNumOfSpectrumItems: 20
 ```
-上面示例中的一些dsp参数含义如下：
+
+The meanings of some dsp parameters in the example above are as follows:
 
 **maxValue**
 
-`marginFraction`: 拟合出下一个周期的序列后，将每一个预测值乘以`1 + marginFraction`，例如`marginFraction = 0.1`,就是乘以1.1。`marginFraction`的作用是将预测数据进行一定比例的放大（或缩小）。
+`marginFraction`: After fitting the next cycle of the sequence, each predicted value is multiplied by 1 + marginFraction. For example, if marginFraction = 0.1, it means multiplying by 1.1. The purpose of marginFraction is to magnify or reduce the predicted data by a certain proportion.
 
 **fft**
 
-`marginFraction`: 拟合出下一个周期的序列后，将每一个预测值乘以`1 + marginFraction`，例如`marginFraction = 0.1`,就是乘以1.1。`marginFraction`的作用是将预测数据进行一定比例的放大（或缩小）。
+`marginFraction`: After fitting the next cycle of the sequence, each predicted value is multiplied by 1 + marginFraction. For example, if marginFraction = 0.1, it means multiplying by 1.1. The purpose of marginFraction is to magnify or reduce the predicted data by a certain proportion.
 
-`lowAmplitudeThreshold`: 频谱幅度下限，所有幅度低于这个下限的频率分量将被滤除。
+`lowAmplitudeThreshold`: The lower limit of spectral amplitude. All frequency components below this lower limit will be filtered out.
 
-`highFrequencyThreshold`: 频率上限，所有频率高于这个上限的频率分量将被滤除。单位Hz，例如如果想忽略长度小于1小时的周期分量，设置`highFrequencyThreshold = 1/3600`。
+`highFrequencyThreshold`: The upper limit of frequency. All frequency components above this upper limit will be filtered out. The unit is Hz. For example, if you want to ignore the cycle component with a length less than 1 hour, set highFrequencyThreshold = 1/3600.
 
-`minNumOfSpectrumItems`: 至少保留频率分量的个数。
+`minNumOfSpectrumItems`: The minimum number of frequency components to be retained.
 
-`maxNumOfSpectrumItems`：至多保留频率分量的个数。
+`maxNumOfSpectrumItems`：The maximum number of frequency components to be retained.
 
-简单来说，保留频率分量的数量越少、频率上限越低、频谱幅度下限越高，预测出来的曲线越光滑，但会丢失一些细节；反之，曲线毛刺越多，保留更多细节。
+In simple terms, the fewer frequency components retained, the lower the upper frequency limit, and the higher the spectral amplitude lower limit, the smoother the predicted curve will be, but some details will be lost. Conversely, more detailed features are preserved with more frequency components retained, resulting in a more jagged curve.
 
-下面是对同一时段预测的两条曲线，蓝色、绿色的`highFrequencyThreshold`分别为$0.01$和$0.001$，蓝色曲线过滤掉了更多的高频分量，因此更为平滑。
+Below are two predicted curves for the same time period. The blue and green lines have different highFrequencyThreshold values of $0.01$ and $0.001$, respectively. The blue curve filters out more high frequency components, resulting in a smoother curve.
 
 ![](/images/algorithm/dsp/lft_0_001.png) ![](/images/algorithm/dsp/lft_0_01.png)
 
-并没有一套参数配置适合所有的时间序列，通常需要根据应用指标的特点，去调整算法参数，以期获得最佳的预测效果。
-Crane提供了一个web接口，使用者可以在调整参数后，直观的看到预测效果，使用步骤如下：
+There is no single parameter configuration that is suitable for all time series. Usually, it is necessary to adjust the algorithm parameters according to the characteristics of the application indicators in order to obtain the best prediction results.
+Crane provides a web interface that allows users to intuitively see the prediction results after adjusting the parameters. The steps are as follows:
 
-1. 修改`TimeSeriesPrediction`中的`estimators`的参数。
-2. 访问craned http server的`api/prediction/debug/<namespace>/<timeseries prediction name>`，查看参数效果（如下图）。
+1. Modify the parameters of estimators in TimeSeriesPrediction.
+2. Access the `api/prediction/debug/<namespace>/<timeseries prediction name>` of the Crane HTTP server to view the parameter effect (as shown below).
 
 ![](/images/algorithm/dsp/dsp_debug.png)
 
-上述步骤可多次执行，直到得到满意的预测效果。
+The above steps can be executed multiple times until satisfactory prediction results are obtained.
 
+**Debug locally through port-forward.**
 
-**通过port-forward进行本地调试**
+The port of the Crane HTTP server is set by the --server-bind-port startup parameter of Crane, and the default value is 8082.
 
-craned http server的端口通过craned启动参数`--server-bind-port`设置，默认为`8082`。
+Open the terminal
 
-打开终端，
-```
+```shell
 $kubectl -n crane-system port-forward service/craned 8082:8082
 Forwarding from 127.0.0.1:8082 -> 8082
 Forwarding from [::1]:8082 -> 8082
-
 ```
-打开浏览器，访问`http://localhost:8082/api/prediction/debug/<namespace>/<timeseries prediction name>`
+
+Open the browser and visit`http://localhost:8082/api/prediction/debug/<namespace>/<timeseries prediction name>`
