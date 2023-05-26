@@ -94,7 +94,7 @@ Full documentation is available on the [Crane website](https://gocrane.io).
 
 - Wechat Group (Chinese): 
 
-<img alt="Wechat" src="https://user-images.githubusercontent.com/6251116/234214952-c339ce9a-ad18-4a01-a50b-62bcf8062a1c.png" title="Wechat" width="200"/>
+<img alt="Wechat" src="https://github.com/gocrane/crane/assets/6251116/fbad292b-3565-414c-bd85-31f65ce4d928" title="Wechat" width="200"/>
 <img alt="Wechat" src="docs/images/wechat.jpeg" title="Wechat" width="200"/>
 Add it and Reply "Crane"，Robot will add you in Wechat group.
 
