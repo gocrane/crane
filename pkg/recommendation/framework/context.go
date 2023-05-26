@@ -199,11 +199,18 @@ func RetrievePods(ctx *RecommendationContext) error {
 		return err
 	} else if ctx.Recommendation.Spec.TargetRef.Kind == "DaemonSet" {
 		var daemonSet appsv1.DaemonSet
-		err := ObjectConversion(ctx.Object, &daemonSet)
-		if err != nil {
+		if err := ObjectConversion(ctx.Object, &daemonSet); err != nil {
 			return err
 		}
 		pods, err := utils.GetDaemonSetPods(ctx.Client, ctx.Recommendation.Spec.TargetRef.Namespace, ctx.Recommendation.Spec.TargetRef.Name)
+		ctx.Pods = pods
+		return err
+	} else if ctx.Recommendation.Spec.TargetRef.Kind == "Service" {
+		var svc corev1.Service
+		if err := ObjectConversion(ctx.Object, &svc); err != nil {
+			return err
+		}
+		pods, err := utils.GetServicePods(ctx.Client, &svc)
 		ctx.Pods = pods
 		return err
 	} else {

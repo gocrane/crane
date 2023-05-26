@@ -48,21 +48,15 @@ func QueryPredictedValuesOnce(recommendation *v1alpha1.Recommendation, predictor
 func GetReadyPredictionMetric(metric string, resourceIdentifier string, prediction *predictionapi.TimeSeriesPrediction) (*predictionapi.MetricTimeSeries, error) {
 	for _, metricStatus := range prediction.Status.PredictionMetrics {
 		if metricStatus.ResourceIdentifier == resourceIdentifier && len(metricStatus.Prediction) == 1 {
-			var targetMetricStatus *predictionapi.PredictionMetricStatus
-			targetMetricStatus = &metricStatus
-			if targetMetricStatus == nil {
-				return nil, fmt.Errorf("TimeSeries is empty, metric name %s resourceIdentifier %s", metric, resourceIdentifier)
-			}
-
-			if !targetMetricStatus.Ready {
+			if !metricStatus.Ready {
 				return nil, fmt.Errorf("TimeSeries is not ready, metric name %s resourceIdentifier %s", metric, resourceIdentifier)
 			}
 
-			if len(targetMetricStatus.Prediction) != 1 {
-				return nil, fmt.Errorf("TimeSeries data length is unexpected: %d, metric name %s resourceIdentifier %s", len(targetMetricStatus.Prediction), metric, resourceIdentifier)
+			if len(metricStatus.Prediction) != 1 {
+				return nil, fmt.Errorf("TimeSeries data length is unexpected: %d, metric name %s resourceIdentifier %s", len(metricStatus.Prediction), metric, resourceIdentifier)
 			}
 
-			return targetMetricStatus.Prediction[0], nil
+			return metricStatus.Prediction[0], nil
 		}
 	}
 

@@ -123,6 +123,10 @@ data:
         acceptedResources:
           - kind: PersistentVolume
             apiVersion: v1
+      - name: Service
+        acceptedResources:
+          - kind: Service
+            apiVersion: v1
 ---
 apiVersion: v1
 kind: ConfigMap

@@ -15,4 +15,7 @@ const (
 
 	// VolumesRecommender name
 	VolumesRecommender string = "Volumes"
+
+	// ServiceRecommender name
+	ServiceRecommender string = "Service"
 )

@@ -327,7 +327,7 @@ func GetOrphanVolumes(kubeClient client.Client) ([]string, error) {
 	}
 
 	// Check if each volume is being used by any pods
-	orphanVolumesName := []string{}
+	var orphanVolumesName []string
 	for _, volume := range volumes.Items {
 		if isOrphanVolume(&volume, pods) {
 			orphanVolumesName = append(orphanVolumesName, volume.Spec.ClaimRef.Name)
@@ -347,6 +347,41 @@ func isOrphanVolume(volume *corev1.PersistentVolume, pods *corev1.PodList) bool 
 		}
 	}
 	return true
+}
+
+func GetServicePods(kubeClient client.Client, svc *corev1.Service) ([]corev1.Pod, error) {
+	opts := []client.ListOption{
+		client.InNamespace(svc.Namespace),
+		client.MatchingLabels(svc.Spec.Selector),
+	}
+
+	podList := &corev1.PodList{}
+	err := kubeClient.List(context.TODO(), podList, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	return podList.Items, nil
+}
+
+func GetPodOwnerReference(ctx context.Context, kubeClient client.Client, pod *v1.Pod) *metav1.OwnerReference {
+	for _, ownerRef := range pod.OwnerReferences {
+		if ownerRef.Kind == "ReplicaSet" {
+			// ReplicaSet
+			var rs appsv1.ReplicaSet
+			err := kubeClient.Get(ctx, client.ObjectKey{Namespace: pod.Namespace, Name: ownerRef.Name}, &rs)
+			if err != nil {
+				return nil
+			}
+			for _, ownRef := range rs.OwnerReferences {
+				return &ownRef
+			}
+		} else {
+			return &ownerRef
+		}
+	}
+
+	return nil
 }
 
 func IsPodTerminated(pod *corev1.Pod) bool {
