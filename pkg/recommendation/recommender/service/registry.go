@@ -10,8 +10,8 @@ import (
 
 const (
 	netReceiveBytesKey       = "net-receive-bytes"
-	netTransferBytesKey      = "net-transfer-bytes"
 	netReceivePercentileKey  = "net-receive-percentile"
+	netTransferBytesKey      = "net-transfer-bytes"
 	netTransferPercentileKey = "net-transfer-percentile"
 )
 
@@ -20,8 +20,8 @@ var _ recommender.Recommender = &ServiceRecommender{}
 type ServiceRecommender struct {
 	base.BaseRecommender
 	netReceiveBytes       float64
-	netTransferBytes      float64
 	netReceivePercentile  float64
+	netTransferBytes      float64
 	netTransferPercentile float64
 }
 
@@ -42,17 +42,17 @@ func NewServiceRecommender(recommender apis.Recommender, recommendationRule anal
 		return nil, err
 	}
 
+	netReceivePercentile, err := recommender.GetConfigFloat(netReceivePercentileKey, 95)
+	if err != nil {
+		return nil, err
+	}
+
 	netTransferBytes, err := recommender.GetConfigFloat(netTransferBytesKey, 0)
 	if err != nil {
 		return nil, err
 	}
 
-	netReceivePercentile, err := recommender.GetConfigFloat(netReceivePercentileKey, 0)
-	if err != nil {
-		return nil, err
-	}
-
-	netTransferPercentile, err := recommender.GetConfigFloat(netTransferPercentileKey, 0)
+	netTransferPercentile, err := recommender.GetConfigFloat(netTransferPercentileKey, 95)
 	if err != nil {
 		return nil, err
 	}
@@ -60,8 +60,8 @@ func NewServiceRecommender(recommender apis.Recommender, recommendationRule anal
 	return &ServiceRecommender{
 		*base.NewBaseRecommender(recommender),
 		netReceiveBytes,
-		netTransferBytes,
 		netReceivePercentile,
+		netTransferBytes,
 		netTransferPercentile,
 	}, nil
 }
