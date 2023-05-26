@@ -120,14 +120,6 @@ func (c *RecommendationRuleController) doReconcile(ctx context.Context, recommen
 		return false
 	}
 
-	// 1.get all identities , id => recommendation
-	// 2.get all recommendations with this recommendation rule
-	// 3.how to increase recommendationRule runNumber? not have recommendation or the first recommendation's LastStartTime is in last round
-	// 4.fill recommendation with id
-	// 5.with 10 concurrency, run executeID in goroutine
-	// 6.clean orphan recommendation with id
-	// add an annotation for LastStartTime in recommendation
-
 	var currRecommendations analysisv1alph1.RecommendationList
 	opts := []client.ListOption{
 		client.MatchingLabels(map[string]string{known.RecommendationRuleUidLabel: string(recommendationRule.UID)}),
@@ -168,7 +160,8 @@ func (c *RecommendationRuleController) doReconcile(ctx context.Context, recommen
 			newRound = true
 		} else {
 			planingTime := firstMissionStartTime.Add(interval)
-			if time.Now().After(planingTime) {
+			now := utils.NowUTC()
+			if now.After(planingTime) {
 				newRound = true
 			}
 		}
@@ -179,21 +172,17 @@ func (c *RecommendationRuleController) doReconcile(ctx context.Context, recommen
 		newStatus.RunNumber = newStatus.RunNumber + 1
 	}
 
-	if klog.V(6).Enabled() {
-		// Print identities
-		for k, id := range identities {
-			klog.V(6).InfoS("identities", "RecommendationRule", klog.KObj(recommendationRule), "key", k, "apiVersion", id.APIVersion, "kind", id.Kind, "namespace", id.Namespace, "name", id.Name)
-		}
-	}
-
 	maxConcurrency := 10
 	executionIndex := -1
 	var concurrency int
 	for index, identity := range identitiesArray {
-		runNumber, _ := utils.GetRunNumber(identity.Recommendation)
-		if runNumber >= newStatus.RunNumber {
-			continue
+		if identity.Recommendation != nil {
+			runNumber, _ := utils.GetRunNumber(identity.Recommendation)
+			if runNumber >= newStatus.RunNumber {
+				continue
+			}
 		}
+
 		if executionIndex == -1 {
 			executionIndex = index
 		}
@@ -205,6 +194,9 @@ func (c *RecommendationRuleController) doReconcile(ctx context.Context, recommen
 	wg := sync.WaitGroup{}
 	wg.Add(concurrency)
 	for index := executionIndex; index < len(identitiesArray) && index < concurrency+executionIndex; index++ {
+		if klog.V(6).Enabled() {
+			klog.V(6).InfoS("execute identities", "RecommendationRule", klog.KObj(recommendationRule), "target", identitiesArray[index].GetObjectReference())
+		}
 		go executeIdentity(ctx, &wg, c.RecommenderMgr, c.Provider, c.PredictorMgr, recommendationRule, identitiesArray[index], c.Client, c.ScaleClient, timeNow, newStatus.RunNumber)
 	}
 
@@ -382,10 +374,10 @@ func objRefKey(kind, apiVersion, namespace, name, recommender string) string {
 
 func GetRecommendationFromIdentity(id ObjectIdentity, currRecommendations analysisv1alph1.RecommendationList) *analysisv1alph1.Recommendation {
 	for _, r := range currRecommendations.Items {
-		if id.Kind == r.Kind &&
-			id.APIVersion == r.APIVersion &&
-			id.Namespace == r.Namespace &&
-			id.Name == r.Name &&
+		if id.Kind == r.Spec.TargetRef.Kind &&
+			id.APIVersion == r.Spec.TargetRef.APIVersion &&
+			id.Namespace == r.Spec.TargetRef.Namespace &&
+			id.Name == r.Spec.TargetRef.Name &&
 			id.Recommender == string(r.Spec.Type) {
 			return &r
 		}
@@ -434,6 +426,7 @@ func generateRecommendationLabels(recommendationRule *analysisv1alph1.Recommenda
 	labels[known.RecommendationRuleTargetKindLabel] = target.Kind
 	labels[known.RecommendationRuleTargetVersionLabel] = target.GroupVersionKind().Version
 	labels[known.RecommendationRuleTargetNameLabel] = target.Name
+	labels[known.RecommendationRuleTargetNamespaceLabel] = target.Namespace
 	for k, v := range id.Labels {
 		labels[k] = v
 	}
@@ -454,9 +447,9 @@ func executeIdentity(ctx context.Context, wg *sync.WaitGroup, recommenderMgr rec
 	if recommendation == nil {
 		recommendation = CreateRecommendationObject(recommendationRule, id.GetObjectReference(), id, id.Recommender)
 	} else {
-		// update existing recommendation's annotation
+		// update existing recommendation's labels
 		for k, v := range generateRecommendationLabels(recommendationRule, id.GetObjectReference(), id, id.Recommender) {
-			recommendation.Annotations[k] = v
+			recommendation.Labels[k] = v
 		}
 	}
 
@@ -490,10 +483,10 @@ func executeIdentity(ctx context.Context, wg *sync.WaitGroup, recommenderMgr rec
 		recommendation.Annotations = map[string]string{}
 	}
 	recommendation.Annotations[known.RunNumberAnnotation] = strconv.Itoa(int(currentRunNumber))
-	recommendation.Annotations[known.LastStartTimeAnnotation] = time.Now().Format("2006-01-02 15:04:05")
 	recommendation.Annotations[known.MessageAnnotation] = message
+	utils.SetLastStartTime(recommendation)
 
-	if recommendation != nil {
+	if id.Recommendation != nil {
 		klog.Infof("Update recommendation %s", klog.KObj(recommendation))
 		if err := client.Update(ctx, recommendation); err != nil {
 			klog.Errorf("Failed to create recommendation %s: %v", klog.KObj(recommendation), err)

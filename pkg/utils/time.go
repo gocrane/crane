@@ -24,3 +24,9 @@ func ParseTimestamp(ts string) (time.Time, error) {
 	}
 	return time.Unix(i, 0), nil
 }
+
+func NowUTC() time.Time {
+	now := time.Now()
+	loc, _ := time.LoadLocation("UTC")
+	return now.In(loc)
+}
