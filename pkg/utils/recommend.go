@@ -67,7 +67,7 @@ func GetRunNumber(recommendation *analysisv1alpha1.Recommendation) (int32, error
 
 func GetRecommendationRuleOwnerReference(recommend *analysisv1alpha1.Recommendation) *metav1.OwnerReference {
 	for _, ownerReference := range recommend.OwnerReferences {
-		if ownerReference.Kind == "RecommendationRule" {
+		if ownerReference.Kind == "RecommendationRule" || ownerReference.Kind == "Analytics" {
 			return &ownerReference
 		}
 	}
