@@ -97,34 +97,41 @@ func (ch *ClusterHandler) ListClusters(c *gin.Context) {
 
 // AddClusters add the clusters which has deployed crane server. cluster info must has valid & accessible crane server url
 func (ch *ClusterHandler) AddClusters(c *gin.Context) {
-	var r AddClustersRequest
-	if err := c.ShouldBindJSON(&r); err != nil {
+	var request AddClustersRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
 		ginwrapper.WriteResponse(c, err, nil)
 		return
 	}
 
-	if len(r.Clusters) == 0 {
-		ginwrapper.WriteResponse(c, fmt.Errorf("req is empty, check your input para"), nil)
+	if len(request.Clusters) == 0 {
+		ginwrapper.WriteResponse(c, fmt.Errorf("no clusters provided"), nil)
 		return
 	}
 
 	clustersMap, err := ch.getClusterMap()
+
 	if err != nil {
 		ginwrapper.WriteResponse(c, err, nil)
 		return
 	}
 
-	for _, cluster := range r.Clusters {
-		if cluster.CraneUrl == "" || cluster.Name == "" {
-			err := fmt.Errorf("cluster CraneUrl, Name field must not be empty")
-			ginwrapper.WriteResponse(c, err, nil)
-			return
+	var errors []error
+	var addedClusters []*store.Cluster
+
+	for _, cluster := range request.Clusters {
+		if err := validateCluster(cluster); err != nil {
+			errors = append(errors, err)
+			continue
 		}
 
-		if !IsUrl(cluster.CraneUrl) {
-			err := fmt.Errorf("cluster CraneUrl %v is not valid url", cluster.CraneUrl)
-			ginwrapper.WriteResponse(c, err, nil)
-			return
+		if _, ok := clustersMap[cluster.Id]; ok {
+			errors = append(errors, fmt.Errorf("cluster id %v duplicated", cluster.Id))
+			continue
+		}
+
+		if cluster.CraneUrlDuplicated(clustersMap) {
+			errors = append(errors, fmt.Errorf("cluster CraneUrl %v duplicated", cluster.CraneUrl))
+			continue
 		}
 
 		if cluster.Id == "" {
@@ -136,47 +143,60 @@ func (ch *ClusterHandler) AddClusters(c *gin.Context) {
 			cluster.Discount = 100
 		}
 
-		if _, ok := clustersMap[cluster.Id]; ok {
-			err := fmt.Errorf("cluster id %v duplicated", cluster.Id)
-			ginwrapper.WriteResponse(c, err, nil)
-			return
-		}
-
-		if cluster.CraneUrlDuplicated(clustersMap) {
-			err := fmt.Errorf("cluster CraneUlr %v duplicated", cluster.CraneUrl)
-			ginwrapper.WriteResponse(c, err, nil)
-			return
-		}
-
 		clustersMap[cluster.Id] = cluster
+
+		addedClusters = append(addedClusters, cluster)
 	}
 
-	for _, cluster := range r.Clusters {
-		err := ch.clusterSrv.AddCluster(context.TODO(), cluster)
-		if err != nil {
-			ginwrapper.WriteResponse(c, err, nil)
-			return
+	if len(errors) > 0 {
+		ginwrapper.WriteResponse(c, fmt.Errorf("encountered errors adding clusters: %v", errors), nil)
+		return
+	}
+
+	for _, cluster := range addedClusters {
+		if err := ch.clusterSrv.AddCluster(context.TODO(), cluster); err != nil {
+			errors = append(errors, err)
+			continue
 		}
 
-		if cluster.PreinstallRecommendation && err == nil {
-			err := ch.upsertRecommendationRule(RecommendationRuleWorkloadsName, RecommendationRuleWorkloadsYAML)
-			if err != nil {
-				ginwrapper.WriteResponse(c, err, nil)
-				return
+		if cluster.PreinstallRecommendation {
+			if err := ch.upsertRecommendationRules(); err != nil {
+				errors = append(errors, err)
+				continue
 			}
-
-			err = ch.upsertRecommendationRule(RecommendationRuleIdleNodeName, RecommendationRuleIdleNodeYAML)
-			if err != nil {
-				ginwrapper.WriteResponse(c, err, nil)
-				return
-			}
-		} else if err != nil {
-			ginwrapper.WriteResponse(c, err, nil)
-			return
 		}
+	}
+
+	if len(errors) > 0 {
+		ginwrapper.WriteResponse(c, fmt.Errorf("encountered errors adding clusters: %v", errors), nil)
+		return
 	}
 
 	ginwrapper.WriteResponse(c, nil, nil)
+}
+
+func validateCluster(cluster *store.Cluster) error {
+	if cluster.CraneUrl == "" || cluster.Name == "" {
+		return fmt.Errorf("cluster CraneUrl or Name field is empty")
+	}
+
+	if !IsUrl(cluster.CraneUrl) {
+		return fmt.Errorf("cluster CraneUrl %v is not valid url", cluster.CraneUrl)
+	}
+
+	return nil
+}
+
+func (ch *ClusterHandler) upsertRecommendationRules() error {
+	if err := ch.upsertRecommendationRule(RecommendationRuleWorkloadsName, RecommendationRuleWorkloadsYAML); err != nil {
+		return err
+	}
+
+	if err := ch.upsertRecommendationRule(RecommendationRuleIdleNodeName, RecommendationRuleIdleNodeYAML); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // UpdateCluster the clusters crane info
