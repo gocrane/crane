@@ -41,12 +41,11 @@ func (s *ServiceRecommender) CollectData(ctx *framework.RecommendationContext) e
 	if workloadRef == nil {
 		return fmt.Errorf("could not find all pod OwnerReferences for Service %s selector", ctx.Object.GetName())
 	}
-	podName := utils.GetPodNameReg(workloadRef.Name, workloadRef.Kind)
 
 	labelSelector := labels.SelectorFromSet(ctx.Identity.Labels)
 	caller := fmt.Sprintf(callerFormat, klog.KObj(ctx.Recommendation), ctx.Recommendation.UID)
 	timeNow := time.Now()
-	metricNamer := metricnaming.ResourceToGeneralMetricNamer(utils.GetWorkloadNetReceiveBytesExpression(podName), corev1.ResourceServices, labelSelector, caller)
+	metricNamer := metricnaming.ResourceToGeneralMetricNamer(utils.GetWorkloadNetReceiveBytesExpression(ctx.Recommendation.Spec.TargetRef.Namespace, ctx.Recommendation.Spec.TargetRef.Name, ctx.Recommendation.Spec.TargetRef.Kind), corev1.ResourceServices, labelSelector, caller)
 	if err := metricNamer.Validate(); err != nil {
 		return err
 	}
@@ -63,7 +62,7 @@ func (s *ServiceRecommender) CollectData(ctx *framework.RecommendationContext) e
 	}
 	ctx.AddInputValue(netReceiveBytesKey, tsList)
 
-	metricNamer = metricnaming.ResourceToGeneralMetricNamer(utils.GetWorkloadNetTransferBytesExpression(podName), corev1.ResourceServices, labelSelector, caller)
+	metricNamer = metricnaming.ResourceToGeneralMetricNamer(utils.GetWorkloadNetTransferBytesExpression(ctx.Recommendation.Spec.TargetRef.Namespace, ctx.Recommendation.Spec.TargetRef.Name, ctx.Recommendation.Spec.TargetRef.Kind), corev1.ResourceServices, labelSelector, caller)
 	if err = metricNamer.Validate(); err != nil {
 		return err
 	}
