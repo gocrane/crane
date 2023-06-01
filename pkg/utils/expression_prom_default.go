@@ -18,13 +18,13 @@ const (
 	NodeMemUsageExprTemplate = `sum(node_memory_MemTotal_bytes{instance=~"(%s)(:\\d+)?"} - node_memory_MemAvailable_bytes{instance=~"(%s)(:\\d+)?"})`
 
 	// NodeCpuRequestUtilizationExprTemplate is used to query node cpu request utilization by promql, param is node name, node name which prometheus scrape
-	NodeCpuRequestUtilizationExprTemplate = `sum(kube_pod_container_resource_requests{node="%s", resource="cpu", unit="core"} * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)) by (node) / sum(kube_node_status_capacity{node="%s", resource="cpu", unit="core"} * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)) by (node) * 100`
+	NodeCpuRequestUtilizationExprTemplate = `sum(kube_pod_container_resource_requests{node="%s", resource="cpu", unit="core"} * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)) by (node) / sum(kube_node_status_capacity{node="%s", resource="cpu", unit="core"} * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)) by (node) `
 	// NodeMemRequestUtilizationExprTemplate is used to query node memory request utilization by promql, param is node name, node name which prometheus scrape
-	NodeMemRequestUtilizationExprTemplate = `sum(kube_pod_container_resource_requests{node="%s", resource="memory", unit="byte", namespace!=""} * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)) by (node) / sum(kube_node_status_capacity{node="%s", resource="memory", unit="byte"} * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)) by (node) * 100`
+	NodeMemRequestUtilizationExprTemplate = `sum(kube_pod_container_resource_requests{node="%s", resource="memory", unit="byte", namespace!=""} * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)) by (node) / sum(kube_node_status_capacity{node="%s", resource="memory", unit="byte"} * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)) by (node) `
 	// NodeCpuUsageUtilizationExprTemplate is used to query node memory usage utilization by promql, param is node name, node name which prometheus scrape
-	NodeCpuUsageUtilizationExprTemplate = `sum(label_replace(irate(container_cpu_usage_seconds_total{instance="%s", container!="POD", container!="",image!=""}[1h]), "node", "$1", "instance",  "(^[^:]+)") * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)) by (node) / sum(kube_node_status_capacity{node="%s", resource="cpu", unit="core"} * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)) by (node) * 100`
+	NodeCpuUsageUtilizationExprTemplate = `sum(label_replace(irate(container_cpu_usage_seconds_total{instance="%s", container!="POD", container!="",image!=""}[1h]), "node", "$1", "instance",  "(^[^:]+)") * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)) by (node) / sum(kube_node_status_capacity{node="%s", resource="cpu", unit="core"} * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)) by (node) `
 	// NodeMemUsageUtilizationExprTemplate is used to query node memory usage utilization by promql, param is node name, node name which prometheus scrape
-	NodeMemUsageUtilizationExprTemplate = `sum(label_replace(container_memory_usage_bytes{instance="%s", namespace!="",container!="POD", container!="",image!=""}, "node", "$1", "instance", "(^[^:]+)") * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)) by (node) / sum(kube_node_status_capacity{node="%s", resource="memory", unit="byte"} * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)) by (node) * 100`
+	NodeMemUsageUtilizationExprTemplate = `sum(label_replace(container_memory_usage_bytes{instance="%s", namespace!="",container!="POD", container!="",image!=""}, "node", "$1", "instance", "(^[^:]+)") * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)) by (node) / sum(kube_node_status_capacity{node="%s", resource="memory", unit="byte"} * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"}) by (node)) by (node) `
 
 	// PodCpuUsageExprTemplate is used to query pod cpu usage by promql,  param is namespace,pod, duration str
 	PodCpuUsageExprTemplate = `sum(irate(container_cpu_usage_seconds_total{container!="POD",namespace="%s",pod="%s"}[%s]))`
@@ -39,9 +39,9 @@ const (
 	CustomerExprTemplate = `sum(%s{%s})`
 
 	// Container network cumulative count of bytes received
-	queryFmtNetReceiveBytes = `sum(increase(container_network_receive_bytes_total{pod=~"%s"}[1h])) by (namespace)`
+	queryFmtNetReceiveBytes = `sum(rate(container_network_receive_bytes_total{namespace="%s",pod=~"%s",container!=""}[3m]))`
 	// Container network cumulative count of bytes transmitted
-	queryFmtNetTransferBytes = `sum(increase(container_network_transmit_bytes_total{pod=~"%s"}[1h])) by (namespace)`
+	queryFmtNetTransferBytes = `sum(rate(container_network_transmit_bytes_total{namespace="%s",pod=~"%s",container!=""}[3m]))`
 )
 
 const (
@@ -117,10 +117,10 @@ func GetNodeMemUsageUtilizationExpression(nodeName string) string {
 	return fmt.Sprintf(NodeMemUsageUtilizationExprTemplate, nodeName, nodeName)
 }
 
-func GetWorkloadNetReceiveBytesExpression(podName string) string {
-	return fmt.Sprintf(queryFmtNetReceiveBytes, podName)
+func GetWorkloadNetReceiveBytesExpression(namespace string, name string, kind string) string {
+	return fmt.Sprintf(queryFmtNetReceiveBytes, namespace, GetPodNameReg(name, kind))
 }
 
-func GetWorkloadNetTransferBytesExpression(podName string) string {
-	return fmt.Sprintf(queryFmtNetTransferBytes, podName)
+func GetWorkloadNetTransferBytesExpression(namespace string, name string, kind string) string {
+	return fmt.Sprintf(queryFmtNetTransferBytes, namespace, GetPodNameReg(name, kind))
 }

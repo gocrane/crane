@@ -42,20 +42,22 @@ func NewServiceRecommender(recommender apis.Recommender, recommendationRule anal
 		return nil, err
 	}
 
-	netReceivePercentile, err := recommender.GetConfigFloat(netReceivePercentileKey, 95)
+	netReceivePercentile, err := recommender.GetConfigFloat(netReceivePercentileKey, 0.95)
 	if err != nil {
 		return nil, err
 	}
+	netReceivePercentile = netReceivePercentile * 100
 
 	netTransferBytes, err := recommender.GetConfigFloat(netTransferBytesKey, 0)
 	if err != nil {
 		return nil, err
 	}
 
-	netTransferPercentile, err := recommender.GetConfigFloat(netTransferPercentileKey, 95)
+	netTransferPercentile, err := recommender.GetConfigFloat(netTransferPercentileKey, 0.95)
 	if err != nil {
 		return nil, err
 	}
+	netTransferPercentile = netTransferPercentile * 100
 
 	return &ServiceRecommender{
 		*base.NewBaseRecommender(recommender),

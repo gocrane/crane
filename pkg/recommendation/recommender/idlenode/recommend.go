@@ -3,7 +3,6 @@ package idlenode
 import (
 	"fmt"
 
-	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/recommendation/framework"
 )
 
@@ -33,23 +32,47 @@ func (inr *IdleNodeRecommender) Recommend(ctx *framework.RecommendationContext) 
 	}
 
 	// check if cpu usage utilization lt config value
-	if cpuUsageUtilization := inr.getMaxValue(inr.cpuUsageUtilization, ctx.InputValue(cpuUsageUtilizationKey)); cpuUsageUtilization > inr.cpuUsageUtilization {
-		return fmt.Errorf("Node %s is not a idle node, because the config value is %f, but the node max cpu usage utilization is %f ", ctx.Object.GetName(), inr.cpuUsageUtilization, cpuUsageUtilization)
+	if inr.cpuUsageUtilization != 0 {
+		cpuUsageUtilization, err := inr.BaseRecommender.GetPercentile(inr.cpuPercentile, ctx.InputValue(cpuUsageUtilizationKey))
+		if err != nil {
+			return err
+		}
+		if cpuUsageUtilization > inr.cpuUsageUtilization {
+			return fmt.Errorf("Node %s is not a idle node, because the config value is %f, but the node cpu usage utilization is %f ", ctx.Object.GetName(), inr.cpuUsageUtilization, cpuUsageUtilization)
+		}
 	}
 
 	// check if memory usage utilization lt config value
-	if memoryUsageUtilization := inr.getMaxValue(inr.memoryUsageUtilization, ctx.InputValue(memoryUsageUtilizationKey)); memoryUsageUtilization > inr.memoryUsageUtilization {
-		return fmt.Errorf("Node %s is not a idle node, because the config value is %f, but the node max memory usage utilization is %f ", ctx.Object.GetName(), inr.memoryUsageUtilization, memoryUsageUtilization)
+	if inr.memoryUsageUtilization != 0 {
+		memoryUsageUtilization, err := inr.BaseRecommender.GetPercentile(inr.memoryPercentile, ctx.InputValue(memoryUsageUtilizationKey))
+		if err != nil {
+			return err
+		}
+		if memoryUsageUtilization > inr.memoryUsageUtilization {
+			return fmt.Errorf("Node %s is not a idle node, because the config value is %f, but the node memory usage utilization is %f ", ctx.Object.GetName(), inr.memoryUsageUtilization, memoryUsageUtilization)
+		}
 	}
 
 	// check if cpu request utilization lt config value
-	if cpuRequestUtilization := inr.getMaxValue(inr.cpuRequestUtilization, ctx.InputValue(cpuRequestUtilizationKey)); cpuRequestUtilization > inr.cpuRequestUtilization {
-		return fmt.Errorf("Node %s is not a idle node, because the config value is %f, but the node max cpu request utilization is %f ", ctx.Object.GetName(), inr.cpuRequestUtilization, cpuRequestUtilization)
+	if inr.cpuRequestUtilization != 0 {
+		cpuRequestUtilization, err := inr.BaseRecommender.GetPercentile(inr.cpuPercentile, ctx.InputValue(cpuRequestUtilizationKey))
+		if err != nil {
+			return err
+		}
+		if cpuRequestUtilization > inr.cpuRequestUtilization {
+			return fmt.Errorf("Node %s is not a idle node, because the config value is %f, but the node cpu request utilization is %f ", ctx.Object.GetName(), inr.cpuRequestUtilization, cpuRequestUtilization)
+		}
 	}
 
 	// check if memory request utilization lt config value
-	if memoryRequestUtilization := inr.getMaxValue(inr.memoryRequestUtilization, ctx.InputValue(memoryRequestUtilizationKey)); memoryRequestUtilization > inr.memoryRequestUtilization {
-		return fmt.Errorf("Node %s is not a idle node, because the config value is %f, but the node max memory request utilization is %f ", ctx.Object.GetName(), inr.memoryRequestUtilization, memoryRequestUtilization)
+	if inr.memoryRequestUtilization != 0 {
+		memoryRequestUtilization, err := inr.BaseRecommender.GetPercentile(inr.memoryPercentile, ctx.InputValue(memoryRequestUtilizationKey))
+		if err != nil {
+			return err
+		}
+		if memoryRequestUtilization > inr.memoryRequestUtilization {
+			return fmt.Errorf("Node %s is not a idle node, because the config value is %f, but the node memory request utilization is %f ", ctx.Object.GetName(), inr.memoryRequestUtilization, memoryRequestUtilization)
+		}
 	}
 
 	ctx.Recommendation.Status.Action = "Delete"
@@ -60,17 +83,4 @@ func (inr *IdleNodeRecommender) Recommend(ctx *framework.RecommendationContext) 
 // Policy add some logic for result of recommend phase.
 func (inr *IdleNodeRecommender) Policy(ctx *framework.RecommendationContext) error {
 	return nil
-}
-
-func (inr *IdleNodeRecommender) getMaxValue(configValue float64, ts []*common.TimeSeries) float64 {
-	if configValue == 0 {
-		return configValue
-	}
-	var maxValue float64
-	for _, s := range ts[0].Samples {
-		if s.Value > maxValue {
-			maxValue = s.Value
-		}
-	}
-	return maxValue
 }
