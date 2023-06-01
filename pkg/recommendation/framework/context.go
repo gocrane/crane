@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"sync"
 
 	jsonpatch "github.com/evanphx/json-patch"
@@ -70,6 +69,8 @@ type RecommendationContext struct {
 	Scale *autoscalingapiv1.Scale
 	// Pods in recommendation
 	Pods []corev1.Pod
+	// PVCs in recommendation
+	PVCs []corev1.PersistentVolumeClaim
 	// HPA Object
 	HPA *autoscalingv2.HorizontalPodAutoscaler
 	// HPA Object
@@ -179,14 +180,10 @@ func RetrieveScale(ctx *RecommendationContext) error {
 	return nil
 }
 
-func RetrieveVolumes(ctx *RecommendationContext) error {
+func RetrievePersistentVolumeClaims(ctx *RecommendationContext) error {
 	if ctx.Recommendation.Spec.TargetRef.Kind == "PersistentVolume" {
-		volumes, err := utils.GetOrphanVolumes(ctx.Client)
-		if len(volumes) == 0 {
-			return err
-		}
-		str := strings.Join(volumes, ",")
-		ctx.Recommendation.Status.RecommendedValue = str
+		pvcs, err := utils.GetPersistentVolumeClaims(ctx.Client, ctx.Recommendation.Spec.TargetRef.Name)
+		ctx.PVCs = pvcs
 		return err
 	}
 	return nil
