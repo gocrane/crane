@@ -55,7 +55,7 @@ func (inr *IdleNodeRecommender) Recommend(ctx *framework.RecommendationContext) 
 
 	// check if cpu request utilization lt config value
 	if inr.cpuRequestUtilization != 0 {
-		cpuRequestUtilization, err := inr.BaseRecommender.GetPercentile(inr.cpuRequestUtilization, ctx.InputValue(cpuRequestUtilizationKey))
+		cpuRequestUtilization, err := inr.BaseRecommender.GetPercentile(inr.cpuPercentile, ctx.InputValue(cpuRequestUtilizationKey))
 		if err != nil {
 			return err
 		}
@@ -66,7 +66,7 @@ func (inr *IdleNodeRecommender) Recommend(ctx *framework.RecommendationContext) 
 
 	// check if memory request utilization lt config value
 	if inr.memoryRequestUtilization != 0 {
-		memoryRequestUtilization, err := inr.BaseRecommender.GetPercentile(inr.memoryRequestUtilization, ctx.InputValue(memoryRequestUtilizationKey))
+		memoryRequestUtilization, err := inr.BaseRecommender.GetPercentile(inr.memoryPercentile, ctx.InputValue(memoryRequestUtilizationKey))
 		if err != nil {
 			return err
 		}
