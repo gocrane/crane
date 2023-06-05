@@ -312,41 +312,30 @@ func GetNodePods(kubeClient client.Client, nodeName string) ([]corev1.Pod, error
 	return podList.Items, nil
 }
 
-// GetOrphanVolumes returns Orphan Volumes
-func GetOrphanVolumes(kubeClient client.Client) ([]string, error) {
-	// Get a list of all volumes
-	volumes := &corev1.PersistentVolumeList{}
-	if err := kubeClient.List(context.Background(), volumes); err != nil {
-		return nil, err
+func GetNamespacePods(kubeClient client.Client, namespace string) ([]corev1.Pod, error) {
+	// Get a list of pods for a specified namespace
+	opts := []client.ListOption{
+		client.InNamespace(namespace),
 	}
-
-	// Get a list of all pods
 	pods := &corev1.PodList{}
-	if err := kubeClient.List(context.Background(), pods); err != nil {
+	if err := kubeClient.List(context.Background(), pods, opts...); err != nil {
 		return nil, err
 	}
-
-	// Check if each volume is being used by any pods
-	var orphanVolumesName []string
-	for _, volume := range volumes.Items {
-		if isOrphanVolume(&volume, pods) {
-			orphanVolumesName = append(orphanVolumesName, volume.Spec.ClaimRef.Name)
-		}
-	}
-
-	return orphanVolumesName, nil
+	return pods.Items, nil
 }
 
-// volume is not being used by any pod
-func isOrphanVolume(volume *corev1.PersistentVolume, pods *corev1.PodList) bool {
-	for _, pod := range pods.Items {
-		for _, volumeClaim := range pod.Spec.Volumes {
-			if volumeClaim.PersistentVolumeClaim != nil && volumeClaim.PersistentVolumeClaim.ClaimName == volume.Spec.ClaimRef.Name {
-				return false
-			}
-		}
+// GetPersistentVolumeClaims returns Persistent Volume Claims
+func GetPersistentVolumeClaims(kubeClient client.Client, name string) ([]corev1.PersistentVolumeClaim, error) {
+	// Get a list of bind pvc
+	opts := []client.ListOption{
+		client.MatchingFields{"spec.volumeName": name},
 	}
-	return true
+	pvcList := &corev1.PersistentVolumeClaimList{}
+	if err := kubeClient.List(context.Background(), pvcList, opts...); err != nil {
+		return nil, err
+	}
+
+	return pvcList.Items, nil
 }
 
 func GetServicePods(kubeClient client.Client, svc *corev1.Service) ([]corev1.Pod, error) {
