@@ -81,15 +81,15 @@ func (c *RecommendationTriggerController) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, fmt.Errorf("get target object for recommendation %s failed: %v", klog.KObj(recommendation), err)
 	}
 
-	identities := map[string]ObjectIdentity{}
-	key := objRefKey(recommendation.Spec.TargetRef.Kind, recommendation.Spec.TargetRef.APIVersion, recommendation.Spec.TargetRef.Namespace, recommendation.Spec.TargetRef.Name)
-	identities[key] = ObjectIdentity{
-		Namespace:  object.GetNamespace(),
-		Name:       object.GetName(),
-		Kind:       object.GetKind(),
-		APIVersion: object.GetAPIVersion(),
-		Labels:     object.GetLabels(),
-		Object:     *object,
+	id := ObjectIdentity{
+		Namespace:      object.GetNamespace(),
+		Name:           object.GetName(),
+		Kind:           object.GetKind(),
+		APIVersion:     object.GetAPIVersion(),
+		Labels:         object.GetLabels(),
+		Recommender:    string(recommendation.Spec.Type),
+		Object:         *object,
+		Recommendation: recommendation,
 	}
 
 	newStatus := recommendationRule.Status.DeepCopy()
@@ -106,7 +106,7 @@ func (c *RecommendationTriggerController) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, nil
 	}
 
-	executeMission(context.TODO(), nil, c.RecommenderMgr, c.Provider, c.PredictorMgr, recommendationRule, identities, &newStatus.Recommendations[currentMissionIndex], recommendation, c.Client, c.ScaleClient, c.OOMRecorder, metav1.Now(), newStatus.RunNumber)
+	executeIdentity(context.TODO(), nil, c.RecommenderMgr, c.Provider, c.PredictorMgr, recommendationRule, id, c.Client, c.ScaleClient, c.OOMRecorder, metav1.Now(), newStatus.RunNumber)
 	if newStatus.Recommendations[currentMissionIndex].Message != "Success" {
 		err = c.Client.Delete(context.TODO(), recommendation)
 		if err != nil {

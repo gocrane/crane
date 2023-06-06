@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -66,9 +67,32 @@ func GetRunNumber(recommendation *analysisv1alpha1.Recommendation) (int32, error
 
 func GetRecommendationRuleOwnerReference(recommend *analysisv1alpha1.Recommendation) *metav1.OwnerReference {
 	for _, ownerReference := range recommend.OwnerReferences {
-		if ownerReference.Kind == "RecommendationRule" {
+		if ownerReference.Kind == "RecommendationRule" || ownerReference.Kind == "Analytics" {
 			return &ownerReference
 		}
 	}
 	return nil
+}
+
+func GetLastStartTime(recommendation *analysisv1alpha1.Recommendation) (time.Time, error) {
+	if recommendation != nil && recommendation.Annotations != nil {
+		val, ok := recommendation.Annotations[known.LastStartTimeAnnotation]
+		if ok && len(val) != 0 {
+			return time.Parse("2006-01-02 15:04:05", val)
+		}
+	}
+
+	return time.Now(), fmt.Errorf("get lastStartTime failed")
+}
+
+func SetLastStartTime(recommendation *analysisv1alpha1.Recommendation) {
+	if recommendation != nil && recommendation.Annotations != nil {
+		if recommendation.Annotations == nil {
+			recommendation.Annotations = map[string]string{}
+		}
+
+		now := time.Now()
+		loc, _ := time.LoadLocation("UTC")
+		recommendation.Annotations[known.LastStartTimeAnnotation] = now.In(loc).Format("2006-01-02 15:04:05")
+	}
 }

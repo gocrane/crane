@@ -563,10 +563,10 @@ func ConvertToRecommendationRule(analytics *analysisv1alph1.Analytics) *analysis
 		recommendationRule.Spec.RunInterval = (time.Duration(*analytics.Spec.CompletionStrategy.PeriodSeconds) * time.Second).String()
 	}
 
-	recommendationRule.Status = analysisv1alph1.RecommendationRuleStatus{
+	/*recommendationRule.Status = analysisv1alph1.RecommendationRuleStatus{
 		LastUpdateTime:  analytics.Status.LastUpdateTime,
 		Recommendations: analytics.Status.Recommendations,
-	}
+	}*/
 
 	return recommendationRule
 }
