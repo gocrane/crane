@@ -5,7 +5,11 @@
 [![License](https://img.shields.io/github/license/gocrane/crane)](https://www.apache.org/licenses/LICENSE-2.0.html)
 ![GoVersion](https://img.shields.io/github/go-mod/go-version/gocrane/crane)
 
+<div align="center">
+
 <img alt="Crane logo" height="100" src="docs/images/crane.svg" title="Crane" width="200"/>
+
+</div>
 
 ---
 
@@ -15,7 +19,11 @@
 
 Crane is a FinOps Platform for Cloud Resource Analytics and Economics in Kubernetes clusters. The goal is not only help user to manage cloud cost easier but also ensure the quality of applications.
 
+<div align="center">
+
 <img alt="fcs logo" height="200" src="docs/images/Crane-FinOps-Certified-Solution.png" title="FinOps Certified Solution" width="200"/>
+
+</div>
 
 Crane is a [FinOps Certified Solution](https://www.finops.org/certifications/finops-certified-solution/) project of the [FinOps Foundation](https://www.finops.org/).
 
