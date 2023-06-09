@@ -11,11 +11,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { ViewListIcon } from 'tdesign-icons-react';
 import { Button, Col, Layout, MessagePlugin, Row, Select } from 'tdesign-react';
 import { useFetchClusterListQuery } from '../../../services/clusterApi';
-import { recommendationRuleApi } from '../../../services/recommendationRuleApi';
-import { recommendationApi } from '../../../services/recommendationApi';
-import { prometheusApi } from '../../../services/prometheusApi';
-import { namespaceApi } from '../../../services/namespaceApi';
-import { grafanaApi } from '../../../services/grafanaApi';
 
 const { Header } = Layout;
 

@@ -312,6 +312,67 @@ func GetNodePods(kubeClient client.Client, nodeName string) ([]corev1.Pod, error
 	return podList.Items, nil
 }
 
+func GetNamespacePods(kubeClient client.Client, namespace string) ([]corev1.Pod, error) {
+	// Get a list of pods for a specified namespace
+	opts := []client.ListOption{
+		client.InNamespace(namespace),
+	}
+	pods := &corev1.PodList{}
+	if err := kubeClient.List(context.Background(), pods, opts...); err != nil {
+		return nil, err
+	}
+	return pods.Items, nil
+}
+
+// GetPersistentVolumeClaims returns Persistent Volume Claims
+func GetPersistentVolumeClaims(kubeClient client.Client, name string) ([]corev1.PersistentVolumeClaim, error) {
+	// Get a list of bind pvc
+	opts := []client.ListOption{
+		client.MatchingFields{"spec.volumeName": name},
+	}
+	pvcList := &corev1.PersistentVolumeClaimList{}
+	if err := kubeClient.List(context.Background(), pvcList, opts...); err != nil {
+		return nil, err
+	}
+
+	return pvcList.Items, nil
+}
+
+func GetServicePods(kubeClient client.Client, svc *corev1.Service) ([]corev1.Pod, error) {
+	opts := []client.ListOption{
+		client.InNamespace(svc.Namespace),
+		client.MatchingLabels(svc.Spec.Selector),
+	}
+
+	podList := &corev1.PodList{}
+	err := kubeClient.List(context.TODO(), podList, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	return podList.Items, nil
+}
+
+func GetPodOwnerReference(ctx context.Context, kubeClient client.Client, pod *v1.Pod) *metav1.OwnerReference {
+	for _, ownerRef := range pod.OwnerReferences {
+		if ownerRef.Kind == "ReplicaSet" {
+			// ReplicaSet
+			var rs appsv1.ReplicaSet
+			err := kubeClient.Get(ctx, client.ObjectKey{Namespace: pod.Namespace, Name: ownerRef.Name}, &rs)
+			if err != nil {
+				return nil
+			}
+			for _, ownRef := range rs.OwnerReferences {
+				return &ownRef
+			}
+		} else {
+			return &ownerRef
+		}
+	}
+
+	return nil
+}
+
 func IsPodTerminated(pod *corev1.Pod) bool {
 	return pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed
 }

@@ -546,8 +546,11 @@ func setReadyCondition(status *analysisv1alph1.AnalyticsStatus, conditionStatus 
 func ConvertToRecommendationRule(analytics *analysisv1alph1.Analytics) *analysisv1alph1.RecommendationRule {
 	recommendationRule := &analysisv1alph1.RecommendationRule{}
 	recommendationRule.Name = analytics.Name
+	if recommendationRule.Annotations == nil {
+		recommendationRule.Annotations = map[string]string{}
+	}
+	recommendationRule.Annotations[known.AnalyticsConversionAnnotation] = string(analytics.UID)
 	recommendationRule.Spec.ResourceSelectors = analytics.Spec.ResourceSelectors
-	// todo: make sure the conversion is right after recommendation refactor
 	recommendationRule.Spec.Recommenders = []analysisv1alph1.Recommender{{Name: string(analytics.Spec.Type)}}
 	if analytics.Namespace == known.CraneSystemNamespace {
 		recommendationRule.Spec.NamespaceSelector.Any = true
@@ -559,6 +562,11 @@ func ConvertToRecommendationRule(analytics *analysisv1alph1.Analytics) *analysis
 	} else {
 		recommendationRule.Spec.RunInterval = (time.Duration(*analytics.Spec.CompletionStrategy.PeriodSeconds) * time.Second).String()
 	}
+
+	/*recommendationRule.Status = analysisv1alph1.RecommendationRuleStatus{
+		LastUpdateTime:  analytics.Status.LastUpdateTime,
+		Recommendations: analytics.Status.Recommendations,
+	}*/
 
 	return recommendationRule
 }
@@ -572,8 +580,10 @@ func UpsertRecommendationRule(recommendationRule *analysisv1alph1.Recommendation
 		return err
 	}
 
-	if !reflect.DeepEqual(recommendationRule.Spec, recommendationRuleExist.Spec) {
+	if !reflect.DeepEqual(recommendationRule.Spec, recommendationRuleExist.Spec) ||
+		reflect.DeepEqual(recommendationRule.Annotations, recommendationRuleExist.Annotations) {
 		recommendationRuleExist.Spec = recommendationRule.Spec
+		recommendationRuleExist.Annotations = recommendationRule.Annotations
 		return client.Update(context.TODO(), recommendationRuleExist)
 	}
 

@@ -47,6 +47,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ recommendation, setFilterParams
                   <Select
                     options={nameSpaceOptions}
                     placeholder={t('请选择Namespace')}
+                    filterable
                     style={{ margin: '0px 20px' }}
                   />
                 </FormItem>
@@ -56,6 +57,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ recommendation, setFilterParams
                   <Select
                     options={workloadTypeOptions}
                     placeholder={t('请选择工作负载类型')}
+                    filterable
                     style={{ margin: '0px 20px' }}
                   />
                 </FormItem>

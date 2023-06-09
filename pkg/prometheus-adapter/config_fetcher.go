@@ -43,14 +43,10 @@ func (pc *PrometheusAdapterConfigFetcher) Reconcile(ctx context.Context, req ctr
 	klog.V(4).Infof("Got prometheus adapter configmap %s", req.NamespacedName)
 
 	//get configmap content
-	cm := &corev1.ConfigMap{}
-	err := pc.Client.Get(ctx, req.NamespacedName, cm)
+	var cm corev1.ConfigMap
+	err := pc.Client.Get(ctx, req.NamespacedName, &cm)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
-
-	if cm == nil {
-		return ctrl.Result{}, fmt.Errorf("get configmap %s/%s failed", req.NamespacedName.Namespace, req.NamespacedName.Name)
 	}
 
 	cfg, err := config.FromYAML([]byte(cm.Data[pc.AdapterConfigMapKey]))
@@ -83,7 +79,7 @@ func (pc *PrometheusAdapterConfigFetcher) SetupWithManager(mgr ctrl.Manager) err
 		Complete(pc)
 }
 
-// fetched metricRule if configmap is updated
+// Update fetched metricRule if configmap is updated
 func (paCm *PrometheusAdapterConfigChangedPredicate) Update(e event.UpdateEvent) bool {
 	if e.ObjectOld == nil {
 		return false

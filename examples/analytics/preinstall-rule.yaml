@@ -34,3 +34,21 @@ spec:
     any: true                                 # 扫描所有namespace
   recommenders:
     - name: IdleNode
+
+---
+
+apiVersion: analysis.crane.io/v1alpha1
+kind: RecommendationRule
+metadata:
+  name: services-rule
+  labels:
+    analysis.crane.io/recommendation-rule-preinstall: "true"
+spec:
+  runInterval: 24h                            # 每24h运行一次
+  resourceSelectors:                          # 资源的信息
+    - kind: Service
+      apiVersion: v1
+  namespaceSelector:
+    any: true                                 # 扫描所有namespace
+  recommenders:
+    - name: Service

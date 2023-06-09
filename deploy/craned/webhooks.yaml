@@ -33,48 +33,6 @@ webhooks:
       service:
         name: craned
         namespace: crane-system
-        path: /mutate-ensurance-crane-io-v1alpha1-nodeqos
-    failurePolicy: Fail
-    name: mnodeqosensurancepolicies.ensurance.crane.io
-    rules:
-      - apiGroups:
-          - ensurance.crane.io
-        apiVersions:
-          - v1alpha1
-        operations:
-          - CREATE
-          - UPDATE
-        resources:
-          - NodeQOS
-    sideEffects: None
-  - admissionReviewVersions:
-      - v1
-    clientConfig:
-      caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUNuRENDQVlRQ0NRQ292Q0JOblRVSGZqQU5CZ2txaGtpRzl3MEJBUXNGQURBUU1RNHdEQVlEVlFRRERBVmoKY21GdVpUQWVGdzB5TWpBeU1qSXhORE15TVRWYUZ3MHpNakF5TWpBeE5ETXlNVFZhTUJBeERqQU1CZ05WQkFNTQpCV055WVc1bE1JSUJJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBNHVDWTl0YzhicFBxCm9rbFhFbDNZdk1XT280bjI3RWVDTW1rRmorbEE1aGxnMW1EanRlcUhXRVUzUDdJMURsTko4YXcraEdtN2hLdUMKZlFNT2xCQTJ4anNONi8vS0tuNU50YTB1cWY2T0NJeXFXQmtCRzV1WGRQRkoyODVmU1FRS1VqeHBwWmphK3NKLwpXOHJkWnFZVzN5eDc1S3kvZHBYVXlWVDVjbkxaU0V3d25yaDVQeVlZQ2ZNaVN4d2V6TzUzV09ZNmFlL2g2UmtjCjg3VmpMTktWajdhbXgyWUxWVi8zZHJvajFMRmpnU0gzUU1uTVk3ay8xeW1WeWM5YmwrUHFZMmhEZW40Qi85d24KeWYxMTJldnZlckk5bzJ3YVpPQmRUWVlxVVBRQkwzMmFYQWJaU1pHT3QyMk9VdzJKdDZwaGdQOGVYbmsyNzAwWgpMYlZ5TFI2SDBRSURBUUFCTUEwR0NTcUdTSWIzRFFFQkN3VUFBNElCQVFCU1hxQUZ2WVo4dXFHZlIyWmE1TEZzCi94amNXdFpZU0ppVldUM2UxbVFZaytwcHdHMUQ1ZFlzeTd0M2haUDNQRjJ3emxlT3h6ZUdJSGdqd21uc2pQWlMKakpHK2RqMW93OEt0SVY2WDdPR1hEaWxnVnJqazloRWFJOHJTSFlUeGplT2U1cnlLVVZ3MERRUXBmckg1VFVnVAp1WHpYTHdUaHlMWnF5ZDMyaTA3UDBRcGxuOUllRFVzMkdvTktsUE5NVHFLSXliQVg2WW83UWJxMUdLT2xwbXVhCklYbU9lcWJtM0NUY1FYMjNpVktPZzVEZ3R0eTAyNWRFc2s5cjJEV29NVjZtZWtKYmowUzIyd2p6a2Q2OUg5UmsKU1RlbmJ5bUt3bUNZUWJTd2RIZ2J4WjlVSUUwcDI5QkttR2pUdUp4d1B0NE0ySEVhbnBVbzZqSzVVdWZsd2dpbQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
-      service:
-        name: craned
-        namespace: crane-system
-        path: /mutate-ensurance-crane-io-v1alpha1-avoidanceaction
-    failurePolicy: Fail
-    name: mavoidanceactions.ensurance.crane.io
-    rules:
-      - apiGroups:
-          - ensurance.crane.io
-        apiVersions:
-          - v1alpha1
-        operations:
-          - CREATE
-          - UPDATE
-        resources:
-          - AvoidanceAction
-    sideEffects: None
-  - admissionReviewVersions:
-      - v1
-    clientConfig:
-      caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUNuRENDQVlRQ0NRQ292Q0JOblRVSGZqQU5CZ2txaGtpRzl3MEJBUXNGQURBUU1RNHdEQVlEVlFRRERBVmoKY21GdVpUQWVGdzB5TWpBeU1qSXhORE15TVRWYUZ3MHpNakF5TWpBeE5ETXlNVFZhTUJBeERqQU1CZ05WQkFNTQpCV055WVc1bE1JSUJJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBNHVDWTl0YzhicFBxCm9rbFhFbDNZdk1XT280bjI3RWVDTW1rRmorbEE1aGxnMW1EanRlcUhXRVUzUDdJMURsTko4YXcraEdtN2hLdUMKZlFNT2xCQTJ4anNONi8vS0tuNU50YTB1cWY2T0NJeXFXQmtCRzV1WGRQRkoyODVmU1FRS1VqeHBwWmphK3NKLwpXOHJkWnFZVzN5eDc1S3kvZHBYVXlWVDVjbkxaU0V3d25yaDVQeVlZQ2ZNaVN4d2V6TzUzV09ZNmFlL2g2UmtjCjg3VmpMTktWajdhbXgyWUxWVi8zZHJvajFMRmpnU0gzUU1uTVk3ay8xeW1WeWM5YmwrUHFZMmhEZW40Qi85d24KeWYxMTJldnZlckk5bzJ3YVpPQmRUWVlxVVBRQkwzMmFYQWJaU1pHT3QyMk9VdzJKdDZwaGdQOGVYbmsyNzAwWgpMYlZ5TFI2SDBRSURBUUFCTUEwR0NTcUdTSWIzRFFFQkN3VUFBNElCQVFCU1hxQUZ2WVo4dXFHZlIyWmE1TEZzCi94amNXdFpZU0ppVldUM2UxbVFZaytwcHdHMUQ1ZFlzeTd0M2haUDNQRjJ3emxlT3h6ZUdJSGdqd21uc2pQWlMKakpHK2RqMW93OEt0SVY2WDdPR1hEaWxnVnJqazloRWFJOHJTSFlUeGplT2U1cnlLVVZ3MERRUXBmckg1VFVnVAp1WHpYTHdUaHlMWnF5ZDMyaTA3UDBRcGxuOUllRFVzMkdvTktsUE5NVHFLSXliQVg2WW83UWJxMUdLT2xwbXVhCklYbU9lcWJtM0NUY1FYMjNpVktPZzVEZ3R0eTAyNWRFc2s5cjJEV29NVjZtZWtKYmowUzIyd2p6a2Q2OUg5UmsKU1RlbmJ5bUt3bUNZUWJTd2RIZ2J4WjlVSUUwcDI5QkttR2pUdUp4d1B0NE0ySEVhbnBVbzZqSzVVdWZsd2dpbQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
-      service:
-        name: craned
-        namespace: crane-system
         path: /mutate-autoscaling-crane-io-v1alpha1-effectivehorizontalpodautoscaler
     failurePolicy: Fail
     name: mautoscaling.crane.io
@@ -116,48 +74,6 @@ webhooks:
           - UPDATE
         resources:
           - timeseriespredictions
-    sideEffects: None
-  - admissionReviewVersions:
-      - v1
-    clientConfig:
-      caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUNuRENDQVlRQ0NRQ292Q0JOblRVSGZqQU5CZ2txaGtpRzl3MEJBUXNGQURBUU1RNHdEQVlEVlFRRERBVmoKY21GdVpUQWVGdzB5TWpBeU1qSXhORE15TVRWYUZ3MHpNakF5TWpBeE5ETXlNVFZhTUJBeERqQU1CZ05WQkFNTQpCV055WVc1bE1JSUJJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBNHVDWTl0YzhicFBxCm9rbFhFbDNZdk1XT280bjI3RWVDTW1rRmorbEE1aGxnMW1EanRlcUhXRVUzUDdJMURsTko4YXcraEdtN2hLdUMKZlFNT2xCQTJ4anNONi8vS0tuNU50YTB1cWY2T0NJeXFXQmtCRzV1WGRQRkoyODVmU1FRS1VqeHBwWmphK3NKLwpXOHJkWnFZVzN5eDc1S3kvZHBYVXlWVDVjbkxaU0V3d25yaDVQeVlZQ2ZNaVN4d2V6TzUzV09ZNmFlL2g2UmtjCjg3VmpMTktWajdhbXgyWUxWVi8zZHJvajFMRmpnU0gzUU1uTVk3ay8xeW1WeWM5YmwrUHFZMmhEZW40Qi85d24KeWYxMTJldnZlckk5bzJ3YVpPQmRUWVlxVVBRQkwzMmFYQWJaU1pHT3QyMk9VdzJKdDZwaGdQOGVYbmsyNzAwWgpMYlZ5TFI2SDBRSURBUUFCTUEwR0NTcUdTSWIzRFFFQkN3VUFBNElCQVFCU1hxQUZ2WVo4dXFHZlIyWmE1TEZzCi94amNXdFpZU0ppVldUM2UxbVFZaytwcHdHMUQ1ZFlzeTd0M2haUDNQRjJ3emxlT3h6ZUdJSGdqd21uc2pQWlMKakpHK2RqMW93OEt0SVY2WDdPR1hEaWxnVnJqazloRWFJOHJTSFlUeGplT2U1cnlLVVZ3MERRUXBmckg1VFVnVAp1WHpYTHdUaHlMWnF5ZDMyaTA3UDBRcGxuOUllRFVzMkdvTktsUE5NVHFLSXliQVg2WW83UWJxMUdLT2xwbXVhCklYbU9lcWJtM0NUY1FYMjNpVktPZzVEZ3R0eTAyNWRFc2s5cjJEV29NVjZtZWtKYmowUzIyd2p6a2Q2OUg5UmsKU1RlbmJ5bUt3bUNZUWJTd2RIZ2J4WjlVSUUwcDI5QkttR2pUdUp4d1B0NE0ySEVhbnBVbzZqSzVVdWZsd2dpbQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
-      service:
-        name: craned
-        namespace: crane-system
-        path: /validate-ensurance-crane-io-v1alpha1-nodeqos
-    failurePolicy: Fail
-    name: vnodeqosensurancepolicies.ensurance.crane.io
-    rules:
-      - apiGroups:
-          - ensurance.crane.io
-        apiVersions:
-          - v1alpha1
-        operations:
-          - CREATE
-          - UPDATE
-        resources:
-          - nodeqoss
-    sideEffects: None
-  - admissionReviewVersions:
-      - v1
-    clientConfig:
-      caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUNuRENDQVlRQ0NRQ292Q0JOblRVSGZqQU5CZ2txaGtpRzl3MEJBUXNGQURBUU1RNHdEQVlEVlFRRERBVmoKY21GdVpUQWVGdzB5TWpBeU1qSXhORE15TVRWYUZ3MHpNakF5TWpBeE5ETXlNVFZhTUJBeERqQU1CZ05WQkFNTQpCV055WVc1bE1JSUJJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBNHVDWTl0YzhicFBxCm9rbFhFbDNZdk1XT280bjI3RWVDTW1rRmorbEE1aGxnMW1EanRlcUhXRVUzUDdJMURsTko4YXcraEdtN2hLdUMKZlFNT2xCQTJ4anNONi8vS0tuNU50YTB1cWY2T0NJeXFXQmtCRzV1WGRQRkoyODVmU1FRS1VqeHBwWmphK3NKLwpXOHJkWnFZVzN5eDc1S3kvZHBYVXlWVDVjbkxaU0V3d25yaDVQeVlZQ2ZNaVN4d2V6TzUzV09ZNmFlL2g2UmtjCjg3VmpMTktWajdhbXgyWUxWVi8zZHJvajFMRmpnU0gzUU1uTVk3ay8xeW1WeWM5YmwrUHFZMmhEZW40Qi85d24KeWYxMTJldnZlckk5bzJ3YVpPQmRUWVlxVVBRQkwzMmFYQWJaU1pHT3QyMk9VdzJKdDZwaGdQOGVYbmsyNzAwWgpMYlZ5TFI2SDBRSURBUUFCTUEwR0NTcUdTSWIzRFFFQkN3VUFBNElCQVFCU1hxQUZ2WVo4dXFHZlIyWmE1TEZzCi94amNXdFpZU0ppVldUM2UxbVFZaytwcHdHMUQ1ZFlzeTd0M2haUDNQRjJ3emxlT3h6ZUdJSGdqd21uc2pQWlMKakpHK2RqMW93OEt0SVY2WDdPR1hEaWxnVnJqazloRWFJOHJTSFlUeGplT2U1cnlLVVZ3MERRUXBmckg1VFVnVAp1WHpYTHdUaHlMWnF5ZDMyaTA3UDBRcGxuOUllRFVzMkdvTktsUE5NVHFLSXliQVg2WW83UWJxMUdLT2xwbXVhCklYbU9lcWJtM0NUY1FYMjNpVktPZzVEZ3R0eTAyNWRFc2s5cjJEV29NVjZtZWtKYmowUzIyd2p6a2Q2OUg5UmsKU1RlbmJ5bUt3bUNZUWJTd2RIZ2J4WjlVSUUwcDI5QkttR2pUdUp4d1B0NE0ySEVhbnBVbzZqSzVVdWZsd2dpbQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
-      service:
-        name: craned
-        namespace: crane-system
-        path: /validate-ensurance-crane-io-v1alpha1-avoidanceaction
-    failurePolicy: Fail
-    name: vavoidanceactions.ensurance.crane.io
-    rules:
-      - apiGroups:
-          - ensurance.crane.io
-        apiVersions:
-          - v1alpha1
-        operations:
-          - CREATE
-          - UPDATE
-        resources:
-          - avoidanceactions
     sideEffects: None
   - admissionReviewVersions:
       - v1

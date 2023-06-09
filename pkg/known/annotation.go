@@ -5,6 +5,9 @@ const (
 	ReplicasRecommendationValueAnnotation = "analysis.crane.io/replicas-recommendation"
 	ResourceRecommendationValueAnnotation = "analysis.crane.io/resource-recommendation"
 	RunNumberAnnotation                   = "analysis.crane.io/run-number"
+	AnalyticsConversionAnnotation         = "analysis.crane.io/analytics-conversion"
+	LastStartTimeAnnotation               = "analysis.crane.io/last-start-time"
+	MessageAnnotation                     = "analysis.crane.io/message"
 )
 
 const (

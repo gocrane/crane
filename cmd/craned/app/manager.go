@@ -15,9 +15,11 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/scale"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
@@ -92,7 +94,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 	config.QPS = float32(opts.ApiQps)
 	config.Burst = opts.ApiBurst
 
-	mgr, err := ctrl.NewManager(config, ctrl.Options{
+	ctrlOptions := ctrl.Options{
 		Scheme:                  scheme,
 		MetricsBindAddress:      opts.MetricsAddr,
 		Port:                    9443,
@@ -100,13 +102,23 @@ func Run(ctx context.Context, opts *options.Options) error {
 		LeaderElection:          opts.LeaderElection.LeaderElect,
 		LeaderElectionID:        "craned",
 		LeaderElectionNamespace: known.CraneSystemNamespace,
-	})
+	}
+	if opts.CacheUnstructured {
+		ctrlOptions.NewClient = NewCacheUnstructuredClient
+	}
+
+	mgr, err := ctrl.NewManager(config, ctrlOptions)
 	if err != nil {
 		klog.ErrorS(err, "unable to start crane manager")
 		return err
 	}
 
-	if err := mgr.AddHealthzCheck("ping", healthz.Ping); err != nil {
+	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+		klog.ErrorS(err, "failed to add health check endpoint")
+		return err
+	}
+
+	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
 		klog.ErrorS(err, "failed to add health check endpoint")
 		return err
 	}
@@ -131,7 +143,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 		}
 	}()
 
-	recommenderMgr := initRecommenderManager(opts, podOOMRecorder, realtimeDataSources, historyDataSources)
+	recommenderMgr := initRecommenderManager(opts)
 	initControllers(podOOMRecorder, mgr, opts, predictorMgr, recommenderMgr, historyDataSources[providers.PrometheusDataSource])
 	// initialize custom collector metrics
 	initMetricCollector(mgr)
@@ -140,8 +152,8 @@ func Run(ctx context.Context, opts *options.Options) error {
 	return nil
 }
 
-func initRecommenderManager(opts *options.Options, oomRecorder oom.Recorder, realtimeDataSources map[providers.DataSourceType]providers.RealTime, historyDataSources map[providers.DataSourceType]providers.History) recommendation.RecommenderManager {
-	return recommendation.NewRecommenderManager(opts.RecommendationConfiguration, oomRecorder, realtimeDataSources, historyDataSources)
+func initRecommenderManager(opts *options.Options) recommendation.RecommenderManager {
+	return recommendation.NewRecommenderManager(opts.RecommendationConfiguration)
 }
 
 func initScheme() {
@@ -385,6 +397,7 @@ func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.O
 			RestMapper:     mgr.GetRESTMapper(),
 			RecommenderMgr: recommenderMgr,
 			ScaleClient:    scaleClient,
+			OOMRecorder:    oomRecorder,
 			Provider:       historyDataSource,
 			PredictorMgr:   predictorMgr,
 			Recorder:       mgr.GetEventRecorderFor("recommendationrule-controller"),
@@ -396,6 +409,7 @@ func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.O
 			Client:         mgr.GetClient(),
 			RecommenderMgr: recommenderMgr,
 			ScaleClient:    scaleClient,
+			OOMRecorder:    oomRecorder,
 			Provider:       historyDataSource,
 			PredictorMgr:   predictorMgr,
 			Recorder:       mgr.GetEventRecorderFor("recommendation-trigger-controller"),
@@ -461,4 +475,18 @@ func runAll(ctx context.Context, mgr ctrl.Manager, predictorMgr predictor.Manage
 	if err := eg.Wait(); err != nil {
 		klog.Fatal(err)
 	}
+}
+
+func NewCacheUnstructuredClient(cache cache.Cache, config *rest.Config, options client.Options, uncachedObjects ...client.Object) (client.Client, error) {
+	c, err := client.New(config, options)
+	if err != nil {
+		return nil, err
+	}
+
+	return client.NewDelegatingClient(client.NewDelegatingClientInput{
+		CacheReader:       cache,
+		Client:            c,
+		UncachedObjects:   uncachedObjects,
+		CacheUnstructured: true,
+	})
 }

@@ -17,10 +17,9 @@ export interface InsightState {
 
   discount: number;
 
-  selectedWorkloadType?: string| null;
+  selectedWorkloadType?: string | null;
 
-  selectedWorkload?: string| null;
-
+  selectedWorkload?: string | null;
 }
 
 export const initialInsightState: InsightState = {

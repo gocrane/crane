@@ -58,7 +58,7 @@ func (rr *HPARecommender) Policy(ctx *framework.RecommendationContext) error {
 		return fmt.Errorf("checkMinCpuUsageThreshold failed: %v", err)
 	}
 
-	medianMin, medianMax, err := rr.minMaxMedians(ctx.InputValues)
+	medianMin, medianMax, err := rr.minMaxMedians(ctx.InputValue(string(corev1.ResourceCPU)))
 	if err != nil {
 		return fmt.Errorf("minMaxMedians failed: %v", err)
 	}

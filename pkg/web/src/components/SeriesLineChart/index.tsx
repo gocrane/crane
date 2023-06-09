@@ -116,17 +116,7 @@ const buildLineChartOption = (lineStyle: LineStyle | undefined, linesData: ISeri
   };
 };
 
-const SeriesLineChart = ({
-  title,
-  subTitle,
-  datePicker,
-  timeRange,
-  step,
-  xAxis,
-  lines,
-  lineStyle,
-  tips,
-}: ISeriesLineChart) => {
+const SeriesLineChart = ({ title, subTitle, datePicker, timeRange, step, lines, lineStyle }: ISeriesLineChart) => {
   const { t } = useTranslation();
   const craneUrl: any = useCraneUrl();
 

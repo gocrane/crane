@@ -7,7 +7,7 @@ import lodashSet from 'lodash/set';
 import lodashMap from 'lodash/map';
 import { ETheme } from '../types';
 
-export type TChartColorKey = keyof typeof CHART_COLORS[ETheme.light];
+export type TChartColorKey = keyof (typeof CHART_COLORS)[ETheme.light];
 /**
  * 根据当前主题色返回动态的图表颜色列表
  * @param options 图表的固定配置

@@ -12,4 +12,10 @@ const (
 
 	// IdleNodeRecommender name
 	IdleNodeRecommender string = "IdleNode"
+
+	// VolumesRecommender name
+	VolumesRecommender string = "Volumes"
+
+	// ServiceRecommender name
+	ServiceRecommender string = "Service"
 )

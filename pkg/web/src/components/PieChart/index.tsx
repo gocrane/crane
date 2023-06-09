@@ -1,5 +1,5 @@
 import { useCraneUrl } from '../../hooks';
-import { Card, CardProps, DateRangePicker, MessagePlugin, Popup } from 'tdesign-react';
+import { Card, DateRangePicker, MessagePlugin, Popup } from 'tdesign-react';
 import React, { useState } from 'react';
 import ReactEcharts from 'echarts-for-react';
 import dayjs from 'dayjs';
@@ -24,6 +24,7 @@ const fetchPieData = (craneUrl: string, title: string, timeDateRangePicker: stri
   const start = dayjs(timeDateRangePicker[0]).valueOf();
   const end = dayjs(timeDateRangePicker[1]).valueOf();
   const minutesDuration = Math.round((end - start) / 1000 / 60);
+  // eslint-disable-next-line no-param-reassign
   query = query.replaceAll('{DURATION}', minutesDuration.toString());
   const { data, isError } = useRangePrometheusQuery({ craneUrl, start, end, step, query });
   if (isError) MessagePlugin.error(`[${title}] Check Your Network Or Query Params !!!`);

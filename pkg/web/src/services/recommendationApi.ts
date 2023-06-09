@@ -1,7 +1,6 @@
 import { buildRetryFetchBaseQuery } from './retryFetchBaseQuery';
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { parse } from 'yaml';
-import { RecommendationRuleSimpleInfo } from './recommendationRuleApi';
 
 interface ownerReference {
   apiVersion: string;
@@ -134,7 +133,7 @@ export const recommendationApi = createApi({
       cache: 'no-cache',
       baseUrl: ``,
       timeout: 15000,
-      prepareHeaders: (headers, api) => {
+      prepareHeaders: (headers, _api) => {
         headers.set('Content-Type', 'application/json');
         return headers;
       },
