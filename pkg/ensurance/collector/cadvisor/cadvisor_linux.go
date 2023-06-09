@@ -117,6 +117,11 @@ func (c *CadvisorCollector) Collect() (map[string][]common.TimeSeries, error) {
 
 	var stateMap = make(map[string][]common.TimeSeries)
 	for _, pod := range allPods {
+
+		if utils.IsStaticPod(pod) {
+			continue
+		}
+
 		var now = time.Now()
 		containers, err := c.Manager.GetContainerInfoV2(utils.GetCgroupPath(pod, c.Manager.GetCgroupDriver()), cadvisorapiv2.RequestOptions{
 			IdType:    cadvisorapiv2.TypeName,

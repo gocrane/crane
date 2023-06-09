@@ -376,3 +376,9 @@ func GetPodOwnerReference(ctx context.Context, kubeClient client.Client, pod *v1
 func IsPodTerminated(pod *corev1.Pod) bool {
 	return pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed
 }
+
+func IsStaticPod(pod *corev1.Pod) bool {
+	_, isStatic := pod.Annotations[kubelettypes.ConfigSourceAnnotationKey]
+
+	return isStatic
+}
