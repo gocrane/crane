@@ -47,13 +47,16 @@ func TestQueryForSeriesResource(t *testing.T) {
 		expect:      "sum(rate(container_cpu_usage_seconds_total{pod_namespace=\"test\",pod_name=~\"test-.*\"}[3m]))",
 	}
 
-	metricRules, _ := GetMetricRulesFromResourceRules(test.resource, test.mapper)
+	metricRules, metricsError, _ := GetMetricRulesFromResourceRules(test.resource, test.mapper)
 	requests, err := metricRules[0].QueryForSeries(test.namespace, test.nameReg, []string{})
 	if err != nil {
 		t.Errorf("Failed to QueryForSeriesResource: %v", err)
 	}
 	if requests != test.expect {
 		t.Errorf("expect requests %s actual requests %s", test.expect, requests)
+	}
+	if metricsError != nil {
+		t.Errorf("expect requests %s actual requests %s", []string{}, metricsError)
 	}
 }
 
@@ -94,13 +97,16 @@ func TestQueryForSeriesRules(t *testing.T) {
 		expect:      "sum(nginx_concurrent_utilization{namespace!=\"\",pod!=\"\",pod_namespace=\"test\",pod_name=~\"test-.*\"})",
 	}
 
-	metricRules, _ := GetMetricRulesFromDiscoveryRule(test.resource, test.mapper)
+	metricRules, metricsError, _ := GetMetricRulesFromDiscoveryRule(test.resource, test.mapper)
 	requests, err := metricRules[0].QueryForSeries(test.namespace, test.nameReg, []string{})
 	if err != nil {
 		t.Errorf("Failed to QueryForSeriesResource: %v", err)
 	}
 	if requests != test.expect {
 		t.Errorf("expect requests %s actual requests %s", test.expect, requests)
+	}
+	if metricsError != nil {
+		t.Errorf("expect requests %s actual requests %s", []string{}, metricsError)
 	}
 }
 
@@ -156,7 +162,7 @@ func TestGetLabelMatchersFromDiscoveryRule(t *testing.T) {
 }
 
 func TestGetMetricMatchesFromDiscoveryRule(t *testing.T) {
-	seriesQuery := `nginx_concurrent_utilization{pod_namespace!="",pod_name!=""}`
+	seriesQuery := `{__name__="nginx_concurrent_utilization",pod_namespace!="",pod_name!=""}`
 	metricsQuery := `sum(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)`
 	namespaced := true
 
@@ -178,7 +184,7 @@ func TestGetMetricMatchesFromDiscoveryRule(t *testing.T) {
 		expect:      "nginx_concurrent_utilization",
 	}
 
-	requests, err := GetMetricMatchesFromDiscoveryRule(test.resource)
+	requests, err := GetMetricMatchesFromDiscoveryRule(test.resource, "")
 	if err != nil {
 		t.Errorf("Failed to GetMetricMatchesFromDiscoveryRule: %v", err)
 	}
