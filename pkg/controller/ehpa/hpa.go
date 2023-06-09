@@ -173,6 +173,9 @@ func (c *EffectiveHPAController) UpdateHPAIfNeed(ctx context.Context, ehpa *auto
 			updated := &autoscalingv2.HorizontalPodAutoscaler{}
 			errGet := c.Get(context.TODO(), types.NamespacedName{Namespace: hpaCopy.Namespace, Name: hpaCopy.Name}, updated)
 			if errGet == nil {
+				updated.Labels = hpaCopy.Labels
+				updated.Annotations = hpaCopy.Annotations
+				updated.Spec = hpaCopy.Spec
 				hpaCopy = updated
 			}
 
