@@ -324,20 +324,6 @@ func GetNamespacePods(kubeClient client.Client, namespace string) ([]corev1.Pod,
 	return pods.Items, nil
 }
 
-// GetPersistentVolumeClaims returns Persistent Volume Claims
-func GetPersistentVolumeClaims(kubeClient client.Client, name string) ([]corev1.PersistentVolumeClaim, error) {
-	// Get a list of bind pvc
-	opts := []client.ListOption{
-		client.MatchingFields{"spec.volumeName": name},
-	}
-	pvcList := &corev1.PersistentVolumeClaimList{}
-	if err := kubeClient.List(context.Background(), pvcList, opts...); err != nil {
-		return nil, err
-	}
-
-	return pvcList.Items, nil
-}
-
 func GetServicePods(kubeClient client.Client, svc *corev1.Service) ([]corev1.Pod, error) {
 	opts := []client.ListOption{
 		client.InNamespace(svc.Namespace),
