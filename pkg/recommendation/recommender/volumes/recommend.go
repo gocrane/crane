@@ -15,8 +15,13 @@ func (vr *VolumesRecommender) Recommend(ctx *framework.RecommendationContext) er
 	isOrphanVolume := true
 	for _, pod := range ctx.Pods {
 		for _, volumeClaim := range pod.Spec.Volumes {
-			if volumeClaim.PersistentVolumeClaim != nil && volumeClaim.PersistentVolumeClaim.ClaimName == ctx.Object.GetName() {
-				isOrphanVolume = false
+			if volumeClaim.PersistentVolumeClaim == nil {
+				continue
+			}
+			for _, pvc := range ctx.PVCs {
+				if volumeClaim.PersistentVolumeClaim.ClaimName == pvc.Name {
+					isOrphanVolume = false
+				}
 			}
 		}
 	}
