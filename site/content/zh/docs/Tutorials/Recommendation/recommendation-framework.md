@@ -128,6 +128,8 @@ patchData=`kubectl get recommend workloads-rule-replicas-rckvb -n default -o jso
 - [**副本数推荐**](/zh-cn/docs/tutorials/recommendation/replicas-recommendation): 通过 HPA 算法分析应用的真实用量推荐更合适的副本数量
 - [**HPA 推荐**](/zh-cn/docs/tutorials/recommendation/hpa-recommendation): 扫描集群中的 Workload，针对适合适合水平弹性的 Workload 推荐 HPA 配置
 - [**闲置节点推荐**](/zh-cn/docs/tutorials/recommendation/idlenode-recommendation): 扫描集群中的闲置节点
+- [**Service 推荐**](/zh-cn/docs/tutorials/recommendation/service-recommendation): 扫描集群中的闲置 Service
+- [**PV 推荐**](/zh-cn/docs/tutorials/recommendation/pv-recommendation): 扫描集群中的闲置 PV
 
 ### Recommender 框架
 
