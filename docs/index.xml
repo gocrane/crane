@@ -578,6 +578,8 @@ If you want to know how Crane makes Recommendations, or if you want to try to im
 &lt;li>&lt;a href="/docs/tutorials/recommendation/replicas-recommendation">&lt;strong>Replicas Recommendation&lt;/strong>&lt;/a>: Use the HPA algorithm to analyze the actual usage of applications and recommend more appropriate replicas configurations.&lt;/li>
 &lt;li>&lt;a href="/docs/tutorials/recommendation/hpa-recommendation">&lt;strong>HPA Recommendation&lt;/strong>&lt;/a>: Scan the Workload in a cluster and recommend HPA configurations for Workload that are suitable for horizontal autoscaling&lt;/li>
 &lt;li>&lt;a href="/docs/tutorials/recommendation/idlenode-recommendation">&lt;strong>IdleNode Recommendation&lt;/strong>&lt;/a>: Find the idle nodes in cluster&lt;/li>
+&lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/service-recommendation">&lt;strong>Service Recommendation&lt;/strong>&lt;/a>: Find the idle load balancer service in cluster&lt;/li>
+&lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/pv-recommendation">&lt;strong>PV Recommendation&lt;/strong>&lt;/a>: Find the idle persist volume in cluster&lt;/li>
 &lt;/ul>
 &lt;h3 id="recommender-framework">Recommender Framework&lt;/h3>
 &lt;p>Recommender framework defines a set of workflow, The workflow execution sequence according to the process, the process is divided into four stages: Filter, Prepare, Recommend, Observe. Recommender performs recommends functions by implementing these four stages.&lt;/p>
@@ -2985,7 +2987,105 @@ Change &lt;code>crane-scheduler&lt;/code> to &lt;code>default-scheduler&lt;/code
 &lt;/tr>
 &lt;/tbody>
 &lt;/table>
-&lt;p>How to update recommendation configuration please refer to：&lt;a href="/docs/tutorials/recommendation/recommendation-framework">&lt;strong>Recommendation Framework&lt;/strong>&lt;/a>&lt;/p></description></item><item><title>Docs: Time Series Forecast Algorithm-DSP</title><link>/docs/core-concept/timeseriees-forecasting-by-dsp/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/core-concept/timeseriees-forecasting-by-dsp/</guid><description>
+&lt;p>How to update recommendation configuration please refer to：&lt;a href="/docs/tutorials/recommendation/recommendation-framework">&lt;strong>Recommendation Framework&lt;/strong>&lt;/a>&lt;/p></description></item><item><title>Docs: Service Recommendation</title><link>/docs/tutorials/recommendation/service-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/service-recommendation/</guid><description>
+&lt;p>Service 推荐通过扫描集群中 Service 的运行状况，帮助用户找到闲置的 Kubernetes Service。&lt;/p>
+&lt;h2 id="动机">动机&lt;/h2>
+&lt;p>通常在 Kubernetes 中我们会使用 Service + Workload 来自动创建和管理负载均衡并将负载均衡挂载到应用上，在日常的运营中难免会出现空闲和低利用率的负载均衡，浪费了大量成本，Service 推荐尝试帮助用户找到这部分 Service 来实现成本优化。&lt;/p>
+&lt;h2 id="推荐示例">推荐示例&lt;/h2>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">annotations&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/last-start-time&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2023-06-12 11:52:23&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/message&lt;/span>: &lt;span style="color:#ae81ff">Success&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/run-number&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;7823&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">creationTimestamp&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2023-06-12T09:44:23Z&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labels&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-name&lt;/span>: &lt;span style="color:#ae81ff">service-rule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-recommender&lt;/span>: &lt;span style="color:#ae81ff">Service&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-uid&lt;/span>: &lt;span style="color:#ae81ff">67807cd9-b4c9-4d63-8493-d330ccace364&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-kind&lt;/span>: &lt;span style="color:#ae81ff">Service&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-name&lt;/span>: &lt;span style="color:#ae81ff">nginx&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-namespace&lt;/span>: &lt;span style="color:#ae81ff">crane-system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-version&lt;/span>: &lt;span style="color:#ae81ff">v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">service-rule-service-cnwt5&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">crane-system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">ownerReferences&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">blockOwnerDeletion&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">controller&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">RecommendationRule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">service-rule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">67807cd9-b4c9-4d63-8493-d330ccace364&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">adoptionType&lt;/span>: &lt;span style="color:#ae81ff">StatusAndAnnotation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategy&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategyType&lt;/span>: &lt;span style="color:#ae81ff">Once&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Service&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">nginx&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">crane-system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">Service&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">status&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">action&lt;/span>: &lt;span style="color:#ae81ff">Delete&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">description&lt;/span>: &lt;span style="color:#ae81ff">It is a Orphan Service, Pod count is 0&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastUpdateTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2023-06-12T11:52:23Z&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>在该示例中：&lt;/p>
+&lt;ul>
+&lt;li>推荐的 TargetRef 指向了 Service：nginx&lt;/li>
+&lt;li>推荐类型为 Service 推荐&lt;/li>
+&lt;li>action 是 Delete，这里只是给出建议&lt;/li>
+&lt;/ul>
+&lt;h2 id="实现原理">实现原理&lt;/h2>
+&lt;p>Service 推荐按以下步骤完成一次推荐过程：&lt;/p>
+&lt;ol>
+&lt;li>扫描集群中所有 LoadBalancer 类型的 Service&lt;/li>
+&lt;li>如果 Service 对应的 endpoints 中有 Address 或者 NotReadyAddresses，则不是限制的 Service&lt;/li>
+&lt;li>依据 Service 推荐中流量相关 metric 检测 Service 是否小于阈值水位，如果小于水位则判定为闲置节点&lt;/li>
+&lt;/ol>
+&lt;h2 id="如何验证推荐结果的准确性">如何验证推荐结果的准确性&lt;/h2>
+&lt;p>以下是判断节点资源阈值水位的 Prom query，验证时把 node 替换成实际的节点名&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// Container network cumulative count of bytes received
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#a6e22e">queryFmtNetReceiveBytes&lt;/span> = &lt;span style="color:#e6db74">`sum(rate(container_network_receive_bytes_total{namespace=&amp;#34;%s&amp;#34;,pod=~&amp;#34;%s&amp;#34;,container!=&amp;#34;&amp;#34;}[3m]))`&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// Container network cumulative count of bytes transmitted
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#a6e22e">queryFmtNetTransferBytes&lt;/span> = &lt;span style="color:#e6db74">`sum(rate(container_network_transmit_bytes_total{namespace=&amp;#34;%s&amp;#34;,pod=~&amp;#34;%s&amp;#34;,container!=&amp;#34;&amp;#34;}[3m]))`&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="支持的资源类型">支持的资源类型&lt;/h2>
+&lt;p>只支持 Service 类型，目前只会对 LoadBalancer 类型的 Service 进行分析。&lt;/p>
+&lt;h2 id="参数配置">参数配置&lt;/h2>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>配置项&lt;/th>
+&lt;th>默认值&lt;/th>
+&lt;th>描述&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>net-receive-bytes&lt;/td>
+&lt;td>0&lt;/td>
+&lt;td>Service 对应 Pods 接受到的网络请求 bytes，默认不检查&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>net-receive-percentile&lt;/td>
+&lt;td>0.99&lt;/td>
+&lt;td>计算接受到的网络请求时的 Percentile&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>net-transfer-bytes&lt;/td>
+&lt;td>0&lt;/td>
+&lt;td>Service 对应 Pods 传输的网络请求 bytes，默认不检查&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>net-transfer-percentile&lt;/td>
+&lt;td>0.99&lt;/td>
+&lt;td>计算传输的网络请求时的 Percentile&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>注意，当 pod 配置了 liveness/readness probe 后，kubelet 的探测会带来一定的容器流量，因此流量的阈值需要设置的稍微大一些，可结合具体监控数据配置。&lt;/p>
+&lt;p>如何更新推荐的配置请参考：&lt;a href="/zh-cn/docs/tutorials/recommendation/recommendation-framework">&lt;strong>推荐框架&lt;/strong>&lt;/a>&lt;/p></description></item><item><title>Docs: Time Series Forecast Algorithm-DSP</title><link>/docs/core-concept/timeseriees-forecasting-by-dsp/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/core-concept/timeseriees-forecasting-by-dsp/</guid><description>
 &lt;p>Time series forecasting refers to using historical time series data to predict future values. Time series data typically consists of time and corresponding values, such as resource usage, stock prices, or temperature. DSP (Digital Signal Processing) is a digital signal processing technique that can be used for analyzing and processing time series data.&lt;/p>
 &lt;p>Discrete Fourier Transform (DFT) is a commonly used algorithm in the field of DSP. DFT is a technique that transforms time domain signals into frequency domain signals. By decomposing time domain signals into different frequency components, the characteristics and structures of the signals can be better understood and analyzed. In time series forecasting, DFT can be used to analyze and predict the periodicity and trend of signals, thereby improving the accuracy of forecasts.&lt;/p>
 &lt;p>Crane uses commonly used techniques in the field of Digital Signal Processing (DSP), such as &lt;code>Discrete Fourier Transform (DFT)&lt;/code> and &lt;code>autocorrelation function&lt;/code>, to identify and predict periodic time series.&lt;/p>
@@ -3476,7 +3576,64 @@ F[Result workload replicas];
 &lt;ul>
 &lt;li>Just waiting. the Prediction algorithm need more time, you can see &lt;code>DSP&lt;/code> section to know more about this algorithm.&lt;/li>
 &lt;li>EffectiveHorizontalPodAutoscaler have a protection mechanism when prediction failed, it will use the actual cpu utilization to do autoscaling.&lt;/li>
-&lt;/ul></description></item><item><title>Docs: Architecture</title><link>/docs/core-concept/architecture/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/core-concept/architecture/</guid><description>
+&lt;/ul></description></item><item><title>Docs: PV Recommendation</title><link>/docs/tutorials/recommendation/pv-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/pv-recommendation/</guid><description>
+&lt;p>PV 推荐通过扫描集群中 PV 的运行状况，帮助用户找到闲置的 Kubernetes PV。&lt;/p>
+&lt;h2 id="动机">动机&lt;/h2>
+&lt;p>通常在 Kubernetes 中我们会使用 PV + Workload 来自动创建和管理存储卷并将存储卷挂载到应用上，在日常的运营中难免会出现空闲或者空跑的存储卷，浪费了大量成本， PV 推荐尝试帮助用户找到这部分 PV 来实现成本优化。&lt;/p>
+&lt;h2 id="推荐示例">推荐示例&lt;/h2>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">annotations&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/last-start-time&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2023-06-14 08:55:25&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/message&lt;/span>: &lt;span style="color:#ae81ff">Success&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/run-number&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;653&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labels&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-name&lt;/span>: &lt;span style="color:#ae81ff">persistentvolumes-rule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-recommender&lt;/span>: &lt;span style="color:#ae81ff">Volume&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-uid&lt;/span>: &lt;span style="color:#ae81ff">39d30abe-4c7f-4e65-b961-b00ec7776b45&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-kind&lt;/span>: &lt;span style="color:#ae81ff">PersistentVolume&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-name&lt;/span>: &lt;span style="color:#ae81ff">pvc-6ce24277-24e9-4fcf-8e8a-f9bdb5694134&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-namespace&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-version&lt;/span>: &lt;span style="color:#ae81ff">v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">persistentvolumes-rule-volume-5r9zn&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">crane-system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">ownerReferences&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">blockOwnerDeletion&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">controller&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">RecommendationRule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">persistentvolumes-rule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">39d30abe-4c7f-4e65-b961-b00ec7776b45&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">adoptionType&lt;/span>: &lt;span style="color:#ae81ff">StatusAndAnnotation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategy&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategyType&lt;/span>: &lt;span style="color:#ae81ff">Once&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">PersistentVolume&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">pvc-6ce24277-24e9-4fcf-8e8a-f9bdb5694134&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">Volume&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">status&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">action&lt;/span>: &lt;span style="color:#ae81ff">Delete&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">description&lt;/span>: &lt;span style="color:#ae81ff">It is an Orphan Volumes&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastUpdateTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2023-06-14T08:55:25Z&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>在该示例中：&lt;/p>
+&lt;ul>
+&lt;li>推荐的 TargetRef 指向了 PV: pvc-6ce24277-24e9-4fcf-8e8a-f9bdb5694134&lt;/li>
+&lt;li>推荐类型为 PV 推荐&lt;/li>
+&lt;li>action 是 Delete，这里只是给出建议&lt;/li>
+&lt;/ul>
+&lt;h2 id="实现原理">实现原理&lt;/h2>
+&lt;p>PV 推荐按以下步骤完成一次推荐过程：&lt;/p>
+&lt;ol>
+&lt;li>扫描集群中所有 PV，找到 PV 对应的 Pod 列表&lt;/li>
+&lt;li>如果 PV 没有对应的 PVC，则判断为闲置 PV&lt;/li>
+&lt;li>如果没有 Pod 关联这个 PV 和 PVC，则判断为闲置 PVC&lt;/li>
+&lt;/ol>
+&lt;h2 id="参数配置">参数配置&lt;/h2>
+&lt;p>目前 PV 推荐没有参数配置。&lt;/p>
+&lt;p>如何更新推荐的配置请参考：&lt;a href="/zh-cn/docs/tutorials/recommendation/recommendation-framework">&lt;strong>推荐框架&lt;/strong>&lt;/a>&lt;/p></description></item><item><title>Docs: Architecture</title><link>/docs/core-concept/architecture/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/core-concept/architecture/</guid><description>
 &lt;p>The overall architecture of Crane is shown as below:&lt;/p>
 &lt;p>&lt;img src="/images/crane-arch.png" alt="Crane Arch&amp;quot;">&lt;/p>
 &lt;p>&lt;strong>Craned&lt;/strong>&lt;/p>
