@@ -17,6 +17,7 @@ import (
 	_ "github.com/gocrane/crane/pkg/recommendation/recommender/replicas"
 	_ "github.com/gocrane/crane/pkg/recommendation/recommender/resource"
 	_ "github.com/gocrane/crane/pkg/recommendation/recommender/service"
+	_ "github.com/gocrane/crane/pkg/recommendation/recommender/volume"
 )
 
 type RecommenderManager interface {

@@ -119,7 +119,7 @@ data:
         acceptedResources:
           - kind: Node
             apiVersion: v1
-      - name: Volumes
+      - name: Volume
         acceptedResources:
           - kind: PersistentVolume
             apiVersion: v1

@@ -1,4 +1,4 @@
-package volumes
+package volume
 
 import (
 	corev1 "k8s.io/api/core/v1"
@@ -8,7 +8,7 @@ import (
 )
 
 // Filter out k8s resources that are not supported by the recommender.
-func (vr *VolumesRecommender) Filter(ctx *framework.RecommendationContext) error {
+func (vr *VolumeRecommender) Filter(ctx *framework.RecommendationContext) error {
 	var err error
 
 	// filter resource that not match objectIdentity
