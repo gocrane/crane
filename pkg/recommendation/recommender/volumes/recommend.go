@@ -3,6 +3,8 @@ package volumes
 import (
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/gocrane/crane/pkg/recommendation/framework"
 )
 
@@ -13,15 +15,17 @@ func (vr *VolumesRecommender) PreRecommend(ctx *framework.RecommendationContext)
 func (vr *VolumesRecommender) Recommend(ctx *framework.RecommendationContext) error {
 	// Check if each volume is being used by any pods
 	isOrphanVolume := true
+	var pv corev1.PersistentVolume
+	if err := framework.ObjectConversion(ctx.Object, &pv); err != nil {
+		return err
+	}
 	for _, pod := range ctx.Pods {
 		for _, volumeClaim := range pod.Spec.Volumes {
 			if volumeClaim.PersistentVolumeClaim == nil {
 				continue
 			}
-			for _, pvc := range ctx.PVCs {
-				if volumeClaim.PersistentVolumeClaim.ClaimName == pvc.Name {
-					isOrphanVolume = false
-				}
+			if volumeClaim.PersistentVolumeClaim.ClaimName == pv.Spec.ClaimRef.Name {
+				isOrphanVolume = false
 			}
 		}
 	}

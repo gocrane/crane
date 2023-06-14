@@ -69,8 +69,6 @@ type RecommendationContext struct {
 	Scale *autoscalingapiv1.Scale
 	// Pods in recommendation
 	Pods []corev1.Pod
-	// PVCs in recommendation
-	PVCs []corev1.PersistentVolumeClaim
 	// HPA Object
 	HPA *autoscalingv2.HorizontalPodAutoscaler
 	// HPA Object
@@ -176,15 +174,6 @@ func RetrieveScale(ctx *RecommendationContext) error {
 			return err
 		}
 		ctx.Scale = scale
-	}
-	return nil
-}
-
-func RetrievePersistentVolumeClaims(ctx *RecommendationContext) error {
-	if ctx.Recommendation.Spec.TargetRef.Kind == "PersistentVolume" {
-		pvcs, err := utils.GetPersistentVolumeClaims(ctx.Client, ctx.Recommendation.Spec.TargetRef.Name)
-		ctx.PVCs = pvcs
-		return err
 	}
 	return nil
 }
