@@ -23,7 +23,7 @@ recommenders:
         apiVersion: apps/v1
       - kind: StatefulSet
         apiVersion: apps/v1
-  - name: Volumes
+  - name: Volume
     acceptedResources:
       - kind: PersistentVolume
         apiVersion: v1

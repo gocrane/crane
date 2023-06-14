@@ -1,4 +1,4 @@
-package volumes
+package volume
 
 import (
 	"fmt"
@@ -8,11 +8,11 @@ import (
 	"github.com/gocrane/crane/pkg/recommendation/framework"
 )
 
-func (vr *VolumesRecommender) PreRecommend(ctx *framework.RecommendationContext) error {
+func (vr *VolumeRecommender) PreRecommend(ctx *framework.RecommendationContext) error {
 	return nil
 }
 
-func (vr *VolumesRecommender) Recommend(ctx *framework.RecommendationContext) error {
+func (vr *VolumeRecommender) Recommend(ctx *framework.RecommendationContext) error {
 	// Check if each volume is being used by any pods
 	isOrphanVolume := true
 	var pv corev1.PersistentVolume
@@ -38,6 +38,6 @@ func (vr *VolumesRecommender) Recommend(ctx *framework.RecommendationContext) er
 }
 
 // Policy add some logic for result of recommend phase.
-func (vr *VolumesRecommender) Policy(ctx *framework.RecommendationContext) error {
+func (vr *VolumeRecommender) Policy(ctx *framework.RecommendationContext) error {
 	return nil
 }
