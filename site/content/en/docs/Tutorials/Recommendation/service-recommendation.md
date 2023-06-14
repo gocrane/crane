@@ -1,7 +1,7 @@
 ---
-title: "闲置节点推荐"
-description: "闲置节点推荐功能介绍"
-weight: 15
+title: "Service Recommendation"
+description: "Introduce for Service Recommendation"
+weight: 16
 ---
 
 Service 推荐通过扫描集群中 Service 的运行状况，帮助用户找到闲置的 Kubernetes Service。

@@ -81,6 +81,25 @@ spec:
     - name: Service
 `
 
+const RecommendationRulePVsName = "persistentvolumes-rule"
+const RecommendationRulePVsYAML = `
+apiVersion: analysis.crane.io/v1alpha1
+kind: RecommendationRule
+metadata:
+  name: persistentvolumes-rule
+  labels:
+    analysis.crane.io/recommendation-rule-preinstall: "true"
+spec:
+  runInterval: 24h                            # 每24h运行一次
+  resourceSelectors:                          # 资源的信息
+    - kind: PersistentVolume
+      apiVersion: v1
+  namespaceSelector:
+    any: true                                 # 扫描所有namespace
+  recommenders:
+    - name: Volume
+`
+
 type AddClustersRequest struct {
 	Clusters []*store.Cluster `json:"clusters"`
 }
@@ -191,6 +210,12 @@ func (ch *ClusterHandler) AddClusters(c *gin.Context) {
 			}
 
 			err = ch.upsertRecommendationRule(RecommendationRuleServicesName, RecommendationRuleServicesYAML)
+			if err != nil {
+				ginwrapper.WriteResponse(c, err, nil)
+				return
+			}
+
+			err = ch.upsertRecommendationRule(RecommendationRulePVsName, RecommendationRulePVsYAML)
 			if err != nil {
 				ginwrapper.WriteResponse(c, err, nil)
 				return
