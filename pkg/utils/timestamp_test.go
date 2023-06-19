@@ -1,9 +1,10 @@
 package utils
 
 import (
-	"github.com/gocrane/crane/pkg/common"
 	"testing"
 	"time"
+
+	"github.com/gocrane/crane/pkg/common"
 )
 
 func TestDetectTimestampCompletion(t *testing.T) {
@@ -40,7 +41,7 @@ func TestDetectTimestampCompletion(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, _ := DetectTimestampCompletion(tt.tsList, tt.historyLength, now)
+			got, _, _ := DetectTimestampCompletion(tt.tsList, tt.historyLength, now)
 			if got != tt.want {
 				t.Errorf("DetectTimestampCompletion() = %v, want %v", got, tt.want)
 			}
