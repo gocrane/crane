@@ -122,7 +122,7 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 		if rr.HistoryCompletionCheck {
 			completion, existDays, err := utils.DetectTimestampCompletion(tsList, rr.CpuModelHistoryLength, time.Now())
 			if !completion || err != nil {
-				return fmt.Errorf("%s: cpu timestamps aren't completed, expect days %s actual %d ", metricNamer.BuildUniqueKey(), rr.CpuModelHistoryLength, existDays)
+				return fmt.Errorf("%s: cpu timestamps are not completed, expect %s actual %d days", metricNamer.BuildUniqueKey(), rr.CpuModelHistoryLength, existDays)
 			}
 		}
 
@@ -145,7 +145,7 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 		if rr.HistoryCompletionCheck {
 			completion, existDays, err := utils.DetectTimestampCompletion(tsList, rr.MemHistoryLength, time.Now())
 			if !completion || err != nil {
-				return fmt.Errorf("%s: memory timestamps aren't completed, expect days %s actual %d ", metricNamer.BuildUniqueKey(), rr.MemHistoryLength, existDays)
+				return fmt.Errorf("%s: memory timestamps are not completed, expect %s actual %d days ", metricNamer.BuildUniqueKey(), rr.MemHistoryLength, existDays)
 			}
 		}
 
