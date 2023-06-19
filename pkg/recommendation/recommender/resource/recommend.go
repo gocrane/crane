@@ -118,6 +118,14 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 		if len(tsList) < 1 || len(tsList[0].Samples) < 1 {
 			return fmt.Errorf("no value retured for queryExpr: %s", metricNamer.BuildUniqueKey())
 		}
+		// Check timestamp is completed
+		if rr.HistoryCompletionCheck {
+			completion, existDays, err := utils.DetectTimestampCompletion(tsList, rr.CpuModelHistoryLength, time.Now())
+			if !completion || err != nil {
+				return fmt.Errorf("%s: cpu timestamps aren't completed, expect days %s actual %d ", metricNamer.BuildUniqueKey(), rr.CpuModelHistoryLength, existDays)
+			}
+		}
+
 		v := int64(tsList[0].Samples[0].Value * 1000)
 		cpuQuantity := resource.NewMilliQuantity(v, resource.DecimalSI)
 		klog.Infof("%s: container %s recommended cpu %s", ctx.String(), c.Name, cpuQuantity.String())
@@ -133,6 +141,14 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 		if len(tsList) < 1 || len(tsList[0].Samples) < 1 {
 			return fmt.Errorf("no value retured for queryExpr: %s", metricNamer.BuildUniqueKey())
 		}
+		// Check timestamp is completed
+		if rr.HistoryCompletionCheck {
+			completion, existDays, err := utils.DetectTimestampCompletion(tsList, rr.MemHistoryLength, time.Now())
+			if !completion || err != nil {
+				return fmt.Errorf("%s: memory timestamps aren't completed, expect days %s actual %d ", metricNamer.BuildUniqueKey(), rr.MemHistoryLength, existDays)
+			}
+		}
+
 		v = int64(tsList[0].Samples[0].Value)
 		if v <= 0 {
 			return fmt.Errorf("no enough metrics")
