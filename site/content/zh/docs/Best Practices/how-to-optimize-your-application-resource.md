@@ -159,7 +159,9 @@ patchData=`kubectl get recommend workloads-rule-replicas-rckvb -n default -o jso
 - [**资源推荐**](/zh-cn/docs/tutorials/recommendation/resource-recommendation): 通过 VPA 算法分析应用的真实用量推荐更合适的资源配置
 - [**副本数推荐**](/zh-cn/docs/tutorials/recommendation/replicas-recommendation): 通过 HPA 算法分析应用的真实用量推荐更合适的副本数量
 - [**HPA 推荐**](/zh-cn/docs/tutorials/recommendation/hpa-recommendation): 扫描集群中的 Workload，针对适合适合水平弹性的 Workload 推荐 HPA 配置
-- [**闲置节点推荐**](/zh-cn/docs/tutorials/recommendation/idlenode-recommendation): 扫描集群中的闲置节点
+- [**闲置节点推荐**](/zh-cn/docs/tutorials/recommendation/idlenode-recommendation): 通过扫描集群中节点的状态和利用率，帮助用户找到闲置的 Kubernetes node
+- [**Service 推荐**](zh-cn/docs/tutorials/recommendation/service-recommendation): 通过扫描集群中 Service 的运行状况，帮助用户找到闲置的 Kubernetes Service
+- [**PV 推荐**](zh-cn/docs/tutorials/recommendation/pv-recommendation): 通过扫描集群中 PV 的运行状况，帮助用户找到闲置的 Kubernetes PV
 
 本文重点讨论 Workload 的资源配置优化，因此下面重点介绍资源推荐和副本推荐。
 
