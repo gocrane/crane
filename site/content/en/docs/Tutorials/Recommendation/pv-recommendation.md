@@ -4,13 +4,15 @@ description: "Introduce for PV Recommendation"
 weight: 17
 ---
 
-PV 推荐通过扫描集群中 PV 的运行状况，帮助用户找到闲置的 Kubernetes PV。
+PV recommendation scans the running status of PVs in the cluster to help users find idle Kubernetes PVs.
 
-## 动机
+## Motivation
 
-通常在 Kubernetes 中我们会使用 PV + Workload 来自动创建和管理存储卷并将存储卷挂载到应用上，在日常的运营中难免会出现空闲或者空跑的存储卷，浪费了大量成本， PV 推荐尝试帮助用户找到这部分 PV 来实现成本优化。
+In Kubernetes, we usually use PV + Workload to automatically create and manage storage volumes and attach them to applications. 
+However, in daily operations, idle or unused storage volumes may inevitably occur, wasting a lot of costs. 
+PV recommendation tries to help users find these PVs to achieve cost optimization.
 
-## 推荐示例
+## Sample
 
 ```yaml
 apiVersion: analysis.crane.io/v1alpha1
@@ -52,22 +54,22 @@ status:
   lastUpdateTime: "2023-06-14T08:55:25Z"
 ```
 
-在该示例中：
+In this sample:
 
-- 推荐的 TargetRef 指向了 PV: pvc-6ce24277-24e9-4fcf-8e8a-f9bdb5694134
-- 推荐类型为 PV 推荐
-- action 是 Delete，这里只是给出建议
+- The recommended TargetRef points to PV: pvc-6ce24277-24e9-4fcf-8e8a-f9bdb5694134
+- The recommendation type is PV recommendation
+- The action is to Delete, and it is only a suggestion provided here.
 
-## 实现原理
+## Implement
 
-PV 推荐按以下步骤完成一次推荐过程：
+PV recommendation completes a recommendation process using the following steps:
 
-1. 扫描集群中所有 PV，找到 PV 对应的 Pod 列表
-2. 如果 PV 没有对应的 PVC，则判断为闲置 PV
-3. 如果没有 Pod 关联这个 PV 和 PVC，则判断为闲置 PVC
+1. Scan all PVs in the cluster and find the list of Pods corresponding to each PV.
+2. If the PV does not have a corresponding PVC, it is considered an idle PV.
+3. If no Pods are associated with this PV and PVC, it is considered an idle PVC.
 
-## 参数配置
+## Configuration
 
-目前 PV 推荐没有参数配置。
+Currently, there is no parameter configuration for PV recommendation.
 
-如何更新推荐的配置请参考：[**推荐框架**](/zh-cn/docs/tutorials/recommendation/recommendation-framework)
+How to update recommendation configuration please refer to：[**Recommendation Framework**](/docs/tutorials/recommendation/recommendation-framework)

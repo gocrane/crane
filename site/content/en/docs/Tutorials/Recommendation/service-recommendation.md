@@ -4,13 +4,15 @@ description: "Introduce for Service Recommendation"
 weight: 16
 ---
 
-Service 推荐通过扫描集群中 Service 的运行状况，帮助用户找到闲置的 Kubernetes Service。
+Service recommendation scans the running status of Services in the cluster to help users find idle Kubernetes Services.
 
-## 动机
+## Motivation
 
-通常在 Kubernetes 中我们会使用 Service + Workload 来自动创建和管理负载均衡并将负载均衡挂载到应用上，在日常的运营中难免会出现空闲和低利用率的负载均衡，浪费了大量成本，Service 推荐尝试帮助用户找到这部分 Service 来实现成本优化。
+In Kubernetes, we usually use Service + Workload to automatically create and manage load balancing and attach it to applications. 
+However, in daily operations, idle and low utilization load balancing inevitably occur, wasting a lot of costs. 
+Service recommendation tries to help users find these Services to achieve cost optimization.
 
-## 推荐示例
+## Sample
 
 ```yaml
 apiVersion: analysis.crane.io/v1alpha1
@@ -54,23 +56,24 @@ status:
   lastUpdateTime: "2023-06-12T11:52:23Z"
 ```
 
-在该示例中：
+In this sample:
 
-- 推荐的 TargetRef 指向了 Service：nginx
-- 推荐类型为 Service 推荐
-- action 是 Delete，这里只是给出建议
+- The recommended TargetRef points to the Service: nginx.
+- The recommendation type is Service recommendation.
+- The action is to Delete, and it is only a suggestion provided here.
 
-## 实现原理
+## Implement
 
-Service 推荐按以下步骤完成一次推荐过程：
+Service recommendation completes a recommendation process using the following steps:
 
-1. 扫描集群中所有 LoadBalancer 类型的 Service
-2. 如果 Service 对应的 endpoints 中有 Address 或者 NotReadyAddresses，则不是限制的 Service
-3. 依据 Service 推荐中流量相关 metric 检测 Service 是否小于阈值水位，如果小于水位则判定为闲置节点
+1. Scan all LoadBalancer-type Services in the cluster.
+2. If the endpoints corresponding to the Service have an Address or NotReadyAddresses, it is not a restricted Service.
+3. Based on the traffic-related metrics in Service recommendation, check whether the Service is below the threshold level. If it is below the threshold level, it is determined to be an idle node.
 
-## 如何验证推荐结果的准确性
 
-以下是判断节点资源阈值水位的 Prom query，验证时把 node 替换成实际的节点名
+## How to verify the accuracy of recommendation results
+
+The following is the Prom query for determining the threshold level of node resources. When verifying, replace "node" with the actual node name.
 
 ```go
 // Container network cumulative count of bytes received
@@ -79,19 +82,19 @@ queryFmtNetReceiveBytes = `sum(rate(container_network_receive_bytes_total{namesp
 queryFmtNetTransferBytes = `sum(rate(container_network_transmit_bytes_total{namespace="%s",pod=~"%s",container!=""}[3m]))`
 ```
 
-## 支持的资源类型
+## Accepted resources
 
-只支持 Service 类型，目前只会对 LoadBalancer 类型的 Service 进行分析。
+Only Service type is supported, and currently, only LoadBalancer-type Services will be analyzed.
 
-## 参数配置
+## Configuration
 
-| 配置项      | 默认值 | 描述                              |
-|----------|-----|---------------------------------|
-| net-receive-bytes | 0   | Service 对应 Pods 接受到的网络请求 bytes，默认不检查 |
-| net-receive-percentile  | 0.99 | 计算接受到的网络请求时的 Percentile         |
-| net-transfer-bytes | 0   | Service 对应 Pods 传输的网络请求 bytes，默认不检查   |
-| net-transfer-percentile | 0.99    | 计算传输的网络请求时的 Percentile          |
+| Configuration items      | Default value | Description                          |
+|----------|-----|--------------------------------------|
+| net-receive-bytes | 0   | The amount of network request bytes received by the Pods corresponding to the Service, which is not checked by default. |
+| net-receive-percentile  | 0.99 | The percentile used to calculate the amount of network requests received              |
+| net-transfer-bytes | 0   | The amount of network request bytes transmitted by the Pods corresponding to the Service, which is not checked by default.  |
+| net-transfer-percentile | 0.99    | The percentile used when calculating the amount of network requests transmitted.              |
 
-注意，当 pod 配置了 liveness/readness probe 后，kubelet 的探测会带来一定的容器流量，因此流量的阈值需要设置的稍微大一些，可结合具体监控数据配置。
+Note that when a pod is configured with a liveness/readiness probe, the kubelet's probing will bring some container traffic, so the threshold for traffic needs to be set slightly higher. The configuration can be combined with specific monitoring data.
 
-如何更新推荐的配置请参考：[**推荐框架**](/zh-cn/docs/tutorials/recommendation/recommendation-framework)
+How to update recommendation configuration please refer to：[**Recommendation Framework**](/docs/tutorials/recommendation/recommendation-framework)
