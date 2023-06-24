@@ -78,4 +78,4 @@ When deploying pod, limit and request use `gocrane.io/<$resourcename>:<$value>`
 ## suitable scene
 In order to increase the load of nodes, some offline jobs or less important jobs can be scheduled and deployed to the cluster by using dynamic resources. Such jobs will use idle elastic resources.
 With the watermark guarantee of QOS, when the node has a high load, it will be evicted and throttled first, and the utilization of the node will be improved on the premise of ensuring the stability of high-priority services.
-See the section "Used with dynamic resources" in qos-interference-detection-and-active-avoidance.md.
+See the section "Used with dynamic resources" in [Interference Detection and Active Avoidance](/docs/tutorials/colocation-with-enhanced-qos/qos-interference-detection-and-active-avoidance).
