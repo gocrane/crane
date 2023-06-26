@@ -33,6 +33,7 @@ type ResourceRecommender struct {
 	CpuHistogramMaxValue     string
 	MemHistogramBucketSize   string
 	MemHistogramMaxValue     string
+	HistoryCompletionCheck   bool
 }
 
 func init() {
@@ -89,6 +90,11 @@ func NewResourceRecommender(recommender apis.Recommender, recommendationRule ana
 	memHistogramBucketSize := recommender.GetConfigString("mem-histogram-bucket-size", "104857600")
 	memHistogramMaxValue := recommender.GetConfigString("mem-histogram-max-value", "104857600000")
 
+	historyCompletion, err := recommender.GetConfigBool("history-completion-check", false)
+	if err != nil {
+		return nil, err
+	}
+
 	return &ResourceRecommender{
 		*base.NewBaseRecommender(recommender),
 		cpuSampleInterval,
@@ -110,5 +116,6 @@ func NewResourceRecommender(recommender apis.Recommender, recommendationRule ana
 		cpuHistogramMaxValue,
 		memHistogramBucketSize,
 		memHistogramMaxValue,
+		historyCompletion,
 	}, nil
 }
