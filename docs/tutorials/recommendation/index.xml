@@ -853,10 +853,12 @@ TargetRef&lt;/li>
 &lt;/tbody>
 &lt;/table>
 &lt;p>How to update recommendation configuration please refer to：&lt;a href="/docs/tutorials/recommendation/recommendation-framework">&lt;strong>Recommendation Framework&lt;/strong>&lt;/a>&lt;/p></description></item><item><title>Docs: Service Recommendation</title><link>/docs/tutorials/recommendation/service-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/service-recommendation/</guid><description>
-&lt;p>Service 推荐通过扫描集群中 Service 的运行状况，帮助用户找到闲置的 Kubernetes Service。&lt;/p>
-&lt;h2 id="动机">动机&lt;/h2>
-&lt;p>通常在 Kubernetes 中我们会使用 Service + Workload 来自动创建和管理负载均衡并将负载均衡挂载到应用上，在日常的运营中难免会出现空闲和低利用率的负载均衡，浪费了大量成本，Service 推荐尝试帮助用户找到这部分 Service 来实现成本优化。&lt;/p>
-&lt;h2 id="推荐示例">推荐示例&lt;/h2>
+&lt;p>Service recommendation scans the running status of Services in the cluster to help users find idle Kubernetes Services.&lt;/p>
+&lt;h2 id="motivation">Motivation&lt;/h2>
+&lt;p>In Kubernetes, we usually use Service + Workload to automatically create and manage load balancing and attach it to applications.
+However, in daily operations, idle and low utilization load balancing inevitably occur, wasting a lot of costs.
+Service recommendation tries to help users find these Services to achieve cost optimization.&lt;/p>
+&lt;h2 id="sample">Sample&lt;/h2>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
@@ -896,65 +898,67 @@ TargetRef&lt;/li>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">action&lt;/span>: &lt;span style="color:#ae81ff">Delete&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">description&lt;/span>: &lt;span style="color:#ae81ff">It is a Orphan Service, Pod count is 0&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastUpdateTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2023-06-12T11:52:23Z&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>在该示例中：&lt;/p>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>In this sample:&lt;/p>
 &lt;ul>
-&lt;li>推荐的 TargetRef 指向了 Service：nginx&lt;/li>
-&lt;li>推荐类型为 Service 推荐&lt;/li>
-&lt;li>action 是 Delete，这里只是给出建议&lt;/li>
+&lt;li>The recommended TargetRef points to the Service: nginx.&lt;/li>
+&lt;li>The recommendation type is Service recommendation.&lt;/li>
+&lt;li>The action is to Delete, and it is only a suggestion provided here.&lt;/li>
 &lt;/ul>
-&lt;h2 id="实现原理">实现原理&lt;/h2>
-&lt;p>Service 推荐按以下步骤完成一次推荐过程：&lt;/p>
+&lt;h2 id="implement">Implement&lt;/h2>
+&lt;p>Service recommendation completes a recommendation process using the following steps:&lt;/p>
 &lt;ol>
-&lt;li>扫描集群中所有 LoadBalancer 类型的 Service&lt;/li>
-&lt;li>如果 Service 对应的 endpoints 中有 Address 或者 NotReadyAddresses，则不是限制的 Service&lt;/li>
-&lt;li>依据 Service 推荐中流量相关 metric 检测 Service 是否小于阈值水位，如果小于水位则判定为闲置节点&lt;/li>
+&lt;li>Scan all LoadBalancer-type Services in the cluster.&lt;/li>
+&lt;li>If the endpoints corresponding to the Service have an Address or NotReadyAddresses, it is not a restricted Service.&lt;/li>
+&lt;li>Based on the traffic-related metrics in Service recommendation, check whether the Service is below the threshold level. If it is below the threshold level, it is determined to be an idle node.&lt;/li>
 &lt;/ol>
-&lt;h2 id="如何验证推荐结果的准确性">如何验证推荐结果的准确性&lt;/h2>
-&lt;p>以下是判断节点资源阈值水位的 Prom query，验证时把 node 替换成实际的节点名&lt;/p>
+&lt;h2 id="how-to-verify-the-accuracy-of-recommendation-results">How to verify the accuracy of recommendation results&lt;/h2>
+&lt;p>The following is the Prom query for determining the threshold level of node resources. When verifying, replace &amp;ldquo;node&amp;rdquo; with the actual node name.&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// Container network cumulative count of bytes received
 &lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#a6e22e">queryFmtNetReceiveBytes&lt;/span> = &lt;span style="color:#e6db74">`sum(rate(container_network_receive_bytes_total{namespace=&amp;#34;%s&amp;#34;,pod=~&amp;#34;%s&amp;#34;,container!=&amp;#34;&amp;#34;}[3m]))`&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// Container network cumulative count of bytes transmitted
 &lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#a6e22e">queryFmtNetTransferBytes&lt;/span> = &lt;span style="color:#e6db74">`sum(rate(container_network_transmit_bytes_total{namespace=&amp;#34;%s&amp;#34;,pod=~&amp;#34;%s&amp;#34;,container!=&amp;#34;&amp;#34;}[3m]))`&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="支持的资源类型">支持的资源类型&lt;/h2>
-&lt;p>只支持 Service 类型，目前只会对 LoadBalancer 类型的 Service 进行分析。&lt;/p>
-&lt;h2 id="参数配置">参数配置&lt;/h2>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="accepted-resources">Accepted resources&lt;/h2>
+&lt;p>Only Service type is supported, and currently, only LoadBalancer-type Services will be analyzed.&lt;/p>
+&lt;h2 id="configuration">Configuration&lt;/h2>
 &lt;table>
 &lt;thead>
 &lt;tr>
-&lt;th>配置项&lt;/th>
-&lt;th>默认值&lt;/th>
-&lt;th>描述&lt;/th>
+&lt;th>Configuration items&lt;/th>
+&lt;th>Default value&lt;/th>
+&lt;th>Description&lt;/th>
 &lt;/tr>
 &lt;/thead>
 &lt;tbody>
 &lt;tr>
 &lt;td>net-receive-bytes&lt;/td>
 &lt;td>0&lt;/td>
-&lt;td>Service 对应 Pods 接受到的网络请求 bytes，默认不检查&lt;/td>
+&lt;td>The amount of network request bytes received by the Pods corresponding to the Service, which is not checked by default.&lt;/td>
 &lt;/tr>
 &lt;tr>
 &lt;td>net-receive-percentile&lt;/td>
 &lt;td>0.99&lt;/td>
-&lt;td>计算接受到的网络请求时的 Percentile&lt;/td>
+&lt;td>The percentile used to calculate the amount of network requests received&lt;/td>
 &lt;/tr>
 &lt;tr>
 &lt;td>net-transfer-bytes&lt;/td>
 &lt;td>0&lt;/td>
-&lt;td>Service 对应 Pods 传输的网络请求 bytes，默认不检查&lt;/td>
+&lt;td>The amount of network request bytes transmitted by the Pods corresponding to the Service, which is not checked by default.&lt;/td>
 &lt;/tr>
 &lt;tr>
 &lt;td>net-transfer-percentile&lt;/td>
 &lt;td>0.99&lt;/td>
-&lt;td>计算传输的网络请求时的 Percentile&lt;/td>
+&lt;td>The percentile used when calculating the amount of network requests transmitted.&lt;/td>
 &lt;/tr>
 &lt;/tbody>
 &lt;/table>
-&lt;p>注意，当 pod 配置了 liveness/readness probe 后，kubelet 的探测会带来一定的容器流量，因此流量的阈值需要设置的稍微大一些，可结合具体监控数据配置。&lt;/p>
-&lt;p>如何更新推荐的配置请参考：&lt;a href="/zh-cn/docs/tutorials/recommendation/recommendation-framework">&lt;strong>推荐框架&lt;/strong>&lt;/a>&lt;/p></description></item><item><title>Docs: PV Recommendation</title><link>/docs/tutorials/recommendation/pv-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/pv-recommendation/</guid><description>
-&lt;p>PV 推荐通过扫描集群中 PV 的运行状况，帮助用户找到闲置的 Kubernetes PV。&lt;/p>
-&lt;h2 id="动机">动机&lt;/h2>
-&lt;p>通常在 Kubernetes 中我们会使用 PV + Workload 来自动创建和管理存储卷并将存储卷挂载到应用上，在日常的运营中难免会出现空闲或者空跑的存储卷，浪费了大量成本， PV 推荐尝试帮助用户找到这部分 PV 来实现成本优化。&lt;/p>
-&lt;h2 id="推荐示例">推荐示例&lt;/h2>
+&lt;p>Note that when a pod is configured with a liveness/readiness probe, the kubelet&amp;rsquo;s probing will bring some container traffic, so the threshold for traffic needs to be set slightly higher. The configuration can be combined with specific monitoring data.&lt;/p>
+&lt;p>How to update recommendation configuration please refer to：&lt;a href="/docs/tutorials/recommendation/recommendation-framework">&lt;strong>Recommendation Framework&lt;/strong>&lt;/a>&lt;/p></description></item><item><title>Docs: PV Recommendation</title><link>/docs/tutorials/recommendation/pv-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/pv-recommendation/</guid><description>
+&lt;p>PV recommendation scans the running status of PVs in the cluster to help users find idle Kubernetes PVs.&lt;/p>
+&lt;h2 id="motivation">Motivation&lt;/h2>
+&lt;p>In Kubernetes, we usually use PV + Workload to automatically create and manage storage volumes and attach them to applications.
+However, in daily operations, idle or unused storage volumes may inevitably occur, wasting a lot of costs.
+PV recommendation tries to help users find these PVs to achieve cost optimization.&lt;/p>
+&lt;h2 id="sample">Sample&lt;/h2>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
@@ -992,22 +996,22 @@ TargetRef&lt;/li>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">action&lt;/span>: &lt;span style="color:#ae81ff">Delete&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">description&lt;/span>: &lt;span style="color:#ae81ff">It is an Orphan Volumes&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastUpdateTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2023-06-14T08:55:25Z&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>在该示例中：&lt;/p>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>In this sample:&lt;/p>
 &lt;ul>
-&lt;li>推荐的 TargetRef 指向了 PV: pvc-6ce24277-24e9-4fcf-8e8a-f9bdb5694134&lt;/li>
-&lt;li>推荐类型为 PV 推荐&lt;/li>
-&lt;li>action 是 Delete，这里只是给出建议&lt;/li>
+&lt;li>The recommended TargetRef points to PV: pvc-6ce24277-24e9-4fcf-8e8a-f9bdb5694134&lt;/li>
+&lt;li>The recommendation type is PV recommendation&lt;/li>
+&lt;li>The action is to Delete, and it is only a suggestion provided here.&lt;/li>
 &lt;/ul>
-&lt;h2 id="实现原理">实现原理&lt;/h2>
-&lt;p>PV 推荐按以下步骤完成一次推荐过程：&lt;/p>
+&lt;h2 id="implement">Implement&lt;/h2>
+&lt;p>PV recommendation completes a recommendation process using the following steps:&lt;/p>
 &lt;ol>
-&lt;li>扫描集群中所有 PV，找到 PV 对应的 Pod 列表&lt;/li>
-&lt;li>如果 PV 没有对应的 PVC，则判断为闲置 PV&lt;/li>
-&lt;li>如果没有 Pod 关联这个 PV 和 PVC，则判断为闲置 PVC&lt;/li>
+&lt;li>Scan all PVs in the cluster and find the list of Pods corresponding to each PV.&lt;/li>
+&lt;li>If the PV does not have a corresponding PVC, it is considered an idle PV.&lt;/li>
+&lt;li>If no Pods are associated with this PV and PVC, it is considered an idle PVC.&lt;/li>
 &lt;/ol>
-&lt;h2 id="参数配置">参数配置&lt;/h2>
-&lt;p>目前 PV 推荐没有参数配置。&lt;/p>
-&lt;p>如何更新推荐的配置请参考：&lt;a href="/zh-cn/docs/tutorials/recommendation/recommendation-framework">&lt;strong>推荐框架&lt;/strong>&lt;/a>&lt;/p></description></item><item><title>Docs: How to develop Recommender</title><link>/docs/tutorials/recommendation/how-to-develop-recommender/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/how-to-develop-recommender/</guid><description>
+&lt;h2 id="configuration">Configuration&lt;/h2>
+&lt;p>Currently, there is no parameter configuration for PV recommendation.&lt;/p>
+&lt;p>How to update recommendation configuration please refer to：&lt;a href="/docs/tutorials/recommendation/recommendation-framework">&lt;strong>Recommendation Framework&lt;/strong>&lt;/a>&lt;/p></description></item><item><title>Docs: How to develop Recommender</title><link>/docs/tutorials/recommendation/how-to-develop-recommender/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/how-to-develop-recommender/</guid><description>
 &lt;p>Recommendation Framework provides an extensible framework for Recommender and supports several built-in Recommender. Users can implement a self-defined Recommender or modify the existing Recommenders.&lt;/p>
 &lt;h2 id="recommender-interface">Recommender Interface&lt;/h2>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#a6e22e">Recommender&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> {
