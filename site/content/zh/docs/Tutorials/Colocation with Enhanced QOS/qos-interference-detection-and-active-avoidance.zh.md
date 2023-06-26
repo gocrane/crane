@@ -246,4 +246,4 @@ memory_total_utilization| node mem utilization percent
 为了避免主动回避操作对于高优先级业务的影响，比如误驱逐了重要业务，建议使用PodQOS关联使用了弹性资源的workload，这样在执行动作的时候只会影响这些使用了空闲资源的workload，
 保证了节点上的核心业务的稳定。
 
-弹性资源的内容可以参见qos-dynamic-resource-oversold-and-limit.zh.md。
+弹性资源的内容可以参见[弹性资源超卖和限制](/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-dynamic-resource-oversold-and-limit.zh)。

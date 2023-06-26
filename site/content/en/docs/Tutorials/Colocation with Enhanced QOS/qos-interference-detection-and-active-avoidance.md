@@ -238,4 +238,4 @@ In order to avoid the impact of active avoidance operations on high-priority ser
 it is recommended to use PodQOS to associate workloads that use dynamic resources, so that only those workloads that use idle resources are affected when executing actions, 
 ensuring that The stability of the core business on the node.
 
-For the content of dymamic resources, see qos-dynamic-resource-oversold-and-limit.md.
+For the content of dymamic resources, see [Dynamic resource oversold and limit](/docs/tutorials/colocation-with-enhanced-qos/qos-dynamic-resource-oversold-and-limit).

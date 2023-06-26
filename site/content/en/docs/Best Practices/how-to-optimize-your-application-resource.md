@@ -79,7 +79,7 @@ Total Slack = Resource Slack + Usage Slack
 The goal of resource optimization is to reduce Resource Slack and Usage Slack. The model provides four steps for reducing waste, in order from top to bottom:
 
 1. Improving packing rate: Improving the packing rate can bring the Capacity and Request closer together. There are many ways to achieve this, such as:[Dynamic scheduler](/zh-cn/docs/tutorials/scheduling-pods-based-on-actual-node-load)、Tencent Cloud Native Node's node amplification function, etc.
-2. Adjusting business specifications to reduce resource locking: Adjusting business specifications based on the weekly peak resource usage can reduce the Request to the weekly peak line.[Resource recommendation](/docs/tutorials/recommendation/resource-recommendation)和[Replicas Recommendation](/docs/tutorials/recommendation/replicas-recommendation)can help applications achieve this goal.
+2. Adjusting business specifications to reduce resource locking: Adjusting business specifications based on the weekly peak resource usage can reduce the Request to the weekly peak line.[Resource recommendation](/docs/tutorials/recommendation/resource-recommendation) and [Replicas Recommendation](/docs/tutorials/recommendation/replicas-recommendation)can help applications achieve this goal.
 3. Adjusting business specifications + scaling to handle burst traffic: Based on the optimization of specifications, HPA can handle burst traffic to reduce the Request to the daily peak line. At this time, the target utilization rate of HPA is low, only to handle burst traffic, and automatic elasticity does not occur most of the time.
 4. Adjusting business specifications + scaling to handle daily traffic changes: Based on the optimization of specifications, HPA can handle daily traffic to reduce the Request to the mean. At this time, the target utilization rate of HPA is equal to the average utilization rate of the application.
 
@@ -156,7 +156,9 @@ Currently, Crane supports the following Recommenders:
 - [**Resource Recommendation**](/docs/tutorials/recommendation/resource-recommendation): By using the VPA algorithm to analyze the actual usage of applications, Crane recommends more appropriate resource configurations.
 - [**Replicas Recommendation**](/docs/tutorials/recommendation/replicas-recommendation): By using the HPA algorithm to analyze the actual usage of applications, Crane recommends more appropriate replica numbers.
 - [**HPA Recommendation**](/docs/tutorials/recommendation/hpa-recommendation): Scan the Workloads in the cluster and recommend HPA configurations for Workloads that are suitable for horizontal scaling.
-- [**Idlenode Recommendation**](/docs/tutorials/recommendation/idlenode-recommendation): Scan for idle nodes in the k8s cluster.
+- [**Idlenode Recommendation**](/docs/tutorials/recommendation/idlenode-recommendation): By scanning the state and utilization of nodes in the cluster, Node recommendation helps users find idle Kubernetes nodes.
+- [**Service Recommendation**](/docs/tutorials/recommendation/service-recommendation): By scanning the running status of Services in the cluster, Service recommendation helps users find idle Kubernetes Services.
+- [**PV Recommendation**](/docs/tutorials/recommendation/pv-recommendation): By scanning the running status of PV in the cluster, PV recommendation helps users find idle Kubernetes PV.
 
 This article focuses on optimizing resource configurations for Workloads, therefore, the following section will focus on resource recommendations and replica recommendations.
 

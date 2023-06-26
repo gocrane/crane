@@ -76,4 +76,4 @@ spec:
 ## 适配场景
 为了提升节点的负载，可以将一些离线作业或者重要性较低的作业通过使用弹性资源的方式调度部署到集群中，这类作业会使用空闲的弹性资源，
 搭配QOS的水位线保障，在节点出现负载较高的时候，也会优先被驱逐和压制，在保证高优先级业务稳定的前提下提升节点利用率。
-可以参见qos-interference-detection-and-active-avoidance.zh.md中"与弹性资源搭配使用"部分的内容。
+可以参见[干扰检测和主动回避](/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-interference-detection-and-active-avoidance.zh)中"与弹性资源搭配使用"部分的内容。
