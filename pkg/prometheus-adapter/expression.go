@@ -7,6 +7,8 @@ import (
 	"strings"
 	"text/template"
 
+	"k8s.io/klog/v2"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/prometheus-adapter/pkg/config"
@@ -60,30 +62,42 @@ func GetMetricRules() *MetricRules {
 	return metricRules
 }
 
-// ParsingResourceRules from config.MetricsDiscoveryConfig
-func ParsingResourceRules(mc config.MetricsDiscoveryConfig, mapper meta.RESTMapper) (err error) {
-	metricRules.MetricRulesResource, err = GetMetricRulesFromResourceRules(*mc.ResourceRules, mapper)
-	return err
-}
-
-// ParsingRules from config.MetricsDiscoveryConfig
-func ParsingRules(mc config.MetricsDiscoveryConfig, mapper meta.RESTMapper) (err error) {
-	if mc.Rules == nil {
-		return fmt.Errorf("Rules is nil")
-	} else {
-		metricRules.MetricRulesCustomer, err = GetMetricRulesFromDiscoveryRule(mc.Rules, mapper)
+// FlushRules updates the global metric rules with the given config.
+func FlushRules(metricsDiscoveryConfig config.MetricsDiscoveryConfig, mapper meta.RESTMapper) error {
+	var errs []error
+	if metricsDiscoveryConfig.ResourceRules != nil {
+		metricRulesResource, err := GetMetricRulesFromResourceRules(*metricsDiscoveryConfig.ResourceRules, mapper)
+		if err != nil {
+			klog.Errorf("flush ResourceRules failed %v", err)
+			errs = append(errs, err)
+		} else {
+			metricRules.MetricRulesResource = metricRulesResource
+		}
 	}
-	return err
-}
-
-// ParsingExternalRules from config.MetricsDiscoveryConfig
-func ParsingExternalRules(mc config.MetricsDiscoveryConfig, mapper meta.RESTMapper) (err error) {
-	if mc.ExternalRules == nil {
-		return fmt.Errorf("ExternalRules is nil")
-	} else {
-		metricRules.MetricRulesExternal, err = GetMetricRulesFromDiscoveryRule(mc.ExternalRules, mapper)
+	if metricsDiscoveryConfig.Rules != nil {
+		metricRulesCustomer, err := GetMetricRulesFromDiscoveryRule(metricsDiscoveryConfig.Rules, mapper)
+		if err != nil {
+			klog.Errorf("flush CustomerRules failed %v", err)
+			errs = append(errs, err)
+		} else {
+			metricRules.MetricRulesCustomer = metricRulesCustomer
+		}
 	}
-	return err
+	if metricsDiscoveryConfig.ExternalRules != nil {
+		metricRulesExternal, err := GetMetricRulesFromDiscoveryRule(metricsDiscoveryConfig.ExternalRules, mapper)
+		if err != nil {
+			klog.Errorf("flush ExternalRules failed %v", err)
+			errs = append(errs, err)
+		} else {
+			metricRules.MetricRulesExternal = metricRulesExternal
+		}
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("failed to flush the following rules: %v", errs)
+	}
+
+	return nil
 }
 
 // SetExtensionLabels from opts.DataSourcePromConfig.AdapterExtensionLabels

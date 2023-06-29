@@ -129,20 +129,3 @@ func (pc *PrometheusAdapterConfigFetcher) Reload() {
 		}
 	}
 }
-
-func FlushRules(metricsDiscoveryConfig config.MetricsDiscoveryConfig, mapper meta.RESTMapper) error {
-	err := ParsingResourceRules(metricsDiscoveryConfig, mapper)
-	if err != nil {
-		return err
-	}
-	err = ParsingRules(metricsDiscoveryConfig, mapper)
-	if err != nil {
-		return err
-	}
-	err = ParsingExternalRules(metricsDiscoveryConfig, mapper)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
