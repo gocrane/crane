@@ -20,6 +20,7 @@ import (
 
 	"github.com/gocrane/crane/pkg/features"
 	. "github.com/gocrane/crane/pkg/metricprovider"
+	prometheus_adapter "github.com/gocrane/crane/pkg/prometheus-adapter"
 )
 
 type CraneMetricCollector struct {
@@ -31,7 +32,8 @@ type CraneMetricCollector struct {
 	//external metrics of prediction for hpa
 	metricAutoScalingPrediction *prometheus.Desc
 	//model metrics of tsp
-	metricPredictionTsp *prometheus.Desc
+	metricPredictionTsp   *prometheus.Desc
+	metricMetricRuleError *prometheus.Desc
 }
 
 type PredictionMetric struct {
@@ -68,6 +70,12 @@ func NewCraneMetricCollector(client client.Client, scaleClient scale.ScalesGette
 			[]string{"targetKind", "targetName", "targetNamespace", "resourceIdentifier", "algorithm"},
 			nil,
 		),
+		metricMetricRuleError: prometheus.NewDesc(
+			prometheus.BuildFQName("crane", "metricrule", "errcount"),
+			"prometheus-adapter metric rules parsing error for Prediction's expression",
+			[]string{"metricKind"},
+			nil,
+		),
 	}
 }
 
@@ -78,6 +86,7 @@ func (c *CraneMetricCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.metricAutoScalingCron
 	ch <- c.metricAutoScalingPrediction
 	ch <- c.metricPredictionTsp
+	ch <- c.metricMetricRuleError
 }
 
 func (c *CraneMetricCollector) Collect(ch chan<- prometheus.Metric) {
@@ -120,6 +129,10 @@ func (c *CraneMetricCollector) Collect(ch chan<- prometheus.Metric) {
 				ch <- metricCron
 			}
 		}
+	}
+	metricsRuleError := c.getMetricsRuleError()
+	for _, i := range metricsRuleError {
+		ch <- i
 	}
 }
 
@@ -171,6 +184,28 @@ func (c *CraneMetricCollector) getMetricsCron(ehpa *autoscalingapi.EffectiveHori
 		"cron",
 	}
 	return prometheus.NewMetricWithTimestamp(time.Now(), prometheus.MustNewConstMetric(c.metricAutoScalingCron, prometheus.GaugeValue, float64(replicas), labelValues...)), nil
+}
+
+func (c *CraneMetricCollector) getMetricsRuleError() []prometheus.Metric {
+	var ms []prometheus.Metric
+	countRes := prometheus_adapter.CountMetricRulesErrorRes()
+	if countRes > 0 {
+		ms = append(ms, prometheus.NewMetricWithTimestamp(time.Now(), prometheus.MustNewConstMetric(c.metricMetricRuleError, prometheus.GaugeValue, float64(countRes), "resourceRules")))
+	}
+	countCus := prometheus_adapter.CountMetricRulesErrorCus()
+	if countCus > 0 {
+		ms = append(ms, prometheus.NewMetricWithTimestamp(time.Now(), prometheus.MustNewConstMetric(c.metricMetricRuleError, prometheus.GaugeValue, float64(countCus), "rules")))
+	}
+	countExt := prometheus_adapter.CountMetricRulesErrorExt()
+	if countExt > 0 {
+		ms = append(ms, prometheus.NewMetricWithTimestamp(time.Now(), prometheus.MustNewConstMetric(c.metricMetricRuleError, prometheus.GaugeValue, float64(countExt), "externalRules")))
+	}
+
+	if prometheus_adapter.GetMetricRulesError() {
+		ms = append(ms, prometheus.NewMetricWithTimestamp(time.Now(), prometheus.MustNewConstMetric(c.metricMetricRuleError, prometheus.GaugeValue, float64(1), "all")))
+	}
+
+	return ms
 }
 
 func (c *CraneMetricCollector) computePredictionMetric(tsp *predictionapi.TimeSeriesPrediction, pmMap map[string]predictionapi.PredictionMetric, status predictionapi.PredictionMetricStatus) []PredictionMetric {
