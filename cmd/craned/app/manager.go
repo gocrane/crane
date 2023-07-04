@@ -143,8 +143,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 		}
 	}()
 
-	recommenderMgr := initRecommenderManager(opts)
-	initControllers(podOOMRecorder, mgr, opts, predictorMgr, recommenderMgr, historyDataSources[providers.PrometheusDataSource])
+	initControllers(podOOMRecorder, mgr, opts, predictorMgr, historyDataSources[providers.PrometheusDataSource])
 	// initialize custom collector metrics
 	initMetricCollector(mgr)
 	runAll(ctx, mgr, predictorMgr, dataSourceProviders[providers.PrometheusDataSource], opts)
@@ -267,7 +266,7 @@ func initPredictorManager(opts *options.Options, realtimeDataSources map[provide
 }
 
 // initControllers setup controllers with manager
-func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.Options, predictorMgr predictor.Manager, recommenderMgr recommendation.RecommenderManager, historyDataSource providers.History) {
+func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.Options, predictorMgr predictor.Manager, historyDataSource providers.History) {
 	discoveryClientSet, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
 	if err != nil {
 		klog.Exit(err, "Unable to create discover client")
@@ -367,6 +366,8 @@ func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.O
 
 	// TODO(qmhu), change feature gate from analysis to recommendation
 	if utilfeature.DefaultFeatureGate.Enabled(features.CraneAnalysis) {
+		recommenderMgr := initRecommenderManager(opts)
+
 		if err := (&analytics.Controller{
 			Client: mgr.GetClient(),
 			/*Scheme:        mgr.GetScheme(),
