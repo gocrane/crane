@@ -3,8 +3,8 @@ package recommendation
 import (
 	"context"
 	"fmt"
-
 	"github.com/gin-gonic/gin"
+	"github.com/gocrane/crane/pkg/server/service/recommendation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	patchtypes "k8s.io/apimachinery/pkg/types"
@@ -21,6 +21,7 @@ import (
 )
 
 type Handler struct {
+	recommendSvc    recommendation.Service
 	client          client.Client
 	dynamicClient   dynamic.Interface
 	discoveryClient discovery.DiscoveryInterface
@@ -29,8 +30,9 @@ type Handler struct {
 func NewRecommendationHandler(config *config.Config) *Handler {
 	dynamicClient := dynamic.NewForConfigOrDie(config.KubeConfig)
 	discoveryClient := discovery.NewDiscoveryClientForConfigOrDie(config.KubeConfig)
-
+	svc := recommendation.NewService(config)
 	return &Handler{
+		recommendSvc:    svc,
 		client:          config.Client,
 		dynamicClient:   dynamicClient,
 		discoveryClient: discoveryClient,
@@ -39,8 +41,7 @@ func NewRecommendationHandler(config *config.Config) *Handler {
 
 // ListRecommendations list the recommendations in cluster.
 func (h *Handler) ListRecommendations(c *gin.Context) {
-	recommendList := &analysisapi.RecommendationList{}
-	err := h.client.List(context.TODO(), recommendList)
+	recommendList, err := h.recommendSvc.ListRecommendations(context.Background(), c.Query("filter_options"), c.Query("include_unlimited"))
 	if err != nil {
 		ginwrapper.WriteResponse(c, err, nil)
 		return

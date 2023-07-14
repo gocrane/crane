@@ -134,12 +134,24 @@ func RetrievePodTemplate(ctx *RecommendationContext) error {
 	unstructed := ctx.Object.(*unstructured.Unstructured)
 
 	// fill PodTemplate
-	podTemplateObject, found, err := unstructured.NestedMap(unstructed.Object, "spec", "template")
-	if !found || err != nil {
-		return fmt.Errorf("get template from unstructed object %s failed. ", klog.KObj(unstructed))
+	if ctx.Recommendation.Spec.TargetRef.Kind == "Pod" {
+		var Pod corev1.Pod
+		err := ObjectConversion(ctx.Object, &Pod)
+		if err != nil {
+			return err
+		}
+		ctx.PodTemplate.ObjectMeta = Pod.ObjectMeta
+		ctx.PodTemplate.Spec = Pod.Spec
+		return nil
+	} else {
+		podTemplateObject, found, err := unstructured.NestedMap(unstructed.Object, "spec", "template")
+		if !found || err != nil {
+			return fmt.Errorf("get template from unstructed object %s failed. ", klog.KObj(unstructed))
+		}
+
+		return ObjectConversion(podTemplateObject, &ctx.PodTemplate)
 	}
 
-	return ObjectConversion(podTemplateObject, &ctx.PodTemplate)
 }
 
 func RetrieveScale(ctx *RecommendationContext) error {
@@ -149,7 +161,7 @@ func RetrieveScale(ctx *RecommendationContext) error {
 		Name:       ctx.Recommendation.Spec.TargetRef.Name,
 	}
 
-	if ctx.Recommendation.Spec.TargetRef.Kind != "DaemonSet" {
+	if ctx.Recommendation.Spec.TargetRef.Kind != "DaemonSet" && ctx.Recommendation.Spec.TargetRef.Kind != "Pod" {
 		scale, _, err := utils.GetScale(context.TODO(), ctx.RestMapper, ctx.ScaleClient, ctx.Recommendation.Spec.TargetRef.Namespace, targetRef)
 		if err != nil {
 			return err
@@ -172,6 +184,18 @@ func RetrievePods(ctx *RecommendationContext) error {
 		}
 		pods, err := utils.GetDaemonSetPods(ctx.Client, ctx.Recommendation.Spec.TargetRef.Namespace, ctx.Recommendation.Spec.TargetRef.Name)
 		ctx.Pods = pods
+		return err
+	} else if ctx.Recommendation.Spec.TargetRef.Kind == "Pod" {
+		var Pod corev1.Pod
+		err := ObjectConversion(ctx.Object, &Pod)
+		if err != nil {
+			return err
+		}
+		if Pod.OwnerReferences != nil && len(Pod.OwnerReferences) > 0 {
+			ctx.Pods = []corev1.Pod{}
+		} else {
+			ctx.Pods = []corev1.Pod{Pod}
+		}
 		return err
 	} else {
 		pods, err := utils.GetPodsFromScale(ctx.Client, ctx.Scale)
