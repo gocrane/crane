@@ -78,7 +78,7 @@ func NewCadvisorManager(cgroupDriver string) Manager {
 	sysfs := csysfs.NewRealSysFs()
 	maxHousekeepingConfig := cmanager.HouskeepingConfig{Interval: &maxHousekeepingInterval, AllowDynamic: &allowDynamic}
 
-	m, err := cmanager.New(memCache, sysfs, maxHousekeepingConfig, includedMetrics, http.DefaultClient, []string{"/" + utils.CgroupKubePods}, "")
+	m, err := cmanager.New(memCache, sysfs, maxHousekeepingConfig, includedMetrics, http.DefaultClient, []string{"/" + utils.CgroupKubePods}, []string{}, "", time.Second)
 	if err != nil {
 		klog.Errorf("Failed to create cadvisor manager start: %v", err)
 		return nil

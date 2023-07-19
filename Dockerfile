@@ -1,7 +1,7 @@
 ARG PKGNAME
 
 # Build the manager binary
-FROM golang:1.17.2-alpine as builder
+FROM golang:1.20-alpine as builder
 
 ARG LDFLAGS
 ARG PKGNAME

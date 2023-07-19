@@ -16,7 +16,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.17
+          go-version: '>=1.2.0'
           
       # Get values for cache paths to be used in later steps
       - id: go-cache-paths
@@ -82,7 +82,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.17
+          go-version: '>=1.2.0'
 
       # Get values for cache paths to be used in later steps
       - id: go-cache-paths
@@ -115,7 +115,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.17
+          go-version: '>=1.2.0'
 
       # Get values for cache paths to be used in later steps
       - id: go-cache-paths
@@ -148,7 +148,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.17
+          go-version: '>=1.2.0'
 
       # Get values for cache paths to be used in later steps
       - id: go-cache-paths
@@ -182,7 +182,7 @@ jobs:
         uses: actions/setup-go@v3.0.0
         with:
           # The Go version to download (if necessary) and use. Supports semver spec and ranges.
-          go-version: 1.17 # optional
+          go-version: '>=1.2.0' # optional
           
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
