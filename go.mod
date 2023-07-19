@@ -11,7 +11,7 @@ require (
 	github.com/go-echarts/go-echarts/v2 v2.2.4
 	github.com/gocrane/api v0.10.1-0.20230719062935-80579bb68f6a
 	github.com/golang/mock v1.5.0
-	github.com/google/cadvisor v0.43.0
+	github.com/google/cadvisor v0.43.1
 	github.com/grafana-tools/sdk v0.0.0-20220919052116-6562121319fc
 	github.com/jaypipes/ghw v0.9.0
 	github.com/lithammer/fuzzysearch v1.1.8
