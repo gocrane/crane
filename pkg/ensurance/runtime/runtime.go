@@ -7,7 +7,7 @@ import (
 	"google.golang.org/grpc"
 	"k8s.io/apimachinery/pkg/util/errors"
 	criapis "k8s.io/cri-api/pkg/apis"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"k8s.io/klog/v2"
 	criremote "k8s.io/kubernetes/pkg/kubelet/cri/remote"
 
