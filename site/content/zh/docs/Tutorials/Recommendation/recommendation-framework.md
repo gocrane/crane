@@ -57,44 +57,22 @@ kubectl apply -f workload-rules.yaml
 
 这个例子会对所有 namespace 中的 Deployments 和 StatefulSets 做资源推荐和副本数推荐。
 
-2. 检查 RecommendationRule 的推荐进度。通过 Status.recommendations 观察推荐任务的进度，推荐任务是顺序执行，如果所有任务的 lastStartTime 为最近时间且 message 有值，则表示这一次推荐完成
+2. 检查 RecommendationRule 的推荐进度。通过 Recommendation 的 Annotation 可观察到任务的上次开始时间和运行的结果。
 
 ```shell
-kubectl get rr workloads-rule
+kubectl get recommend workloads-rule-replicas-7djlk -o yaml
 ```
 
 ```yaml
-status:
-  lastUpdateTime: "2022-09-28T10:36:02Z"
-  recommendations:
-  - apiVersion: analysis.crane.io/v1alpha1
-    kind: Recommendation
-    lastStartTime: "2022-09-28T10:36:02Z"
-    message: Success
-    name: workloads-rule-replicas-rckvb
-    namespace: default
-    recommenderRef:
-      name: Replicas
-    targetRef:
-      apiVersion: apps/v1
-      kind: Deployment
-      name: php-apache
-      namespace: default
-    uid: b15cbcd7-6fe2-4ace-9ae8-11cc0a6e69c2
-  - apiVersion: analysis.crane.io/v1alpha1
-    kind: Recommendation
-    lastStartTime: "2022-09-28T10:36:02Z"
-    message: Success
-    name: workloads-rule-resource-pnnxn
-    namespace: default
-    recommenderRef:
-      name: Resource
-    targetRef:
-      apiVersion: apps/v1
-      kind: Deployment
-      name: php-apache
-      namespace: default
-    uid: 8472013a-bda2-4025-b0df-3fdc69c1c910
+apiVersion: analysis.crane.io/v1alpha1
+kind: Recommendation
+metadata:
+  annotations:
+    analysis.crane.io/last-start-time: "2023-07-24 11:43:58"
+    analysis.crane.io/message: 'Failed to run recommendation flow in recommender Replicas:
+      Replicas CalculatePodTemplateRequests cpu failed: missing request for cpu'
+    analysis.crane.io/run-number: "59"
+  creationTimestamp: "2023-06-01T11:37:16Z"
 ```
 
 3. 查看优化建议 `Recommendation`
