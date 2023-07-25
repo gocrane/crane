@@ -459,6 +459,9 @@ environments:&lt;/p>
 &lt;li>Helm 3.1.0&lt;/li>
 &lt;li>Kind 0.16+&lt;/li>
 &lt;/ul>
+&lt;div class="alert alert-warning" role="alert">
+If your Kubernetes version &amp;gt;= 1.26, please referring to &lt;a href="https://github.com/gocrane/crane/pull/839">PR&lt;/a>
+&lt;/div>
 &lt;h2 id="installation">Installation&lt;/h2>
 &lt;p>Following command will install Crane with dependencies applications(Prometheus/Grafana).&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>curl -sf https://raw.githubusercontent.com/gocrane/crane/main/hack/local-env-setup.sh | sh -
@@ -520,40 +523,18 @@ If you want to know how Crane makes Recommendations, or if you want to try to im
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>kubectl apply -f workload-rules.yaml
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>This example will analysis Resource and Replicas for Deployments and StatefulSets in all namespace.。&lt;/p>
 &lt;ol start="2">
-&lt;li>Check the RecommendationRule recommendation progress. Observe the progress of recommendation tasks through &lt;code>Status.recommendations&lt;/code>. Recommendation tasks are executed sequentially. If lastStartTime of all tasks is the latest time and message has value, it indicates that this recommendation is completed.&lt;/li>
+&lt;li>Check the RecommendationRule recommendation progress. Through the annotations of the Recommendation, the start time of the last run of the job and the results can be observed.&lt;/li>
 &lt;/ol>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>kubectl get rr workloads-rule
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">status&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastUpdateTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2022-09-28T10:36:02Z&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommendations&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastStartTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2022-09-28T10:36:02Z&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">message&lt;/span>: &lt;span style="color:#ae81ff">Success&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule-replicas-rckvb&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommenderRef&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Replicas&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">php-apache&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">b15cbcd7-6fe2-4ace-9ae8-11cc0a6e69c2&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastStartTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2022-09-28T10:36:02Z&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">message&lt;/span>: &lt;span style="color:#ae81ff">Success&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule-resource-pnnxn&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommenderRef&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Resource&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">php-apache&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">8472013a-bda2-4025-b0df-3fdc69c1c910&lt;/span>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>kubectl get recommend workloads-rule-replicas-7djlk -o yaml
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">annotations&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/last-start-time&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2023-07-24 11:43:58&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/message&lt;/span>: &lt;span style="color:#f92672">&amp;#39;Failed to run recommendation flow in recommender Replicas&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">Replicas CalculatePodTemplateRequests cpu failed&lt;/span>: &lt;span style="color:#ae81ff">missing request for cpu&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/run-number&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;59&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">creationTimestamp&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2023-06-01T11:37:16Z&amp;#34;&lt;/span>
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ol start="3">
 &lt;li>Check &lt;code>Recommendation&lt;/code>&lt;/li>
 &lt;/ol>
@@ -803,7 +784,7 @@ cpu: &amp;#34;500m&amp;#34;
 &lt;p>The goal of resource optimization is to reduce Resource Slack and Usage Slack. The model provides four steps for reducing waste, in order from top to bottom:&lt;/p>
 &lt;ol>
 &lt;li>Improving packing rate: Improving the packing rate can bring the Capacity and Request closer together. There are many ways to achieve this, such as:&lt;a href="/zh-cn/docs/tutorials/scheduling-pods-based-on-actual-node-load">Dynamic scheduler&lt;/a>、Tencent Cloud Native Node&amp;rsquo;s node amplification function, etc.&lt;/li>
-&lt;li>Adjusting business specifications to reduce resource locking: Adjusting business specifications based on the weekly peak resource usage can reduce the Request to the weekly peak line.&lt;a href="/docs/tutorials/recommendation/resource-recommendation">Resource recommendation&lt;/a> and &lt;a href="/docs/tutorials/recommendation/replicas-recommendation">Replicas Recommendation&lt;/a>can help applications achieve this goal.&lt;/li>
+&lt;li>Adjusting business specifications to reduce resource locking: Adjusting business specifications based on the weekly peak resource usage can reduce the Request to the weekly peak line.&lt;a href="/docs/tutorials/recommendation/resource-recommendation">Resource recommendation&lt;/a>和&lt;a href="/docs/tutorials/recommendation/replicas-recommendation">Replicas Recommendation&lt;/a>can help applications achieve this goal.&lt;/li>
 &lt;li>Adjusting business specifications + scaling to handle burst traffic: Based on the optimization of specifications, HPA can handle burst traffic to reduce the Request to the daily peak line. At this time, the target utilization rate of HPA is low, only to handle burst traffic, and automatic elasticity does not occur most of the time.&lt;/li>
 &lt;li>Adjusting business specifications + scaling to handle daily traffic changes: Based on the optimization of specifications, HPA can handle daily traffic to reduce the Request to the mean. At this time, the target utilization rate of HPA is equal to the average utilization rate of the application.&lt;/li>
 &lt;/ol>
@@ -859,9 +840,7 @@ cpu: &amp;#34;500m&amp;#34;
 &lt;li>&lt;a href="/docs/tutorials/recommendation/resource-recommendation">&lt;strong>Resource Recommendation&lt;/strong>&lt;/a>: By using the VPA algorithm to analyze the actual usage of applications, Crane recommends more appropriate resource configurations.&lt;/li>
 &lt;li>&lt;a href="/docs/tutorials/recommendation/replicas-recommendation">&lt;strong>Replicas Recommendation&lt;/strong>&lt;/a>: By using the HPA algorithm to analyze the actual usage of applications, Crane recommends more appropriate replica numbers.&lt;/li>
 &lt;li>&lt;a href="/docs/tutorials/recommendation/hpa-recommendation">&lt;strong>HPA Recommendation&lt;/strong>&lt;/a>: Scan the Workloads in the cluster and recommend HPA configurations for Workloads that are suitable for horizontal scaling.&lt;/li>
-&lt;li>&lt;a href="/docs/tutorials/recommendation/idlenode-recommendation">&lt;strong>Idlenode Recommendation&lt;/strong>&lt;/a>: By scanning the state and utilization of nodes in the cluster, Node recommendation helps users find idle Kubernetes nodes.&lt;/li>
-&lt;li>&lt;a href="/docs/tutorials/recommendation/service-recommendation">&lt;strong>Service Recommendation&lt;/strong>&lt;/a>: By scanning the running status of Services in the cluster, Service recommendation helps users find idle Kubernetes Services.&lt;/li>
-&lt;li>&lt;a href="/docs/tutorials/recommendation/pv-recommendation">&lt;strong>PV Recommendation&lt;/strong>&lt;/a>: By scanning the running status of PV in the cluster, PV recommendation helps users find idle Kubernetes PV.&lt;/li>
+&lt;li>&lt;a href="/docs/tutorials/recommendation/idlenode-recommendation">&lt;strong>Idlenode Recommendation&lt;/strong>&lt;/a>: Scan for idle nodes in the k8s cluster.&lt;/li>
 &lt;/ul>
 &lt;p>This article focuses on optimizing resource configurations for Workloads, therefore, the following section will focus on resource recommendations and replica recommendations.&lt;/p>
 &lt;h3 id="resource-recommendations">Resource recommendations&lt;/h3>
@@ -992,6 +971,9 @@ The basic principle is to set the Request slightly higher than the maximum histo
 &lt;li>Kubernetes 1.18+&lt;/li>
 &lt;li>Helm 3.1.0&lt;/li>
 &lt;/ul>
+&lt;div class="alert alert-warning" role="alert">
+If your Kubernetes version &amp;gt;= 1.26, please referring to &lt;a href="https://github.com/gocrane/crane/pull/839">PR&lt;/a>
+&lt;/div>
 &lt;h2 id="steps">Steps&lt;/h2>
 &lt;h3 id="helm-installation">Helm Installation&lt;/h3>
 &lt;p>Please refer to Helm&amp;rsquo;s &lt;a href="https://helm.sh/docs/intro/install/">documentation&lt;/a> for installation.&lt;/p>
@@ -1005,37 +987,6 @@ But mirror repo has a certain latency. Please see Mirror Resources to know detai
 &lt;/div>
 &lt;p>Crane use prometheus to be the default metric provider.&lt;/p>
 &lt;p>Using following command to install prometheus components: prometheus-server, node-exporter, kube-state-metrics.&lt;/p>
-&lt;ul class="nav nav-tabs" id="tabs-2" role="tablist">&lt;li class="nav-item">
-&lt;a class="nav-link active tab-Main"
-id="tabs-2-0-tab" data-toggle="tab" href="#tabs-2-0" role="tab" onclick="handleClick(&amp;#34;Main&amp;#34;);"
-aria-controls="tabs-2-0" aria-selected="true">
-Main
-&lt;/a>
-&lt;/li>&lt;li class="nav-item">
-&lt;a class="nav-link tab-Mirror"
-id="tabs-2-1-tab" data-toggle="tab" href="#tabs-2-1" role="tab" onclick="handleClick(&amp;#34;Mirror&amp;#34;);"
-aria-controls="tabs-2-1" aria-selected="false">
-Mirror
-&lt;/a>
-&lt;/li>&lt;/ul>
-&lt;div class="tab-content" id="tabs-2-content">&lt;div class="tab-pane fade show active"
-id="tabs-2-0" role="tabpanel" aria-labelled-by="tabs-2-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm install prometheus -n crane-system --version 19.6.1 \
---set pushgateway.enabled=false \
---set alertmanager.enabled=false \
---set server.persistentVolume.enabled=false \
--f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/prometheus/override_values.yaml \
---create-namespace prometheus-community/prometheus&lt;/code>&lt;/pre>&lt;/div>
-&lt;div class="tab-pane fade"
-id="tabs-2-1" role="tabpanel" aria-labelled-by="tabs-2-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add prometheus-community https://finops-helm.pkg.coding.net/gocrane/prometheus-community
-helm install prometheus -n crane-system --version 19.6.1 \
---set pushgateway.enabled=false \
---set alertmanager.enabled=false \
---set server.persistentVolume.enabled=false \
--f https://gitee.com/finops/helm-charts/raw/main/integration/prometheus/override_values.yaml \
---create-namespace prometheus-community/prometheus&lt;/code>&lt;/pre>&lt;/div>
-&lt;/div>
-&lt;p>Fadvisor use grafana to present cost estimates. Using following command to install a grafana.&lt;/p>
 &lt;ul class="nav nav-tabs" id="tabs-3" role="tablist">&lt;li class="nav-item">
 &lt;a class="nav-link active tab-Main"
 id="tabs-3-0-tab" data-toggle="tab" href="#tabs-3-0" role="tab" onclick="handleClick(&amp;#34;Main&amp;#34;);"
@@ -1050,19 +1001,23 @@ Mirror
 &lt;/a>
 &lt;/li>&lt;/ul>
 &lt;div class="tab-content" id="tabs-3-content">&lt;div class="tab-pane fade show active"
-id="tabs-3-0" role="tabpanel" aria-labelled-by="tabs-3-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add grafana https://grafana.github.io/helm-charts
-helm install grafana --version 6.11.0 \
--f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/grafana/override_values.yaml \
--n crane-system \
---create-namespace grafana/grafana&lt;/code>&lt;/pre>&lt;/div>
+id="tabs-3-0" role="tabpanel" aria-labelled-by="tabs-3-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm install prometheus -n crane-system --version 19.6.1 \
+--set pushgateway.enabled=false \
+--set alertmanager.enabled=false \
+--set server.persistentVolume.enabled=false \
+-f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/prometheus/override_values.yaml \
+--create-namespace prometheus-community/prometheus&lt;/code>&lt;/pre>&lt;/div>
 &lt;div class="tab-pane fade"
-id="tabs-3-1" role="tabpanel" aria-labelled-by="tabs-3-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add grafana https://finops-helm.pkg.coding.net/gocrane/grafana
-helm install grafana --version 6.11.0 \
--f https://gitee.com/finops/helm-charts/raw/main/integration/grafana/override_values.yaml \
--n crane-system \
---create-namespace grafana/grafana&lt;/code>&lt;/pre>&lt;/div>
+id="tabs-3-1" role="tabpanel" aria-labelled-by="tabs-3-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add prometheus-community https://finops-helm.pkg.coding.net/gocrane/prometheus-community
+helm install prometheus -n crane-system --version 19.6.1 \
+--set pushgateway.enabled=false \
+--set alertmanager.enabled=false \
+--set server.persistentVolume.enabled=false \
+-f https://gitee.com/finops/helm-charts/raw/main/integration/prometheus/override_values.yaml \
+--create-namespace prometheus-community/prometheus&lt;/code>&lt;/pre>&lt;/div>
 &lt;/div>
-&lt;h3 id="deploying-crane-and-fadvisor">Deploying Crane and Fadvisor&lt;/h3>
+&lt;p>Fadvisor use grafana to present cost estimates. Using following command to install a grafana.&lt;/p>
 &lt;ul class="nav nav-tabs" id="tabs-4" role="tablist">&lt;li class="nav-item">
 &lt;a class="nav-link active tab-Main"
 id="tabs-4-0-tab" data-toggle="tab" href="#tabs-4-0" role="tab" onclick="handleClick(&amp;#34;Main&amp;#34;);"
@@ -1077,11 +1032,38 @@ Mirror
 &lt;/a>
 &lt;/li>&lt;/ul>
 &lt;div class="tab-content" id="tabs-4-content">&lt;div class="tab-pane fade show active"
-id="tabs-4-0" role="tabpanel" aria-labelled-by="tabs-4-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add crane https://gocrane.github.io/helm-charts
+id="tabs-4-0" role="tabpanel" aria-labelled-by="tabs-4-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add grafana https://grafana.github.io/helm-charts
+helm install grafana --version 6.11.0 \
+-f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/grafana/override_values.yaml \
+-n crane-system \
+--create-namespace grafana/grafana&lt;/code>&lt;/pre>&lt;/div>
+&lt;div class="tab-pane fade"
+id="tabs-4-1" role="tabpanel" aria-labelled-by="tabs-4-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add grafana https://finops-helm.pkg.coding.net/gocrane/grafana
+helm install grafana --version 6.11.0 \
+-f https://gitee.com/finops/helm-charts/raw/main/integration/grafana/override_values.yaml \
+-n crane-system \
+--create-namespace grafana/grafana&lt;/code>&lt;/pre>&lt;/div>
+&lt;/div>
+&lt;h3 id="deploying-crane-and-fadvisor">Deploying Crane and Fadvisor&lt;/h3>
+&lt;ul class="nav nav-tabs" id="tabs-5" role="tablist">&lt;li class="nav-item">
+&lt;a class="nav-link active tab-Main"
+id="tabs-5-0-tab" data-toggle="tab" href="#tabs-5-0" role="tab" onclick="handleClick(&amp;#34;Main&amp;#34;);"
+aria-controls="tabs-5-0" aria-selected="true">
+Main
+&lt;/a>
+&lt;/li>&lt;li class="nav-item">
+&lt;a class="nav-link tab-Mirror"
+id="tabs-5-1-tab" data-toggle="tab" href="#tabs-5-1" role="tab" onclick="handleClick(&amp;#34;Mirror&amp;#34;);"
+aria-controls="tabs-5-1" aria-selected="false">
+Mirror
+&lt;/a>
+&lt;/li>&lt;/ul>
+&lt;div class="tab-content" id="tabs-5-content">&lt;div class="tab-pane fade show active"
+id="tabs-5-0" role="tabpanel" aria-labelled-by="tabs-5-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add crane https://gocrane.github.io/helm-charts
 helm install crane -n crane-system --create-namespace crane/crane
 helm install fadvisor -n crane-system --create-namespace crane/fadvisor&lt;/code>&lt;/pre>&lt;/div>
 &lt;div class="tab-pane fade"
-id="tabs-4-1" role="tabpanel" aria-labelled-by="tabs-4-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add crane https://finops-helm.pkg.coding.net/gocrane/gocrane
+id="tabs-5-1" role="tabpanel" aria-labelled-by="tabs-5-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add crane https://finops-helm.pkg.coding.net/gocrane/gocrane
 helm install crane -n crane-system --create-namespace crane/crane
 helm install fadvisor -n crane-system --create-namespace crane/fadvisor&lt;/code>&lt;/pre>&lt;/div>
 &lt;/div>
@@ -1184,28 +1166,28 @@ helm install fadvisor -n crane-system --create-namespace crane/fadvisor&lt;/code
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>you can see &lt;a href="https://github.com/gocrane/helm-charts">this&lt;/a> to learn more.&lt;/p>
 &lt;h2 id="customize-installation">Customize Installation&lt;/h2>
 &lt;p>Deploy &lt;code>Crane&lt;/code> by apply YAML declaration.&lt;/p>
-&lt;ul class="nav nav-tabs" id="tabs-5" role="tablist">&lt;li class="nav-item">
+&lt;ul class="nav nav-tabs" id="tabs-6" role="tablist">&lt;li class="nav-item">
 &lt;a class="nav-link active tab-Main"
-id="tabs-5-0-tab" data-toggle="tab" href="#tabs-5-0" role="tab" onclick="handleClick(&amp;#34;Main&amp;#34;);"
-aria-controls="tabs-5-0" aria-selected="true">
+id="tabs-6-0-tab" data-toggle="tab" href="#tabs-6-0" role="tab" onclick="handleClick(&amp;#34;Main&amp;#34;);"
+aria-controls="tabs-6-0" aria-selected="true">
 Main
 &lt;/a>
 &lt;/li>&lt;li class="nav-item">
 &lt;a class="nav-link tab-Mirror"
-id="tabs-5-1-tab" data-toggle="tab" href="#tabs-5-1" role="tab" onclick="handleClick(&amp;#34;Mirror&amp;#34;);"
-aria-controls="tabs-5-1" aria-selected="false">
+id="tabs-6-1-tab" data-toggle="tab" href="#tabs-6-1" role="tab" onclick="handleClick(&amp;#34;Mirror&amp;#34;);"
+aria-controls="tabs-6-1" aria-selected="false">
 Mirror
 &lt;/a>
 &lt;/li>&lt;/ul>
-&lt;div class="tab-content" id="tabs-5-content">&lt;div class="tab-pane fade show active"
-id="tabs-5-0" role="tabpanel" aria-labelled-by="tabs-5-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">git clone https://github.com/gocrane/crane.git
+&lt;div class="tab-content" id="tabs-6-content">&lt;div class="tab-pane fade show active"
+id="tabs-6-0" role="tabpanel" aria-labelled-by="tabs-6-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">git clone https://github.com/gocrane/crane.git
 CRANE_LATEST_VERSION=$(curl -s https://api.github.com/repos/gocrane/crane/releases/latest | grep -oP &amp;#39;&amp;#34;tag_name&amp;#34;: &amp;#34;\K(.*)(?=&amp;#34;)&amp;#39;)
 git checkout $CRANE_LATEST_VERSION
 kubectl apply -f deploy/manifests
 kubectl apply -f deploy/craned
 kubectl apply -f deploy/metric-adapter&lt;/code>&lt;/pre>&lt;/div>
 &lt;div class="tab-pane fade"
-id="tabs-5-1" role="tabpanel" aria-labelled-by="tabs-5-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">git clone https://e.coding.net/finops/gocrane/crane.git
+id="tabs-6-1" role="tabpanel" aria-labelled-by="tabs-6-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">git clone https://e.coding.net/finops/gocrane/crane.git
 CRANE_LATEST_VERSION=$(curl -s https://api.github.com/repos/gocrane/crane/releases/latest | grep -oP &amp;#39;&amp;#34;tag_name&amp;#34;: &amp;#34;\K(.*)(?=&amp;#34;)&amp;#39;)
 git checkout $CRANE_LATEST_VERSION
 kubectl apply -f deploy/manifests
@@ -2990,12 +2972,10 @@ Change &lt;code>crane-scheduler&lt;/code> to &lt;code>default-scheduler&lt;/code
 &lt;/tbody>
 &lt;/table>
 &lt;p>How to update recommendation configuration please refer to：&lt;a href="/docs/tutorials/recommendation/recommendation-framework">&lt;strong>Recommendation Framework&lt;/strong>&lt;/a>&lt;/p></description></item><item><title>Docs: Service Recommendation</title><link>/docs/tutorials/recommendation/service-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/service-recommendation/</guid><description>
-&lt;p>Service recommendation scans the running status of Services in the cluster to help users find idle Kubernetes Services.&lt;/p>
-&lt;h2 id="motivation">Motivation&lt;/h2>
-&lt;p>In Kubernetes, we usually use Service + Workload to automatically create and manage load balancing and attach it to applications.
-However, in daily operations, idle and low utilization load balancing inevitably occur, wasting a lot of costs.
-Service recommendation tries to help users find these Services to achieve cost optimization.&lt;/p>
-&lt;h2 id="sample">Sample&lt;/h2>
+&lt;p>Service 推荐通过扫描集群中 Service 的运行状况，帮助用户找到闲置的 Kubernetes Service。&lt;/p>
+&lt;h2 id="动机">动机&lt;/h2>
+&lt;p>通常在 Kubernetes 中我们会使用 Service + Workload 来自动创建和管理负载均衡并将负载均衡挂载到应用上，在日常的运营中难免会出现空闲和低利用率的负载均衡，浪费了大量成本，Service 推荐尝试帮助用户找到这部分 Service 来实现成本优化。&lt;/p>
+&lt;h2 id="推荐示例">推荐示例&lt;/h2>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
@@ -3035,61 +3015,61 @@ Service recommendation tries to help users find these Services to achieve cost o
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">action&lt;/span>: &lt;span style="color:#ae81ff">Delete&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">description&lt;/span>: &lt;span style="color:#ae81ff">It is a Orphan Service, Pod count is 0&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastUpdateTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2023-06-12T11:52:23Z&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>In this sample:&lt;/p>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>在该示例中：&lt;/p>
 &lt;ul>
-&lt;li>The recommended TargetRef points to the Service: nginx.&lt;/li>
-&lt;li>The recommendation type is Service recommendation.&lt;/li>
-&lt;li>The action is to Delete, and it is only a suggestion provided here.&lt;/li>
+&lt;li>推荐的 TargetRef 指向了 Service：nginx&lt;/li>
+&lt;li>推荐类型为 Service 推荐&lt;/li>
+&lt;li>action 是 Delete，这里只是给出建议&lt;/li>
 &lt;/ul>
-&lt;h2 id="implement">Implement&lt;/h2>
-&lt;p>Service recommendation completes a recommendation process using the following steps:&lt;/p>
+&lt;h2 id="实现原理">实现原理&lt;/h2>
+&lt;p>Service 推荐按以下步骤完成一次推荐过程：&lt;/p>
 &lt;ol>
-&lt;li>Scan all LoadBalancer-type Services in the cluster.&lt;/li>
-&lt;li>If the endpoints corresponding to the Service have an Address or NotReadyAddresses, it is not a restricted Service.&lt;/li>
-&lt;li>Based on the traffic-related metrics in Service recommendation, check whether the Service is below the threshold level. If it is below the threshold level, it is determined to be an idle node.&lt;/li>
+&lt;li>扫描集群中所有 LoadBalancer 类型的 Service&lt;/li>
+&lt;li>如果 Service 对应的 endpoints 中有 Address 或者 NotReadyAddresses，则不是限制的 Service&lt;/li>
+&lt;li>依据 Service 推荐中流量相关 metric 检测 Service 是否小于阈值水位，如果小于水位则判定为闲置节点&lt;/li>
 &lt;/ol>
-&lt;h2 id="how-to-verify-the-accuracy-of-recommendation-results">How to verify the accuracy of recommendation results&lt;/h2>
-&lt;p>The following is the Prom query for determining the threshold level of node resources. When verifying, replace &amp;ldquo;node&amp;rdquo; with the actual node name.&lt;/p>
+&lt;h2 id="如何验证推荐结果的准确性">如何验证推荐结果的准确性&lt;/h2>
+&lt;p>以下是判断节点资源阈值水位的 Prom query，验证时把 node 替换成实际的节点名&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// Container network cumulative count of bytes received
 &lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#a6e22e">queryFmtNetReceiveBytes&lt;/span> = &lt;span style="color:#e6db74">`sum(rate(container_network_receive_bytes_total{namespace=&amp;#34;%s&amp;#34;,pod=~&amp;#34;%s&amp;#34;,container!=&amp;#34;&amp;#34;}[3m]))`&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// Container network cumulative count of bytes transmitted
 &lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#a6e22e">queryFmtNetTransferBytes&lt;/span> = &lt;span style="color:#e6db74">`sum(rate(container_network_transmit_bytes_total{namespace=&amp;#34;%s&amp;#34;,pod=~&amp;#34;%s&amp;#34;,container!=&amp;#34;&amp;#34;}[3m]))`&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="accepted-resources">Accepted resources&lt;/h2>
-&lt;p>Only Service type is supported, and currently, only LoadBalancer-type Services will be analyzed.&lt;/p>
-&lt;h2 id="configuration">Configuration&lt;/h2>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="支持的资源类型">支持的资源类型&lt;/h2>
+&lt;p>只支持 Service 类型，目前只会对 LoadBalancer 类型的 Service 进行分析。&lt;/p>
+&lt;h2 id="参数配置">参数配置&lt;/h2>
 &lt;table>
 &lt;thead>
 &lt;tr>
-&lt;th>Configuration items&lt;/th>
-&lt;th>Default value&lt;/th>
-&lt;th>Description&lt;/th>
+&lt;th>配置项&lt;/th>
+&lt;th>默认值&lt;/th>
+&lt;th>描述&lt;/th>
 &lt;/tr>
 &lt;/thead>
 &lt;tbody>
 &lt;tr>
 &lt;td>net-receive-bytes&lt;/td>
 &lt;td>0&lt;/td>
-&lt;td>The amount of network request bytes received by the Pods corresponding to the Service, which is not checked by default.&lt;/td>
+&lt;td>Service 对应 Pods 接受到的网络请求 bytes，默认不检查&lt;/td>
 &lt;/tr>
 &lt;tr>
 &lt;td>net-receive-percentile&lt;/td>
 &lt;td>0.99&lt;/td>
-&lt;td>The percentile used to calculate the amount of network requests received&lt;/td>
+&lt;td>计算接受到的网络请求时的 Percentile&lt;/td>
 &lt;/tr>
 &lt;tr>
 &lt;td>net-transfer-bytes&lt;/td>
 &lt;td>0&lt;/td>
-&lt;td>The amount of network request bytes transmitted by the Pods corresponding to the Service, which is not checked by default.&lt;/td>
+&lt;td>Service 对应 Pods 传输的网络请求 bytes，默认不检查&lt;/td>
 &lt;/tr>
 &lt;tr>
 &lt;td>net-transfer-percentile&lt;/td>
 &lt;td>0.99&lt;/td>
-&lt;td>The percentile used when calculating the amount of network requests transmitted.&lt;/td>
+&lt;td>计算传输的网络请求时的 Percentile&lt;/td>
 &lt;/tr>
 &lt;/tbody>
 &lt;/table>
-&lt;p>Note that when a pod is configured with a liveness/readiness probe, the kubelet&amp;rsquo;s probing will bring some container traffic, so the threshold for traffic needs to be set slightly higher. The configuration can be combined with specific monitoring data.&lt;/p>
-&lt;p>How to update recommendation configuration please refer to：&lt;a href="/docs/tutorials/recommendation/recommendation-framework">&lt;strong>Recommendation Framework&lt;/strong>&lt;/a>&lt;/p></description></item><item><title>Docs: Time Series Forecast Algorithm-DSP</title><link>/docs/core-concept/timeseriees-forecasting-by-dsp/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/core-concept/timeseriees-forecasting-by-dsp/</guid><description>
+&lt;p>注意，当 pod 配置了 liveness/readness probe 后，kubelet 的探测会带来一定的容器流量，因此流量的阈值需要设置的稍微大一些，可结合具体监控数据配置。&lt;/p>
+&lt;p>如何更新推荐的配置请参考：&lt;a href="/zh-cn/docs/tutorials/recommendation/recommendation-framework">&lt;strong>推荐框架&lt;/strong>&lt;/a>&lt;/p></description></item><item><title>Docs: Time Series Forecast Algorithm-DSP</title><link>/docs/core-concept/timeseriees-forecasting-by-dsp/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/core-concept/timeseriees-forecasting-by-dsp/</guid><description>
 &lt;p>Time series forecasting refers to using historical time series data to predict future values. Time series data typically consists of time and corresponding values, such as resource usage, stock prices, or temperature. DSP (Digital Signal Processing) is a digital signal processing technique that can be used for analyzing and processing time series data.&lt;/p>
 &lt;p>Discrete Fourier Transform (DFT) is a commonly used algorithm in the field of DSP. DFT is a technique that transforms time domain signals into frequency domain signals. By decomposing time domain signals into different frequency components, the characteristics and structures of the signals can be better understood and analyzed. In time series forecasting, DFT can be used to analyze and predict the periodicity and trend of signals, thereby improving the accuracy of forecasts.&lt;/p>
 &lt;p>Crane uses commonly used techniques in the field of Digital Signal Processing (DSP), such as &lt;code>Discrete Fourier Transform (DFT)&lt;/code> and &lt;code>autocorrelation function&lt;/code>, to identify and predict periodic time series.&lt;/p>
@@ -3581,12 +3561,10 @@ F[Result workload replicas];
 &lt;li>Just waiting. the Prediction algorithm need more time, you can see &lt;code>DSP&lt;/code> section to know more about this algorithm.&lt;/li>
 &lt;li>EffectiveHorizontalPodAutoscaler have a protection mechanism when prediction failed, it will use the actual cpu utilization to do autoscaling.&lt;/li>
 &lt;/ul></description></item><item><title>Docs: PV Recommendation</title><link>/docs/tutorials/recommendation/pv-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/pv-recommendation/</guid><description>
-&lt;p>PV recommendation scans the running status of PVs in the cluster to help users find idle Kubernetes PVs.&lt;/p>
-&lt;h2 id="motivation">Motivation&lt;/h2>
-&lt;p>In Kubernetes, we usually use PV + Workload to automatically create and manage storage volumes and attach them to applications.
-However, in daily operations, idle or unused storage volumes may inevitably occur, wasting a lot of costs.
-PV recommendation tries to help users find these PVs to achieve cost optimization.&lt;/p>
-&lt;h2 id="sample">Sample&lt;/h2>
+&lt;p>PV 推荐通过扫描集群中 PV 的运行状况，帮助用户找到闲置的 Kubernetes PV。&lt;/p>
+&lt;h2 id="动机">动机&lt;/h2>
+&lt;p>通常在 Kubernetes 中我们会使用 PV + Workload 来自动创建和管理存储卷并将存储卷挂载到应用上，在日常的运营中难免会出现空闲或者空跑的存储卷，浪费了大量成本， PV 推荐尝试帮助用户找到这部分 PV 来实现成本优化。&lt;/p>
+&lt;h2 id="推荐示例">推荐示例&lt;/h2>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
@@ -3624,22 +3602,22 @@ PV recommendation tries to help users find these PVs to achieve cost optimizatio
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">action&lt;/span>: &lt;span style="color:#ae81ff">Delete&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">description&lt;/span>: &lt;span style="color:#ae81ff">It is an Orphan Volumes&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastUpdateTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2023-06-14T08:55:25Z&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>In this sample:&lt;/p>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>在该示例中：&lt;/p>
 &lt;ul>
-&lt;li>The recommended TargetRef points to PV: pvc-6ce24277-24e9-4fcf-8e8a-f9bdb5694134&lt;/li>
-&lt;li>The recommendation type is PV recommendation&lt;/li>
-&lt;li>The action is to Delete, and it is only a suggestion provided here.&lt;/li>
+&lt;li>推荐的 TargetRef 指向了 PV: pvc-6ce24277-24e9-4fcf-8e8a-f9bdb5694134&lt;/li>
+&lt;li>推荐类型为 PV 推荐&lt;/li>
+&lt;li>action 是 Delete，这里只是给出建议&lt;/li>
 &lt;/ul>
-&lt;h2 id="implement">Implement&lt;/h2>
-&lt;p>PV recommendation completes a recommendation process using the following steps:&lt;/p>
+&lt;h2 id="实现原理">实现原理&lt;/h2>
+&lt;p>PV 推荐按以下步骤完成一次推荐过程：&lt;/p>
 &lt;ol>
-&lt;li>Scan all PVs in the cluster and find the list of Pods corresponding to each PV.&lt;/li>
-&lt;li>If the PV does not have a corresponding PVC, it is considered an idle PV.&lt;/li>
-&lt;li>If no Pods are associated with this PV and PVC, it is considered an idle PVC.&lt;/li>
+&lt;li>扫描集群中所有 PV，找到 PV 对应的 Pod 列表&lt;/li>
+&lt;li>如果 PV 没有对应的 PVC，则判断为闲置 PV&lt;/li>
+&lt;li>如果没有 Pod 关联这个 PV 和 PVC，则判断为闲置 PVC&lt;/li>
 &lt;/ol>
-&lt;h2 id="configuration">Configuration&lt;/h2>
-&lt;p>Currently, there is no parameter configuration for PV recommendation.&lt;/p>
-&lt;p>How to update recommendation configuration please refer to：&lt;a href="/docs/tutorials/recommendation/recommendation-framework">&lt;strong>Recommendation Framework&lt;/strong>&lt;/a>&lt;/p></description></item><item><title>Docs: Architecture</title><link>/docs/core-concept/architecture/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/core-concept/architecture/</guid><description>
+&lt;h2 id="参数配置">参数配置&lt;/h2>
+&lt;p>目前 PV 推荐没有参数配置。&lt;/p>
+&lt;p>如何更新推荐的配置请参考：&lt;a href="/zh-cn/docs/tutorials/recommendation/recommendation-framework">&lt;strong>推荐框架&lt;/strong>&lt;/a>&lt;/p></description></item><item><title>Docs: Architecture</title><link>/docs/core-concept/architecture/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/core-concept/architecture/</guid><description>
 &lt;p>The overall architecture of Crane is shown as below:&lt;/p>
 &lt;p>&lt;img src="/images/crane-arch.png" alt="Crane Arch&amp;quot;">&lt;/p>
 &lt;p>&lt;strong>Craned&lt;/strong>&lt;/p>
@@ -3884,7 +3862,7 @@ specific Priority, and specific Namespace of pods, above selectors are associate
 &lt;p>In order to avoid the impact of active avoidance operations on high-priority services, such as the wrongful eviction of important services,
 it is recommended to use PodQOS to associate workloads that use dynamic resources, so that only those workloads that use idle resources are affected when executing actions,
 ensuring that The stability of the core business on the node.&lt;/p>
-&lt;p>For the content of dymamic resources, see &lt;a href="/docs/tutorials/colocation-with-enhanced-qos/qos-dynamic-resource-oversold-and-limit">Dynamic resource oversold and limit&lt;/a>.&lt;/p></description></item><item><title>Docs: Dynamic resource oversold and limit</title><link>/docs/tutorials/colocation-with-enhanced-qos/qos-dynamic-resource-oversold-and-limit/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/colocation-with-enhanced-qos/qos-dynamic-resource-oversold-and-limit/</guid><description>
+&lt;p>For the content of dymamic resources, see qos-dynamic-resource-oversold-and-limit.md.&lt;/p></description></item><item><title>Docs: Dynamic resource oversold and limit</title><link>/docs/tutorials/colocation-with-enhanced-qos/qos-dynamic-resource-oversold-and-limit/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/colocation-with-enhanced-qos/qos-dynamic-resource-oversold-and-limit/</guid><description>
 &lt;h2 id="dynamic-resource-oversold-enhanced-by-prediction-algorithm">Dynamic resource oversold enhanced by prediction algorithm&lt;/h2>
 &lt;p>In order to improve the stability, users usually set the request value higher than the actual usage when deploying applications, resulting in a waste of resources. In order to improve the resource utilization of nodes, users will deploy some besteffort applications in combination, using idle resources to realize oversold;
 However, due to the lack of resource limit and request constraints and related information in these applications, scheduler may still schedule these pods to nodes with high load, which is inconsistent with our original intention, so it is best to schedule based on the free resources of nodes.&lt;/p>
@@ -3946,7 +3924,7 @@ When deploying pod, limit and request use &lt;code>gocrane.io/&amp;lt;$resourcen
 &lt;h2 id="suitable-scene">suitable scene&lt;/h2>
 &lt;p>In order to increase the load of nodes, some offline jobs or less important jobs can be scheduled and deployed to the cluster by using dynamic resources. Such jobs will use idle elastic resources.
 With the watermark guarantee of QOS, when the node has a high load, it will be evicted and throttled first, and the utilization of the node will be improved on the premise of ensuring the stability of high-priority services.
-See the section &amp;ldquo;Used with dynamic resources&amp;rdquo; in &lt;a href="/docs/tutorials/colocation-with-enhanced-qos/qos-interference-detection-and-active-avoidance">Interference Detection and Active Avoidance&lt;/a>.&lt;/p></description></item><item><title>Docs: How Kujiale achieve autoscaling with Crane EHPA</title><link>/docs/best-practices/how-kujiale-adopt-ehpa/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/best-practices/how-kujiale-adopt-ehpa/</guid><description>
+See the section &amp;ldquo;Used with dynamic resources&amp;rdquo; in qos-interference-detection-and-active-avoidance.md.&lt;/p></description></item><item><title>Docs: How Kujiale achieve autoscaling with Crane EHPA</title><link>/docs/best-practices/how-kujiale-adopt-ehpa/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/best-practices/how-kujiale-adopt-ehpa/</guid><description>
 &lt;p>The original article is：&lt;a href="https://mp.weixin.qq.com/s/3X_hHbisynxDwWx9Lnbp-w">How Kujiale achieve autoscaling with Crane EHPA&lt;/a>&lt;/p></description></item><item><title>Docs: Accurately Perform Avoidance Actions</title><link>/docs/tutorials/colocation-with-enhanced-qos/qos-accurately-perform-avoidance-actions/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/colocation-with-enhanced-qos/qos-accurately-perform-avoidance-actions/</guid><description>
 &lt;h2 id="accurately-perform-avoidance-actions">Accurately Perform Avoidance Actions&lt;/h2>
 &lt;p>Through the following two points, the excessive operation of low-quality pod can be avoided, and the gap between the metrics and the specified watermark can be reduced faster, so as to ensure that the high-priority service is not affected&lt;/p>

@@ -575,6 +575,9 @@ scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="tru
 &lt;li>Helm 3.1.0&lt;/li>
 &lt;li>Kind 0.16+&lt;/li>
 &lt;/ul>
+&lt;div class="alert alert-warning" role="alert">
+如果你的 Kubernetes 版本 &amp;gt;= 1.26, 请参考 &lt;a href="https://github.com/gocrane/crane/pull/839">PR&lt;/a>
+&lt;/div>
 &lt;h2 id="安装">安装&lt;/h2>
 &lt;p>以下命令将安装 Crane 以及其依赖 (Prometheus/Grafana).&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>curl -sf https://raw.githubusercontent.com/gocrane/crane/main/hack/local-env-setup.sh | sh -
@@ -655,40 +658,18 @@ Make sure that you provide as much information as possible on how to reproduce t
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>kubectl apply -f workload-rules.yaml
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>这个例子会对所有 namespace 中的 Deployments 和 StatefulSets 做资源推荐和副本数推荐。&lt;/p>
 &lt;ol start="2">
-&lt;li>检查 RecommendationRule 的推荐进度。通过 Status.recommendations 观察推荐任务的进度，推荐任务是顺序执行，如果所有任务的 lastStartTime 为最近时间且 message 有值，则表示这一次推荐完成&lt;/li>
+&lt;li>检查 RecommendationRule 的推荐进度。通过 Recommendation 的 Annotation 可观察到任务的上次开始时间和运行的结果。&lt;/li>
 &lt;/ol>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>kubectl get rr workloads-rule
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">status&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastUpdateTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2022-09-28T10:36:02Z&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommendations&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastStartTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2022-09-28T10:36:02Z&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">message&lt;/span>: &lt;span style="color:#ae81ff">Success&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule-replicas-rckvb&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommenderRef&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Replicas&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">php-apache&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">b15cbcd7-6fe2-4ace-9ae8-11cc0a6e69c2&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastStartTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2022-09-28T10:36:02Z&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">message&lt;/span>: &lt;span style="color:#ae81ff">Success&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule-resource-pnnxn&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommenderRef&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Resource&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">php-apache&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">8472013a-bda2-4025-b0df-3fdc69c1c910&lt;/span>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>kubectl get recommend workloads-rule-replicas-7djlk -o yaml
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">annotations&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/last-start-time&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2023-07-24 11:43:58&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/message&lt;/span>: &lt;span style="color:#f92672">&amp;#39;Failed to run recommendation flow in recommender Replicas&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">Replicas CalculatePodTemplateRequests cpu failed&lt;/span>: &lt;span style="color:#ae81ff">missing request for cpu&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/run-number&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;59&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">creationTimestamp&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2023-06-01T11:37:16Z&amp;#34;&lt;/span>
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ol start="3">
 &lt;li>查看优化建议 &lt;code>Recommendation&lt;/code>&lt;/li>
 &lt;/ol>
@@ -893,9 +874,7 @@ cpu: &amp;#34;500m&amp;#34;
 &lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/resource-recommendation">&lt;strong>资源推荐&lt;/strong>&lt;/a>: 通过 VPA 算法分析应用的真实用量推荐更合适的资源配置&lt;/li>
 &lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/replicas-recommendation">&lt;strong>副本数推荐&lt;/strong>&lt;/a>: 通过 HPA 算法分析应用的真实用量推荐更合适的副本数量&lt;/li>
 &lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/hpa-recommendation">&lt;strong>HPA 推荐&lt;/strong>&lt;/a>: 扫描集群中的 Workload，针对适合适合水平弹性的 Workload 推荐 HPA 配置&lt;/li>
-&lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/idlenode-recommendation">&lt;strong>闲置节点推荐&lt;/strong>&lt;/a>: 通过扫描集群中节点的状态和利用率，帮助用户找到闲置的 Kubernetes node&lt;/li>
-&lt;li>&lt;a href="zh-cn/docs/tutorials/recommendation/service-recommendation">&lt;strong>Service 推荐&lt;/strong>&lt;/a>: 通过扫描集群中 Service 的运行状况，帮助用户找到闲置的 Kubernetes Service&lt;/li>
-&lt;li>&lt;a href="zh-cn/docs/tutorials/recommendation/pv-recommendation">&lt;strong>PV 推荐&lt;/strong>&lt;/a>: 通过扫描集群中 PV 的运行状况，帮助用户找到闲置的 Kubernetes PV&lt;/li>
+&lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/idlenode-recommendation">&lt;strong>闲置节点推荐&lt;/strong>&lt;/a>: 扫描集群中的闲置节点&lt;/li>
 &lt;/ul>
 &lt;p>本文重点讨论 Workload 的资源配置优化，因此下面重点介绍资源推荐和副本推荐。&lt;/p>
 &lt;h3 id="资源推荐">资源推荐&lt;/h3>
@@ -1278,6 +1257,9 @@ make decisions based on input and policies.&lt;/p>
 &lt;li>Kubernetes 1.18+&lt;/li>
 &lt;li>Helm 3.1.0&lt;/li>
 &lt;/ul>
+&lt;div class="alert alert-warning" role="alert">
+如果你的 Kubernetes 版本 &amp;gt;= 1.26, 请参考 &lt;a href="https://github.com/gocrane/crane/pull/839">PR&lt;/a>
+&lt;/div>
 &lt;h2 id="安装流程">安装流程&lt;/h2>
 &lt;h3 id="安装-helm">安装 Helm&lt;/h3>
 &lt;p>建议参考 Helm 官网&lt;a href="https://helm.sh/docs/intro/install/">安装文档&lt;/a>。&lt;/p>
@@ -1291,37 +1273,6 @@ make decisions based on input and policies.&lt;/p>
 那么你可以尝试镜像仓库。但镜像仓库具有一定的&lt;strong>时延&lt;/strong>。
 &lt;/div>
 &lt;p>Crane 使用 Prometheus 抓取集群工作负载对资源的使用情况。安装 Prometheus：&lt;/p>
-&lt;ul class="nav nav-tabs" id="tabs-2" role="tablist">&lt;li class="nav-item">
-&lt;a class="nav-link active tab-Main"
-id="tabs-2-0-tab" data-toggle="tab" href="#tabs-2-0" role="tab" onclick="handleClick(&amp;#34;Main&amp;#34;);"
-aria-controls="tabs-2-0" aria-selected="true">
-Main
-&lt;/a>
-&lt;/li>&lt;li class="nav-item">
-&lt;a class="nav-link tab-Mirror"
-id="tabs-2-1-tab" data-toggle="tab" href="#tabs-2-1" role="tab" onclick="handleClick(&amp;#34;Mirror&amp;#34;);"
-aria-controls="tabs-2-1" aria-selected="false">
-Mirror
-&lt;/a>
-&lt;/li>&lt;/ul>
-&lt;div class="tab-content" id="tabs-2-content">&lt;div class="tab-pane fade show active"
-id="tabs-2-0" role="tabpanel" aria-labelled-by="tabs-2-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm install prometheus -n crane-system --version 19.6.1 \
---set pushgateway.enabled=false \
---set alertmanager.enabled=false \
---set server.persistentVolume.enabled=false \
--f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/prometheus/override_values.yaml \
---create-namespace prometheus-community/prometheus&lt;/code>&lt;/pre>&lt;/div>
-&lt;div class="tab-pane fade"
-id="tabs-2-1" role="tabpanel" aria-labelled-by="tabs-2-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add prometheus-community https://finops-helm.pkg.coding.net/gocrane/prometheus-community
-helm install prometheus -n crane-system --version 19.6.1 \
---set pushgateway.enabled=false \
---set alertmanager.enabled=false \
---set server.persistentVolume.enabled=false \
--f https://gitee.com/finops/helm-charts/raw/main/integration/prometheus/override_values.yaml \
---create-namespace prometheus-community/prometheus&lt;/code>&lt;/pre>&lt;/div>
-&lt;/div>
-&lt;p>Crane 的 Fadvisor 使用 Grafana 展示成本预估。安装 Grafana：&lt;/p>
 &lt;ul class="nav nav-tabs" id="tabs-3" role="tablist">&lt;li class="nav-item">
 &lt;a class="nav-link active tab-Main"
 id="tabs-3-0-tab" data-toggle="tab" href="#tabs-3-0" role="tab" onclick="handleClick(&amp;#34;Main&amp;#34;);"
@@ -1336,19 +1287,23 @@ Mirror
 &lt;/a>
 &lt;/li>&lt;/ul>
 &lt;div class="tab-content" id="tabs-3-content">&lt;div class="tab-pane fade show active"
-id="tabs-3-0" role="tabpanel" aria-labelled-by="tabs-3-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add grafana https://grafana.github.io/helm-charts
-helm install grafana --version 6.11.0 \
--f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/grafana/override_values.yaml \
--n crane-system \
---create-namespace grafana/grafana&lt;/code>&lt;/pre>&lt;/div>
+id="tabs-3-0" role="tabpanel" aria-labelled-by="tabs-3-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm install prometheus -n crane-system --version 19.6.1 \
+--set pushgateway.enabled=false \
+--set alertmanager.enabled=false \
+--set server.persistentVolume.enabled=false \
+-f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/prometheus/override_values.yaml \
+--create-namespace prometheus-community/prometheus&lt;/code>&lt;/pre>&lt;/div>
 &lt;div class="tab-pane fade"
-id="tabs-3-1" role="tabpanel" aria-labelled-by="tabs-3-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add grafana https://finops-helm.pkg.coding.net/gocrane/grafana
-helm install grafana --version 6.11.0 \
--f https://gitee.com/finops/helm-charts/raw/main/integration/grafana/override_values.yaml \
--n crane-system \
---create-namespace grafana/grafana&lt;/code>&lt;/pre>&lt;/div>
+id="tabs-3-1" role="tabpanel" aria-labelled-by="tabs-3-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add prometheus-community https://finops-helm.pkg.coding.net/gocrane/prometheus-community
+helm install prometheus -n crane-system --version 19.6.1 \
+--set pushgateway.enabled=false \
+--set alertmanager.enabled=false \
+--set server.persistentVolume.enabled=false \
+-f https://gitee.com/finops/helm-charts/raw/main/integration/prometheus/override_values.yaml \
+--create-namespace prometheus-community/prometheus&lt;/code>&lt;/pre>&lt;/div>
 &lt;/div>
-&lt;h3 id="安装-crane-和-fadvisor">安装 Crane 和 Fadvisor&lt;/h3>
+&lt;p>Crane 的 Fadvisor 使用 Grafana 展示成本预估。安装 Grafana：&lt;/p>
 &lt;ul class="nav nav-tabs" id="tabs-4" role="tablist">&lt;li class="nav-item">
 &lt;a class="nav-link active tab-Main"
 id="tabs-4-0-tab" data-toggle="tab" href="#tabs-4-0" role="tab" onclick="handleClick(&amp;#34;Main&amp;#34;);"
@@ -1363,11 +1318,38 @@ Mirror
 &lt;/a>
 &lt;/li>&lt;/ul>
 &lt;div class="tab-content" id="tabs-4-content">&lt;div class="tab-pane fade show active"
-id="tabs-4-0" role="tabpanel" aria-labelled-by="tabs-4-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add crane https://gocrane.github.io/helm-charts
+id="tabs-4-0" role="tabpanel" aria-labelled-by="tabs-4-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add grafana https://grafana.github.io/helm-charts
+helm install grafana --version 6.11.0 \
+-f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/grafana/override_values.yaml \
+-n crane-system \
+--create-namespace grafana/grafana&lt;/code>&lt;/pre>&lt;/div>
+&lt;div class="tab-pane fade"
+id="tabs-4-1" role="tabpanel" aria-labelled-by="tabs-4-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add grafana https://finops-helm.pkg.coding.net/gocrane/grafana
+helm install grafana --version 6.11.0 \
+-f https://gitee.com/finops/helm-charts/raw/main/integration/grafana/override_values.yaml \
+-n crane-system \
+--create-namespace grafana/grafana&lt;/code>&lt;/pre>&lt;/div>
+&lt;/div>
+&lt;h3 id="安装-crane-和-fadvisor">安装 Crane 和 Fadvisor&lt;/h3>
+&lt;ul class="nav nav-tabs" id="tabs-5" role="tablist">&lt;li class="nav-item">
+&lt;a class="nav-link active tab-Main"
+id="tabs-5-0-tab" data-toggle="tab" href="#tabs-5-0" role="tab" onclick="handleClick(&amp;#34;Main&amp;#34;);"
+aria-controls="tabs-5-0" aria-selected="true">
+Main
+&lt;/a>
+&lt;/li>&lt;li class="nav-item">
+&lt;a class="nav-link tab-Mirror"
+id="tabs-5-1-tab" data-toggle="tab" href="#tabs-5-1" role="tab" onclick="handleClick(&amp;#34;Mirror&amp;#34;);"
+aria-controls="tabs-5-1" aria-selected="false">
+Mirror
+&lt;/a>
+&lt;/li>&lt;/ul>
+&lt;div class="tab-content" id="tabs-5-content">&lt;div class="tab-pane fade show active"
+id="tabs-5-0" role="tabpanel" aria-labelled-by="tabs-5-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add crane https://gocrane.github.io/helm-charts
 helm install crane -n crane-system --create-namespace crane/crane
 helm install fadvisor -n crane-system --create-namespace crane/fadvisor&lt;/code>&lt;/pre>&lt;/div>
 &lt;div class="tab-pane fade"
-id="tabs-4-1" role="tabpanel" aria-labelled-by="tabs-4-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add crane https://finops-helm.pkg.coding.net/gocrane/gocrane
+id="tabs-5-1" role="tabpanel" aria-labelled-by="tabs-5-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add crane https://finops-helm.pkg.coding.net/gocrane/gocrane
 helm install crane -n crane-system --create-namespace crane/crane
 helm install fadvisor -n crane-system --create-namespace crane/fadvisor&lt;/code>&lt;/pre>&lt;/div>
 &lt;/div>
@@ -1566,28 +1548,28 @@ $ curl -H &amp;#34;Host: dashboard.gocrane.io&amp;#34; 10.200.0.6
 ................................................................
 &lt;/code>&lt;/pre>&lt;h2 id="自定义安装">自定义安装&lt;/h2>
 &lt;p>通过 YAML 安装 &lt;code>Crane&lt;/code> 。&lt;/p>
-&lt;ul class="nav nav-tabs" id="tabs-5" role="tablist">&lt;li class="nav-item">
+&lt;ul class="nav nav-tabs" id="tabs-6" role="tablist">&lt;li class="nav-item">
 &lt;a class="nav-link active tab-Main"
-id="tabs-5-0-tab" data-toggle="tab" href="#tabs-5-0" role="tab" onclick="handleClick(&amp;#34;Main&amp;#34;);"
-aria-controls="tabs-5-0" aria-selected="true">
+id="tabs-6-0-tab" data-toggle="tab" href="#tabs-6-0" role="tab" onclick="handleClick(&amp;#34;Main&amp;#34;);"
+aria-controls="tabs-6-0" aria-selected="true">
 Main
 &lt;/a>
 &lt;/li>&lt;li class="nav-item">
 &lt;a class="nav-link tab-Mirror"
-id="tabs-5-1-tab" data-toggle="tab" href="#tabs-5-1" role="tab" onclick="handleClick(&amp;#34;Mirror&amp;#34;);"
-aria-controls="tabs-5-1" aria-selected="false">
+id="tabs-6-1-tab" data-toggle="tab" href="#tabs-6-1" role="tab" onclick="handleClick(&amp;#34;Mirror&amp;#34;);"
+aria-controls="tabs-6-1" aria-selected="false">
 Mirror
 &lt;/a>
 &lt;/li>&lt;/ul>
-&lt;div class="tab-content" id="tabs-5-content">&lt;div class="tab-pane fade show active"
-id="tabs-5-0" role="tabpanel" aria-labelled-by="tabs-5-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">git clone https://github.com/gocrane/crane.git
+&lt;div class="tab-content" id="tabs-6-content">&lt;div class="tab-pane fade show active"
+id="tabs-6-0" role="tabpanel" aria-labelled-by="tabs-6-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">git clone https://github.com/gocrane/crane.git
 CRANE_LATEST_VERSION=$(curl -s https://api.github.com/repos/gocrane/crane/releases/latest | grep -oP &amp;#39;&amp;#34;tag_name&amp;#34;: &amp;#34;\K(.*)(?=&amp;#34;)&amp;#39;)
 git checkout $CRANE_LATEST_VERSION
 kubectl apply -f deploy/manifests
 kubectl apply -f deploy/craned
 kubectl apply -f deploy/metric-adapter&lt;/code>&lt;/pre>&lt;/div>
 &lt;div class="tab-pane fade"
-id="tabs-5-1" role="tabpanel" aria-labelled-by="tabs-5-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">git clone https://e.coding.net/finops/gocrane/crane.git
+id="tabs-6-1" role="tabpanel" aria-labelled-by="tabs-6-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">git clone https://e.coding.net/finops/gocrane/crane.git
 CRANE_LATEST_VERSION=$(curl -s https://api.github.com/repos/gocrane/crane/releases/latest | grep -oP &amp;#39;&amp;#34;tag_name&amp;#34;: &amp;#34;\K(.*)(?=&amp;#34;)&amp;#39;)
 git checkout $CRANE_LATEST_VERSION
 kubectl apply -f deploy/manifests
@@ -4263,7 +4245,7 @@ F[Result workload replicas];
 &lt;h3 id="与弹性资源搭配使用">与弹性资源搭配使用&lt;/h3>
 &lt;p>为了避免主动回避操作对于高优先级业务的影响，比如误驱逐了重要业务，建议使用PodQOS关联使用了弹性资源的workload，这样在执行动作的时候只会影响这些使用了空闲资源的workload，
 保证了节点上的核心业务的稳定。&lt;/p>
-&lt;p>弹性资源的内容可以参见&lt;a href="/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-dynamic-resource-oversold-and-limit.zh">弹性资源超卖和限制&lt;/a>。&lt;/p></description></item><item><title>Docs: 弹性资源超卖和限制</title><link>/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-dynamic-resource-oversold-and-limit.zh/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-dynamic-resource-oversold-and-limit.zh/</guid><description>
+&lt;p>弹性资源的内容可以参见qos-dynamic-resource-oversold-and-limit.zh.md。&lt;/p></description></item><item><title>Docs: 弹性资源超卖和限制</title><link>/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-dynamic-resource-oversold-and-limit.zh/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-dynamic-resource-oversold-and-limit.zh/</guid><description>
 &lt;h2 id="预测算法增强的动态资源超卖">预测算法增强的动态资源超卖&lt;/h2>
 &lt;p>为了提高稳定性，通常用户在部署应用的时候会设置高于实际使用量的Request值，造成资源的浪费，为了提高节点的资源利用率，用户会搭配部署一些BestEffort的应用，利用闲置资源，实现超卖；
 但是这些应用由于缺乏资源limit和request的约束和相关信息，调度器依旧可能将这些pod调度到负载较高的节点上去，这与我们的初衷是不符的，所以最好能依据节点的空闲资源量进行调度。&lt;/p>
@@ -4327,7 +4309,7 @@ F[Result workload replicas];
 &lt;h2 id="适配场景">适配场景&lt;/h2>
 &lt;p>为了提升节点的负载，可以将一些离线作业或者重要性较低的作业通过使用弹性资源的方式调度部署到集群中，这类作业会使用空闲的弹性资源，
 搭配QOS的水位线保障，在节点出现负载较高的时候，也会优先被驱逐和压制，在保证高优先级业务稳定的前提下提升节点利用率。
-可以参见&lt;a href="/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-interference-detection-and-active-avoidance.zh">干扰检测和主动回避&lt;/a>中&amp;quot;与弹性资源搭配使用&amp;quot;部分的内容。&lt;/p></description></item><item><title>Docs: 酷家乐基于 Crane EHPA 的弹性落地实践</title><link>/zh-cn/docs/best-practices/how-kujiale-adopt-ehpa/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/best-practices/how-kujiale-adopt-ehpa/</guid><description>
+可以参见qos-interference-detection-and-active-avoidance.zh.md中&amp;quot;与弹性资源搭配使用&amp;quot;部分的内容。&lt;/p></description></item><item><title>Docs: 酷家乐基于 Crane EHPA 的弹性落地实践</title><link>/zh-cn/docs/best-practices/how-kujiale-adopt-ehpa/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/best-practices/how-kujiale-adopt-ehpa/</guid><description>
 &lt;p>原文请见：&lt;a href="https://mp.weixin.qq.com/s/3X_hHbisynxDwWx9Lnbp-w">酷家乐基于 Crane EHPA 的弹性落地实践&lt;/a>&lt;/p></description></item><item><title>Docs: 精确执行回避动作</title><link>/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-accurately-perform-avoidance-actions.zh/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-accurately-perform-avoidance-actions.zh/</guid><description>
 &lt;h2 id="精确执行回避动作">精确执行回避动作&lt;/h2>
 &lt;p>通过如下两点进行，避免了对于低优pod的过度操作的同时能够更快地降低指标到指定水位线的差距，保障高优业务不受影响&lt;/p>
