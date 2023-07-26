@@ -5,7 +5,11 @@
 [![License](https://img.shields.io/github/license/gocrane/crane)](https://www.apache.org/licenses/LICENSE-2.0.html)
 ![GoVersion](https://img.shields.io/github/go-mod/go-version/gocrane/crane)
 
+<div align="center">
+
 <img alt="Crane logo" height="100" src="docs/images/crane.svg" title="Crane" width="200"/>
+
+</div>
 
 ---
 
@@ -15,7 +19,11 @@
 
 Crane 是一个基于 FinOps 的云资源分析与成本优化平台。它的愿景是在保证客户应用运行质量的前提下实现极致的降本。
 
+<div align="center">
+
 <img alt="fcs logo" height="200" src="docs/images/Crane-FinOps-Certified-Solution.png" title="FinOps Certified Solution" width="200"/>
+
+</div>
 
 Crane 是 [FinOps 基金会](https://www.finops.org/)认证的[云优化方案](https://www.finops.org/certifications/finops-certified-solution/)。
 
