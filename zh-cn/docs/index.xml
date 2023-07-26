@@ -874,7 +874,9 @@ cpu: &amp;#34;500m&amp;#34;
 &lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/resource-recommendation">&lt;strong>资源推荐&lt;/strong>&lt;/a>: 通过 VPA 算法分析应用的真实用量推荐更合适的资源配置&lt;/li>
 &lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/replicas-recommendation">&lt;strong>副本数推荐&lt;/strong>&lt;/a>: 通过 HPA 算法分析应用的真实用量推荐更合适的副本数量&lt;/li>
 &lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/hpa-recommendation">&lt;strong>HPA 推荐&lt;/strong>&lt;/a>: 扫描集群中的 Workload，针对适合适合水平弹性的 Workload 推荐 HPA 配置&lt;/li>
-&lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/idlenode-recommendation">&lt;strong>闲置节点推荐&lt;/strong>&lt;/a>: 扫描集群中的闲置节点&lt;/li>
+&lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/idlenode-recommendation">&lt;strong>闲置节点推荐&lt;/strong>&lt;/a>: 通过扫描集群中节点的状态和利用率，帮助用户找到闲置的 Kubernetes node&lt;/li>
+&lt;li>&lt;a href="zh-cn/docs/tutorials/recommendation/service-recommendation">&lt;strong>Service 推荐&lt;/strong>&lt;/a>: 通过扫描集群中 Service 的运行状况，帮助用户找到闲置的 Kubernetes Service&lt;/li>
+&lt;li>&lt;a href="zh-cn/docs/tutorials/recommendation/pv-recommendation">&lt;strong>PV 推荐&lt;/strong>&lt;/a>: 通过扫描集群中 PV 的运行状况，帮助用户找到闲置的 Kubernetes PV&lt;/li>
 &lt;/ul>
 &lt;p>本文重点讨论 Workload 的资源配置优化，因此下面重点介绍资源推荐和副本推荐。&lt;/p>
 &lt;h3 id="资源推荐">资源推荐&lt;/h3>
@@ -4245,7 +4247,7 @@ F[Result workload replicas];
 &lt;h3 id="与弹性资源搭配使用">与弹性资源搭配使用&lt;/h3>
 &lt;p>为了避免主动回避操作对于高优先级业务的影响，比如误驱逐了重要业务，建议使用PodQOS关联使用了弹性资源的workload，这样在执行动作的时候只会影响这些使用了空闲资源的workload，
 保证了节点上的核心业务的稳定。&lt;/p>
-&lt;p>弹性资源的内容可以参见qos-dynamic-resource-oversold-and-limit.zh.md。&lt;/p></description></item><item><title>Docs: 弹性资源超卖和限制</title><link>/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-dynamic-resource-oversold-and-limit.zh/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-dynamic-resource-oversold-and-limit.zh/</guid><description>
+&lt;p>弹性资源的内容可以参见&lt;a href="/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-dynamic-resource-oversold-and-limit.zh">弹性资源超卖和限制&lt;/a>。&lt;/p></description></item><item><title>Docs: 弹性资源超卖和限制</title><link>/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-dynamic-resource-oversold-and-limit.zh/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-dynamic-resource-oversold-and-limit.zh/</guid><description>
 &lt;h2 id="预测算法增强的动态资源超卖">预测算法增强的动态资源超卖&lt;/h2>
 &lt;p>为了提高稳定性，通常用户在部署应用的时候会设置高于实际使用量的Request值，造成资源的浪费，为了提高节点的资源利用率，用户会搭配部署一些BestEffort的应用，利用闲置资源，实现超卖；
 但是这些应用由于缺乏资源limit和request的约束和相关信息，调度器依旧可能将这些pod调度到负载较高的节点上去，这与我们的初衷是不符的，所以最好能依据节点的空闲资源量进行调度。&lt;/p>
@@ -4309,7 +4311,7 @@ F[Result workload replicas];
 &lt;h2 id="适配场景">适配场景&lt;/h2>
 &lt;p>为了提升节点的负载，可以将一些离线作业或者重要性较低的作业通过使用弹性资源的方式调度部署到集群中，这类作业会使用空闲的弹性资源，
 搭配QOS的水位线保障，在节点出现负载较高的时候，也会优先被驱逐和压制，在保证高优先级业务稳定的前提下提升节点利用率。
-可以参见qos-interference-detection-and-active-avoidance.zh.md中&amp;quot;与弹性资源搭配使用&amp;quot;部分的内容。&lt;/p></description></item><item><title>Docs: 酷家乐基于 Crane EHPA 的弹性落地实践</title><link>/zh-cn/docs/best-practices/how-kujiale-adopt-ehpa/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/best-practices/how-kujiale-adopt-ehpa/</guid><description>
+可以参见&lt;a href="/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-interference-detection-and-active-avoidance.zh">干扰检测和主动回避&lt;/a>中&amp;quot;与弹性资源搭配使用&amp;quot;部分的内容。&lt;/p></description></item><item><title>Docs: 酷家乐基于 Crane EHPA 的弹性落地实践</title><link>/zh-cn/docs/best-practices/how-kujiale-adopt-ehpa/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/best-practices/how-kujiale-adopt-ehpa/</guid><description>
 &lt;p>原文请见：&lt;a href="https://mp.weixin.qq.com/s/3X_hHbisynxDwWx9Lnbp-w">酷家乐基于 Crane EHPA 的弹性落地实践&lt;/a>&lt;/p></description></item><item><title>Docs: 精确执行回避动作</title><link>/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-accurately-perform-avoidance-actions.zh/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/zh-cn/docs/tutorials/colocation-with-enhanced-qos/qos-accurately-perform-avoidance-actions.zh/</guid><description>
 &lt;h2 id="精确执行回避动作">精确执行回避动作&lt;/h2>
 &lt;p>通过如下两点进行，避免了对于低优pod的过度操作的同时能够更快地降低指标到指定水位线的差距，保障高优业务不受影响&lt;/p>
