@@ -9,6 +9,10 @@ weight: 11
 - Kubernetes 1.18+
 - Helm 3.1.0
 
+{{% alert color="warning" %}}
+If your Kubernetes version >= 1.26, please referring to [PR](https://github.com/gocrane/crane/pull/839)
+{{% /alert %}}
+
 ## Steps
 
 ### Helm Installation

@@ -21,6 +21,10 @@ Please referring to [Installation](/docs/getting-started/installation/installati
 - Helm 3.1.0
 - Kind 0.16+
 
+{{% alert color="warning" %}}
+If your Kubernetes version >= 1.26, please referring to [PR](https://github.com/gocrane/crane/pull/839)
+{{% /alert %}}
+
 ## Installation
 
 Following command will install Crane with dependencies applications(Prometheus/Grafana).

@@ -57,44 +57,22 @@ kubectl apply -f workload-rules.yaml
 
 This example will analysis Resource and Replicas for Deployments and StatefulSets in all namespace.。
 
-2. Check the RecommendationRule recommendation progress. Observe the progress of recommendation tasks through `Status.recommendations`. Recommendation tasks are executed sequentially. If lastStartTime of all tasks is the latest time and message has value, it indicates that this recommendation is completed.
+2. Check the RecommendationRule recommendation progress. Through the annotations of the Recommendation, the start time of the last run of the job and the results can be observed.
 
 ```shell
-kubectl get rr workloads-rule
+kubectl get recommend workloads-rule-replicas-7djlk -o yaml
 ```
 
 ```yaml
-status:
-  lastUpdateTime: "2022-09-28T10:36:02Z"
-  recommendations:
-  - apiVersion: analysis.crane.io/v1alpha1
-    kind: Recommendation
-    lastStartTime: "2022-09-28T10:36:02Z"
-    message: Success
-    name: workloads-rule-replicas-rckvb
-    namespace: default
-    recommenderRef:
-      name: Replicas
-    targetRef:
-      apiVersion: apps/v1
-      kind: Deployment
-      name: php-apache
-      namespace: default
-    uid: b15cbcd7-6fe2-4ace-9ae8-11cc0a6e69c2
-  - apiVersion: analysis.crane.io/v1alpha1
-    kind: Recommendation
-    lastStartTime: "2022-09-28T10:36:02Z"
-    message: Success
-    name: workloads-rule-resource-pnnxn
-    namespace: default
-    recommenderRef:
-      name: Resource
-    targetRef:
-      apiVersion: apps/v1
-      kind: Deployment
-      name: php-apache
-      namespace: default
-    uid: 8472013a-bda2-4025-b0df-3fdc69c1c910
+apiVersion: analysis.crane.io/v1alpha1
+kind: Recommendation
+metadata:
+  annotations:
+    analysis.crane.io/last-start-time: "2023-07-24 11:43:58"
+    analysis.crane.io/message: 'Failed to run recommendation flow in recommender Replicas:
+      Replicas CalculatePodTemplateRequests cpu failed: missing request for cpu'
+    analysis.crane.io/run-number: "59"
+  creationTimestamp: "2023-06-01T11:37:16Z"
 ```
 
 3. Check `Recommendation`
