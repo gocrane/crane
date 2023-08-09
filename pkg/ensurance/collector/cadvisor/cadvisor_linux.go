@@ -229,12 +229,17 @@ func addSampleToStateMap(metricsName types.MetricName, usage common.TimeSeries, 
 func caculateCPUUsage(info *cadvisorapiv2.ContainerInfo, state *ContainerState) (float64, float64) {
 	if info == nil ||
 		state == nil ||
-		len(info.Stats) == 0 {
+		len(info.Stats) == 0 ||
+		info.Stats[0].Cpu == nil || len(state.stat.Stats) == 0 || state.stat.Stats[0].Cpu == nil {
 		return 0, 0
 	}
 	cpuUsageIncrease := info.Stats[0].Cpu.Usage.Total - state.stat.Stats[0].Cpu.Usage.Total
 	schedRunqueueTimeIncrease := info.Stats[0].Cpu.Schedstat.RunqueueTime - state.stat.Stats[0].Cpu.Schedstat.RunqueueTime
 	timeIncrease := info.Stats[0].Timestamp.UnixNano() - state.stat.Stats[0].Timestamp.UnixNano()
+
+	if timeIncrease <= 0 {
+		return 0, 0
+	}
 
 	cpuUsageSample := float64(cpuUsageIncrease) / float64(timeIncrease)
 	schedRunqueueTime := float64(schedRunqueueTimeIncrease) * 1000 * 1000 / float64(timeIncrease)
