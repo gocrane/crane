@@ -3,6 +3,7 @@ package recommendation
 import (
 	"context"
 	"fmt"
+	"github.com/gocrane/crane/pkg/metrics"
 	"sort"
 	"strconv"
 	"strings"
@@ -307,6 +308,16 @@ func (c *RecommendationRuleController) getIdentities(ctx context.Context, recomm
 				}
 			}
 		}
+	}
+
+	for _, id := range identities {
+		metrics.SelectTargets.With(map[string]string{
+			"type":       id.Recommender,
+			"apiversion": id.APIVersion,
+			"owner_kind": id.Kind,
+			"namespace":  id.Namespace,
+			"owner_name": id.Name,
+		}).Set(1)
 	}
 
 	return identities, nil
