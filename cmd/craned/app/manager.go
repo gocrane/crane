@@ -143,7 +143,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 		}
 	}()
 
-	initControllers(podOOMRecorder, mgr, opts, predictorMgr, historyDataSources[providers.PrometheusDataSource])
+	initControllers(ctx, podOOMRecorder, mgr, opts, predictorMgr, historyDataSources[providers.PrometheusDataSource])
 	// initialize custom collector metrics
 	initMetricCollector(mgr)
 	runAll(ctx, mgr, predictorMgr, dataSourceProviders[providers.PrometheusDataSource], opts)
@@ -266,7 +266,7 @@ func initPredictorManager(opts *options.Options, realtimeDataSources map[provide
 }
 
 // initControllers setup controllers with manager
-func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.Options, predictorMgr predictor.Manager, historyDataSource providers.History) {
+func initControllers(ctx context.Context, oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.Options, predictorMgr predictor.Manager, historyDataSource providers.History) {
 	discoveryClientSet, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
 	if err != nil {
 		klog.Exit(err, "Unable to create discover client")
@@ -417,6 +417,13 @@ func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.O
 		}).SetupWithManager(mgr); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "RecommendationTriggerController")
 		}
+
+		checker := recommendationctrl.Checker{
+			Client:          mgr.GetClient(),
+			MonitorInterval: opts.MonitorInterval,
+			OutDateInterval: opts.OutDateInterval,
+		}
+		checker.Run(ctx.Done())
 	}
 
 	// CnpController
