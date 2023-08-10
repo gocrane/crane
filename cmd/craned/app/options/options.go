@@ -67,6 +67,12 @@ type Options struct {
 
 	// CacheUnstructured indicates whether to cache Unstructured objects. When enabled, it will speed up reading Unstructured objects, but will increase memory usage.
 	CacheUnstructured bool
+
+	// MonitorInterval is the interval for recommendation checker
+	MonitorInterval time.Duration
+
+	// OutDateInterval is the checking interval for identify a recommendation is outdated
+	OutDateInterval time.Duration
 }
 
 // NewOptions builds an empty options.
@@ -139,4 +145,6 @@ func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.IntVar(&o.OOMRecordMaxNumber, "oom-record-max-number", 10000, "Max number for oom records to store in configmap")
 	flags.IntVar(&o.TimeSeriesPredictionMaxConcurrentReconciles, "time-series-prediction-max-concurrent-reconciles", 10, "Max concurrent reconciles for TimeSeriesPrediction controller")
 	flags.BoolVar(&o.CacheUnstructured, "cache-unstructured", true, "whether to cache Unstructured objects. When enabled, it will speed up reading Unstructured objects but will increase memory usage")
+	flags.DurationVar(&o.MonitorInterval, "recommendation-monitor-interval", time.Hour, "interval for recommendation checker")
+	flags.DurationVar(&o.OutDateInterval, "recommendation-outdate-interval", 24*time.Hour, "interval for identify a recommendation is outdated")
 }
