@@ -3,7 +3,6 @@ package recommendation
 import (
 	"context"
 	"fmt"
-	"github.com/gocrane/crane/pkg/metrics"
 	"sort"
 	"strconv"
 	"strings"
@@ -33,6 +32,7 @@ import (
 	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/known"
+	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/oom"
 	predictormgr "github.com/gocrane/crane/pkg/predictor"
 	"github.com/gocrane/crane/pkg/providers"
