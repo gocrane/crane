@@ -32,6 +32,7 @@ import (
 	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/known"
+	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/oom"
 	predictormgr "github.com/gocrane/crane/pkg/predictor"
 	"github.com/gocrane/crane/pkg/providers"
@@ -307,6 +308,16 @@ func (c *RecommendationRuleController) getIdentities(ctx context.Context, recomm
 				}
 			}
 		}
+	}
+
+	for _, id := range identities {
+		metrics.SelectTargets.With(map[string]string{
+			"type":       id.Recommender,
+			"apiversion": id.APIVersion,
+			"owner_kind": id.Kind,
+			"namespace":  id.Namespace,
+			"owner_name": id.Name,
+		}).Set(1)
 	}
 
 	return identities, nil
