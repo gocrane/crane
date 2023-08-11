@@ -20,11 +20,14 @@ type Checker struct {
 
 func (r Checker) Run(stopCh <-chan struct{}) {
 	go func() {
+		ticker := time.NewTicker(r.MonitorInterval)
+		defer ticker.Stop()
+
 		for {
 			select {
 			case <-stopCh:
 				return
-			case <-time.Tick(r.MonitorInterval):
+			case <-ticker.C:
 				r.runChecker()
 			}
 		}
