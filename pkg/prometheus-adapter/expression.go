@@ -47,12 +47,13 @@ type MetricRules struct {
 }
 
 type MetricRule struct {
-	MetricMatches string
-	SeriesName    string
-	ResConverter  naming.ResourceConverter
-	Template      *template.Template
-	Namespaced    bool
-	LabelMatchers []string
+	MetricMatches  string
+	SeriesName     string
+	ResConverter   naming.ResourceConverter
+	Template       *template.Template
+	Namespaced     bool
+	LabelMatchers  []string
+	ContainerLabel string
 }
 
 type QueryTemplateArgs struct {
@@ -129,7 +130,7 @@ func SetExtensionLabels(extensionLabels string) {
 	}
 }
 
-// GetMetricRuleResourceFromRules produces a MetricNamer for each rule in the given config.
+// GetMetricRulesFromResourceRules produces a MetricNamer for each rule in the given config.
 func GetMetricRulesFromResourceRules(cfg config.ResourceRules, mapper meta.RESTMapper) (metricRules []MetricRule, metricRulesError []string, err error) {
 	// get cpu MetricsQuery
 	if cfg.CPU.ContainerQuery != "" {
@@ -154,10 +155,11 @@ func GetMetricRulesFromResourceRules(cfg config.ResourceRules, mapper meta.RESTM
 						klog.Errorf("unable to parse metrics query template %q: %v", cfg.CPU.ContainerQuery, err)
 					} else {
 						metricRules = append(metricRules, MetricRule{
-							MetricMatches: "cpu",
-							ResConverter:  resConverter,
-							Template:      templ,
-							Namespaced:    true,
+							MetricMatches:  "cpu",
+							ResConverter:   resConverter,
+							Template:       templ,
+							Namespaced:     true,
+							ContainerLabel: cfg.CPU.ContainerLabel,
 						})
 					}
 				}
@@ -190,10 +192,11 @@ func GetMetricRulesFromResourceRules(cfg config.ResourceRules, mapper meta.RESTM
 						klog.Errorf("unable to parse metrics query template %q: %v", cfg.Memory.ContainerQuery, err)
 					} else {
 						metricRules = append(metricRules, MetricRule{
-							MetricMatches: "memory",
-							ResConverter:  resConverter,
-							Template:      templ,
-							Namespaced:    true,
+							MetricMatches:  "memory",
+							ResConverter:   resConverter,
+							Template:       templ,
+							Namespaced:     true,
+							ContainerLabel: cfg.Memory.ContainerLabel,
 						})
 					}
 				}

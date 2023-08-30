@@ -9,9 +9,11 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/scale"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -208,10 +210,30 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 			var metricIdentifier string
 			var averageValue *resource.Quantity
 			switch metric.Type {
-			case autoscalingv2.ResourceMetricSourceType:
-				metricIdentifier = utils.GetMetricIdentifier(metric, metric.Resource.Name.String())
+			case autoscalingv2.ResourceMetricSourceType, autoscalingv2.ContainerResourceMetricSourceType:
+				var averageUtilization *int32
+				var containerName string
+				if metric.Resource != nil {
+					if metric.Resource.Target.AverageUtilization != nil {
+						averageUtilization = metric.Resource.Target.AverageUtilization
+					}
+					if metric.Resource.Target.AverageValue != nil {
+						averageValue = metric.Resource.Target.AverageValue
+					}
+				}
+				if metric.ContainerResource != nil {
+					containerName = metric.ContainerResource.Container
+					if metric.ContainerResource.Target.AverageUtilization != nil {
+						averageUtilization = metric.ContainerResource.Target.AverageUtilization
+					}
+					if metric.ContainerResource.Target.AverageValue != nil {
+						averageValue = metric.ContainerResource.Target.AverageValue
+					}
+				}
+
 				// When use AverageUtilization in EffectiveHorizontalPodAutoscaler's metricSpec, convert to AverageValue
-				if metric.Resource.Target.AverageUtilization != nil {
+				if averageUtilization != nil {
+					metricName := utils.GetMetricName(metric)
 					scale, _, err := utils.GetScale(ctx, c.RestMapper, c.ScaleClient, ehpa.Namespace, ehpa.Spec.ScaleTargetRef)
 					if err != nil {
 						return nil, err
@@ -231,24 +253,21 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 						return nil, fmt.Errorf("failed to get available pods. ")
 					}
 
-					requests, err := utils.CalculatePodRequests(availablePods, metric.Resource.Name)
+					requests, err := utils.CalculatePodRequests(availablePods, v1.ResourceName(metricName), containerName)
 					if err != nil {
 						return nil, err
 					}
 
-					value := int64((float64(requests) * float64(*metric.Resource.Target.AverageUtilization) / 100) / float64(len(availablePods)))
+					value := int64((float64(requests) * float64(*averageUtilization) / 100) / float64(len(availablePods)))
 					averageValue = resource.NewMilliQuantity(value, resource.DecimalSI)
-				} else {
-					averageValue = metric.Resource.Target.AverageValue
 				}
 			case autoscalingv2.ExternalMetricSourceType:
-				metricIdentifier = utils.GetMetricIdentifier(metric, metric.External.Metric.Name)
 				averageValue = metric.External.Target.AverageValue
 			case autoscalingv2.PodsMetricSourceType:
-				metricIdentifier = utils.GetMetricIdentifier(metric, metric.Pods.Metric.Name)
 				averageValue = metric.Pods.Target.AverageValue
 			}
 
+			metricIdentifier = utils.GetPredictionMetricIdentifier(metric)
 			if metricIdentifier == "" {
 				continue
 			}
@@ -373,4 +392,27 @@ func (c *EffectiveHPAController) propagateLabelAndAnnotation(ehpa *autoscalingap
 			}
 		}
 	}
+}
+
+func getAvailablePods(ctx context.Context, restMapper meta.RESTMapper, kubeClient client.Client, scaleClient scale.ScalesGetter, ehpa autoscalingapi.EffectiveHorizontalPodAutoscaler) ([]v1.Pod, error) {
+	scale, _, err := utils.GetScale(ctx, restMapper, scaleClient, ehpa.Namespace, ehpa.Spec.ScaleTargetRef)
+	if err != nil {
+		return nil, err
+	}
+
+	pods, err := utils.GetPodsFromScale(kubeClient, scale)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(pods) == 0 {
+		return nil, fmt.Errorf("no pods returns from scale object. ")
+	}
+
+	availablePods := utils.GetAvailablePods(pods)
+	if len(availablePods) == 0 {
+		return nil, fmt.Errorf("failed to get available pods. ")
+	}
+
+	return availablePods, nil
 }

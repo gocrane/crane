@@ -133,25 +133,12 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 
 	var predictionMetrics []predictionapi.PredictionMetric
 	for _, metric := range ehpa.Spec.Metrics {
-		var metricName string
-		//get metricIdentifier by metric.Type and metricName
-		var metricIdentifier string
-		switch metric.Type {
-		case autoscalingv2.ResourceMetricSourceType:
-			metricName = metric.Resource.Name.String()
-			metricIdentifier = utils.GetMetricIdentifier(metric, metric.Resource.Name.String())
-		case autoscalingv2.ExternalMetricSourceType:
-			metricName = metric.External.Metric.Name
-			metricIdentifier = utils.GetMetricIdentifier(metric, metric.External.Metric.Name)
-		case autoscalingv2.PodsMetricSourceType:
-			metricName = metric.Pods.Metric.Name
-			metricIdentifier = utils.GetMetricIdentifier(metric, metric.Pods.Metric.Name)
-		}
-
+		metricIdentifier := utils.GetPredictionMetricIdentifier(metric)
 		if metricIdentifier == "" {
 			continue
 		}
 
+		metricName := utils.GetMetricName(metric)
 		//get matchLabels
 		var matchLabels []string
 		var metricRule *prometheus_adapter.MetricRule
@@ -159,7 +146,7 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 		// Supreme priority: annotation
 		expressionQuery := utils.GetExpressionQueryAnnotation(metricIdentifier, ehpa.Annotations)
 		if expressionQuery == "" {
-			var nameReg string
+			var podNameReg string
 			// get metricRule from prometheus-adapter
 			switch metric.Type {
 			case autoscalingv2.ResourceMetricSourceType:
@@ -169,7 +156,23 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 						klog.Errorf("Got MetricRulesResource prometheus-adapter-resource Failed MetricName[%s]", metricName)
 					} else {
 						klog.V(4).Infof("Got MetricRulesResource prometheus-adapter-resource MetricMatches[%s] SeriesName[%s]", metricRule.MetricMatches, metricRule.SeriesName)
-						nameReg = utils.GetPodNameReg(ehpa.Spec.ScaleTargetRef.Name, ehpa.Spec.ScaleTargetRef.Kind)
+						podNameReg = utils.GetPodNameReg(ehpa.Spec.ScaleTargetRef.Name, ehpa.Spec.ScaleTargetRef.Kind)
+					}
+				}
+			case autoscalingv2.ContainerResourceMetricSourceType:
+				if len(mrs.MetricRulesResource) > 0 {
+					metricRule = prometheus_adapter.MatchMetricRule(mrs.MetricRulesResource, metricName)
+					if metricRule == nil {
+						klog.Errorf("Got MetricRulesResource prometheus-adapter-resource Failed MetricName[%s]", metricName)
+					} else {
+						klog.V(4).Infof("Got MetricRulesResource prometheus-adapter-resource MetricMatches[%s] SeriesName[%s]", metricRule.MetricMatches, metricRule.SeriesName)
+						podNameReg = utils.GetPodNameReg(ehpa.Spec.ScaleTargetRef.Name, ehpa.Spec.ScaleTargetRef.Kind)
+						// Compared to ResourceMetricSourceType, there is an additional container-name field
+						containerLabel := "container"
+						if metricRule.ContainerLabel != "" {
+							containerLabel = metricRule.ContainerLabel
+						}
+						matchLabels = append(matchLabels, utils.MapSortToArray(map[string]string{containerLabel: metric.ContainerResource.Container})...)
 					}
 				}
 			case autoscalingv2.PodsMetricSourceType:
@@ -179,12 +182,9 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 						klog.Errorf("Got MetricRulesCustomer prometheus-adapter-customer Failed MetricName[%s]", metricName)
 					} else {
 						klog.V(4).Infof("Got MetricRulesCustomer prometheus-adapter-customer MetricMatches[%s] SeriesName[%s]", metricRule.MetricMatches, metricRule.SeriesName)
-						nameReg = utils.GetPodNameReg(ehpa.Spec.ScaleTargetRef.Name, ehpa.Spec.ScaleTargetRef.Kind)
-
+						podNameReg = utils.GetPodNameReg(ehpa.Spec.ScaleTargetRef.Name, ehpa.Spec.ScaleTargetRef.Kind)
 						if metric.Pods.Metric.Selector != nil {
-							for _, i := range utils.MapSortToArray(metric.Pods.Metric.Selector.MatchLabels) {
-								matchLabels = append(matchLabels, i)
-							}
+							matchLabels = append(matchLabels, utils.MapSortToArray(metric.Pods.Metric.Selector.MatchLabels)...)
 						}
 					}
 				}
@@ -196,18 +196,16 @@ func (c *EffectiveHPAController) NewPredictionObject(ehpa *autoscalingapi.Effect
 					} else {
 						klog.V(4).Infof("Got MetricRulesExternal prometheus-adapter-external MetricMatches[%s] SeriesName[%s]", metricRule.MetricMatches, metricRule.SeriesName)
 						if metric.External.Metric.Selector != nil {
-							for _, i := range utils.MapSortToArray(metric.External.Metric.Selector.MatchLabels) {
-								matchLabels = append(matchLabels, i)
-							}
+							matchLabels = append(matchLabels, utils.MapSortToArray(metric.External.Metric.Selector.MatchLabels)...)
 						}
 					}
 				}
 			}
 
 			if metricRule != nil {
-				// Second priority: get default expressionQuery
+				// Second priority: get prometheus-adapter expressionQuery
 				var err error
-				expressionQuery, err = metricRule.QueryForSeries(ehpa.Namespace, nameReg, append(mrs.ExtensionLabels, matchLabels...))
+				expressionQuery, err = metricRule.QueryForSeries(ehpa.Namespace, podNameReg, append(mrs.ExtensionLabels, matchLabels...))
 				if err != nil {
 					klog.Errorf("Got promSelector prometheus-adapter %v %v", metricRule, err)
 				} else {

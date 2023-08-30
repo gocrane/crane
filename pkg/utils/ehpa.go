@@ -6,9 +6,8 @@ import (
 	"strings"
 
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
-	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
-
 	"github.com/gocrane/crane/pkg/known"
+	autoscalingv2 "k8s.io/api/autoscaling/v2beta2"
 )
 
 func IsEHPAPredictionEnabled(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) bool {
@@ -39,7 +38,7 @@ func IsEHPACronEnabled(ehpa *autoscalingapi.EffectiveHorizontalPodAutoscaler) bo
 // GetPredictionMetricName return metric name used by prediction
 func GetPredictionMetricName(sourceType autoscalingv2.MetricSourceType) (metricName string) {
 	switch sourceType {
-	case autoscalingv2.ResourceMetricSourceType, autoscalingv2.PodsMetricSourceType, autoscalingv2.ExternalMetricSourceType:
+	case autoscalingv2.ResourceMetricSourceType, autoscalingv2.ContainerResourceMetricSourceType, autoscalingv2.PodsMetricSourceType, autoscalingv2.ExternalMetricSourceType:
 		metricName = known.MetricNamePrediction
 	}
 
@@ -51,19 +50,36 @@ func GetCronMetricName() string {
 	return known.MetricNameCron
 }
 
-// GetGeneralPredictionMetricName return metric name used by prediction
-func GetMetricIdentifier(metric autoscalingv2.MetricSpec, name string) string {
+func GetMetricName(metric autoscalingv2.MetricSpec) string {
+	switch metric.Type {
+	case autoscalingv2.PodsMetricSourceType:
+		return metric.Pods.Metric.Name
+	case autoscalingv2.ResourceMetricSourceType:
+		return metric.Resource.Name.String()
+	case autoscalingv2.ContainerResourceMetricSourceType:
+		return metric.ContainerResource.Name.String()
+	case autoscalingv2.ExternalMetricSourceType:
+		return metric.External.Metric.Name
+	default:
+		return ""
+	}
+}
+
+// GetPredictionMetricIdentifier return metric name used by prediction
+func GetPredictionMetricIdentifier(metric autoscalingv2.MetricSpec) string {
 	var prefix string
 	switch metric.Type {
 	case autoscalingv2.PodsMetricSourceType:
 		prefix = "pods"
 	case autoscalingv2.ResourceMetricSourceType:
 		prefix = "resource"
+	case autoscalingv2.ContainerResourceMetricSourceType:
+		prefix = "container-resource"
 	case autoscalingv2.ExternalMetricSourceType:
 		prefix = "external"
 	}
 
-	return fmt.Sprintf("%s.%s", prefix, name)
+	return fmt.Sprintf("%s.%s", prefix, GetMetricName(metric))
 }
 
 // GetExpressionQueryAnnotation return metric query from annotation by metricName
@@ -95,7 +111,7 @@ func IsExpressionQueryAnnotationEnabled(metricIdentifier string, annotations map
 	return false
 }
 
-// GetExpressionQuery return metric query
+// GetExpressionQueryDefault return default metric query
 func GetExpressionQueryDefault(metric autoscalingv2.MetricSpec, namespace string, name string, kind string) string {
 	var expressionQuery string
 	switch metric.Type {
@@ -105,6 +121,13 @@ func GetExpressionQueryDefault(metric autoscalingv2.MetricSpec, namespace string
 			expressionQuery = GetWorkloadCpuUsageExpression(namespace, name, kind)
 		case "memory":
 			expressionQuery = GetWorkloadMemUsageExpression(namespace, name, kind)
+		}
+	case autoscalingv2.ContainerResourceMetricSourceType:
+		switch metric.ContainerResource.Name {
+		case "cpu":
+			expressionQuery = GetContainerCpuUsageExpression(namespace, name, kind, metric.ContainerResource.Container)
+		case "memory":
+			expressionQuery = GetContainerMemUsageExpression(namespace, name, kind, metric.ContainerResource.Container)
 		}
 	case autoscalingv2.PodsMetricSourceType:
 		var labels []string
