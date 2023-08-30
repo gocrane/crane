@@ -61,9 +61,10 @@ func TestCalculatePodRequests(t *testing.T) {
 	}
 
 	tests := []struct {
-		description string
-		resource    v1.ResourceName
-		expect      int64
+		description   string
+		resource      v1.ResourceName
+		containerName string
+		expect        int64
 	}{
 		{
 			description: "calculate cpu request total",
@@ -75,10 +76,22 @@ func TestCalculatePodRequests(t *testing.T) {
 			resource:    v1.ResourceMemory,
 			expect:      60000,
 		},
+		{
+			description:   "calculate cpu request total of container1",
+			resource:      v1.ResourceCPU,
+			containerName: "container1",
+			expect:        3000,
+		},
+		{
+			description:   "calculate memory request total of container1",
+			resource:      v1.ResourceMemory,
+			containerName: "container1",
+			expect:        30000,
+		},
 	}
 
 	for _, test := range tests {
-		requests, err := CalculatePodRequests(pods, test.resource)
+		requests, err := CalculatePodRequests(pods, test.resource, test.containerName)
 		if err != nil {
 			t.Errorf("Failed to calculatePodRequests: %v", err)
 		}

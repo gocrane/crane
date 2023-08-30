@@ -110,11 +110,14 @@ func EvictPodWithGracePeriod(client clientset.Interface, pod *v1.Pod, gracePerio
 	return client.CoreV1().Pods(pod.Namespace).EvictV1beta1(context.Background(), e)
 }
 
-// CalculatePodRequests sum request total from pods
-func CalculatePodRequests(pods []v1.Pod, resource v1.ResourceName) (int64, error) {
+// CalculatePodRequests sum request total from pods. If the containerName is specified, the total amount of requests for that container will be calculated.
+func CalculatePodRequests(pods []v1.Pod, resource v1.ResourceName, containerName string) (int64, error) {
 	var requests int64
 	for _, pod := range pods {
 		for _, c := range pod.Spec.Containers {
+			if containerName != "" && c.Name != containerName {
+				continue
+			}
 			if containerRequest, ok := c.Resources.Requests[resource]; ok {
 				requests += containerRequest.MilliValue()
 			} else {
