@@ -9,11 +9,9 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/scale"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -392,27 +390,4 @@ func (c *EffectiveHPAController) propagateLabelAndAnnotation(ehpa *autoscalingap
 			}
 		}
 	}
-}
-
-func getAvailablePods(ctx context.Context, restMapper meta.RESTMapper, kubeClient client.Client, scaleClient scale.ScalesGetter, ehpa autoscalingapi.EffectiveHorizontalPodAutoscaler) ([]v1.Pod, error) {
-	scale, _, err := utils.GetScale(ctx, restMapper, scaleClient, ehpa.Namespace, ehpa.Spec.ScaleTargetRef)
-	if err != nil {
-		return nil, err
-	}
-
-	pods, err := utils.GetPodsFromScale(kubeClient, scale)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(pods) == 0 {
-		return nil, fmt.Errorf("no pods returns from scale object. ")
-	}
-
-	availablePods := utils.GetAvailablePods(pods)
-	if len(availablePods) == 0 {
-		return nil, fmt.Errorf("failed to get available pods. ")
-	}
-
-	return availablePods, nil
 }
