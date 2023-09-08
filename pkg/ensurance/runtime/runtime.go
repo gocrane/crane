@@ -1,15 +1,16 @@
 package runtime
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"google.golang.org/grpc"
-	"k8s.io/apimachinery/pkg/util/errors"
 	criapis "k8s.io/cri-api/pkg/apis"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	"k8s.io/klog/v2"
 	criremote "k8s.io/kubernetes/pkg/kubelet/cri/remote"
+	"k8s.io/kubernetes/pkg/kubelet/util"
 
 	gprcconnection "github.com/gocrane/crane/pkg/ensurance/grpc"
 )
@@ -60,20 +61,44 @@ func GetImageClient(imageEndpoint string) (pb.ImageServiceClient, *grpc.ClientCo
 
 // GetCRIRuntimeService get the CRI runtime service.
 func GetCRIRuntimeService(runtimeEndpoint string) (criapis.RuntimeService, error) {
-	var runtimeEndpoints []string
+	var runtimeEndpoints = defaultRuntimeEndpoints
 	if runtimeEndpoint != "" {
-		runtimeEndpoints = append(runtimeEndpoints, runtimeEndpoint)
+		runtimeEndpoints = []string{runtimeEndpoint}
 	}
-	runtimeEndpoints = append(runtimeEndpoints, defaultRuntimeEndpoints...)
-	klog.V(2).Infof("Runtime connect using endpoints: %v. You can set the endpoint instead.", defaultRuntimeEndpoints)
+	klog.V(2).Infof("Runtime connect using endpoints: %v", runtimeEndpoints)
 
-	var errs []error
 	for _, endpoint := range runtimeEndpoints {
-		containerRuntime, err := criremote.NewRemoteRuntimeService(endpoint, 3*time.Second)
-		if err == nil {
-			return containerRuntime, nil
+		err := dialRemoteRuntime(endpoint, 3*time.Second)
+		if err != nil {
+			klog.Warningf("Failed to connect to remote runtime service: %v", err)
+			continue
 		}
-		errs = append(errs, err)
+		klog.V(2).Infof("Runtime connect using endpoint: %v", endpoint)
+		containerRuntime, err := criremote.NewRemoteRuntimeService(endpoint, 3*time.Second)
+		if err != nil {
+			klog.Fatalf("Failed to connect to remote runtime service: %v", err)
+		}
+		return containerRuntime, nil
 	}
-	return nil, errors.NewAggregate(errs)
+	return nil, fmt.Errorf("failed to connect to remote runtime service")
+}
+
+// copy from `criremote.NewRemoteRuntimeService` but dial endpoint in block mode
+func dialRemoteRuntime(endpoint string, connectionTimeout time.Duration) error {
+	klog.V(3).InfoS("Connecting to runtime service", "endpoint", endpoint)
+	addr, dialer, err := util.GetAddressAndDialer(endpoint)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), connectionTimeout)
+	defer cancel()
+
+	// use block mode to wait for connection
+	conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure(), grpc.WithContextDialer(dialer), grpc.WithBlock())
+	if err != nil {
+		klog.ErrorS(err, "Connect remote runtime failed", "address", addr)
+		return err
+	}
+	defer conn.Close()
+	return nil
 }
