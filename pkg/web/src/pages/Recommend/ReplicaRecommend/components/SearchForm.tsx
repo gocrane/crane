@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
-import { Button, Col, Form, Input, Row, Select ,MinusCircleIcon} from 'tdesign-react';
+import { Button, Col, Form, Input, Row, Select } from 'tdesign-react';
+import { MinusCircleIcon } from "tdesign-icons-react";
 import _ from 'lodash';
 import { useTranslation } from 'react-i18next';
 
