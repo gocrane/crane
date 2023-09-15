@@ -21,6 +21,29 @@ import { K8SUNIT, transformK8sUnit } from 'utils/transformK8sUnit';
 import {insightAction} from "../../../modules/insightSlice";
 
 const Editor = React.lazy(() => import('components/common/Editor'));
+let recommendation: any[];
+let loadingFlag=true
+
+const fetchTableList=(craneUrl :string,recommendationType:any,filter_options:string)=>{
+  
+  const { data, isFetching, isError, isSuccess, error } =useFetchRecommendationListQuery({
+    craneUrl,
+    recommendationType,
+    filter_options,
+  });
+  if(isError|| error){
+    loadingFlag=true
+  }
+  if (isSuccess) {
+    recommendation = data?.data?.items || [];
+    loadingFlag=false
+  } else {
+    recommendation = [];
+    if (isError) MessagePlugin.error(`${error.status} ${error.error}`);
+  }
+  return []
+}
+
 
 export const SelectTable = () => {
   const { t } = useTranslation();
@@ -39,34 +62,21 @@ export const SelectTable = () => {
     namespace: undefined,
     workloadType: undefined,
     name: undefined,
+    filter_options:''
   });
 
-  const { data, isFetching, isSuccess, isError, error } = useFetchRecommendationListQuery({
-    craneUrl,
-    recommendationType: RecommendationType.Resource,
-  });
-  // const recommendation = data?.data?.items || [];
-
-  let recommendation: any[];
-  if (isSuccess) {
-    recommendation = data?.data?.items || [];
-  } else {
-    recommendation = [];
-    if (isError) MessagePlugin.error(`${error.status} ${error.error}`);
-  }
-
-  const filterResult = recommendation
-    .filter((recommendation) => {
+  const filterResult = fetchTableList(craneUrl,RecommendationType.Replicas,filterParams.filter_options)
+    .filter((recommendation:any) => {
       if (filterParams?.name) {
         return new RegExp(`${filterParams.name}.*`).test(recommendation.name);
       }
       return true;
     })
-    .filter((recommendation) => {
+    .filter((recommendation:any) => {
       if (filterParams?.workloadType) return filterParams?.workloadType === recommendation.workloadType;
       return true;
     })
-    .filter((recommendation) => {
+    .filter((recommendation:any) => {
       if (filterParams?.namespace) return filterParams?.namespace === recommendation?.namespace;
       return true;
     });
@@ -106,11 +116,11 @@ export const SelectTable = () => {
       <Divider></Divider>
       <Row justify='start' style={{ marginBottom: '20px' }}>
         <Col>
-          <SearchForm recommendation={recommendation} setFilterParams={setFilterParams} />
+          <SearchForm recommendation={recommendation} setFilterParams={setFilterParams} showFilter={true}/>
         </Col>
       </Row>
       <Table
-        loading={isFetching || isError}
+        loading={loadingFlag}
         data={filterResult}
         tableLayout='auto'
         verticalAlign='middle'

@@ -114,6 +114,7 @@ interface AdoptRecommendationArgs {
 interface FetchRecommendationArgs {
   craneUrl: string;
   recommendationType: RecommendationType;
+  filter_options:string
 }
 
 interface FetchRecommendationResult {
@@ -151,7 +152,7 @@ export const recommendationApi = createApi({
     fetchRecommendationList: builder.query<FetchRecommendationResult, FetchRecommendationArgs>({
       providesTags: ['recommendation'],
       query: (args) => ({
-        url: `${args.craneUrl}${URI}`,
+        url: `${args.craneUrl}${URI}?filter_options=${args.filter_options}`,
         method: 'get',
       }),
       transformResponse: (res: FetchRecommendationResult, meta, arg: FetchRecommendationArgs) => {

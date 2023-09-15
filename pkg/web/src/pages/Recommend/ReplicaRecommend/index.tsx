@@ -42,6 +42,7 @@ export const SelectTable = () => {
   const { data, isFetching, isError, isSuccess, error } = useFetchRecommendationListQuery({
     craneUrl,
     recommendationType: RecommendationType.Replicas,
+    filter_options:''
   });
   // const recommendation = data?.data?.items || [];
 
@@ -105,7 +106,7 @@ export const SelectTable = () => {
       <Divider></Divider>
       <Row justify='start' style={{ marginBottom: '20px' }}>
         <Col>
-          <SearchForm recommendation={recommendation} setFilterParams={setFilterParams} />
+          <SearchForm recommendation={recommendation} setFilterParams={setFilterParams} showFilter={false}/>
         </Col>
       </Row>
       <Table
