@@ -41,7 +41,7 @@ const fetchTableList=(craneUrl :string,recommendationType:any,filter_options:str
     recommendation = [];
     if (isError) MessagePlugin.error(`${error.status} ${error.error}`);
   }
-  return []
+  return recommendation
 }
 
 
