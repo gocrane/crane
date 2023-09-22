@@ -52,6 +52,7 @@ import (
 	"github.com/gocrane/crane/pkg/recommendation"
 	"github.com/gocrane/crane/pkg/server"
 	serverconfig "github.com/gocrane/crane/pkg/server/config"
+	"github.com/gocrane/crane/pkg/utils"
 	"github.com/gocrane/crane/pkg/utils/target"
 	"github.com/gocrane/crane/pkg/webhooks"
 )
@@ -256,6 +257,8 @@ func initDataSources(mgr ctrl.Manager, opts *options.Options) (map[providers.Dat
 			hybridDataSources[providers.PrometheusDataSource] = provider
 			realtimeDataSources[providers.PrometheusDataSource] = provider
 			historyDataSources[providers.PrometheusDataSource] = provider
+
+			utils.SetExtensionLabels(opts.DataSourcePromConfig.ExtensionLabels)
 		}
 	}
 	return realtimeDataSources, historyDataSources, hybridDataSources
