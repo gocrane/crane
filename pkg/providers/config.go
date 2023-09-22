@@ -13,6 +13,7 @@ type PromConfig struct {
 	AdapterConfigMapKey    string
 	AdapterConfig          string
 	AdapterExtensionLabels string
+	ExtensionLabels        string
 	Timeout                time.Duration
 	KeepAlive              time.Duration
 	InsecureSkipVerify     bool
