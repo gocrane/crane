@@ -40,6 +40,7 @@ PROMETHEUS_HELM_URL="https://prometheus-community.github.io/helm-charts"
 PROMETHEUS_VALUE_URL="https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/prometheus/override_values.yaml"
 GRAFANA_HELM_NAME="grafana"
 GRAFANA_HELM_URL="https://grafana.github.io/helm-charts"
+GRAFANA_HELM_PACKAGE_URL="https://github.com/grafana/helm-charts/releases/download/grafana-6.11.0/grafana-6.11.0.tgz"
 GRAFANA_VALUE_URL="https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/grafana/override_values.yaml"
 CRANE_HELM_NAME="crane"
 CRANE_HELM_URL="https://gocrane.github.io/helm-charts"
@@ -52,6 +53,7 @@ if [ "$FROM_MIRROR" = true ]; then
   PROMETHEUS_VALUE_URL="https://gitee.com/finops/helm-charts/raw/main/integration/prometheus/override_values.yaml"
   GRAFANA_HELM_NAME="grafana-gocrane"
   GRAFANA_HELM_URL="https://finops-helm.pkg.coding.net/gocrane/grafana"
+  GRAFANA_HELM_PACKAGE_URL="https://finops-generic.pkg.coding.net/gocrane/generic/grafana-6.11.0.tgz\?version\=latest"
   GRAFANA_VALUE_URL="https://gitee.com/finops/helm-charts/raw/main/integration/grafana/override_values.yaml"
   CRANE_HELM_NAME="crane-mirror"
   CRANE_HELM_URL="https://finops-helm.pkg.coding.net/gocrane/gocrane"
@@ -74,11 +76,12 @@ helm install prometheus -n crane-system --version 19.6.1 \
 echo "Step2: Installing Prometheus finished."
 
 echo "Step3: Installing Grafana "
-helm repo add ${GRAFANA_HELM_NAME} ${GRAFANA_HELM_URL}
-helm install grafana --version 6.11.0 \
-             -f ${GRAFANA_VALUE_URL} \
-             -n crane-system \
-             --create-namespace ${GRAFANA_HELM_NAME}/grafana
+
+helm install grafana  \                
+    -f ${GRAFANA_VALUE_URL} \
+    -n crane-system \
+    --create-namespace ${GRAFANA_HELM_PACKAGE_URL}
+
 echo "Step3: Installing Grafana finished."
 
 echo "Step4: Installing Crane "
