@@ -112,17 +112,15 @@ Mirror
 &lt;/a>
 &lt;/li>&lt;/ul>
 &lt;div class="tab-content" id="tabs-4-content">&lt;div class="tab-pane fade show active"
-id="tabs-4-0" role="tabpanel" aria-labelled-by="tabs-4-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add grafana https://grafana.github.io/helm-charts
-helm install grafana --version 6.11.0 \
+id="tabs-4-0" role="tabpanel" aria-labelled-by="tabs-4-0-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm install grafana \
 -f https://raw.githubusercontent.com/gocrane/helm-charts/main/integration/grafana/override_values.yaml \
 -n crane-system \
---create-namespace grafana/grafana&lt;/code>&lt;/pre>&lt;/div>
+--create-namespace https://github.com/grafana/helm-charts/releases/download/grafana-6.11.0/grafana-6.11.0.tgz&lt;/code>&lt;/pre>&lt;/div>
 &lt;div class="tab-pane fade"
-id="tabs-4-1" role="tabpanel" aria-labelled-by="tabs-4-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm repo add grafana https://finops-helm.pkg.coding.net/gocrane/grafana
-helm install grafana --version 6.11.0 \
+id="tabs-4-1" role="tabpanel" aria-labelled-by="tabs-4-1-tab">&lt;pre tabindex="0">&lt;code class="language-en" data-lang="en">helm install grafana \
 -f https://gitee.com/finops/helm-charts/raw/main/integration/grafana/override_values.yaml \
 -n crane-system \
---create-namespace grafana/grafana&lt;/code>&lt;/pre>&lt;/div>
+--create-namespace https://finops-generic.pkg.coding.net/gocrane/generic/grafana-6.11.0.tgz\?version\=latest&lt;/code>&lt;/pre>&lt;/div>
 &lt;/div>
 &lt;h3 id="安装-crane-和-fadvisor">安装 Crane 和 Fadvisor&lt;/h3>
 &lt;ul class="nav nav-tabs" id="tabs-5" role="tablist">&lt;li class="nav-item">
