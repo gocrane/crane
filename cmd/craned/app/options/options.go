@@ -121,6 +121,7 @@ func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&o.DataSourcePromConfig.AdapterConfigMapKey, "prometheus-adapter-configmap-key", "", "prometheus adapter-configmap key")
 	flags.StringVar(&o.DataSourcePromConfig.AdapterConfig, "prometheus-adapter-config", "", "prometheus adapter-config path")
 	flags.StringVar(&o.DataSourcePromConfig.AdapterExtensionLabels, "prometheus-adapter-extension-labels", "", "prometheus adapter extension-labels for expressionQuery")
+	flags.StringVar(&o.DataSourcePromConfig.ExtensionLabels, "extension-labels", "", "extension-labels for every prometheus query")
 	flags.StringVar(&o.DataSourcePromConfig.Auth.Username, "prometheus-auth-username", "", "prometheus auth username")
 	flags.StringVar(&o.DataSourcePromConfig.Auth.Password, "prometheus-auth-password", "", "prometheus auth password")
 	flags.StringVar(&o.DataSourcePromConfig.Auth.BearerToken, "prometheus-auth-bearertoken", "", "prometheus auth bearertoken")
