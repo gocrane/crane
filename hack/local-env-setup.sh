@@ -77,7 +77,7 @@ echo "Step2: Installing Prometheus finished."
 
 echo "Step3: Installing Grafana "
 
-helm install grafana  \                
+helm install grafana \
     -f ${GRAFANA_VALUE_URL} \
     -n crane-system \
     --create-namespace ${GRAFANA_HELM_PACKAGE_URL}
