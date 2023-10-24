@@ -215,9 +215,11 @@ func (c *RecommendationRuleController) doReconcile(ctx context.Context, recommen
 		for _, recommendation := range currRecommendations.Items {
 			exist := false
 			for _, id := range identitiesArray {
-				if recommendation.UID == id.Recommendation.UID {
-					exist = true
-					break
+				if id.Recommendation != nil {
+					if recommendation.UID == id.Recommendation.UID {
+						exist = true
+						break
+					}
 				}
 			}
 
