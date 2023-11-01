@@ -42,6 +42,16 @@ type EffectiveHPAController struct {
 	Config      EhpaControllerConfig
 }
 
+//+kubebuilder:rbac:groups=core,resources=pods;nodes,verbs=get;list;watch
+//+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;update
+//+kubebuilder:rbac:groups=core,resources=events,verbs=create;update;patch
+//+kubebuilder:rbac:groups=apps,resources=deployments;deployments/scale;statefulsets;statefulsets/scale,verbs=get;list;watch
+//+kubebuilder:rbac:groups=autoscaling,resources=horizontalpodautoscalers,verbs=*
+//+kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;update
+//+kubebuilder:rbac:groups=analysis.crane.io,resources=*,verbs=*
+//+kubebuilder:rbac:groups=autoscaling.crane.io,resources=*,verbs=*
+//+kubebuilder:rbac:groups=prediction.crane.io,resources=*,verbs=*
+
 func (c *EffectiveHPAController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	klog.V(4).Infof("Got ehpa %s", req.NamespacedName)
 
