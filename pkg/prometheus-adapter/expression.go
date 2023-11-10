@@ -124,9 +124,7 @@ func ParsingExternalRules(mc config.MetricsDiscoveryConfig, mapper meta.RESTMapp
 // SetExtensionLabels from opts.DataSourcePromConfig.AdapterExtensionLabels
 func SetExtensionLabels(extensionLabels string) {
 	if extensionLabels != "" {
-		for _, label := range strings.Split(extensionLabels, ",") {
-			metricRules.ExtensionLabels = append(metricRules.ExtensionLabels, label)
-		}
+		metricRules.ExtensionLabels = append(metricRules.ExtensionLabels, strings.Split(extensionLabels, ",")...)
 	}
 }
 
@@ -370,9 +368,7 @@ func GetLabelMatchersFromDiscoveryRule(rule config.DiscoveryRule) []string {
 	if len(regLabelMatchers.FindStringSubmatch(rule.SeriesQuery)) > 1 {
 		SeriesMatchers := regLabelMatchers.FindStringSubmatch(rule.SeriesQuery)[1]
 		if SeriesMatchers != "" {
-			for _, seriesMatcher := range strings.Split(SeriesMatchers, ",") {
-				labelMatchers = append(labelMatchers, seriesMatcher)
-			}
+			labelMatchers = append(labelMatchers, strings.Split(SeriesMatchers, ",")...)
 		}
 	}
 
