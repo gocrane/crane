@@ -99,28 +99,36 @@ data:
     kind: QOSConfig
     qosInitializer:
       enable: true
-      selector: 
+      selector:
         matchLabels:
           app: nginx
       initContainerTemplate:
-        name: crane-qos-initializer
+        name: qos-initializer-container
         image: docker.io/gocrane/qos-init:v0.1.4
         imagePullPolicy: IfNotPresent
+        args:
+          - "while ! grep -q gocrane.io/cpu-qos /etc/podinfo/annotations; do sleep 1; done; echo cpu qos setting competed;"
         command:
-          - sh
-          - -x
-          - /qos-checking.sh
+          - /bin/bash
+          - -c
+        resources:
+          requests:
+            cpu: 10m
+            memory: 10Mi
+          limits:
+            cpu: 10m
+            memory: 10Mi
         volumeMounts:
-          - name: podinfo
+          - name: qos-initializer-volume
             mountPath: /etc/podinfo
       volumeTemplate:
-        name: podinfo
+        name: qos-initializer-volume
         downwardAPI:
           items:
           - path: "annotations"
             fieldRef:
               fieldPath: metadata.annotations
-
+              
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
