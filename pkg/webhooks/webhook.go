@@ -17,14 +17,15 @@ limitations under the License.
 package webhooks
 
 import (
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/klog/v2"
-	ctrl "sigs.k8s.io/controller-runtime"
+	"context"
 
 	analysisapi "github.com/gocrane/api/analysis/v1alpha1"
 	autoscalingapi "github.com/gocrane/api/autoscaling/v1alpha1"
 	ensuranceapi "github.com/gocrane/api/ensurance/v1alpha1"
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/gocrane/crane/pkg/ensurance/config"
 	"github.com/gocrane/crane/pkg/webhooks/autoscaling"
@@ -109,12 +110,10 @@ func SetupWebhookWithManager(mgr ctrl.Manager, autoscalingEnabled, nodeResourceE
 			klog.Errorf("Failed to load qos initializer config: %v", err)
 		}
 
-		podMutatingAdmission := pod.MutatingAdmission{
-			Config: qosConfig,
-		}
+		podMutatingAdmission := pod.NewMutatingAdmission(qosConfig, BuildPodQosListFunction(mgr))
 		err = ctrl.NewWebhookManagedBy(mgr).
 			For(&corev1.Pod{}).
-			WithDefaulter(&podMutatingAdmission).
+			WithDefaulter(podMutatingAdmission).
 			Complete()
 		if err != nil {
 			klog.Errorf("Failed to setup qos initializer webhook: %v", err)
@@ -123,4 +122,17 @@ func SetupWebhookWithManager(mgr ctrl.Manager, autoscalingEnabled, nodeResourceE
 	}
 
 	return nil
+}
+
+func BuildPodQosListFunction(mgr ctrl.Manager) func() ([]*ensuranceapi.PodQOS, error) {
+	return func() (qosSlice []*ensuranceapi.PodQOS, err error) {
+		podQOSList := ensuranceapi.PodQOSList{}
+		if err := mgr.GetCache().List(context.Background(), &podQOSList); err != nil {
+			return nil, err
+		}
+		for _, qos := range podQOSList.Items {
+			qosSlice = append(qosSlice, qos.DeepCopy())
+		}
+		return qosSlice, err
+	}
 }
