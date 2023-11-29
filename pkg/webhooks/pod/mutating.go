@@ -4,17 +4,17 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gocrane/crane/pkg/ensurance/util"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 
 	"github.com/gocrane/api/ensurance/v1alpha1"
+
 	"github.com/gocrane/crane/pkg/ensurance/config"
+	"github.com/gocrane/crane/pkg/ensurance/util"
 )
 
 var (
@@ -46,11 +46,7 @@ func (m *MutatingAdmission) Default(ctx context.Context, obj runtime.Object) err
 		return nil
 	}
 
-	if m.Config == nil || !m.Config.QOSInitializer.Enable {
-		return nil
-	}
-
-	if pod.Labels == nil {
+	if !m.available() {
 		return nil
 	}
 
@@ -84,6 +80,7 @@ func (m *MutatingAdmission) Default(ctx context.Context, obj runtime.Object) err
 		klog.V(2).Infof("Injection skipped: not a low CPUPriority pod, qos %s", qos.Name)
 		return nil
 	}
+
 	for _, container := range pod.Spec.InitContainers {
 		if container.Name == m.Config.QOSInitializer.InitContainerTemplate.Name {
 			klog.V(2).Infof("Injection skipped: pod has initializerContainer already")
@@ -109,4 +106,11 @@ func (m *MutatingAdmission) Default(ctx context.Context, obj runtime.Object) err
 	klog.V(2).Infof("Mutating completed for pod %s/%s", pod.Namespace, pod.Name)
 
 	return nil
+}
+
+func (m *MutatingAdmission) available() bool {
+	return m.Config != nil &&
+		m.Config.QOSInitializer.Enable &&
+		m.Config.QOSInitializer.InitContainerTemplate != nil &&
+		m.Config.QOSInitializer.VolumeTemplate != nil
 }
