@@ -6,8 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gocrane/crane/pkg/ensurance/util"
-
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -29,6 +27,7 @@ import (
 	ecache "github.com/gocrane/crane/pkg/ensurance/cache"
 	"github.com/gocrane/crane/pkg/ensurance/executor"
 	"github.com/gocrane/crane/pkg/ensurance/executor/podinfo"
+	"github.com/gocrane/crane/pkg/ensurance/util"
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/utils"

@@ -4,13 +4,13 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gocrane/api/ensurance/v1alpha1"
 	"github.com/stretchr/testify/assert"
-	"k8s.io/utils/pointer"
-
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/yaml"
+
+	"github.com/gocrane/api/ensurance/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/ensurance/config"
 )
@@ -45,6 +45,21 @@ func TestDefaultingPodQOSInitializer(t *testing.T) {
 		assert.Equal(t, len(tc.Pod.Spec.InitContainers) == 1, tc.Inject)
 		assert.Equal(t, len(tc.Pod.Spec.Volumes) == 1, tc.Inject)
 	}
+}
+
+func TestPrecheck(t *testing.T) {
+	configYaml := "apiVersion: ensurance.crane.io/v1alpha1\nkind: QOSConfig\nqosInitializer:\n  enable: true\n  selector: \n    matchLabels:\n      app: nginx\n"
+
+	config := &config.QOSConfig{}
+	err := yaml.Unmarshal([]byte(configYaml), config)
+	if err != nil {
+		t.Errorf("unmarshal config failed:%v", err)
+	}
+	m := MutatingAdmission{
+		Config:     config,
+		listPodQOS: MockListPodQOSFunc,
+	}
+	assert.False(t, m.available())
 }
 
 func MockListPodQOSFunc() ([]*v1alpha1.PodQOS, error) {
@@ -90,14 +105,21 @@ func MockListPodQOSFunc() ([]*v1alpha1.PodQOS, error) {
 }
 
 func MockPod(name string, labels ...string) *v1.Pod {
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   name,
+			Labels: nil,
+		},
+	}
+
+	if len(labels) < 2 {
+		return pod
+	}
+
 	labelmap := map[string]string{}
 	for i := 0; i < len(labels)-1; i += 2 {
 		labelmap[labels[i]] = labels[i+1]
 	}
-	return &v1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   name,
-			Labels: labelmap,
-		},
-	}
+	pod.Labels = labelmap
+	return pod
 }
