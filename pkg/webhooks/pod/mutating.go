@@ -36,7 +36,7 @@ func (m *MutatingAdmission) Default(ctx context.Context, obj runtime.Object) err
 		return fmt.Errorf("expected a Pod but got a %T", obj)
 	}
 
-	klog.Infof("mutating started for pod %s/%s", pod.Namespace, pod.Name)
+	klog.V(2).Infof("Mutating started for pod %s/%s", pod.Namespace, pod.Name)
 
 	if m.Config == nil || !m.Config.QOSInitializer.Enable {
 		return nil
@@ -52,7 +52,7 @@ func (m *MutatingAdmission) Default(ctx context.Context, obj runtime.Object) err
 	}
 
 	if !ls.Matches(labels.Set(pod.Labels)) {
-		klog.Infof("injection skipped: webhook is not interested in the pod")
+		klog.V(2).Infof("Injection skipped: webhook is not interested in the pod")
 		return nil
 	}
 
@@ -66,26 +66,26 @@ func (m *MutatingAdmission) Default(ctx context.Context, obj runtime.Object) err
 	 ****************************************************************/
 	qos := util.MatchPodAndPodQOSSlice(pod, qosSlice)
 	if qos == nil {
-		klog.Infof("injection skipped: no podqos matched")
+		klog.V(2).Infof("Injection skipped: no podqos matched")
 		return nil
 	}
 
 	if qos.Spec.ResourceQOS.CPUQOS == nil ||
 		qos.Spec.ResourceQOS.CPUQOS.CPUPriority == nil ||
 		*qos.Spec.ResourceQOS.CPUQOS.CPUPriority == 0 {
-		klog.Infof("injection skipped: not a low CPUPriority pod, qos %s", qos.Name)
+		klog.V(2).Infof("Injection skipped: not a low CPUPriority pod, qos %s", qos.Name)
 		return nil
 	}
 	for _, container := range pod.Spec.InitContainers {
 		if container.Name == m.Config.QOSInitializer.InitContainerTemplate.Name {
-			klog.Infof("injection skipped: pod has initializerContainer already")
+			klog.V(2).Infof("Injection skipped: pod has initializerContainer already")
 			return nil
 		}
 	}
 
 	for _, volume := range pod.Spec.Volumes {
 		if volume.Name == m.Config.QOSInitializer.VolumeTemplate.Name {
-			klog.Infof("injection skipped: pod has initializerVolume already")
+			klog.V(2).Infof("Injection skipped: pod has initializerVolume already")
 			return nil
 		}
 	}
@@ -98,7 +98,7 @@ func (m *MutatingAdmission) Default(ctx context.Context, obj runtime.Object) err
 		pod.Spec.Volumes = append(pod.Spec.Volumes, *m.Config.QOSInitializer.VolumeTemplate)
 	}
 
-	klog.Infof("mutating completed for pod %s/%s", pod.Namespace, pod.Name)
+	klog.V(2).Infof("Mutating completed for pod %s/%s", pod.Namespace, pod.Name)
 
 	return nil
 }

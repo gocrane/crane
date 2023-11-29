@@ -103,7 +103,7 @@ data:
         matchLabels:
           app: nginx
       initContainerTemplate:
-        name: qos-initializer-container
+        name: crane-qos-initializer
         image: docker.io/gocrane/qos-init:v0.1.4
         imagePullPolicy: IfNotPresent
         args:
@@ -119,10 +119,10 @@ data:
             cpu: 10m
             memory: 10Mi
         volumeMounts:
-          - name: qos-initializer-volume
+          - name: crane-qos-initializer-volume
             mountPath: /etc/podinfo
       volumeTemplate:
-        name: qos-initializer-volume
+        name: crane-qos-initializer-volume
         downwardAPI:
           items:
           - path: "annotations"
