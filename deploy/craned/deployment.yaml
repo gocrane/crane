@@ -35,7 +35,7 @@ spec:
           operator: Exists
       containers:
         - name: craned
-          image: docker.io/gocrane/craned:v0.9.0
+          image: docker.io/gocrane/craned:v0.10.0
           imagePullPolicy: IfNotPresent
           env:
             - name: TZ
@@ -61,7 +61,7 @@ spec:
               path: /api/healthz
               port: 8082
               scheme: HTTP
-        - image: docker.io/gocrane/dashboard:v0.8.0
+        - image: docker.io/gocrane/dashboard:v0.10.0
           imagePullPolicy: IfNotPresent
           name: dashboard
           volumeMounts:
