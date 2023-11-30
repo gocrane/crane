@@ -27,6 +27,7 @@ import (
 	ecache "github.com/gocrane/crane/pkg/ensurance/cache"
 	"github.com/gocrane/crane/pkg/ensurance/executor"
 	"github.com/gocrane/crane/pkg/ensurance/executor/podinfo"
+	"github.com/gocrane/crane/pkg/ensurance/util"
 	"github.com/gocrane/crane/pkg/known"
 	"github.com/gocrane/crane/pkg/metrics"
 	"github.com/gocrane/crane/pkg/utils"
@@ -490,7 +491,7 @@ func (s *AnomalyAnalyzer) filterPodQOSMatches(pods []*v1.Pod, actionName string)
 	}
 	for _, qos := range podQOSList {
 		for _, pod := range pods {
-			if !match(pod, qos) {
+			if !util.MatchPodAndPodQOS(pod, qos) {
 				klog.V(4).Infof("Pod %s/%s does not match PodQOS %s", pod.Namespace, pod.Name, qos.Name)
 				continue
 

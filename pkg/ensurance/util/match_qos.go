@@ -1,8 +1,9 @@
-package analyzer
+package util
 
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -69,7 +70,41 @@ func labelMatch(labelSelector metav1.LabelSelector, matchLabels map[string]strin
 	return true
 }
 
-func match(pod *v1.Pod, podQOS *ensuranceapi.PodQOS) bool {
+func sortQOSSlice(qosSlice []*ensuranceapi.PodQOS) {
+	sort.Slice(qosSlice, func(i, j int) bool {
+		if len(qosSlice[i].Spec.LabelSelector.MatchLabels) != len(qosSlice[j].Spec.LabelSelector.MatchLabels) {
+			return len(qosSlice[i].Spec.LabelSelector.MatchLabels) > len(qosSlice[j].Spec.LabelSelector.MatchLabels)
+		}
+
+		if qosSlice[i].Spec.ScopeSelector == nil && qosSlice[j].Spec.ScopeSelector == nil {
+			return true
+		}
+
+		if qosSlice[i].Spec.ScopeSelector == nil {
+			return false
+		}
+
+		if qosSlice[j].Spec.ScopeSelector == nil {
+			return true
+		}
+
+		return len(qosSlice[i].Spec.ScopeSelector.MatchExpressions) > len(qosSlice[j].Spec.ScopeSelector.MatchExpressions)
+	})
+}
+
+func MatchPodAndPodQOSSlice(pod *v1.Pod, qosSlice []*ensuranceapi.PodQOS) (res *ensuranceapi.PodQOS) {
+	newSlice := make([]*ensuranceapi.PodQOS, len(qosSlice), len(qosSlice))
+	copy(newSlice, qosSlice)
+	sortQOSSlice(newSlice)
+	for _, qos := range newSlice {
+		if MatchPodAndPodQOS(pod, qos) {
+			return qos
+		}
+	}
+	return nil
+}
+
+func MatchPodAndPodQOS(pod *v1.Pod, podQOS *ensuranceapi.PodQOS) bool {
 
 	if podQOS.Spec.ScopeSelector == nil &&
 		podQOS.Spec.LabelSelector.MatchLabels == nil &&
