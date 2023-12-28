@@ -1,7 +1,7 @@
 ---
-title: "Crane Blog"
-linkTitle: "Blog"
+title: "博客"
 menu:
   main:
     weight: 30
 ---
+ 
