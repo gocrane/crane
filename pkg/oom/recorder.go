@@ -159,7 +159,7 @@ func (r *PodOOMRecorder) cleanOOMRecords(oomRecords []OOMRecord) []OOMRecord {
 			return records[i].OOMAt.Before(records[j].OOMAt)
 		})
 
-		records = records[0:r.OOMRecordMaxNumber]
+		records = records[len(oomRecords)-r.OOMRecordMaxNumber : len(oomRecords)]
 		oomRecords = records
 	}
 
