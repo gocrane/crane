@@ -72,7 +72,16 @@ rules:
   - get
   - list
   - watch
-  - update
+- apiGroups:
+    - apps
+  resources:
+    - daemonsets/status
+    - deployments/status
+    - deployments/scale
+    - statefulsets/status
+    - statefulsets/scale
+  verbs:
+    - update
 - apiGroups:
   - autoscaling
   resources:
