@@ -1,13 +1,128 @@
 apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: craned
+  namespace: crane-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - secrets
+  verbs:
+  - create
+- apiGroups:
+  - ""
+  resourceNames:
+  - craned
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resourceNames:
+  - clusters-secret-store
+  resources:
+  - secrets
+  verbs:
+  - get
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - patch
+  - update
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: craned
 rules:
-  - apiGroups: [ '*' ]
-    resources: [ '*' ]
-    verbs: [ "*" ]
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - pods
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - analysis.crane.io
+  resources:
+  - "*"
+  verbs:
+  - "*"
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  - deployments
+  - deployments/scale
+  - statefulsets
+  - statefulsets/scale
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+    - apps
+  resources:
+    - daemonsets/status
+    - deployments/status
+    - deployments/scale
+    - statefulsets/status
+    - statefulsets/scale
+  verbs:
+    - update
+- apiGroups:
+  - autoscaling
+  resources:
+  - horizontalpodautoscalers
+  verbs:
+  - '*'
+- apiGroups:
+  - autoscaling.crane.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+  - update
+- apiGroups:
+  - prediction.crane.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
 ---
-
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: craned
+  namespace: crane-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: craned
+subjects:
+- kind: ServiceAccount
+  name: craned
+  namespace: crane-system
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -17,6 +132,6 @@ roleRef:
   kind: ClusterRole
   name: craned
 subjects:
-  - kind: ServiceAccount
-    name: craned
-    namespace: crane-system
+- kind: ServiceAccount
+  name: craned
+  namespace: crane-system
