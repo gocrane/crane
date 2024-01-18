@@ -99,7 +99,8 @@ func (c *RecommendationController) UpdateRecommendation(ctx context.Context, rec
 
 		if needUpdate {
 			unstructed.SetAnnotations(annotation)
-			err = c.Client.Update(ctx, unstructed)
+			//Convergence craned permissions
+			err = c.Client.Status().Update(ctx, unstructed)
 			if err != nil {
 				return false, fmt.Errorf("update target annotation failed: %v. ", err)
 			}
