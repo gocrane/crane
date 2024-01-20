@@ -163,7 +163,7 @@ func (c *CadvisorCollector) Collect() (map[string][]common.TimeSeries, error) {
 				continue
 			}
 
-			if hasExtMemRes {
+			if hasExtMemRes && v.Stats[0].Memory != nil {
 				extResMemUse += float64(v.Stats[0].Memory.WorkingSet)
 			}
 
