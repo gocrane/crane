@@ -15,7 +15,7 @@ If you want to know how Crane makes Recommendations, or if you want to try to im
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">RecommendationRule&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">runInterval&lt;/span>: &lt;span style="color:#ae81ff">24h &lt;/span> &lt;span style="color:#75715e"># Run every 24 hours&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">resourceSelectors&lt;/span>: &lt;span style="color:#75715e"># configuration for resources&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
@@ -41,40 +41,18 @@ If you want to know how Crane makes Recommendations, or if you want to try to im
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>kubectl apply -f workload-rules.yaml
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>This example will analysis Resource and Replicas for Deployments and StatefulSets in all namespace.。&lt;/p>
 &lt;ol start="2">
-&lt;li>Check the RecommendationRule recommendation progress. Observe the progress of recommendation tasks through &lt;code>Status.recommendations&lt;/code>. Recommendation tasks are executed sequentially. If lastStartTime of all tasks is the latest time and message has value, it indicates that this recommendation is completed.&lt;/li>
+&lt;li>Check the RecommendationRule recommendation progress. Through the annotations of the Recommendation, the start time of the last run of the job and the results can be observed.&lt;/li>
 &lt;/ol>
-&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>kubectl get rr workloads-rule
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">status&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastUpdateTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2022-09-28T10:36:02Z&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommendations&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastStartTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2022-09-28T10:36:02Z&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">message&lt;/span>: &lt;span style="color:#ae81ff">Success&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule-replicas-rckvb&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommenderRef&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Replicas&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">php-apache&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">b15cbcd7-6fe2-4ace-9ae8-11cc0a6e69c2&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastStartTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2022-09-28T10:36:02Z&amp;#34;&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">message&lt;/span>: &lt;span style="color:#ae81ff">Success&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">workloads-rule-resource-pnnxn&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">recommenderRef&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Resource&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>:
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">apps/v1&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Deployment&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">php-apache&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">default&lt;/span>
-&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">8472013a-bda2-4025-b0df-3fdc69c1c910&lt;/span>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>kubectl get recommend workloads-rule-replicas-7djlk -o yaml
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">annotations&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/last-start-time&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2023-07-24 11:43:58&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/message&lt;/span>: &lt;span style="color:#f92672">&amp;#39;Failed to run recommendation flow in recommender Replicas&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">Replicas CalculatePodTemplateRequests cpu failed&lt;/span>: &lt;span style="color:#ae81ff">missing request for cpu&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/run-number&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;59&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">creationTimestamp&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2023-06-01T11:37:16Z&amp;#34;&lt;/span>
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ol start="3">
 &lt;li>Check &lt;code>Recommendation&lt;/code>&lt;/li>
 &lt;/ol>
@@ -99,6 +77,8 @@ If you want to know how Crane makes Recommendations, or if you want to try to im
 &lt;li>&lt;a href="/docs/tutorials/recommendation/replicas-recommendation">&lt;strong>Replicas Recommendation&lt;/strong>&lt;/a>: Use the HPA algorithm to analyze the actual usage of applications and recommend more appropriate replicas configurations.&lt;/li>
 &lt;li>&lt;a href="/docs/tutorials/recommendation/hpa-recommendation">&lt;strong>HPA Recommendation&lt;/strong>&lt;/a>: Scan the Workload in a cluster and recommend HPA configurations for Workload that are suitable for horizontal autoscaling&lt;/li>
 &lt;li>&lt;a href="/docs/tutorials/recommendation/idlenode-recommendation">&lt;strong>IdleNode Recommendation&lt;/strong>&lt;/a>: Find the idle nodes in cluster&lt;/li>
+&lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/service-recommendation">&lt;strong>Service Recommendation&lt;/strong>&lt;/a>: Find the idle load balancer service in cluster&lt;/li>
+&lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/pv-recommendation">&lt;strong>PV Recommendation&lt;/strong>&lt;/a>: Find the idle persist volume in cluster&lt;/li>
 &lt;/ul>
 &lt;h3 id="recommender-framework">Recommender Framework&lt;/h3>
 &lt;p>Recommender framework defines a set of workflow, The workflow execution sequence according to the process, the process is divided into four stages: Filter, Prepare, Recommend, Observe. Recommender performs recommends functions by implementing these four stages.&lt;/p>
@@ -850,6 +830,165 @@ TargetRef&lt;/li>
 &lt;/tr>
 &lt;/tbody>
 &lt;/table>
+&lt;p>How to update recommendation configuration please refer to：&lt;a href="/docs/tutorials/recommendation/recommendation-framework">&lt;strong>Recommendation Framework&lt;/strong>&lt;/a>&lt;/p></description></item><item><title>Docs: Service Recommendation</title><link>/docs/tutorials/recommendation/service-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/service-recommendation/</guid><description>
+&lt;p>Service recommendation scans the running status of Services in the cluster to help users find idle Kubernetes Services.&lt;/p>
+&lt;h2 id="motivation">Motivation&lt;/h2>
+&lt;p>In Kubernetes, we usually use Service + Workload to automatically create and manage load balancing and attach it to applications.
+However, in daily operations, idle and low utilization load balancing inevitably occur, wasting a lot of costs.
+Service recommendation tries to help users find these Services to achieve cost optimization.&lt;/p>
+&lt;h2 id="sample">Sample&lt;/h2>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">annotations&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/last-start-time&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2023-06-12 11:52:23&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/message&lt;/span>: &lt;span style="color:#ae81ff">Success&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/run-number&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;7823&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">creationTimestamp&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2023-06-12T09:44:23Z&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labels&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-name&lt;/span>: &lt;span style="color:#ae81ff">service-rule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-recommender&lt;/span>: &lt;span style="color:#ae81ff">Service&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-uid&lt;/span>: &lt;span style="color:#ae81ff">67807cd9-b4c9-4d63-8493-d330ccace364&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-kind&lt;/span>: &lt;span style="color:#ae81ff">Service&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-name&lt;/span>: &lt;span style="color:#ae81ff">nginx&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-namespace&lt;/span>: &lt;span style="color:#ae81ff">crane-system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-version&lt;/span>: &lt;span style="color:#ae81ff">v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">service-rule-service-cnwt5&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">crane-system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">ownerReferences&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">blockOwnerDeletion&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">controller&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">RecommendationRule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">service-rule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">67807cd9-b4c9-4d63-8493-d330ccace364&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">adoptionType&lt;/span>: &lt;span style="color:#ae81ff">StatusAndAnnotation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategy&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategyType&lt;/span>: &lt;span style="color:#ae81ff">Once&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Service&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">nginx&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">crane-system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">Service&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">status&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">action&lt;/span>: &lt;span style="color:#ae81ff">Delete&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">description&lt;/span>: &lt;span style="color:#ae81ff">It is a Orphan Service, Pod count is 0&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastUpdateTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2023-06-12T11:52:23Z&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>In this sample:&lt;/p>
+&lt;ul>
+&lt;li>The recommended TargetRef points to the Service: nginx.&lt;/li>
+&lt;li>The recommendation type is Service recommendation.&lt;/li>
+&lt;li>The action is to Delete, and it is only a suggestion provided here.&lt;/li>
+&lt;/ul>
+&lt;h2 id="implement">Implement&lt;/h2>
+&lt;p>Service recommendation completes a recommendation process using the following steps:&lt;/p>
+&lt;ol>
+&lt;li>Scan all LoadBalancer-type Services in the cluster.&lt;/li>
+&lt;li>If the endpoints corresponding to the Service have an Address or NotReadyAddresses, it is not a restricted Service.&lt;/li>
+&lt;li>Based on the traffic-related metrics in Service recommendation, check whether the Service is below the threshold level. If it is below the threshold level, it is determined to be an idle node.&lt;/li>
+&lt;/ol>
+&lt;h2 id="how-to-verify-the-accuracy-of-recommendation-results">How to verify the accuracy of recommendation results&lt;/h2>
+&lt;p>The following is the Prom query for determining the threshold level of node resources. When verifying, replace &amp;ldquo;node&amp;rdquo; with the actual node name.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// Container network cumulative count of bytes received
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#a6e22e">queryFmtNetReceiveBytes&lt;/span> = &lt;span style="color:#e6db74">`sum(rate(container_network_receive_bytes_total{namespace=&amp;#34;%s&amp;#34;,pod=~&amp;#34;%s&amp;#34;,container!=&amp;#34;&amp;#34;}[3m]))`&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">// Container network cumulative count of bytes transmitted
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#a6e22e">queryFmtNetTransferBytes&lt;/span> = &lt;span style="color:#e6db74">`sum(rate(container_network_transmit_bytes_total{namespace=&amp;#34;%s&amp;#34;,pod=~&amp;#34;%s&amp;#34;,container!=&amp;#34;&amp;#34;}[3m]))`&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="accepted-resources">Accepted resources&lt;/h2>
+&lt;p>Only Service type is supported, and currently, only LoadBalancer-type Services will be analyzed.&lt;/p>
+&lt;h2 id="configuration">Configuration&lt;/h2>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>Configuration items&lt;/th>
+&lt;th>Default value&lt;/th>
+&lt;th>Description&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>net-receive-bytes&lt;/td>
+&lt;td>0&lt;/td>
+&lt;td>The amount of network request bytes received by the Pods corresponding to the Service, which is not checked by default.&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>net-receive-percentile&lt;/td>
+&lt;td>0.99&lt;/td>
+&lt;td>The percentile used to calculate the amount of network requests received&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>net-transfer-bytes&lt;/td>
+&lt;td>0&lt;/td>
+&lt;td>The amount of network request bytes transmitted by the Pods corresponding to the Service, which is not checked by default.&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>net-transfer-percentile&lt;/td>
+&lt;td>0.99&lt;/td>
+&lt;td>The percentile used when calculating the amount of network requests transmitted.&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>Note that when a pod is configured with a liveness/readiness probe, the kubelet&amp;rsquo;s probing will bring some container traffic, so the threshold for traffic needs to be set slightly higher. The configuration can be combined with specific monitoring data.&lt;/p>
+&lt;p>How to update recommendation configuration please refer to：&lt;a href="/docs/tutorials/recommendation/recommendation-framework">&lt;strong>Recommendation Framework&lt;/strong>&lt;/a>&lt;/p></description></item><item><title>Docs: PV Recommendation</title><link>/docs/tutorials/recommendation/pv-recommendation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/pv-recommendation/</guid><description>
+&lt;p>PV recommendation scans the running status of PVs in the cluster to help users find idle Kubernetes PVs.&lt;/p>
+&lt;h2 id="motivation">Motivation&lt;/h2>
+&lt;p>In Kubernetes, we usually use PV + Workload to automatically create and manage storage volumes and attach them to applications.
+However, in daily operations, idle or unused storage volumes may inevitably occur, wasting a lot of costs.
+PV recommendation tries to help users find these PVs to achieve cost optimization.&lt;/p>
+&lt;h2 id="sample">Sample&lt;/h2>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">Recommendation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">metadata&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">annotations&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/last-start-time&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2023-06-14 08:55:25&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/message&lt;/span>: &lt;span style="color:#ae81ff">Success&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/run-number&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;653&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labels&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-name&lt;/span>: &lt;span style="color:#ae81ff">persistentvolumes-rule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-recommender&lt;/span>: &lt;span style="color:#ae81ff">Volume&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-rule-uid&lt;/span>: &lt;span style="color:#ae81ff">39d30abe-4c7f-4e65-b961-b00ec7776b45&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-kind&lt;/span>: &lt;span style="color:#ae81ff">PersistentVolume&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-name&lt;/span>: &lt;span style="color:#ae81ff">pvc-6ce24277-24e9-4fcf-8e8a-f9bdb5694134&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-namespace&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">analysis.crane.io/recommendation-target-version&lt;/span>: &lt;span style="color:#ae81ff">v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">persistentvolumes-rule-volume-5r9zn&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">namespace&lt;/span>: &lt;span style="color:#ae81ff">crane-system&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">ownerReferences&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">analysis.crane.io/v1alpha1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">blockOwnerDeletion&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">controller&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">RecommendationRule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">persistentvolumes-rule&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uid&lt;/span>: &lt;span style="color:#ae81ff">39d30abe-4c7f-4e65-b961-b00ec7776b45&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">spec&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">adoptionType&lt;/span>: &lt;span style="color:#ae81ff">StatusAndAnnotation&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategy&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">completionStrategyType&lt;/span>: &lt;span style="color:#ae81ff">Once&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">targetRef&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">apiVersion&lt;/span>: &lt;span style="color:#ae81ff">v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">kind&lt;/span>: &lt;span style="color:#ae81ff">PersistentVolume&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">pvc-6ce24277-24e9-4fcf-8e8a-f9bdb5694134&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">type&lt;/span>: &lt;span style="color:#ae81ff">Volume&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">status&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">action&lt;/span>: &lt;span style="color:#ae81ff">Delete&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">description&lt;/span>: &lt;span style="color:#ae81ff">It is an Orphan Volumes&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">lastUpdateTime&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;2023-06-14T08:55:25Z&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>In this sample:&lt;/p>
+&lt;ul>
+&lt;li>The recommended TargetRef points to PV: pvc-6ce24277-24e9-4fcf-8e8a-f9bdb5694134&lt;/li>
+&lt;li>The recommendation type is PV recommendation&lt;/li>
+&lt;li>The action is to Delete, and it is only a suggestion provided here.&lt;/li>
+&lt;/ul>
+&lt;h2 id="implement">Implement&lt;/h2>
+&lt;p>PV recommendation completes a recommendation process using the following steps:&lt;/p>
+&lt;ol>
+&lt;li>Scan all PVs in the cluster and find the list of Pods corresponding to each PV.&lt;/li>
+&lt;li>If the PV does not have a corresponding PVC, it is considered an idle PV.&lt;/li>
+&lt;li>If no Pods are associated with this PV and PVC, it is considered an idle PVC.&lt;/li>
+&lt;/ol>
+&lt;h2 id="configuration">Configuration&lt;/h2>
+&lt;p>Currently, there is no parameter configuration for PV recommendation.&lt;/p>
 &lt;p>How to update recommendation configuration please refer to：&lt;a href="/docs/tutorials/recommendation/recommendation-framework">&lt;strong>Recommendation Framework&lt;/strong>&lt;/a>&lt;/p></description></item><item><title>Docs: How to develop Recommender</title><link>/docs/tutorials/recommendation/how-to-develop-recommender/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/docs/tutorials/recommendation/how-to-develop-recommender/</guid><description>
 &lt;p>Recommendation Framework provides an extensible framework for Recommender and supports several built-in Recommender. Users can implement a self-defined Recommender or modify the existing Recommenders.&lt;/p>
 &lt;h2 id="recommender-interface">Recommender Interface&lt;/h2>

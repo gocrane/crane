@@ -563,7 +563,9 @@ cpu: &amp;#34;500m&amp;#34;
 &lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/resource-recommendation">&lt;strong>资源推荐&lt;/strong>&lt;/a>: 通过 VPA 算法分析应用的真实用量推荐更合适的资源配置&lt;/li>
 &lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/replicas-recommendation">&lt;strong>副本数推荐&lt;/strong>&lt;/a>: 通过 HPA 算法分析应用的真实用量推荐更合适的副本数量&lt;/li>
 &lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/hpa-recommendation">&lt;strong>HPA 推荐&lt;/strong>&lt;/a>: 扫描集群中的 Workload，针对适合适合水平弹性的 Workload 推荐 HPA 配置&lt;/li>
-&lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/idlenode-recommendation">&lt;strong>闲置节点推荐&lt;/strong>&lt;/a>: 扫描集群中的闲置节点&lt;/li>
+&lt;li>&lt;a href="/zh-cn/docs/tutorials/recommendation/idlenode-recommendation">&lt;strong>闲置节点推荐&lt;/strong>&lt;/a>: 通过扫描集群中节点的状态和利用率，帮助用户找到闲置的 Kubernetes node&lt;/li>
+&lt;li>&lt;a href="zh-cn/docs/tutorials/recommendation/service-recommendation">&lt;strong>Service 推荐&lt;/strong>&lt;/a>: 通过扫描集群中 Service 的运行状况，帮助用户找到闲置的 Kubernetes Service&lt;/li>
+&lt;li>&lt;a href="zh-cn/docs/tutorials/recommendation/pv-recommendation">&lt;strong>PV 推荐&lt;/strong>&lt;/a>: 通过扫描集群中 PV 的运行状况，帮助用户找到闲置的 Kubernetes PV&lt;/li>
 &lt;/ul>
 &lt;p>本文重点讨论 Workload 的资源配置优化，因此下面重点介绍资源推荐和副本推荐。&lt;/p>
 &lt;h3 id="资源推荐">资源推荐&lt;/h3>
