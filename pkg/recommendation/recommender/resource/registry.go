@@ -14,26 +14,27 @@ var _ recommender.Recommender = &ResourceRecommender{}
 
 type ResourceRecommender struct {
 	base.BaseRecommender
-	CpuSampleInterval        string
-	CpuRequestPercentile     string
-	CpuRequestMarginFraction string
-	CpuTargetUtilization     string
-	CpuModelHistoryLength    string
-	MemSampleInterval        string
-	MemPercentile            string
-	MemMarginFraction        string
-	MemTargetUtilization     string
-	MemHistoryLength         string
-	OOMProtection            bool
-	OOMHistoryLength         time.Duration
-	OOMBumpRatio             float64
-	Specification            bool
-	SpecificationConfigs     []Specification
-	CpuHistogramBucketSize   string
-	CpuHistogramMaxValue     string
-	MemHistogramBucketSize   string
-	MemHistogramMaxValue     string
-	HistoryCompletionCheck   bool
+	CpuSampleInterval                string
+	CpuRequestPercentile             string
+	CpuRequestMarginFraction         string
+	CpuTargetUtilization             string
+	CpuModelHistoryLength            string
+	MemSampleInterval                string
+	MemPercentile                    string
+	MemMarginFraction                string
+	MemTargetUtilization             string
+	MemHistoryLength                 string
+	OOMProtection                    bool
+	OOMHistoryLength                 time.Duration
+	OOMBumpRatio                     float64
+	Specification                    bool
+	SpecificationConfigs             []Specification
+	CpuHistogramBucketSize           string
+	CpuHistogramMaxValue             string
+	MemHistogramBucketSize           string
+	MemHistogramMaxValue             string
+	HistoryCompletionCheck           bool
+	ResourceComplianceRecommendation bool
 }
 
 func init() {
@@ -94,7 +95,10 @@ func NewResourceRecommender(recommender apis.Recommender, recommendationRule ana
 	if err != nil {
 		return nil, err
 	}
-
+	resourceComplianceRecommendation, err := recommender.GetConfigBool("resource-compliance-recommendation-check", false)
+	if err != nil {
+		return nil, err
+	}
 	return &ResourceRecommender{
 		*base.NewBaseRecommender(recommender),
 		cpuSampleInterval,
@@ -117,5 +121,6 @@ func NewResourceRecommender(recommender apis.Recommender, recommendationRule ana
 		memHistogramBucketSize,
 		memHistogramMaxValue,
 		historyCompletion,
+		resourceComplianceRecommendation,
 	}, nil
 }
