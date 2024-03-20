@@ -58,9 +58,7 @@ var extensionLabelsString string
 
 func SetExtensionLabels(extensionLabels string) {
 	if extensionLabels != "" {
-		for _, label := range strings.Split(extensionLabels, ",") {
-			ExtensionLabelArray = append(ExtensionLabelArray, label)
-		}
+		ExtensionLabelArray = append(ExtensionLabelArray, strings.Split(extensionLabels, ",")...)
 
 		extensionLabelsString = ","
 		for index, label := range ExtensionLabelArray {
