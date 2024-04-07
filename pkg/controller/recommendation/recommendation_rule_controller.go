@@ -3,6 +3,10 @@ package recommendation
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic/dynamicinformer"
+	"k8s.io/client-go/tools/cache"
 	"sort"
 	"strconv"
 	"strings"
@@ -54,6 +58,7 @@ type RecommendationRuleController struct {
 	dynamicClient   dynamic.Interface
 	discoveryClient discovery.DiscoveryInterface
 	Provider        providers.History
+	dynamicLister   DynamicLister
 }
 
 func (c *RecommendationRuleController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -147,9 +152,10 @@ func (c *RecommendationRuleController) doReconcile(ctx context.Context, recommen
 		keys = append(keys, k)
 	}
 	sort.Strings(keys) // sort key to get a certain order
+	recommendationIndex := NewRecommendationIndex(currRecommendations)
 	for _, key := range keys {
 		id := identities[key]
-		id.Recommendation = GetRecommendationFromIdentity(identities[key], currRecommendations)
+		id.Recommendation = recommendationIndex.GetRecommendation(id)
 		identitiesArray = append(identitiesArray, id)
 	}
 
@@ -243,6 +249,8 @@ func (c *RecommendationRuleController) SetupWithManager(mgr ctrl.Manager) error 
 	c.kubeClient = kubernetes.NewForConfigOrDie(mgr.GetConfig())
 	c.discoveryClient = discovery.NewDiscoveryClientForConfigOrDie(mgr.GetConfig())
 	c.dynamicClient = dynamic.NewForConfigOrDie(mgr.GetConfig())
+	dynamicInformerFactory := dynamicinformer.NewDynamicSharedInformerFactory(c.dynamicClient, 0)
+	c.dynamicLister = NewDynamicInformerLister(dynamicInformerFactory)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&analysisv1alph1.RecommendationRule{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
@@ -264,19 +272,19 @@ func (c *RecommendationRuleController) getIdentities(ctx context.Context, recomm
 
 		var unstructureds []unstructuredv1.Unstructured
 		if recommendationRule.Spec.NamespaceSelector.Any {
-			unstructuredList, err := c.dynamicClient.Resource(*gvr).List(ctx, metav1.ListOptions{})
+			unstructuredList, err := c.dynamicLister.List(ctx, *gvr, "")
 			if err != nil {
 				return nil, err
 			}
-			unstructureds = append(unstructureds, unstructuredList.Items...)
+			unstructureds = append(unstructureds, unstructuredList...)
 		} else {
 			for _, namespace := range recommendationRule.Spec.NamespaceSelector.MatchNames {
-				unstructuredList, err := c.dynamicClient.Resource(*gvr).Namespace(namespace).List(ctx, metav1.ListOptions{})
+				unstructuredList, err := c.dynamicLister.List(ctx, *gvr, namespace)
 				if err != nil {
 					return nil, err
 				}
 
-				unstructureds = append(unstructureds, unstructuredList.Items...)
+				unstructureds = append(unstructureds, unstructuredList...)
 			}
 		}
 
@@ -527,4 +535,107 @@ func IsConvertFromAnalytics(recommendationRule *analysisv1alph1.RecommendationRu
 	}
 
 	return false, ""
+}
+
+// DynamicLister is a lister for dynamic resources.
+type DynamicLister interface {
+	// List returns a list of resources matching the given groupVersionResource.
+	List(ctx context.Context, gvk schema.GroupVersionResource, namespace string) ([]unstructuredv1.Unstructured, error)
+}
+
+type dynamicInformerLister struct {
+	dynamicLister          map[schema.GroupVersionResource]cache.GenericLister
+	dynamicInformerFactory dynamicinformer.DynamicSharedInformerFactory
+	stopCh                 <-chan struct{}
+}
+
+func NewDynamicInformerLister(dynamicInformerFactory dynamicinformer.DynamicSharedInformerFactory) DynamicLister {
+	return &dynamicInformerLister{
+		dynamicLister:          map[schema.GroupVersionResource]cache.GenericLister{},
+		dynamicInformerFactory: dynamicInformerFactory,
+		stopCh:                 make(chan struct{}),
+	}
+}
+
+func (d *dynamicInformerLister) List(ctx context.Context, gvr schema.GroupVersionResource, namespace string) ([]unstructuredv1.Unstructured, error) {
+	var (
+		objects []runtime.Object
+		err     error
+	)
+
+	lister, exists := d.dynamicLister[gvr]
+	if !exists {
+		lister = d.dynamicInformerFactory.ForResource(gvr).Lister()
+		d.dynamicLister[gvr] = lister
+		d.dynamicInformerFactory.Start(d.stopCh)
+		if !d.dynamicInformerFactory.WaitForCacheSync(d.stopCh)[gvr] {
+			return nil, fmt.Errorf("failed to sync informer for %s", gvr)
+		}
+	}
+	if namespace != "" {
+		objects, err = lister.ByNamespace(namespace).List(labels.Everything())
+	} else {
+		objects, err = lister.List(labels.Everything())
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	var unstructuredObjects []unstructuredv1.Unstructured
+	for _, obj := range objects {
+		unstructuredObj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+		if err != nil {
+			return nil, err
+		}
+		unstructuredObjects = append(unstructuredObjects, unstructuredv1.Unstructured{Object: unstructuredObj})
+	}
+	return unstructuredObjects, nil
+}
+
+type IndexKey struct {
+	Namespace   string
+	APIVersion  string
+	Kind        string
+	Name        string
+	Recommender string
+}
+
+type RecommendationIndex struct {
+	mtx sync.RWMutex
+	idx map[IndexKey]*analysisv1alph1.Recommendation
+}
+
+func NewRecommendationIndex(recommendations analysisv1alph1.RecommendationList) *RecommendationIndex {
+	idx := make(map[IndexKey]*analysisv1alph1.Recommendation, len(recommendations.Items))
+	for i := range recommendations.Items {
+		r := &recommendations.Items[i]
+		idx[createIndexKey(r)] = r
+	}
+
+	return &RecommendationIndex{
+		idx: idx,
+	}
+}
+
+func createIndexKey(r *analysisv1alph1.Recommendation) IndexKey {
+	return IndexKey{
+		Kind:        r.Spec.TargetRef.Kind,
+		APIVersion:  r.Spec.TargetRef.APIVersion,
+		Namespace:   r.Spec.TargetRef.Namespace,
+		Name:        r.Spec.TargetRef.Name,
+		Recommender: string(r.Spec.Type),
+	}
+}
+
+func (idx *RecommendationIndex) GetRecommendation(id ObjectIdentity) *analysisv1alph1.Recommendation {
+	key := IndexKey{
+		Kind:        id.Kind,
+		APIVersion:  id.APIVersion,
+		Namespace:   id.Namespace,
+		Name:        id.Name,
+		Recommender: id.Recommender,
+	}
+	idx.mtx.RLock()
+	defer idx.mtx.RUnlock()
+	return idx.idx[key]
 }
