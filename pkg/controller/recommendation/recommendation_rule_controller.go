@@ -461,6 +461,7 @@ func executeIdentity(ctx context.Context, wg *sync.WaitGroup, recommenderMgr rec
 	defer func() {
 		if wg != nil {
 			wg.Done()
+			metrics.RecommendationExecutionCounter.WithLabelValues(id.APIVersion, id.Kind, id.Namespace, id.Name, id.Recommender).Inc()
 		}
 	}()
 	var message string
