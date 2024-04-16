@@ -6,6 +6,16 @@ import (
 )
 
 var (
+	RecommendationExecutionCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "crane",
+			Subsystem: "analysis",
+			Name:      "recommendation_execution_total",
+			Help:      "The number of times Recommendation has been executed",
+		},
+		[]string{"apiversion", "owner_kind", "namespace", "owner_name", "type"},
+	)
+
 	ResourceRecommendation = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "crane",
@@ -48,5 +58,5 @@ var (
 )
 
 func init() {
-	metrics.Registry.MustRegister(ResourceRecommendation, ReplicasRecommendation, SelectTargets, RecommendationsStatus)
+	metrics.Registry.MustRegister(RecommendationExecutionCounter, ResourceRecommendation, ReplicasRecommendation, SelectTargets, RecommendationsStatus)
 }

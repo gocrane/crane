@@ -60,6 +60,6 @@ func (r Checker) runChecker() {
 			"owner_name":    recommend.Spec.TargetRef.Name,
 			"update_status": updateStatus,
 			"result_status": resultStatus,
-		}).Set(1)
+		}).Set(time.Now().Sub(recommend.Status.LastUpdateTime.Time).Seconds())
 	}
 }
