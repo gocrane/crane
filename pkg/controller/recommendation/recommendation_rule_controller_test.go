@@ -1,11 +1,12 @@
 package recommendation
 
 import (
+	"reflect"
+	"testing"
+
 	analysisv1alph1 "github.com/gocrane/api/analysis/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"reflect"
-	"testing"
 )
 
 func TestRecommendationIndex_GetRecommendation(t *testing.T) {
@@ -69,14 +70,15 @@ func TestRecommendationIndex_GetRecommendation(t *testing.T) {
 					TargetRef: corev1.ObjectReference{
 						Namespace:  "test-namespace",
 						Kind:       "Deployment",
-						Name:       "test-deployment-name",
+						Name:       "test-deployment-bar",
 						APIVersion: "app/v1",
 					},
+					Type: analysisv1alph1.AnalysisTypeResource,
 				},
 			},
 			args: args{
 				id: ObjectIdentity{
-					Name:        "test-deployment-name",
+					Name:        "test-deployment-bar",
 					Namespace:   "test-namespace",
 					APIVersion:  "app/v1",
 					Kind:        "Deployment",
