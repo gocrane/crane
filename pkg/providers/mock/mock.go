@@ -33,6 +33,7 @@ func NewProvider(config *providers.MockConfig) (providers.Interface, error) {
 		klog.ErrorS(err, "Failed to open seed file", "seedFile", config.SeedFile)
 		return nil, err
 	}
+	defer r.Close()
 	buf, err := ioutil.ReadAll(r)
 	if err != nil {
 		klog.ErrorS(err, "Failed to read seed file", "seedFile", config.SeedFile)
