@@ -3,7 +3,9 @@ package prediction
 import (
 	"context"
 	"fmt"
+	"math"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-echarts/go-echarts/v2/charts"
@@ -25,6 +27,12 @@ import (
 	"github.com/gocrane/crane/pkg/server/config"
 	"github.com/gocrane/crane/pkg/server/ginwrapper"
 	"github.com/gocrane/crane/pkg/utils/target"
+)
+
+const (
+	day       = time.Hour * 24
+	threeDays = time.Hour * 24 * 3
+	week      = time.Hour * 24 * 7
 )
 
 type DebugHandler struct {
@@ -88,10 +96,28 @@ func (dh *DebugHandler) Display(c *gin.Context) {
 				return
 			}
 
+			dspMAEDay := 0.0
+			daySampleLength := int(estimate.SampleRate * day.Seconds())
+			if len(estimate.Samples) >= daySampleLength {
+				dspMAEDay = mae(test.Samples[:daySampleLength-1], estimate.Samples[:daySampleLength-1])
+			}
+			dspMAEThreeDays := 0.0
+			threeDaySampleLength := int(estimate.SampleRate * threeDays.Seconds())
+			if len(estimate.Samples) >= threeDaySampleLength {
+				dspMAEThreeDays = mae(test.Samples[:threeDaySampleLength-1], estimate.Samples[:threeDaySampleLength-1])
+			}
+			dspMAEWeekly := 0.0
+			eightDaySampleLength := int(estimate.SampleRate * week.Seconds())
+			if len(estimate.Samples) >= eightDaySampleLength {
+				dspMAEWeekly = mae(test.Samples[:eightDaySampleLength-1], estimate.Samples[:eightDaySampleLength-1])
+			}
+			klog.Infof("dspMAE1d: %f,dspMAE3d: %f, dspMAE7d: %f", dspMAEDay, dspMAEThreeDays, dspMAEWeekly)
 			page := components.NewPage()
 			page.AddCharts(plot(history, "history", "green", charts.WithTitleOpts(opts.Title{Title: "history"})))
 			page.AddCharts(plots([]*dsp.Signal{test, estimate}, []string{"actual", "forecasted"},
 				charts.WithTitleOpts(opts.Title{Title: "actual/forecasted"})))
+
+			page.AddCharts(bar(dspMAEDay, dspMAEThreeDays, dspMAEWeekly))
 			err = page.Render(c.Writer)
 			if err != nil {
 				klog.ErrorS(err, "Failed to display debug time series")
@@ -103,6 +129,41 @@ func (dh *DebugHandler) Display(c *gin.Context) {
 
 	c.Writer.WriteHeader(http.StatusBadRequest)
 	return
+}
+
+func mae(testData, estimateData []float64) float64 {
+	mae := 0.0
+	for i := 0; i < len(estimateData); i++ {
+		mae += math.Abs(testData[i] - estimateData[i])
+	}
+	return mae / float64(len(estimateData))
+}
+
+func bar(dspMAE1d, dspMAE3d, dspMAE7d float64) *charts.Bar {
+	bar := charts.NewBar()
+	bar.SetGlobalOptions(
+		charts.WithInitializationOpts(opts.Initialization{Width: "3000px", Theme: types.ThemeRoma}),
+		charts.WithTitleOpts(opts.Title{
+			Title: "MAE(Mean Absolute Error)",
+		}), charts.WithTooltipOpts(opts.Tooltip{
+			Show:      true,
+			Trigger:   "axis",
+			TriggerOn: "mousemove",
+		}),
+	)
+	bar.SetXAxis([]string{"1d", "3d", "7d"}).
+		AddSeries("mae", []opts.BarData{
+			{
+				Value: dspMAE1d,
+			},
+			{
+				Value: dspMAE3d,
+			},
+			{
+				Value: dspMAE7d,
+			},
+		})
+	return bar
 }
 
 func plot(s *dsp.Signal, name string, color string, o ...charts.GlobalOpts) *charts.Line {
@@ -155,7 +216,7 @@ func plots(signals []*dsp.Signal, names []string, o ...charts.GlobalOpts) *chart
 
 	line := charts.NewLine()
 	line.SetGlobalOptions(
-		charts.WithInitializationOpts(opts.Initialization{Width: "3000px", Theme: types.ThemeShine}),
+		charts.WithInitializationOpts(opts.Initialization{Width: "3000px", Theme: types.ThemeRoma}),
 		charts.WithLegendOpts(
 			opts.Legend{
 				Show: true,
