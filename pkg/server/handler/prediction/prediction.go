@@ -20,9 +20,9 @@ import (
 
 	craneclientset "github.com/gocrane/api/pkg/generated/clientset/versioned"
 	"github.com/gocrane/api/prediction/v1alpha1"
-
 	"github.com/gocrane/crane/pkg/controller/timeseriesprediction"
 	"github.com/gocrane/crane/pkg/prediction/dsp"
+	"github.com/gocrane/crane/pkg/prediction/percentile"
 	predictormgr "github.com/gocrane/crane/pkg/predictor"
 	"github.com/gocrane/crane/pkg/server/config"
 	"github.com/gocrane/crane/pkg/server/ginwrapper"
@@ -107,9 +107,9 @@ func (dh *DebugHandler) Display(c *gin.Context) {
 				dspMAEThreeDays = mae(test.Samples[:threeDaySampleLength-1], estimate.Samples[:threeDaySampleLength-1])
 			}
 			dspMAEWeekly := 0.0
-			eightDaySampleLength := int(estimate.SampleRate * week.Seconds())
-			if len(estimate.Samples) >= eightDaySampleLength {
-				dspMAEWeekly = mae(test.Samples[:eightDaySampleLength-1], estimate.Samples[:eightDaySampleLength-1])
+			weeklyDaySampleLength := int(estimate.SampleRate * week.Seconds())
+			if len(estimate.Samples) >= weeklyDaySampleLength {
+				dspMAEWeekly = mae(test.Samples[:weeklyDaySampleLength-1], estimate.Samples[:weeklyDaySampleLength-1])
 			}
 			klog.Infof("dspMAE1d: %f,dspMAE3d: %f, dspMAE7d: %f", dspMAEDay, dspMAEThreeDays, dspMAEWeekly)
 			page := components.NewPage()
@@ -124,11 +124,82 @@ func (dh *DebugHandler) Display(c *gin.Context) {
 			}
 
 			return
+		} else if tsp.Spec.PredictionMetrics[0].Algorithm.AlgorithmType == v1alpha1.AlgorithmTypePercentile && tsp.Spec.PredictionMetrics[0].Algorithm.Percentile != nil {
+			mc, err := timeseriesprediction.NewMetricContext(dh.selectorFetcher, tsp, dh.predictorManager)
+			if err != nil {
+				ginwrapper.WriteResponse(c, err, nil)
+				return
+			}
+
+			internalConf := mc.ConvertApiMetric2InternalConfig(&tsp.Spec.PredictionMetrics[0])
+			internalConf.Percentile.HistoryLength = "7d"
+			namer := mc.GetMetricNamer(&tsp.Spec.PredictionMetrics[0])
+			predictor := dh.predictorManager.GetPredictor(v1alpha1.AlgorithmTypePercentile)
+			history, estimate, err := percentile.Debug(predictor, namer, internalConf)
+			if err != nil {
+				ginwrapper.WriteResponse(c, err, nil)
+				return
+			}
+			if len(history) <= 0 || len(estimate) <= 0 {
+				c.Writer.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			samples := history[0].Samples
+			estimateSamples := estimate[0].Samples
+			historySignal := &dsp.Signal{SampleRate: 1 / 60.0}
+			estimateSignal := &dsp.Signal{SampleRate: 1 / 60.0}
+			for _, v := range samples {
+				historySignal.Samples = append(historySignal.Samples, v.Value)
+				estimateSignal.Samples = append(estimateSignal.Samples, estimateSamples[0].Value)
+			}
+
+			predictMAEDay := 0.0
+			daySampleLength := int(estimateSignal.SampleRate * day.Seconds())
+			if len(estimateSignal.Samples) >= daySampleLength {
+				m := maxValue(historySignal.Samples[:daySampleLength-1])
+				predictMAEDay = mae([]float64{m}, []float64{estimateSamples[0].Value})
+			}
+			predictMAEThreeDays := 0.0
+			threeDaySampleLength := int(estimateSignal.SampleRate * threeDays.Seconds())
+			if len(estimateSignal.Samples) >= threeDaySampleLength {
+				m := maxValue(historySignal.Samples[:threeDaySampleLength-1])
+				predictMAEThreeDays = mae([]float64{m}, []float64{estimateSamples[0].Value})
+			}
+			predictMAEWeekly := 0.0
+			weeklySampleLength := int(estimateSignal.SampleRate * week.Seconds())
+			if len(estimateSignal.Samples) >= weeklySampleLength {
+				m := maxValue(historySignal.Samples[:weeklySampleLength-1])
+				predictMAEWeekly = mae([]float64{m}, []float64{estimateSamples[0].Value})
+			}
+
+			page := components.NewPage()
+			page.AddCharts(plots([]*dsp.Signal{historySignal, estimateSignal}, []string{"actual", "recommended"},
+				charts.WithTitleOpts(opts.Title{Title: "actual/recommended"})))
+
+			page.AddCharts(bar(predictMAEDay, predictMAEThreeDays, predictMAEWeekly))
+			err = page.Render(c.Writer)
+			if err != nil {
+				klog.ErrorS(err, "Failed to display debug time series")
+			}
+
+			c.Writer.WriteHeader(http.StatusBadRequest)
+			return
 		}
 	}
 
 	c.Writer.WriteHeader(http.StatusBadRequest)
 	return
+}
+
+func maxValue(testData []float64) float64 {
+	m := 0.0
+	for i := 0; i < len(testData); i++ {
+		if testData[i] > m {
+			m = testData[i]
+		}
+	}
+	return m
 }
 
 func mae(testData, estimateData []float64) float64 {
