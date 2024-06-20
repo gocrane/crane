@@ -1,0 +1,36 @@
+apiVersion: autoscaling.crane.io/v1alpha1
+kind: EffectiveVerticalPodAutoscaler
+metadata:
+  name: php-apache
+spec:
+  targetRef:
+    apiVersion: "apps/v1"
+    kind: Deployment
+    name: php-apache
+  resourcePolicy:
+    containerPolicies:
+      - containerName: 'php-apache'
+        minAllowed:
+          cpu: 100m
+          memory: 50Mi
+        maxAllowed:
+          cpu: 1
+          memory: 500Mi
+        controlledResources: ["cpu", "memory"]
+        scaleDownPolicy:
+        metricThresholds:
+          cpu:
+            utilization: 35
+          memory:
+            utilization: 40
+        mode: Auto
+        stabilizationWindowSeconds: 43200
+        scaleUpPolicy:
+          metricThresholds:
+            cpu:
+              utilization: 95
+            memory:
+              utilization: 95
+          mode: Auto
+          stabilizationWindowSeconds: 150
+
