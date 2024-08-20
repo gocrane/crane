@@ -20,6 +20,10 @@ weight: 10
 - Helm 3.1.0
 - Kind 0.16+
 
+{{% alert color="warning" %}}
+如果你的 Kubernetes 版本 >= 1.26, 请参考 [PR](https://github.com/gocrane/crane/pull/839)
+{{% /alert %}}
+
 ## 安装
 
 以下命令将安装 Crane 以及其依赖 (Prometheus/Grafana).

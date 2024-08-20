@@ -19,6 +19,10 @@ Crane 安装时间在10分钟左右，具体时间也依赖集群规模以及硬
 - Kubernetes 1.18+
 - Helm 3.1.0
 
+{{% alert color="warning" %}}
+如果你的 Kubernetes 版本 >= 1.26, 请参考 [PR](https://github.com/gocrane/crane/pull/839)
+{{% /alert %}}
+
 ## 安装流程
 
 ### 安装 Helm
