@@ -17,6 +17,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/scale"
+	"k8s.io/component-base/logs"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -84,6 +85,7 @@ func NewManagerCommand(ctx context.Context) *cobra.Command {
 
 	cmd.Flags().AddGoFlagSet(flag.CommandLine)
 	opts.AddFlags(cmd.Flags())
+	logs.AddFlags(cmd.Flags())
 	utilfeature.DefaultMutableFeatureGate.AddFlag(cmd.Flags())
 
 	return cmd
