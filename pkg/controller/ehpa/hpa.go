@@ -208,10 +208,30 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 			var metricIdentifier string
 			var averageValue *resource.Quantity
 			switch metric.Type {
-			case autoscalingv2.ResourceMetricSourceType:
-				metricIdentifier = utils.GetMetricIdentifier(metric, metric.Resource.Name.String())
+			case autoscalingv2.ResourceMetricSourceType, autoscalingv2.ContainerResourceMetricSourceType:
+				var averageUtilization *int32
+				var containerName string
+				if metric.Resource != nil {
+					if metric.Resource.Target.AverageUtilization != nil {
+						averageUtilization = metric.Resource.Target.AverageUtilization
+					}
+					if metric.Resource.Target.AverageValue != nil {
+						averageValue = metric.Resource.Target.AverageValue
+					}
+				}
+				if metric.ContainerResource != nil {
+					containerName = metric.ContainerResource.Container
+					if metric.ContainerResource.Target.AverageUtilization != nil {
+						averageUtilization = metric.ContainerResource.Target.AverageUtilization
+					}
+					if metric.ContainerResource.Target.AverageValue != nil {
+						averageValue = metric.ContainerResource.Target.AverageValue
+					}
+				}
+
 				// When use AverageUtilization in EffectiveHorizontalPodAutoscaler's metricSpec, convert to AverageValue
-				if metric.Resource.Target.AverageUtilization != nil {
+				if averageUtilization != nil {
+					metricName := utils.GetMetricName(metric)
 					scale, _, err := utils.GetScale(ctx, c.RestMapper, c.ScaleClient, ehpa.Namespace, ehpa.Spec.ScaleTargetRef)
 					if err != nil {
 						return nil, err
@@ -231,24 +251,21 @@ func (c *EffectiveHPAController) GetHPAMetrics(ctx context.Context, ehpa *autosc
 						return nil, fmt.Errorf("failed to get available pods. ")
 					}
 
-					requests, err := utils.CalculatePodRequests(availablePods, metric.Resource.Name)
+					requests, err := utils.CalculatePodRequests(availablePods, v1.ResourceName(metricName), containerName)
 					if err != nil {
 						return nil, err
 					}
 
-					value := int64((float64(requests) * float64(*metric.Resource.Target.AverageUtilization) / 100) / float64(len(availablePods)))
+					value := int64((float64(requests) * float64(*averageUtilization) / 100) / float64(len(availablePods)))
 					averageValue = resource.NewMilliQuantity(value, resource.DecimalSI)
-				} else {
-					averageValue = metric.Resource.Target.AverageValue
 				}
 			case autoscalingv2.ExternalMetricSourceType:
-				metricIdentifier = utils.GetMetricIdentifier(metric, metric.External.Metric.Name)
 				averageValue = metric.External.Target.AverageValue
 			case autoscalingv2.PodsMetricSourceType:
-				metricIdentifier = utils.GetMetricIdentifier(metric, metric.Pods.Metric.Name)
 				averageValue = metric.Pods.Target.AverageValue
 			}
 
+			metricIdentifier = utils.GetPredictionMetricIdentifier(metric)
 			if metricIdentifier == "" {
 				continue
 			}

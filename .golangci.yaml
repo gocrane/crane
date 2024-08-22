@@ -4,9 +4,7 @@ run:
 linters:
   disable-all: true
   enable:
-    - deadcode
     - unused
-    - varcheck
     - ineffassign
     - goimports
     - gofmt
@@ -15,7 +13,6 @@ linters:
     - unconvert
     - govet
     - errcheck
-    - structcheck
     - staticcheck
 
 linters-settings:

@@ -67,6 +67,12 @@ type Options struct {
 
 	// CacheUnstructured indicates whether to cache Unstructured objects. When enabled, it will speed up reading Unstructured objects, but will increase memory usage.
 	CacheUnstructured bool
+
+	// MonitorInterval is the interval for recommendation checker
+	MonitorInterval time.Duration
+
+	// OutDateInterval is the checking interval for identify a recommendation is outdated
+	OutDateInterval time.Duration
 }
 
 // NewOptions builds an empty options.
@@ -115,6 +121,7 @@ func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&o.DataSourcePromConfig.AdapterConfigMapKey, "prometheus-adapter-configmap-key", "", "prometheus adapter-configmap key")
 	flags.StringVar(&o.DataSourcePromConfig.AdapterConfig, "prometheus-adapter-config", "", "prometheus adapter-config path")
 	flags.StringVar(&o.DataSourcePromConfig.AdapterExtensionLabels, "prometheus-adapter-extension-labels", "", "prometheus adapter extension-labels for expressionQuery")
+	flags.StringVar(&o.DataSourcePromConfig.ExtensionLabels, "extension-labels", "", "extension-labels for every prometheus query")
 	flags.StringVar(&o.DataSourcePromConfig.Auth.Username, "prometheus-auth-username", "", "prometheus auth username")
 	flags.StringVar(&o.DataSourcePromConfig.Auth.Password, "prometheus-auth-password", "", "prometheus auth password")
 	flags.StringVar(&o.DataSourcePromConfig.Auth.BearerToken, "prometheus-auth-bearertoken", "", "prometheus auth bearertoken")
@@ -139,4 +146,6 @@ func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.IntVar(&o.OOMRecordMaxNumber, "oom-record-max-number", 10000, "Max number for oom records to store in configmap")
 	flags.IntVar(&o.TimeSeriesPredictionMaxConcurrentReconciles, "time-series-prediction-max-concurrent-reconciles", 10, "Max concurrent reconciles for TimeSeriesPrediction controller")
 	flags.BoolVar(&o.CacheUnstructured, "cache-unstructured", true, "whether to cache Unstructured objects. When enabled, it will speed up reading Unstructured objects but will increase memory usage")
+	flags.DurationVar(&o.MonitorInterval, "recommendation-monitor-interval", time.Hour, "interval for recommendation checker")
+	flags.DurationVar(&o.OutDateInterval, "recommendation-outdate-interval", 24*time.Hour, "interval for identify a recommendation is outdated")
 }

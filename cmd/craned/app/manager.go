@@ -17,6 +17,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/scale"
+	"k8s.io/component-base/logs"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -52,6 +53,7 @@ import (
 	"github.com/gocrane/crane/pkg/recommendation"
 	"github.com/gocrane/crane/pkg/server"
 	serverconfig "github.com/gocrane/crane/pkg/server/config"
+	"github.com/gocrane/crane/pkg/utils"
 	"github.com/gocrane/crane/pkg/utils/target"
 	"github.com/gocrane/crane/pkg/webhooks"
 )
@@ -83,6 +85,7 @@ func NewManagerCommand(ctx context.Context) *cobra.Command {
 
 	cmd.Flags().AddGoFlagSet(flag.CommandLine)
 	opts.AddFlags(cmd.Flags())
+	logs.AddFlags(cmd.Flags())
 	utilfeature.DefaultMutableFeatureGate.AddFlag(cmd.Flags())
 
 	return cmd
@@ -143,7 +146,7 @@ func Run(ctx context.Context, opts *options.Options) error {
 		}
 	}()
 
-	initControllers(podOOMRecorder, mgr, opts, predictorMgr, historyDataSources[providers.PrometheusDataSource])
+	initControllers(ctx, podOOMRecorder, mgr, opts, predictorMgr, historyDataSources[providers.PrometheusDataSource])
 	// initialize custom collector metrics
 	initMetricCollector(mgr)
 	runAll(ctx, mgr, predictorMgr, dataSourceProviders[providers.PrometheusDataSource], opts)
@@ -256,6 +259,8 @@ func initDataSources(mgr ctrl.Manager, opts *options.Options) (map[providers.Dat
 			hybridDataSources[providers.PrometheusDataSource] = provider
 			realtimeDataSources[providers.PrometheusDataSource] = provider
 			historyDataSources[providers.PrometheusDataSource] = provider
+
+			utils.SetExtensionLabels(opts.DataSourcePromConfig.ExtensionLabels)
 		}
 	}
 	return realtimeDataSources, historyDataSources, hybridDataSources
@@ -266,7 +271,7 @@ func initPredictorManager(opts *options.Options, realtimeDataSources map[provide
 }
 
 // initControllers setup controllers with manager
-func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.Options, predictorMgr predictor.Manager, historyDataSource providers.History) {
+func initControllers(ctx context.Context, oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.Options, predictorMgr predictor.Manager, historyDataSource providers.History) {
 	discoveryClientSet, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
 	if err != nil {
 		klog.Exit(err, "Unable to create discover client")
@@ -417,6 +422,13 @@ func initControllers(oomRecorder oom.Recorder, mgr ctrl.Manager, opts *options.O
 		}).SetupWithManager(mgr); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "RecommendationTriggerController")
 		}
+
+		checker := recommendationctrl.Checker{
+			Client:          mgr.GetClient(),
+			MonitorInterval: opts.MonitorInterval,
+			OutDateInterval: opts.OutDateInterval,
+		}
+		checker.Run(ctx.Done())
 	}
 
 	// CnpController

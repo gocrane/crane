@@ -96,29 +96,7 @@ func (c *CraneMetricCollector) Collect(ch chan<- prometheus.Metric) {
 		if err != nil {
 			klog.Errorf("Failed to list ehpa: %v", err)
 		}
-		var predictionMetrics []PredictionMetric
 		for _, ehpa := range ehpaList.Items {
-			namespace := ehpa.Namespace
-			if ehpa.Spec.Prediction != nil {
-				var tsp predictionapi.TimeSeriesPrediction
-				tspName := "ehpa-" + ehpa.Name
-
-				err := c.Get(context.TODO(), client.ObjectKey{Namespace: namespace, Name: tspName}, &tsp)
-				if err != nil {
-					klog.Errorf("Failed to get tsp: %v", err)
-					return
-				}
-				metricListTsp := c.getMetricsTsp(&tsp)
-				for _, metric := range metricListTsp {
-					if MetricContains(predictionMetrics, metric) {
-						continue
-					}
-
-					ch <- prometheus.NewMetricWithTimestamp(metric.Timestamp, prometheus.MustNewConstMetric(metric.Desc, prometheus.GaugeValue, metric.MetricValue, metric.TargetKind, metric.TargetName, metric.TargetNamespace, metric.ResourceIdentifier, metric.Algorithm))
-					predictionMetrics = append(predictionMetrics, metric)
-				}
-			}
-
 			if ehpa.Spec.Crons != nil {
 				metricCron, err := c.getMetricsCron(&ehpa)
 				if err != nil {
@@ -127,6 +105,27 @@ func (c *CraneMetricCollector) Collect(ch chan<- prometheus.Metric) {
 				}
 
 				ch <- metricCron
+			}
+		}
+	}
+
+	if utilfeature.DefaultFeatureGate.Enabled(features.CraneTimeSeriesPrediction) {
+		var tspList predictionapi.TimeSeriesPredictionList
+		err := c.List(context.TODO(), &tspList)
+		if err != nil {
+			klog.Errorf("Failed to list tsp: %v", err)
+		}
+
+		var predictionMetrics []PredictionMetric
+		for _, tsp := range tspList.Items {
+			metricListTsp := c.getMetricsTsp(&tsp)
+			for _, metric := range metricListTsp {
+				if MetricContains(predictionMetrics, metric) {
+					continue
+				}
+
+				ch <- prometheus.NewMetricWithTimestamp(metric.Timestamp, prometheus.MustNewConstMetric(metric.Desc, prometheus.GaugeValue, metric.MetricValue, metric.TargetKind, metric.TargetName, metric.TargetNamespace, metric.ResourceIdentifier, metric.Algorithm))
+				predictionMetrics = append(predictionMetrics, metric)
 			}
 		}
 	}

@@ -151,7 +151,7 @@ func FlushRules(metricsDiscoveryConfig config.MetricsDiscoveryConfig, mapper met
 	}
 
 	if len(errStr) > 0 {
-		return fmt.Errorf(strings.Join(errStr, ","))
+		return fmt.Errorf("%s", strings.Join(errStr, ","))
 	}
 	return err
 }

@@ -48,9 +48,8 @@ func updateClusterInSecret(cluster *store.Cluster, secret *v1.Secret) error {
 	}
 }
 
-func deleteClusterInSecret(clusterid string, secret *v1.Secret) error {
+func deleteClusterInSecret(clusterid string, secret *v1.Secret) {
 	delete(secret.Data, clusterid)
-	return nil
 }
 
 func getClusterInSecret(clusterid string, secret *v1.Secret) (*store.Cluster, error) {
@@ -129,10 +128,7 @@ func (c *clusters) DeleteCluster(ctx context.Context, clusterid string) error {
 	if err != nil {
 		return err
 	}
-	err = deleteClusterInSecret(clusterid, secret)
-	if err != nil {
-		return err
-	}
+	deleteClusterInSecret(clusterid, secret)
 	_, err = c.writeSecretStore(ctx, secret)
 	return err
 }
