@@ -13,6 +13,8 @@ jobs:
   cover:
     runs-on: ubuntu-latest
     steps:
+      - name: Check architecture
+        run: uname -m
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
