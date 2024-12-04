@@ -101,12 +101,11 @@ func (c *RecommendationTriggerController) Reconcile(ctx context.Context, req ctr
 		}
 	}
 
+	executeIdentity(context.TODO(), nil, c.RecommenderMgr, c.Provider, c.PredictorMgr, recommendationRule, id, c.Client, c.ScaleClient, c.OOMRecorder, metav1.Now(), newStatus.RunNumber)
 	if currentMissionIndex == -1 {
 		klog.Warningf("cannot found recommendation mission %s", recommendationRuleRef.Name)
 		return ctrl.Result{}, nil
 	}
-
-	executeIdentity(context.TODO(), nil, c.RecommenderMgr, c.Provider, c.PredictorMgr, recommendationRule, id, c.Client, c.ScaleClient, c.OOMRecorder, metav1.Now(), newStatus.RunNumber)
 	if newStatus.Recommendations[currentMissionIndex].Message != "Success" {
 		err = c.Client.Delete(context.TODO(), recommendation)
 		if err != nil {
