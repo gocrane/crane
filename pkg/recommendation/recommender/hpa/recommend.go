@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"strconv"
 	"time"
 
 	"github.com/montanaflynn/stats"
@@ -241,18 +240,13 @@ func (rr *HPARecommender) minMaxMedians(predictionTs []*common.TimeSeries) (floa
 
 // checkFluctuation check if the time series fluctuation is reach to replicas.fluctuation-threshold
 func (rr *HPARecommender) checkFluctuation(medianMin, medianMax float64) error {
-	fluctuationThreshold, err := strconv.ParseFloat(rr.Config["fluctuation-threshold"], 64)
-	if err != nil {
-		return err
-	}
-
 	if medianMin == 0 {
 		medianMin = 0.1 // use a small value to continue calculate
 	}
 
 	fluctuation := medianMax / medianMin
-	if fluctuation < fluctuationThreshold {
-		return fmt.Errorf("target cpu fluctuation %f is under replicas.fluctuation-threshold %f. ", fluctuation, fluctuationThreshold)
+	if fluctuation < rr.FluctuationThreshold {
+		return fmt.Errorf("target cpu fluctuation %f is under replicas.fluctuation-threshold %f. ", fluctuation, rr.FluctuationThreshold)
 	}
 
 	return nil
