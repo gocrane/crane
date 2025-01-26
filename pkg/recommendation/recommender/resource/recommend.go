@@ -175,8 +175,20 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 			}
 		}
 
-		cr.Target[corev1.ResourceCPU] = cpuQuantity.String()
-		cr.Target[corev1.ResourceMemory] = memQuantity.String()
+		// Resource Compliance recommendation enabled
+		if rr.ResourceComplianceRecommendation {
+			cr.Target[corev1.ResourceCPU] = cpuQuantity.String()
+			cr.Target[corev1.ResourceMemory] = memQuantity.String()
+		} else {
+			cr.Target[corev1.ResourceCPU] = ""
+			if *cpuQuantity != c.Resources.Requests[corev1.ResourceCPU] {
+				cr.Target[corev1.ResourceCPU] = cpuQuantity.String()
+			}
+			cr.Target[corev1.ResourceMemory] = ""
+			if *memQuantity != c.Resources.Requests[corev1.ResourceMemory] {
+				cr.Target[corev1.ResourceMemory] = memQuantity.String()
+			}
+		}
 
 		newContainerSpec := corev1.Container{
 			Name: c.Name,
