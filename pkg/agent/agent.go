@@ -120,7 +120,7 @@ func NewAgent(ctx context.Context,
 
 	if nodeResource := utilfeature.DefaultFeatureGate.Enabled(features.CraneNodeResource); nodeResource {
 		tspName := agent.CreateNodeResourceTsp()
-		nodeResourceManager, err := resource.NewNodeResourceManager(kubeClient, nodeName, nodeResourceReserved, tspName, nodeInformer, tspInformer, stateCollector.NodeResourceChann)
+		nodeResourceManager, err := resource.NewNodeResourceManager(kubeClient, nodeName, nodeResourceReserved, tspName, nodeInformer, podInformer, tspInformer, stateCollector.NodeResourceChann)
 		if err != nil {
 			return agent, err
 		}
