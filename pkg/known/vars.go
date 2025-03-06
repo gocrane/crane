@@ -1,6 +1,10 @@
 package known
 
-import "os"
+import (
+	"os"
+
+	corev1 "k8s.io/api/core/v1"
+)
 
 var (
 	CraneSystemNamespace = "crane-system"
@@ -11,3 +15,13 @@ func init() {
 		CraneSystemNamespace = namespace
 	}
 }
+
+const (
+	// ElasticResourcePrefix is crane resource namespace prefix.
+	ElasticResourcePrefix = "gocrane.io/"
+)
+
+var (
+	ElasticCPU    = ElasticResourcePrefix + corev1.ResourceCPU
+	ElasticMemory = ElasticResourcePrefix + corev1.ResourceMemory
+)

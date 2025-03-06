@@ -1,5 +1,7 @@
 package known
 
+import "k8s.io/apimachinery/pkg/api/resource"
+
 type Module string
 
 const (
@@ -9,3 +11,16 @@ const (
 	ModuleNodeResourceManager Module = "ModuleNodeResourceManager"
 	ModulePodResourceManager  Module = "ModulePodResourceManager"
 )
+
+type ResourceStatus struct {
+	CPUReserved        *resource.Quantity
+	CPUUsage           *resource.Quantity
+	CPUUsageOffline    *resource.Quantity
+	CPUSetIdle         *resource.Quantity
+	MemoryReserved     *resource.Quantity
+	MemoryUsage        *resource.Quantity
+	MemoryUsageOffline *resource.Quantity
+
+	CPUReservedTSP    *resource.Quantity
+	MemoryReservedTSP *resource.Quantity
+}

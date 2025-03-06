@@ -70,6 +70,7 @@ func NewCadvisorManager(cgroupDriver string) Manager {
 	var includedMetrics = cadvisorcontainer.MetricSet{
 		cadvisorcontainer.CpuUsageMetrics:         struct{}{},
 		cadvisorcontainer.ProcessSchedulerMetrics: struct{}{},
+		cadvisorcontainer.MemoryUsageMetrics:      struct{}{},
 	}
 
 	allowDynamic := true
@@ -162,11 +163,9 @@ func (c *CadvisorCollector) Collect() (map[string][]common.TimeSeries, error) {
 				klog.Errorf("ContainerInfoRequest failed: %v", err)
 				continue
 			}
-
 			if hasExtMemRes && v.Stats[0].Memory != nil {
 				extResMemUse += float64(v.Stats[0].Memory.WorkingSet)
 			}
-
 			hasExtRes := hasExtCpuRes || hasExtMemRes
 			var containerLabels = GetContainerLabels(pod, containerId, containerName, hasExtRes)
 			if v.Stats[0].Memory != nil {

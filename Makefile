@@ -9,6 +9,7 @@ ifeq ($(GIT_DIFF), 1)
     GIT_TREESTATE = "dirty"
 endif
 BUILDDATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
+BUILDMODE?="MANUAL"
 
 LDFLAGS = "-X github.com/gocrane/crane/pkg/version.gitTag=$(GIT_VERSION) \
                       -X github.com/gocrane/crane/pkg/version.gitCommit=$(GIT_COMMIT_HASH) \
@@ -119,19 +120,19 @@ images: image-craned image-crane-agent image-metric-adapter image-dashboard
 
 .PHONY: image-craned
 image-craned: ## Build docker image with the crane manager.
-	docker build --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=craned -t ${MANAGER_IMG} .
+	docker build --build-arg BUILD=$(BUILDMODE) --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=craned -t ${MANAGER_IMG} .
 
 .PHONY: image-dashboard
 image-dashboard: ## Build docker image with the crane dashboard.
-	docker build --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=web -t ${DASHBOARD_IMG} ./pkg/web
+	docker build --build-arg BUILD=$(BUILDMODE) --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=web -t ${DASHBOARD_IMG} ./pkg/web
 
 .PHONY: image-crane-agent
 image-crane-agent: ## Build docker image with the crane agent.
-	docker build --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=crane-agent -t ${AGENT_IMG} .
+	docker build --build-arg BUILD=$(BUILDMODE) --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=crane-agent -t ${AGENT_IMG} .
 
 .PHONY: image-metric-adapter
 image-metric-adapter: ## Build docker image with the metric adapter.
-	docker build --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=metric-adapter -t ${ADAPTER_IMG} .
+	docker build --build-arg BUILD=$(BUILDMODE) --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=metric-adapter -t ${ADAPTER_IMG} .
 
 .PHONY: push-images
 push-images: push-image-craned push-image-crane-agent push-image-metric-adapter push-image-dashboard

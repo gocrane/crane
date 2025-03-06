@@ -124,6 +124,7 @@ func NewAgent(ctx context.Context,
 		if err != nil {
 			return agent, err
 		}
+		legacyregistry.CustomMustRegister(metrics.NewNodeResourceCollector(nodeName, nodeInformer.Lister(), nodeResourceManager.GetResource))
 		managers = appendManagerIfNotNil(managers, nodeResourceManager)
 	}
 
@@ -133,6 +134,8 @@ func NewAgent(ctx context.Context,
 	}
 
 	agent.managers = managers
+
+	legacyregistry.CustomMustRegister(metrics.NewPodResourceCollector(podInformer.Lister()))
 
 	return agent, nil
 }
