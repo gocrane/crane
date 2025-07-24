@@ -29,9 +29,9 @@ const (
 	NodeMemUsageUtilizationExprTemplate = `sum(label_replace(container_memory_usage_bytes{instance="%s", namespace!="",container!="POD", container!="",image!=""EXTENSION_LABELS_HOLDER}, "node", "$1", "instance", "(^[^:]+)") * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"EXTENSION_LABELS_HOLDER}) by (node)) by (node) / sum(kube_node_status_capacity{node="%s", resource="memory", unit="byte"EXTENSION_LABELS_HOLDER} * on (node) group_left() max(kube_node_labels{label_beta_kubernetes_io_instance_type!~"eklet", label_node_kubernetes_io_instance_type!~"eklet"EXTENSION_LABELS_HOLDER}) by (node)) by (node) `
 
 	// PodCpuUsageExprTemplate is used to query pod cpu usage by promql,  param is namespace,pod, duration str
-	PodCpuUsageExprTemplate = `sum(irate(container_cpu_usage_seconds_total{container!="POD",namespace="%s",pod="%s"EXTENSION_LABELS_HOLDER}[%s]))`
+	PodCpuUsageExprTemplate = `sum(irate(pod_cpu_seconds_total{mode!~"idle|iowait",namespace="%s",pod="%s"EXTENSION_LABELS_HOLDER}[%s]))`
 	// PodMemUsageExprTemplate is used to query pod cpu usage by promql,  param is namespace,pod
-	PodMemUsageExprTemplate = `sum(container_memory_working_set_bytes{container!="POD",namespace="%s",pod="%s"EXTENSION_LABELS_HOLDER})`
+	PodMemUsageExprTemplate = `pod_memory_MemTotal_bytes{namespace="%s",pod="%s"EXTENSION_LABELS_HOLDER} - pod_memory_MemFree_bytes{namespace="%s",pod="%s"EXTENSION_LABELS_HOLDER}`
 
 	// ContainerCpuUsageExprTemplate is used to query container cpu usage by promql,  param is namespace,pod,container duration str
 	ContainerCpuUsageExprTemplate = `irate(container_cpu_usage_seconds_total{container!="POD",namespace="%s",pod=~"%s",container="%s"EXTENSION_LABELS_HOLDER}[%s])`
@@ -117,7 +117,7 @@ func GetPodCpuUsageExpression(namespace string, name string) string {
 }
 
 func GetPodMemUsageExpression(namespace string, name string) string {
-	return fmtSprintfInternal(PodMemUsageExprTemplate, namespace, name)
+	return fmtSprintfInternal(PodMemUsageExprTemplate, namespace, name, namespace, name)
 }
 
 func GetNodeCpuUsageExpression(nodeName string) string {

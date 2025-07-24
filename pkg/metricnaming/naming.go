@@ -76,6 +76,22 @@ func ResourceToWorkloadMetricNamer(target *corev1.ObjectReference, resourceName 
 	}
 }
 
+func ResourceToPodMetricNamer(namespace, podName string, resourceName corev1.ResourceName, caller string) MetricNamer {
+	// pod
+	return &GeneralMetricNamer{
+		CallerName: caller,
+		Metric: &metricquery.Metric{
+			Type:       metricquery.PodMetricType,
+			MetricName: resourceName.String(),
+			Pod: &metricquery.PodNamerInfo{
+				Namespace: namespace,
+				Name:      podName,
+				Selector:  labels.Everything(),
+			},
+		},
+	}
+}
+
 func ResourceToContainerMetricNamer(namespace, apiVersion, workloadKind, workloadName, containerName string, resourceName corev1.ResourceName, caller string) MetricNamer {
 	// container
 	return &GeneralMetricNamer{

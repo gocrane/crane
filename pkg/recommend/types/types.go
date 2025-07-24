@@ -53,12 +53,18 @@ type EffectiveHorizontalPodAutoscalerRecommendation struct {
 }
 
 type ResourceRequestRecommendation struct {
+	Pod        *PodRecommendation        `json:"pod,omitempty"`
 	Containers []ContainerRecommendation `json:"containers,omitempty"`
 }
 
 type ContainerRecommendation struct {
 	ContainerName string       `json:"containerName,omitempty"`
 	Target        ResourceList `json:"target,omitempty"`
+}
+
+type PodRecommendation struct {
+	PodName string       `json:"podName,omitempty"`
+	Target  ResourceList `json:"target,omitempty"`
 }
 
 type ResourceList map[corev1.ResourceName]string

@@ -144,7 +144,7 @@ func TestGetPodCpuUsageExpression(t *testing.T) {
 		description: "GetPodCpuUsageExpression",
 		namespace:   "default",
 		name:        "test-pod-001",
-		expect:      "sum(irate(container_cpu_usage_seconds_total{container!=\"POD\",namespace=\"default\",pod=\"test-pod-001\"}[3m]))",
+		expect:      "sum(irate(pod_cpu_seconds_total{mode!~\"idle|iowait\",namespace=\"default\",pod=\"test-pod-001\"}[3m]))",
 	}
 
 	requests := GetPodCpuUsageExpression(test.namespace, test.name)
@@ -163,7 +163,7 @@ func TestGetPodMemUsageExpression(t *testing.T) {
 		description: "GetPodMemUsageExpression",
 		namespace:   "default",
 		name:        "test-pod-001",
-		expect:      "sum(container_memory_working_set_bytes{container!=\"POD\",namespace=\"default\",pod=\"test-pod-001\"})",
+		expect:      "pod_memory_MemTotal_bytes{namespace=\"default\",pod=\"test-pod-001\"} - pod_memory_MemFree_bytes{namespace=\"default\",pod=\"test-pod-001\"}",
 	}
 
 	requests := GetPodMemUsageExpression(test.namespace, test.name)

@@ -71,7 +71,7 @@ func (p *percentilePrediction) getPredictedValuesFromSignals(queryExpr string, s
 
 	if cfg.aggregated {
 		signal := signals[keyAll]
-		if signal != nil {
+		if signal != nil && signal.totalSamplesCount > 0 {
 			sample := common.Sample{
 				Value:     estimator.GetEstimation(signal.histogram),
 				Timestamp: now,

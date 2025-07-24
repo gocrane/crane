@@ -9,14 +9,19 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/util/errors"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	recommendermodel "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/recommender/model"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 
 	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
+	"github.com/gocrane/crane/pkg/common"
+	"github.com/gocrane/crane/pkg/features"
 	"github.com/gocrane/crane/pkg/metricnaming"
 	"github.com/gocrane/crane/pkg/oom"
+	"github.com/gocrane/crane/pkg/prediction"
 	"github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/recommend/types"
 	"github.com/gocrane/crane/pkg/recommendation/framework"
@@ -90,6 +95,8 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 	}
 
 	resourceRecommendation := &types.ResourceRequestRecommendation{}
+	namespace := ctx.Object.GetNamespace()
+	caller := fmt.Sprintf(callerFormat, klog.KObj(ctx.Recommendation), ctx.Recommendation.UID)
 
 	var newContainers []corev1.Container
 	var oldContainers []corev1.Container
@@ -99,82 +106,58 @@ func (rr *ResourceRecommender) Recommend(ctx *framework.RecommendationContext) e
 		return err
 	}
 
-	namespace := ctx.Object.GetNamespace()
+	// pod
+	if utilfeature.DefaultFeatureGate.Enabled(features.EnablePodRecommendation) {
+		cpuTsList, memoryTsList, usePodMetrics, err := rr.getPodCpuAndMemoryTsList(ctx, namespace, caller, predictor)
+		if err != nil {
+			klog.Warningf("getPodCpuAndMemoryTsList err: %v", err)
+		}
+		if usePodMetrics {
+			klog.V(4).Infof("use pod metrics for pod %s", ctx.Pods[0].Name)
+			pr := types.PodRecommendation{
+				PodName: ctx.Pods[0].Name,
+				Target:  map[corev1.ResourceName]string{},
+			}
+
+			cpuQuantity, memQuantity, err := rr.recommendCpuAndMemResources(ctx, cpuTsList, memoryTsList, oomRecords, namespace, ctx.Object.GetName(), ctx.Pods[0].Name)
+			if err != nil {
+				klog.Errorf("recommendCpuAndMemResources %v", err)
+			}
+
+			if cpuQuantity != nil {
+				pr.Target[corev1.ResourceCPU] = cpuQuantity.String()
+			}
+			if memQuantity != nil {
+				pr.Target[corev1.ResourceMemory] = memQuantity.String()
+			}
+
+			if len(pr.Target) != 0 {
+				resourceRecommendation.Pod = &pr
+			}
+		} else {
+			klog.V(4).Infof("not use pod metrics for pod %s", ctx.Pods[0].Name)
+		}
+	}
+
+	// containers
 	for _, c := range ctx.Pods[0].Spec.Containers {
+		cpuTsList, memTsList, err := rr.getContainerCpuAndMemoryTsList(ctx, predictor, caller, namespace, c.Name)
+		if err != nil {
+			return err
+		}
+
+		cpuQuantity, memQuantity, err := rr.recommendCpuAndMemResources(ctx, cpuTsList, memTsList, oomRecords, namespace, ctx.Object.GetName(), c.Name)
+		if err != nil {
+			return err
+		}
+		if cpuQuantity == nil || memQuantity == nil {
+			return fmt.Errorf("resource recommendation failed for container %s: cpu=%v, memory=%v", c.Name, cpuQuantity != nil, memQuantity != nil)
+		}
+
 		cr := types.ContainerRecommendation{
 			ContainerName: c.Name,
 			Target:        map[corev1.ResourceName]string{},
 		}
-
-		caller := fmt.Sprintf(callerFormat, klog.KObj(ctx.Recommendation), ctx.Recommendation.UID)
-		metricNamer := metricnaming.ResourceToContainerMetricNamer(namespace, ctx.Recommendation.Spec.TargetRef.APIVersion,
-			ctx.Recommendation.Spec.TargetRef.Kind, ctx.Recommendation.Spec.TargetRef.Name, c.Name, corev1.ResourceCPU, caller)
-		klog.Infof("%s: CPU query for resource request recommendation: %s", ctx.String(), metricNamer.BuildUniqueKey())
-		cpuConfig := rr.makeCpuConfig()
-		tsList, err := utils.QueryPredictedValuesOnce(ctx.Recommendation, predictor, caller, cpuConfig, metricNamer)
-		if err != nil {
-			return err
-		}
-		if len(tsList) < 1 || len(tsList[0].Samples) < 1 {
-			return fmt.Errorf("no value retured for queryExpr: %s", metricNamer.BuildUniqueKey())
-		}
-		// Check timestamp is completed
-		if rr.HistoryCompletionCheck {
-			completion, existDays, err := utils.DetectTimestampCompletion(tsList, rr.CpuModelHistoryLength, time.Now())
-			if !completion || err != nil {
-				return fmt.Errorf("%s: cpu timestamps are not completed, expect %s actual %d days", metricNamer.BuildUniqueKey(), rr.CpuModelHistoryLength, existDays)
-			}
-		}
-
-		v := int64(tsList[0].Samples[0].Value * 1000)
-		cpuQuantity := resource.NewMilliQuantity(v, resource.DecimalSI)
-		klog.Infof("%s: container %s recommended cpu %s", ctx.String(), c.Name, cpuQuantity.String())
-
-		metricNamer = metricnaming.ResourceToContainerMetricNamer(namespace, ctx.Recommendation.Spec.TargetRef.APIVersion,
-			ctx.Recommendation.Spec.TargetRef.Kind, ctx.Recommendation.Spec.TargetRef.Name, c.Name, corev1.ResourceMemory, caller)
-		klog.Infof("%s Memory query for resource request recommendation: %s", ctx.String(), metricNamer.BuildUniqueKey())
-		memConfig := rr.makeMemConfig()
-		tsList, err = utils.QueryPredictedValuesOnce(ctx.Recommendation, predictor, caller, memConfig, metricNamer)
-		if err != nil {
-			return err
-		}
-		if len(tsList) < 1 || len(tsList[0].Samples) < 1 {
-			return fmt.Errorf("no value retured for queryExpr: %s", metricNamer.BuildUniqueKey())
-		}
-		// Check timestamp is completed
-		if rr.HistoryCompletionCheck {
-			completion, existDays, err := utils.DetectTimestampCompletion(tsList, rr.MemHistoryLength, time.Now())
-			if !completion || err != nil {
-				return fmt.Errorf("%s: memory timestamps are not completed, expect %s actual %d days ", metricNamer.BuildUniqueKey(), rr.MemHistoryLength, existDays)
-			}
-		}
-
-		v = int64(tsList[0].Samples[0].Value)
-		if v <= 0 {
-			return fmt.Errorf("no enough metrics")
-		}
-		memQuantity := resource.NewQuantity(v, resource.BinarySI)
-		klog.Infof("%s: container %s recommended memory %s", ctx.String(), c.Name, memQuantity.String())
-
-		// Use oom protected memory if exist
-		if rr.OOMProtection {
-			oomProtectMem := rr.MemoryOOMProtection(oomRecords, namespace, ctx.Object.GetName(), c.Name)
-			if oomProtectMem != nil && !oomProtectMem.IsZero() && oomProtectMem.Cmp(*memQuantity) > 0 {
-				klog.Infof("%s: container %s using oomProtect Memory %s", ctx.String(), c.Name, oomProtectMem.String())
-				memQuantity = oomProtectMem
-			}
-		}
-
-		// Resource Specification enabled
-		if rr.Specification {
-			normalizedCpu, normalizedMem := GetNormalizedResource(cpuQuantity, memQuantity, rr.SpecificationConfigs)
-			klog.Infof("GetNormalizedResource currentCpu %s normalizedCpu %s currentMem %s normalizedMem %s", cpuQuantity.String(), normalizedCpu.String(), memQuantity.String(), normalizedMem.String())
-			if normalizedCpu.Value() > 0 && normalizedMem.Value() > 0 {
-				cpuQuantity = &normalizedCpu
-				memQuantity = &normalizedMem
-			}
-		}
-
 		cr.Target[corev1.ResourceCPU] = cpuQuantity.String()
 		cr.Target[corev1.ResourceMemory] = memQuantity.String()
 
@@ -268,4 +251,163 @@ func (rr *ResourceRecommender) MemoryOOMProtection(oomRecords []oom.OOMRecord, n
 	}
 
 	return nil
+}
+
+// getContainerCpuAndMemoryTsList gets container metrics data
+func (rr *ResourceRecommender) getContainerCpuAndMemoryTsList(ctx *framework.RecommendationContext,
+	predictor prediction.Interface,
+	caller string,
+	namespace, containerName string) ([]*common.TimeSeries, []*common.TimeSeries, error) {
+
+	// cpu
+	cpuNamer := metricnaming.ResourceToContainerMetricNamer(namespace,
+		ctx.Recommendation.Spec.TargetRef.APIVersion,
+		ctx.Recommendation.Spec.TargetRef.Kind,
+		ctx.Recommendation.Spec.TargetRef.Name,
+		containerName,
+		corev1.ResourceCPU,
+		caller)
+
+	cpuTs, err := utils.QueryPredictedValuesOnce(ctx.Recommendation, predictor, caller, rr.makeCpuConfig(), cpuNamer)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// memory
+	memNamer := metricnaming.ResourceToContainerMetricNamer(namespace,
+		ctx.Recommendation.Spec.TargetRef.APIVersion,
+		ctx.Recommendation.Spec.TargetRef.Kind,
+		ctx.Recommendation.Spec.TargetRef.Name,
+		containerName,
+		corev1.ResourceMemory,
+		caller)
+
+	memTs, err := utils.QueryPredictedValuesOnce(ctx.Recommendation, predictor, caller, rr.makeMemConfig(), memNamer)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return cpuTs, memTs, nil
+}
+
+func (rr *ResourceRecommender) getPodCpuAndMemoryTsList(ctx *framework.RecommendationContext, namespace, caller string, predictor prediction.Interface) ([]*common.TimeSeries, []*common.TimeSeries, bool, error) {
+	var errs []error
+	cpuOK, memOK := true, true
+
+	// cpu
+	cpuMetricNamer := metricnaming.ResourceToPodMetricNamer(namespace,
+		ctx.Pods[0].Name,
+		corev1.ResourceCPU,
+		caller)
+	cpuTsList, err := utils.QueryPredictedValuesOnce(ctx.Recommendation, predictor, caller, rr.makeCpuConfig(), cpuMetricNamer)
+	if err != nil {
+		cpuOK = false
+		errs = append(errs, err)
+	}
+
+	// memory
+	memoryMetricNamer := metricnaming.ResourceToPodMetricNamer(namespace,
+		ctx.Pods[0].Name,
+		corev1.ResourceMemory,
+		caller)
+	memTsList, err := utils.QueryPredictedValuesOnce(ctx.Recommendation, predictor, caller, rr.makeMemConfig(), memoryMetricNamer)
+	if err != nil {
+		memOK = false
+		errs = append(errs, err)
+	}
+
+	if !cpuOK && !memOK {
+		return nil, nil, false, errors.NewAggregate(errs)
+	}
+
+	return cpuTsList, memTsList, true, errors.NewAggregate(errs)
+}
+
+// recommendCpuAndMemResources recommends CPU and memory resources based on historical monitoring data, OOM records, and resource specification normalization
+func (rr *ResourceRecommender) recommendCpuAndMemResources(ctx *framework.RecommendationContext,
+	cpuTsList []*common.TimeSeries,
+	memTsList []*common.TimeSeries,
+	oomRecords []oom.OOMRecord,
+	namespace, workloadName, containerName string) (*resource.Quantity, *resource.Quantity, error) {
+
+	var errs []error
+	cpuOK, memOK := true, true
+
+	// cpu
+	cpuQuantity, err := rr.recommendSingleResource(ctx, cpuTsList, rr.CpuModelHistoryLength, corev1.ResourceCPU, containerName)
+	if err != nil {
+		cpuOK = false
+		errs = append(errs, err)
+	}
+
+	// memory
+	memQuantity, err := rr.recommendSingleResource(ctx, memTsList, rr.MemHistoryLength, corev1.ResourceMemory, containerName)
+	if err != nil {
+		memOK = false
+		errs = append(errs, err)
+	}
+
+	if !cpuOK && !memOK {
+		return nil, nil, errors.NewAggregate(errs)
+	}
+
+	// adjust memory recommendations by analyzing historical OOM events
+	if memOK && rr.OOMProtection {
+		if oomMem := rr.MemoryOOMProtection(oomRecords, namespace, workloadName, containerName); oomMem != nil {
+			if !oomMem.IsZero() && oomMem.Cmp(*memQuantity) > 0 {
+				klog.Infof("%s: %s using oomProtect Memory %s", ctx.String(), containerName, oomMem.String())
+				memQuantity = oomMem
+			}
+		}
+	}
+
+	// standardize resource recommendations to predefined specifications
+	if rr.Specification {
+		if cpuOK && memOK {
+			normalizedCpu, normalizedMem := GetNormalizedResource(cpuQuantity, memQuantity, rr.SpecificationConfigs)
+			klog.Infof("GetNormalizedResource currentCpu %s normalizedCpu %s currentMem %s normalizedMem %s",
+				cpuQuantity.String(), normalizedCpu.String(), memQuantity.String(), normalizedMem.String())
+			if normalizedCpu.Value() > 0 && normalizedMem.Value() > 0 {
+				cpuQuantity = &normalizedCpu
+				memQuantity = &normalizedMem
+			}
+		} else {
+			return nil, nil, fmt.Errorf("cpu or memory recommendation failed, cannot standardize resource recommendations to predefined specifications")
+		}
+	}
+
+	return cpuQuantity, memQuantity, nil
+}
+
+func (rr *ResourceRecommender) recommendSingleResource(ctx *framework.RecommendationContext,
+	tsList []*common.TimeSeries,
+	historyLength string,
+	resourceType corev1.ResourceName,
+	containerName string) (*resource.Quantity, error) {
+
+	if len(tsList) == 0 || len(tsList[0].Samples) == 0 {
+		return nil, fmt.Errorf("no metrics data for %s", resourceType)
+	}
+
+	if rr.HistoryCompletionCheck {
+		completion, existDays, err := utils.DetectTimestampCompletion(tsList, historyLength, time.Now())
+		if !completion || err != nil {
+			return nil, fmt.Errorf("%s timestamps not completed: expect %s actual %d days", resourceType, historyLength, existDays)
+		}
+	}
+
+	value := tsList[0].Samples[0].Value
+	var quantity *resource.Quantity
+	if resourceType == corev1.ResourceCPU {
+		value *= 1000
+		quantity = resource.NewMilliQuantity(int64(value), resource.DecimalSI)
+	} else if resourceType == corev1.ResourceMemory {
+		quantity = resource.NewQuantity(int64(value), resource.BinarySI)
+		if value <= 0 {
+			return nil, fmt.Errorf("invalid %s value: %f", resourceType, value)
+		}
+	}
+
+	klog.Infof("%s: %s recommended %s %s", ctx.String(), containerName, resourceType, quantity.String())
+	return quantity, nil
 }

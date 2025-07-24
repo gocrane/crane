@@ -61,6 +61,7 @@ func (c *RecommendationController) UpdateRecommendation(ctx context.Context, rec
 		switch string(recommendation.Spec.Type) {
 		case recommender.ResourceRecommender:
 			if proposedRecommendation.ResourceRequest != nil {
+				proposedRecommendation.ResourceRequest.Pod = nil
 				resourceValue, err := yaml.Marshal(proposedRecommendation.ResourceRequest)
 				if err != nil {
 					return false, fmt.Errorf("marshal ResourceRequest failed: %v. ", err)

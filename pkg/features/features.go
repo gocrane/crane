@@ -36,6 +36,9 @@ const (
 
 	// QOSInitializer enables the qos initialization featrues.
 	QOSInitializer featuregate.Feature = "QOSInitializer"
+
+	// EnablePodRecommendation enables the pod recommendation features.
+	EnablePodRecommendation featuregate.Feature = "EnablePodRecommendation"
 )
 
 var defaultFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
@@ -49,6 +52,7 @@ var defaultFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	CraneCPUManager:            {Default: false, PreRelease: featuregate.Alpha},
 	QOSInitializer:             {Default: false, PreRelease: featuregate.Alpha},
 	CraneDashboardControl:      {Default: false, PreRelease: featuregate.Alpha},
+	EnablePodRecommendation:    {Default: false, PreRelease: featuregate.Alpha},
 }
 
 func init() {
