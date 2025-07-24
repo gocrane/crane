@@ -1,0 +1,26 @@
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: craned
+  namespace: crane-system
+spec:
+  ports:
+    - port: 443
+      protocol: TCP
+      targetPort: 9443
+      name: craned
+    - port: 8082
+      protocol: TCP
+      targetPort: 8082
+      name: crane-server
+    - port: 9090
+      protocol: TCP
+      targetPort: 9090
+      name: dashboard-service
+    - name: metrics-http
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    app: craned

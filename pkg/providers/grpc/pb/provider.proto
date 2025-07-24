@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+option go_package = "github.com/gocrane/crane/pkg/providers/grpc/pb";
+
+service Realtime {
+  rpc QueryLatestTimeSeries(QueryTimeSeriesRequest) returns (QueryTimeSeriesResponse) {}
+}
+
+service History {
+  rpc QueryTimeSeries(QueryTimeSeriesRequest) returns (QueryTimeSeriesResponse) {}
+}
+
+
+message QueryTimeSeriesRequest {
+  Metric metric = 1;
+  int64 startTime = 2;
+  int64 endTime = 3;
+  int64 step = 4;
+}
+
+message QueryTimeSeriesResponse {
+  repeated TimeSeries timeSeriesList = 1;
+}
+
+message Metric {
+  string metricName = 1;
+  oneof info {
+    Container container = 2;
+    Pod pod = 3;
+    Node node = 4;
+    Workload workload = 5;
+  }
+}
+
+message Container {
+  string namespace = 1;
+  string workloadKind = 2;
+  string workloadName = 3;
+  string apiVersion = 4;
+  string name = 5;
+}
+
+message Pod {
+  string namespace = 1;
+  string name = 2;
+}
+
+message Node {
+  string name = 1;
+}
+
+message Workload {
+  string namespace = 1;
+  string kind = 2;
+  string name = 3;
+  string apiVersion = 4;
+}
+
+message TimeSeries {
+  repeated Label  labels = 1;
+  repeated Sample samples = 2;
+}
+
+message Label {
+  string name = 1;
+  string value = 2;
+}
+
+message Sample {
+  int64  timestamp = 1;
+  double value = 2;
+}

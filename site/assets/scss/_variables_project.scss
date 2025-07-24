@@ -1,0 +1,63 @@
+/*
+
+Add styles or override variables from the theme here.
+
+*/
+
+$primary: #3371e3  !default;
+$secondary: #2D70DE !default;
+$light: rgb(255, 255,255) !default;
+$grey:  #888 !default;
+$orange: $secondary;
+$td-sidebar-tree-root-color: #222 !default;
+
+
+// Nav bar colors
+$white: #fff;
+$navbar-dark-color: rgba($white, 1);
+$navbar-dark-hover-color: rgba($white, 0.75);
+$navbar-dark-active-color: $navbar-dark-color;
+
+svg {
+    display: inline-block;
+    margin: 0 10px;
+    height: 30px;
+    width: 50px;
+}
+
+strong {
+    font-weight: bold;
+}
+
+.used-by-section {
+  max-height: 4rem;
+  max-width: 100%;
+
+  h1 {
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+}
+
+.used-by__users {
+  display: flex;
+  flex-direction: row;
+  justify-content: between;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: -3rem;
+}
+
+.used-by__user {
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  padding-bottom: 3rem;
+}
+
+.used-by-logo {
+  max-height: 4rem;
+  max-width: 100%;
+}
+

@@ -1,0 +1,27 @@
+# Copyright 2017 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# FROM golang:1.13.6
+
+# WORKDIR /go/src/sigs.k8s.io/descheduler
+# COPY . .
+
+# RUN export GO111MODULE=on && export GOPROXY=direct && go env -w GOSUMDB=off && make
+
+FROM alpine:3.11.0
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories
+RUN apk add -U tzdata
+RUN apk add curl
+#RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+
+COPY _output/bin/${NAME} /${NAME}

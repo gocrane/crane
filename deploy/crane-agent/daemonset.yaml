@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: crane-system
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    app: crane-agent
+  name: crane-agent
+  namespace: crane-system
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: crane-agent
+  template:
+    metadata:
+      labels:
+        app: crane-agent
+    spec:
+      containers:
+        - env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+          image: docker.io/gocrane/crane-agent:v0.10.0
+          imagePullPolicy: Always
+          command:
+            - /crane-agent
+            - -v=2
+          name: crane-agent
+          volumeMounts:
+            - mountPath: /sys
+              name: sys
+            - mountPath: /run
+              name: run
+            - mountPath: /var/lib/kubelet
+              name: kubelet-root-path
+          livenessProbe:
+            httpGet:
+              path: /health-check
+              port: 8081
+      restartPolicy: Always
+      priorityClassName: system-node-critical
+      serviceAccountName: crane-agent
+      volumes:
+        - hostPath:
+            path: /sys
+            type: ""
+          name: sys
+        - hostPath:
+            path: /run
+            type: ""
+          name: run
+        - hostPath:
+            path: /var/lib/kubelet
+          name: kubelet-root-path

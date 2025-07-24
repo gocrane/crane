@@ -1,0 +1,52 @@
+---
+title: "介绍"
+description: "Crane 介绍"
+weight: 10
+---
+## Crane 是什么
+
+Crane 是一个基于 FinOps 的云资源分析与成本优化平台。它的愿景是在保证客户应用运行质量的前提下实现极致的降本。
+
+<img alt="fcs logo" height="200" src="/images/Crane-FinOps-Certified-Solution.png" title="FinOps Certified Solution" width="200"/>
+
+Crane 是 [FinOps 基金会](https://www.finops.org/)认证的[云优化方案](https://www.finops.org/members/finops-certified-solution/)。
+
+**如何在 Crane 中开启成本优化之旅？**
+
+1. **成本展示**: Kubernetes 资源( Deployments, StatefulSets )的多维度聚合与展示。
+2. **成本分析**: 周期性的分析集群资源的状态并提供优化建议。
+3. **成本优化**: 通过丰富的优化工具更新配置达成降本的目标。
+
+<iframe src="https://user-images.githubusercontent.com/35299017/186680122-d7756b47-06be-44cb-8553-1957eaa3ed45.mp4"
+scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true" width="1000" height="600"></iframe>
+
+Crane Dashboard **在线 Demo**: http://dashboard.gocrane.io/
+
+## Main Features
+
+![Crane Overview](/images/crane-overview.png)
+
+**成本可视化和优化评估**
+
+- 提供一组 Exporter 计算集群云资源的计费和账单数据并存储到你的监控系统，比如 Prometheus。
+- 多维度的成本洞察，优化评估。通过 `Cloud Provider` 支持多云计费。
+
+**推荐框架**
+
+提供了一个可扩展的推荐框架以支持多种云资源的分析，内置了多种推荐器：资源推荐，副本推荐，HPA 推荐，闲置资源推荐。[了解更多](/zh-cn/docs/tutorials/recommendation)。
+
+**基于预测的水平弹性器**
+
+EffectiveHorizontalPodAutoscaler 支持了预测驱动的弹性。它基于社区 HPA 做底层的弹性控制，支持更丰富的弹性触发策略（预测，观测，周期），让弹性更加高效，并保障了服务的质量。[了解更多](/zh-cn/docs/tutorials/using-effective-hpa-to-scaling-with-effectiveness)。
+
+**负载感知的调度器**
+
+动态调度器根据实际的节点利用率构建了一个简单但高效的模型，并过滤掉那些负载高的节点来平衡集群。[了解更多](/zh-cn/docs/tutorials/scheduling-pods-based-on-actual-node-load)。
+
+**拓扑感知的调度器**
+
+Crane Scheduler与Crane Agent配合工作，支持更为精细化的资源拓扑感知调度和多种绑核策略，可解决复杂场景下“吵闹的邻居问题"，使得资源得到更合理高效的利用。[了解更多](/zh-cn/docs/tutorials/node-resource-tpolology-scheduler-plugins)。
+
+**基于 QOS 的混部**
+
+QOS相关能力保证了运行在 Kubernetes 上的 Pod 的稳定性。具有多维指标条件下的干扰检测和主动回避能力，支持精确操作和自定义指标接入；具有预测算法增强的弹性资源超卖能力，复用和限制集群内的空闲资源；具备增强的旁路cpuset管理能力，在绑核的同时提升资源利用效率。[了解更多](/zh-cn/docs/tutorials/colocation-with-enhanced-qos/using-qos-ensurance.zh)。

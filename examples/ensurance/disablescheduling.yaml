@@ -1,0 +1,9 @@
+apiVersion: ensurance.crane.io/v1alpha1
+kind: AvoidanceAction
+metadata:
+  labels:
+    app: system
+  name: disablescheduling
+spec:
+  ##coolDownSeconds: 300
+  description: disable schedule new pods to the node

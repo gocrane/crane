@@ -1,0 +1,11 @@
+apiVersion: analysis.crane.io/v1alpha1
+kind: ConfigSet
+configs:
+  - targets: []
+    properties:
+      resource.cpu-request-percentile: "0.98"
+      replicas.workload-min-replicas: "3"
+      replicas.pod-min-ready-seconds: "30"
+      replicas.pod-available-ratio: "0.5"
+      replicas.cpu-target-utilization: "0.5"
+      replicas.cpu-percentile: "95"

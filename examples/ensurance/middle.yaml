@@ -1,0 +1,30 @@
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: middle
+description: Priority for middle level.
+value: -1
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: middle
+spec:
+  containers:
+    - image: docker.io/gocrane/stress-ng:v0.12.09
+      imagePullPolicy: Always
+      name: middle
+      command:
+        - /bin/bash
+        - -c
+        - "sleep 36000"
+      resources:
+        requests:
+          memory: 2Gi
+          cpu: 1
+        limits:
+          memory: 15Gi
+          cpu: 8
+  priorityClassName: middle

@@ -1,0 +1,25 @@
+apiVersion: v1
+data:
+  spec: |
+    predictionMetrics:
+    - algorithm:
+        algorithmType: dsp
+        dsp:
+          estimators:
+            fft:
+            - highFrequencyThreshold: "0.05"
+              lowAmplitudeThreshold: "1.0"
+              marginFraction: "0.2"
+              maxNumOfSpectrumItems: 20
+              minNumOfSpectrumItems: 10
+          historyLength: 3d
+          sampleInterval: 60s
+      resourceIdentifier: cpu
+      type: ExpressionQuery
+      expressionQuery:
+        expression: 'sum(count(node_cpu_seconds_total{mode="idle",instance=~"({{.metadata.name}})(:\\d+)?"}) by (mode, cpu)) - sum(irate(node_cpu_seconds_total{mode="idle",instance=~"({{.metadata.name}})(:\\d+)?"}[5m]))'
+    predictionWindowSeconds: 3600
+kind: ConfigMap
+metadata:
+  name: noderesource-tsp-template
+  namespace: default

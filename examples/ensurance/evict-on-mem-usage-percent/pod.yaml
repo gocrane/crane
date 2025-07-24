@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: low-pi1
+  labels:
+    k8s-app: low
+    preemptible_job: "true"
+spec:
+  containers:
+    - image: docker.io/gocrane/stress-ng:v0.12.09
+      command:
+        - stress-ng
+        - --vm-hang
+        - "3600"
+        - --vm
+        - "2"
+        - --vm-bytes
+        - "2G"
+      name: stress
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: low-pi2
+  labels:
+    k8s-app: low
+    preemptible_job: "true"
+spec:
+  containers:
+    - image: docker.io/gocrane/stress-ng:v0.12.09
+      command:
+        - stress-ng
+        - --vm-hang
+        - "3600"
+        - --vm
+        - "2"
+        - --vm-bytes
+        - "3.5G"
+      name: stress
+

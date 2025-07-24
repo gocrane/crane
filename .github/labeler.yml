@@ -1,0 +1,51 @@
+documentation:
+  - docs/*
+  - docs/**/*
+  - site/*
+  - site/**/*
+
+workflows:
+  - .github/workflows/*
+  - .github/workflows/**/*
+
+deploy:
+  - deploy/*
+  - deploy/**/*
+
+examples:
+  - examples/*
+  - examples/**/*
+
+"area:dashboard":
+  - pkg/server/*
+  - pkg/server/**/*
+  - pkg/web/*
+  - pkg/web/**/*
+
+"area:autoscaling":
+  - pkg/prediction/*
+  - pkg/prediction/**/*
+  - pkg/metricprovider/*
+  - pkg/metricprovider/**/*
+  - pkg/controller/evpa/*
+  - pkg/controller/evpa/**/*
+  - pkg/controller/ehpa/*
+  - pkg/controller/ehpa/**/*
+  
+"area:algorithm":
+  - pkg/prediction/*
+  - pkg/prediction/**/*
+  - pkg/predictor/*
+  - pkg/predictor/**/*
+  - pkg/controller/timeseriesprediction/*
+  - pkg/controller/timeseriesprediction/**/*
+
+"area:recommendation":
+  - pkg/recommend/*
+  - pkg/recommend/**/*
+  - pkg/recommendation/*
+  - pkg/recommendation/**/*
+  - pkg/controller/analytics/*
+  - pkg/controller/analytics/**/*
+  - pkg/controller/recommendation/*
+  - pkg/controller/recommendation/**/*

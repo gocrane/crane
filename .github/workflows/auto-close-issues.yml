@@ -1,0 +1,52 @@
+name: Auto close issues
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  # if issues not clear, maintainer add labels - need info.
+  # if issues include labels - need info and inactive, then will be close after 7 days.
+  check-need-info:
+    runs-on: ubuntu-latest
+    steps:
+      - name: close-issues
+        uses: actions-cool/issues-helper@v2
+        with:
+          actions: 'close-issues'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          labels: 'need info'
+          inactive-day: 7
+          body: |
+            This issue seems not clear enough and inactive for over 7 days.
+            So the issues will be closed by Github Actions.
+            You can reopen this issue if you need.
+  #  if issues include labels - question and complete, then will be close after 7 days if inactive.
+  check-question-complete:
+    runs-on: ubuntu-latest
+    steps:
+      - name: close-issues
+        uses: actions-cool/issues-helper@v2
+        with:
+          actions: 'close-issues'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          labels: 'question, complete'
+          inactive-day: 7
+          body: |
+            This issue seems complete and inactive for over 7 days.
+            So the issues will be closed by Github Actions.
+            You can reopen this issue if you need.
+  check-need-reproduce:
+    runs-on: ubuntu-latest
+    steps:
+      - name: close-issues
+        uses: actions-cool/issues-helper@v2
+        with:
+          actions: 'close-issues'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          labels: 'Need Reproduce'
+          inactive-day: 3
+          body: |
+            This issue needs some reproduce information and inactive for over 3 days.
+            So the issues will be closed by Github Actions.
+            You can reopen this issue if you need.

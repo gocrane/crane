@@ -1,0 +1,128 @@
+# yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
+site_name: Crane - Cloud Resource Analytics and Economics
+theme:
+  name: material
+#  custom_dir: overrides
+  language: en
+  features:
+    - content.code.annotate
+    - navigation.top
+  palette:
+    primary: blue
+  logo: images/crane.svg
+  favicon: images/crane.svg
+  font:
+    text: Work Sans
+extra_javascript:
+  - assets/util.js
+  - assets/mathjax.js
+  - assets/polyfill.min.js
+  - assets/tex-mml-chtml.js
+  - assets/instant.page.5.1.1.js
+extra_css:
+  - assets/util.css
+extra:
+  version:
+    provider: mike
+    default: latest
+plugins:
+  - search
+  - i18n:
+      default_language: en
+      languages:
+        en:
+          name: English
+          build: true
+        zh:
+          name: 简体中文
+          build: true
+        zh_TW:
+          name: 繁體中文
+          build: true
+      nav_translations:
+        zh:
+          Getting Started: 从这里开始
+          Introduction: 介绍
+          Installation: 安装
+          Tutorials: 教程
+          Effective HPA: 智能水平弹性
+          Analytics and Recommendation: 智能推荐
+          Analytics Overview: 推荐总体介绍
+          Resource Recommendation: 资源推荐
+          Replicas Recommendation: 副本数推荐
+          Proposals: 提案
+          Contributing: 贡献
+          Mirror Resource: 镜像资源
+          Code Standard: 代码标准
+          Developer Guide: 开发者指南
+          Roadmap: 路线图
+          Overview: 概述
+          Load-aware Scheduling: 负载感知调度
+          Custom Metric Prediction With Prometheus: 基于自定义指标的弹性预测
+        zh_TW:
+          Getting Started: 入門
+          Introduction: 介紹
+          Installation: 安裝
+          Tutorials: 教程
+          Effective HPA: 高效水平彈性
+          Analytics and Recommendation: 智慧推薦
+          Analytics Overview: 推薦
+          Resource Recommendation: 資源推薦
+          Replicas Recommendation: 副本數推薦
+          Proposals: 提案
+          Contributing: 貢獻
+          Mirror Resource: 鏡像資源
+          Code Standard: 代碼標準
+          Developer Guide: 開發者指南
+          Roadmap: 技術路線
+          Overview: 概述
+          Load-aware Scheduling: 負載感知調度
+markdown_extensions:
+  - codehilite
+  - admonition
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      use_pygments: true
+      linenums: true
+      linenums_style: pymdownx-inline
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.arithmatex:
+      generic: true
+repo_url: https://github.com/gocrane/crane
+repo_name: gocrane/crane
+nav:
+  - Getting Started:
+      - Introduction: index.md
+      - Installation: installation.md
+  - Tutorials:
+      - Effective HPA: tutorials/using-effective-hpa-to-scaling-with-effectiveness.md
+      - Analytics and Recommendation:
+        - Analytics Overview: tutorials/analytics-and-recommendation.md
+        - Resource Recommendation: tutorials/resource-recommendation.md
+        - Replicas Recommendation: tutorials/replicas-recommendation.md
+      - Qos Ensurance: tutorials/using-qos-ensurance.md
+      - Time Series Prediction: tutorials/using-time-series-prediction.md
+      - Crane-scheduler:
+        - Overview: tutorials/scheduling-pods-based-on-actual-node-load.md
+        - Load-aware Scheduling: tutorials/dynamic-scheduler-plugin.md
+  - Best Practices:
+      - Custom Metric Prediction With Prometheus: tutorials/effective-hpa-with-prometheus-adapter.md
+  - Proposals:
+      - Advanced CpuSet Manager: proposals/20220228-advanced-cpuset-manger.md
+      - Pod Sorting And Precise Execution For Crane Agent: proposals/Pod-Sorting-And-Precise-Execution-For-Crane-Agent.md
+  - Contributing: CONTRIBUTING.md
+  - Code Standard: code-standards.md
+  - Developer Guide: developer-guide.md
+  - Roadmap:
+    - 2022: roadmaps/roadmap-2022.md
+  - Mirror Resource: mirror.md

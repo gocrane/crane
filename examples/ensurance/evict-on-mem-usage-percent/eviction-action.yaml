@@ -1,0 +1,9 @@
+apiVersion: ensurance.crane.io/v1alpha1
+kind: AvoidanceAction
+metadata:
+  name: eviction
+spec:
+  coolDownSeconds: 300
+  description: evict low priority pods
+  eviction:
+    terminationGracePeriodSeconds: 30

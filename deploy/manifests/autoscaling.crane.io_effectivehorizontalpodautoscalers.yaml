@@ -1,0 +1,930 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.7.0
+  creationTimestamp: null
+  name: effectivehorizontalpodautoscalers.autoscaling.crane.io
+spec:
+  group: autoscaling.crane.io
+  names:
+    kind: EffectiveHorizontalPodAutoscaler
+    listKind: EffectiveHorizontalPodAutoscalerList
+    plural: effectivehorizontalpodautoscalers
+    shortNames:
+    - ehpa
+    singular: effectivehorizontalpodautoscaler
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: The scale strategy of ahpa.
+      jsonPath: .spec.scaleStrategy
+      name: STRATEGY
+      type: string
+    - description: The min replicas of target workload.
+      jsonPath: .spec.minReplicas
+      name: MINPODS
+      type: integer
+    - description: The max replicas of target workload.
+      jsonPath: .spec.maxReplicas
+      name: MAXPODS
+      type: integer
+    - description: The specific replicas of target workload.
+      jsonPath: .spec.specificReplicas
+      name: SPECIFICPODS
+      type: integer
+    - description: The desired replicas of target workload.
+      jsonPath: .status.expectReplicas
+      name: REPLICAS
+      type: integer
+    - description: CreationTimestamp is a timestamp representing the server time when
+        this object was created.
+      jsonPath: .metadata.creationTimestamp
+      name: AGE
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: EffectiveHorizontalPodAutoscaler is the Schema for the effectivehorizontalpodautoscaler
+          API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: EffectiveHorizontalPodAutoscalerSpec defines the desired
+              spec of EffectiveHorizontalPodAutoscaler
+            properties:
+              behavior:
+                description: behavior configures the scaling behavior of the target
+                  in both Up and Down directions (scaleUp and scaleDown fields respectively).
+                  If not set, the default HPAScalingRules for scale up and scale down
+                  are used.
+                properties:
+                  scaleDown:
+                    description: scaleDown is scaling policy for scaling Down. If
+                      not set, the default value is to allow to scale down to minReplicas
+                      pods, with a 300 second stabilization window (i.e., the highest
+                      recommendation for the last 300sec is used).
+                    properties:
+                      policies:
+                        description: policies is a list of potential scaling polices
+                          which can be used during scaling. At least one policy must
+                          be specified, otherwise the HPAScalingRules will be discarded
+                          as invalid
+                        items:
+                          description: HPAScalingPolicy is a single policy which must
+                            hold true for a specified past interval.
+                          properties:
+                            periodSeconds:
+                              description: PeriodSeconds specifies the window of time
+                                for which the policy should hold true. PeriodSeconds
+                                must be greater than zero and less than or equal to
+                                1800 (30 min).
+                              format: int32
+                              type: integer
+                            type:
+                              description: Type is used to specify the scaling policy.
+                              type: string
+                            value:
+                              description: Value contains the amount of change which
+                                is permitted by the policy. It must be greater than
+                                zero
+                              format: int32
+                              type: integer
+                          required:
+                          - periodSeconds
+                          - type
+                          - value
+                          type: object
+                        type: array
+                      selectPolicy:
+                        description: selectPolicy is used to specify which policy
+                          should be used. If not set, the default value MaxPolicySelect
+                          is used.
+                        type: string
+                      stabilizationWindowSeconds:
+                        description: 'StabilizationWindowSeconds is the number of
+                          seconds for which past recommendations should be considered
+                          while scaling up or scaling down. StabilizationWindowSeconds
+                          must be greater than or equal to zero and less than or equal
+                          to 3600 (one hour). If not set, use the default values:
+                          - For scale up: 0 (i.e. no stabilization is done). - For
+                          scale down: 300 (i.e. the stabilization window is 300 seconds
+                          long).'
+                        format: int32
+                        type: integer
+                    type: object
+                  scaleUp:
+                    description: 'scaleUp is scaling policy for scaling Up. If not
+                      set, the default value is the higher of:   * increase no more
+                      than 4 pods per 60 seconds   * double the number of pods per
+                      60 seconds No stabilization is used.'
+                    properties:
+                      policies:
+                        description: policies is a list of potential scaling polices
+                          which can be used during scaling. At least one policy must
+                          be specified, otherwise the HPAScalingRules will be discarded
+                          as invalid
+                        items:
+                          description: HPAScalingPolicy is a single policy which must
+                            hold true for a specified past interval.
+                          properties:
+                            periodSeconds:
+                              description: PeriodSeconds specifies the window of time
+                                for which the policy should hold true. PeriodSeconds
+                                must be greater than zero and less than or equal to
+                                1800 (30 min).
+                              format: int32
+                              type: integer
+                            type:
+                              description: Type is used to specify the scaling policy.
+                              type: string
+                            value:
+                              description: Value contains the amount of change which
+                                is permitted by the policy. It must be greater than
+                                zero
+                              format: int32
+                              type: integer
+                          required:
+                          - periodSeconds
+                          - type
+                          - value
+                          type: object
+                        type: array
+                      selectPolicy:
+                        description: selectPolicy is used to specify which policy
+                          should be used. If not set, the default value MaxPolicySelect
+                          is used.
+                        type: string
+                      stabilizationWindowSeconds:
+                        description: 'StabilizationWindowSeconds is the number of
+                          seconds for which past recommendations should be considered
+                          while scaling up or scaling down. StabilizationWindowSeconds
+                          must be greater than or equal to zero and less than or equal
+                          to 3600 (one hour). If not set, use the default values:
+                          - For scale up: 0 (i.e. no stabilization is done). - For
+                          scale down: 300 (i.e. the stabilization window is 300 seconds
+                          long).'
+                        format: int32
+                        type: integer
+                    type: object
+                type: object
+              crons:
+                description: Crons contains cron specs to use crontab to scale workloads
+                items:
+                  description: CronSpec defines the cron scale info
+                  properties:
+                    description:
+                      description: Description is the description of the cron
+                      type: string
+                    end:
+                      description: End is a crontab format, see https://en.wikipedia.org/wiki/Cron
+                        Define the cron schedule end, when it ended, EHPA will stop
+                        to trigger hpa to scale. Between the start and end, EHPA will
+                        keep replicas of the targetRef to equal to TargetReplicas,
+                        a scaling is a process rather than a instant action, make
+                        it as a final consistent system.
+                      type: string
+                    name:
+                      description: Name is the identifier of this cron scale. name
+                        must be unique in the same ehpa
+                      type: string
+                    start:
+                      description: Start is a crontab format, see https://en.wikipedia.org/wiki/Cron
+                        Define the cron schedule start, when the cron start is triggered,
+                        hpa will reconcile targetRef to scale to the TargetReplicas
+                        continuously.
+                      type: string
+                    targetReplicas:
+                      description: TargetReplicas is the target replicas when it is
+                        time to do scale between cron start and end
+                      format: int32
+                      type: integer
+                    timezone:
+                      description: TimeZone is the time zone of this cron schedule
+                        running in, default is UTC time.
+                      type: string
+                  type: object
+                type: array
+              maxReplicas:
+                description: MaxReplicas is the upper limit replicas to the scale
+                  target which the autoscaler can scale up to. It cannot be less that
+                  MinReplicas.
+                format: int32
+                type: integer
+              metrics:
+                description: metrics contains the specifications for which to use
+                  to calculate the desired replica count (the maximum replica count
+                  across all metrics will be used).  The desired replica count is
+                  calculated multiplying the ratio between the target value and the
+                  current value by the current number of pods.  Ergo, metrics used
+                  must decrease as the pod count is increased, and vice-versa.  See
+                  the individual metric source types for more information about how
+                  each type of metric must respond. If not set, the default metric
+                  will be set to 80% average CPU utilization.
+                items:
+                  description: MetricSpec specifies how to scale based on a single
+                    metric (only `type` and one other matching field should be set
+                    at once).
+                  properties:
+                    containerResource:
+                      description: container resource refers to a resource metric
+                        (such as those specified in requests and limits) known to
+                        Kubernetes describing a single container in each pod of the
+                        current scale target (e.g. CPU or memory). Such metrics are
+                        built in to Kubernetes, and have special scaling options on
+                        top of those available to normal per-pod metrics using the
+                        "pods" source. This is an alpha feature and can be enabled
+                        by the HPAContainerMetrics feature flag.
+                      properties:
+                        container:
+                          description: container is the name of the container in the
+                            pods of the scaling target
+                          type: string
+                        name:
+                          description: name is the name of the resource in question.
+                          type: string
+                        target:
+                          description: target specifies the target value for the given
+                            metric
+                          properties:
+                            averageUtilization:
+                              description: averageUtilization is the target value
+                                of the average of the resource metric across all relevant
+                                pods, represented as a percentage of the requested
+                                value of the resource for the pods. Currently only
+                                valid for Resource metric source type
+                              format: int32
+                              type: integer
+                            averageValue:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: averageValue is the target value of the
+                                average of the metric across all relevant pods (as
+                                a quantity)
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            type:
+                              description: type represents whether the metric type
+                                is Utilization, Value, or AverageValue
+                              type: string
+                            value:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: value is the target value of the metric
+                                (as a quantity).
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                          required:
+                          - type
+                          type: object
+                      required:
+                      - container
+                      - name
+                      - target
+                      type: object
+                    external:
+                      description: external refers to a global metric that is not
+                        associated with any Kubernetes object. It allows autoscaling
+                        based on information coming from components running outside
+                        of cluster (for example length of queue in cloud messaging
+                        service, or QPS from loadbalancer running outside of cluster).
+                      properties:
+                        metric:
+                          description: metric identifies the target metric by name
+                            and selector
+                          properties:
+                            name:
+                              description: name is the name of the given metric
+                              type: string
+                            selector:
+                              description: selector is the string-encoded form of
+                                a standard kubernetes label selector for the given
+                                metric When set, it is passed as an additional parameter
+                                to the metrics server for more specific metrics scoping.
+                                When unset, just the metricName will be used to gather
+                                metrics.
+                              properties:
+                                matchExpressions:
+                                  description: matchExpressions is a list of label
+                                    selector requirements. The requirements are ANDed.
+                                  items:
+                                    description: A label selector requirement is a
+                                      selector that contains values, a key, and an
+                                      operator that relates the key and values.
+                                    properties:
+                                      key:
+                                        description: key is the label key that the
+                                          selector applies to.
+                                        type: string
+                                      operator:
+                                        description: operator represents a key's relationship
+                                          to a set of values. Valid operators are
+                                          In, NotIn, Exists and DoesNotExist.
+                                        type: string
+                                      values:
+                                        description: values is an array of string
+                                          values. If the operator is In or NotIn,
+                                          the values array must be non-empty. If the
+                                          operator is Exists or DoesNotExist, the
+                                          values array must be empty. This array is
+                                          replaced during a strategic merge patch.
+                                        items:
+                                          type: string
+                                        type: array
+                                    required:
+                                    - key
+                                    - operator
+                                    type: object
+                                  type: array
+                                matchLabels:
+                                  additionalProperties:
+                                    type: string
+                                  description: matchLabels is a map of {key,value}
+                                    pairs. A single {key,value} in the matchLabels
+                                    map is equivalent to an element of matchExpressions,
+                                    whose key field is "key", the operator is "In",
+                                    and the values array contains only "value". The
+                                    requirements are ANDed.
+                                  type: object
+                              type: object
+                          required:
+                          - name
+                          type: object
+                        target:
+                          description: target specifies the target value for the given
+                            metric
+                          properties:
+                            averageUtilization:
+                              description: averageUtilization is the target value
+                                of the average of the resource metric across all relevant
+                                pods, represented as a percentage of the requested
+                                value of the resource for the pods. Currently only
+                                valid for Resource metric source type
+                              format: int32
+                              type: integer
+                            averageValue:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: averageValue is the target value of the
+                                average of the metric across all relevant pods (as
+                                a quantity)
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            type:
+                              description: type represents whether the metric type
+                                is Utilization, Value, or AverageValue
+                              type: string
+                            value:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: value is the target value of the metric
+                                (as a quantity).
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                          required:
+                          - type
+                          type: object
+                      required:
+                      - metric
+                      - target
+                      type: object
+                    object:
+                      description: object refers to a metric describing a single kubernetes
+                        object (for example, hits-per-second on an Ingress object).
+                      properties:
+                        describedObject:
+                          description: CrossVersionObjectReference contains enough
+                            information to let you identify the referred resource.
+                          properties:
+                            apiVersion:
+                              description: API version of the referent
+                              type: string
+                            kind:
+                              description: 'Kind of the referent; More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"'
+                              type: string
+                            name:
+                              description: 'Name of the referent; More info: http://kubernetes.io/docs/user-guide/identifiers#names'
+                              type: string
+                          required:
+                          - kind
+                          - name
+                          type: object
+                        metric:
+                          description: metric identifies the target metric by name
+                            and selector
+                          properties:
+                            name:
+                              description: name is the name of the given metric
+                              type: string
+                            selector:
+                              description: selector is the string-encoded form of
+                                a standard kubernetes label selector for the given
+                                metric When set, it is passed as an additional parameter
+                                to the metrics server for more specific metrics scoping.
+                                When unset, just the metricName will be used to gather
+                                metrics.
+                              properties:
+                                matchExpressions:
+                                  description: matchExpressions is a list of label
+                                    selector requirements. The requirements are ANDed.
+                                  items:
+                                    description: A label selector requirement is a
+                                      selector that contains values, a key, and an
+                                      operator that relates the key and values.
+                                    properties:
+                                      key:
+                                        description: key is the label key that the
+                                          selector applies to.
+                                        type: string
+                                      operator:
+                                        description: operator represents a key's relationship
+                                          to a set of values. Valid operators are
+                                          In, NotIn, Exists and DoesNotExist.
+                                        type: string
+                                      values:
+                                        description: values is an array of string
+                                          values. If the operator is In or NotIn,
+                                          the values array must be non-empty. If the
+                                          operator is Exists or DoesNotExist, the
+                                          values array must be empty. This array is
+                                          replaced during a strategic merge patch.
+                                        items:
+                                          type: string
+                                        type: array
+                                    required:
+                                    - key
+                                    - operator
+                                    type: object
+                                  type: array
+                                matchLabels:
+                                  additionalProperties:
+                                    type: string
+                                  description: matchLabels is a map of {key,value}
+                                    pairs. A single {key,value} in the matchLabels
+                                    map is equivalent to an element of matchExpressions,
+                                    whose key field is "key", the operator is "In",
+                                    and the values array contains only "value". The
+                                    requirements are ANDed.
+                                  type: object
+                              type: object
+                          required:
+                          - name
+                          type: object
+                        target:
+                          description: target specifies the target value for the given
+                            metric
+                          properties:
+                            averageUtilization:
+                              description: averageUtilization is the target value
+                                of the average of the resource metric across all relevant
+                                pods, represented as a percentage of the requested
+                                value of the resource for the pods. Currently only
+                                valid for Resource metric source type
+                              format: int32
+                              type: integer
+                            averageValue:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: averageValue is the target value of the
+                                average of the metric across all relevant pods (as
+                                a quantity)
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            type:
+                              description: type represents whether the metric type
+                                is Utilization, Value, or AverageValue
+                              type: string
+                            value:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: value is the target value of the metric
+                                (as a quantity).
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                          required:
+                          - type
+                          type: object
+                      required:
+                      - describedObject
+                      - metric
+                      - target
+                      type: object
+                    pods:
+                      description: pods refers to a metric describing each pod in
+                        the current scale target (for example, transactions-processed-per-second).  The
+                        values will be averaged together before being compared to
+                        the target value.
+                      properties:
+                        metric:
+                          description: metric identifies the target metric by name
+                            and selector
+                          properties:
+                            name:
+                              description: name is the name of the given metric
+                              type: string
+                            selector:
+                              description: selector is the string-encoded form of
+                                a standard kubernetes label selector for the given
+                                metric When set, it is passed as an additional parameter
+                                to the metrics server for more specific metrics scoping.
+                                When unset, just the metricName will be used to gather
+                                metrics.
+                              properties:
+                                matchExpressions:
+                                  description: matchExpressions is a list of label
+                                    selector requirements. The requirements are ANDed.
+                                  items:
+                                    description: A label selector requirement is a
+                                      selector that contains values, a key, and an
+                                      operator that relates the key and values.
+                                    properties:
+                                      key:
+                                        description: key is the label key that the
+                                          selector applies to.
+                                        type: string
+                                      operator:
+                                        description: operator represents a key's relationship
+                                          to a set of values. Valid operators are
+                                          In, NotIn, Exists and DoesNotExist.
+                                        type: string
+                                      values:
+                                        description: values is an array of string
+                                          values. If the operator is In or NotIn,
+                                          the values array must be non-empty. If the
+                                          operator is Exists or DoesNotExist, the
+                                          values array must be empty. This array is
+                                          replaced during a strategic merge patch.
+                                        items:
+                                          type: string
+                                        type: array
+                                    required:
+                                    - key
+                                    - operator
+                                    type: object
+                                  type: array
+                                matchLabels:
+                                  additionalProperties:
+                                    type: string
+                                  description: matchLabels is a map of {key,value}
+                                    pairs. A single {key,value} in the matchLabels
+                                    map is equivalent to an element of matchExpressions,
+                                    whose key field is "key", the operator is "In",
+                                    and the values array contains only "value". The
+                                    requirements are ANDed.
+                                  type: object
+                              type: object
+                          required:
+                          - name
+                          type: object
+                        target:
+                          description: target specifies the target value for the given
+                            metric
+                          properties:
+                            averageUtilization:
+                              description: averageUtilization is the target value
+                                of the average of the resource metric across all relevant
+                                pods, represented as a percentage of the requested
+                                value of the resource for the pods. Currently only
+                                valid for Resource metric source type
+                              format: int32
+                              type: integer
+                            averageValue:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: averageValue is the target value of the
+                                average of the metric across all relevant pods (as
+                                a quantity)
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            type:
+                              description: type represents whether the metric type
+                                is Utilization, Value, or AverageValue
+                              type: string
+                            value:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: value is the target value of the metric
+                                (as a quantity).
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                          required:
+                          - type
+                          type: object
+                      required:
+                      - metric
+                      - target
+                      type: object
+                    resource:
+                      description: resource refers to a resource metric (such as those
+                        specified in requests and limits) known to Kubernetes describing
+                        each pod in the current scale target (e.g. CPU or memory).
+                        Such metrics are built in to Kubernetes, and have special
+                        scaling options on top of those available to normal per-pod
+                        metrics using the "pods" source.
+                      properties:
+                        name:
+                          description: name is the name of the resource in question.
+                          type: string
+                        target:
+                          description: target specifies the target value for the given
+                            metric
+                          properties:
+                            averageUtilization:
+                              description: averageUtilization is the target value
+                                of the average of the resource metric across all relevant
+                                pods, represented as a percentage of the requested
+                                value of the resource for the pods. Currently only
+                                valid for Resource metric source type
+                              format: int32
+                              type: integer
+                            averageValue:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: averageValue is the target value of the
+                                average of the metric across all relevant pods (as
+                                a quantity)
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            type:
+                              description: type represents whether the metric type
+                                is Utilization, Value, or AverageValue
+                              type: string
+                            value:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: value is the target value of the metric
+                                (as a quantity).
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                          required:
+                          - type
+                          type: object
+                      required:
+                      - name
+                      - target
+                      type: object
+                    type:
+                      description: 'type is the type of metric source.  It should
+                        be one of "ContainerResource", "External", "Object", "Pods"
+                        or "Resource", each mapping to a matching field in the object.
+                        Note: "ContainerResource" type is available on when the feature-gate
+                        HPAContainerMetrics is enabled'
+                      type: string
+                  required:
+                  - type
+                  type: object
+                type: array
+              minReplicas:
+                default: 1
+                description: MinReplicas is the lower limit replicas to the scale
+                  target which the autoscaler can scale down to. the default MinReplicas
+                  is 1.
+                format: int32
+                type: integer
+              prediction:
+                description: Prediction defines configurations for predict resources.
+                  If unspecified, defaults don't enable prediction.
+                properties:
+                  predictionAlgorithm:
+                    description: PredictionAlgorithm contains all algorithm config
+                      that provider by prediction api.
+                    properties:
+                      algorithmType:
+                        description: AlgorithmType specifies algorithm to predict
+                          resource
+                        type: string
+                      dsp:
+                        properties:
+                          estimators:
+                            description: Estimator
+                            properties:
+                              fft:
+                                items:
+                                  properties:
+                                    highFrequencyThreshold:
+                                      type: string
+                                    lowAmplitudeThreshold:
+                                      type: string
+                                    marginFraction:
+                                      type: string
+                                    maxNumOfSpectrumItems:
+                                      format: int32
+                                      type: integer
+                                    minNumOfSpectrumItems:
+                                      format: int32
+                                      type: integer
+                                  type: object
+                                type: array
+                              maxValue:
+                                items:
+                                  properties:
+                                    marginFraction:
+                                      type: string
+                                  type: object
+                                type: array
+                            type: object
+                          historyLength:
+                            description: HistoryLength describes how long back should
+                              be queried against provider to get historical metrics
+                              for prediction.
+                            type: string
+                          sampleInterval:
+                            description: SampleInterval is the sampling interval of
+                              metrics.
+                            type: string
+                        type: object
+                      percentile:
+                        properties:
+                          aggregated:
+                            type: boolean
+                          histogram:
+                            properties:
+                              bucketSize:
+                                type: string
+                              bucketSizeGrowthRatio:
+                                type: string
+                              epsilon:
+                                type: string
+                              firstBucketSize:
+                                type: string
+                              halfLife:
+                                type: string
+                              maxValue:
+                                type: string
+                            type: object
+                          historyLength:
+                            type: string
+                          marginFraction:
+                            type: string
+                          minSampleWeight:
+                            type: string
+                          percentile:
+                            type: string
+                          sampleInterval:
+                            type: string
+                          targetUtilization:
+                            type: string
+                        type: object
+                    type: object
+                  predictionWindowSeconds:
+                    default: 3600
+                    description: PredictionWindowSeconds is the time window seconds
+                      to predict metrics in the future.
+                    format: int32
+                    type: integer
+                type: object
+              scaleStrategy:
+                default: Auto
+                description: ScaleStrategy indicate the strategy to scaling target,
+                  value can be "Auto" and "Preview" the default ScaleStrategy is Auto.
+                enum:
+                - Auto
+                - Preview
+                type: string
+              scaleTargetRef:
+                description: ScaleTargetRef is the reference to the workload that
+                  should be scaled.
+                properties:
+                  apiVersion:
+                    description: API version of the referent
+                    type: string
+                  kind:
+                    description: 'Kind of the referent; More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"'
+                    type: string
+                  name:
+                    description: 'Name of the referent; More info: http://kubernetes.io/docs/user-guide/identifiers#names'
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
+              specificReplicas:
+                description: SpecificReplicas specify the target replicas if ScaleStrategy
+                  is Preview If not set, when ScaleStrategy is setting to Preview,
+                  it will just stop scaling
+                format: int32
+                type: integer
+            required:
+            - maxReplicas
+            - scaleTargetRef
+            type: object
+          status:
+            properties:
+              conditions:
+                description: Conditions is an array of current autoscaler conditions.
+                items:
+                  description: "Condition contains details for one aspect of the current
+                    state of this API Resource. --- This struct is intended for direct
+                    use as an array at the field path .status.conditions.  For example,
+                    type FooStatus struct{     // Represents the observations of a
+                    foo's current state.     // Known .status.conditions.type are:
+                    \"Available\", \"Progressing\", and \"Degraded\"     // +patchMergeKey=type
+                    \    // +patchStrategy=merge     // +listType=map     // +listMapKey=type
+                    \    Conditions []metav1.Condition `json:\"conditions,omitempty\"
+                    patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"`
+                    \n     // other fields }"
+                  properties:
+                    lastTransitionTime:
+                      description: lastTransitionTime is the last time the condition
+                        transitioned from one status to another. This should be when
+                        the underlying condition changed.  If that is not known, then
+                        using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: message is a human readable message indicating
+                        details about the transition. This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: observedGeneration represents the .metadata.generation
+                        that the condition was set based upon. For instance, if .metadata.generation
+                        is currently 12, but the .status.conditions[x].observedGeneration
+                        is 9, the condition is out of date with respect to the current
+                        state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: reason contains a programmatic identifier indicating
+                        the reason for the condition's last transition. Producers
+                        of specific condition types may define expected values and
+                        meanings for this field, and whether the values are considered
+                        a guaranteed API. The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                        --- Many .condition.type values are consistent across resources
+                        like Available, but because arbitrary conditions can be useful
+                        (see .node.status.conditions), the ability to deconflict is
+                        important. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              currentReplicas:
+                description: CurrentReplicas is the current replicas to the scale
+                  target.
+                format: int32
+                type: integer
+              expectReplicas:
+                description: ExpectReplicas is the expected replicas to scale to.
+                format: int32
+                type: integer
+              lastScaleTime:
+                description: LastScaleTime indicates the last time to execute scaling.
+                format: date-time
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
