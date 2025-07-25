@@ -89,10 +89,19 @@ func (tc *Controller) syncPredictionStatus(ctx context.Context, tsPrediction *pr
 			// todo: update status failed, then add it again for update?
 			return ctrl.Result{}, err
 		}
-		return ctrl.Result{RequeueAfter: tc.UpdatePeriod}, nil
-
+		// 刚完成更新，直接等待下次更新时再调协
+		during := time.Duration(tsPrediction.Spec.PredictionWindowSeconds) * time.Second
+		klog.V(4).Infof("tsp[%v] Will re-sync after %v", tsPrediction.Name, during)
+		return ctrl.Result{RequeueAfter: during}, nil
 	}
-	return ctrl.Result{RequeueAfter: tc.UpdatePeriod}, nil
+
+	during, err := tc.getRequeueAfterPeriod(windowEnd, tsPrediction.Status.PredictionMetrics)
+	if err != nil { // 理论上不该进入，因为之前len(warnings)为0
+		klog.Errorf("Failed to get requeue after period for %v, err: %v", key, err)
+		return ctrl.Result{}, err
+	}
+	klog.V(4).Infof("tsp[%v] Will re-sync after %v", tsPrediction.Name, during)
+	return ctrl.Result{RequeueAfter: during}, nil
 }
 
 func (tc *Controller) isPredictionDataOutDated(windowStart, windowEnd time.Time, predictionMetricStatus []predictionapi.PredictionMetricStatus) (warnings []string) {
@@ -111,6 +120,24 @@ func (tc *Controller) isPredictionDataOutDated(windowStart, windowEnd time.Time,
 		}
 	}
 	return warnings
+}
+
+func (tc *Controller) getRequeueAfterPeriod(windowEnd time.Time, predictionMetricStatus []predictionapi.PredictionMetricStatus) (time.Duration, error) {
+	duringInt := int64(0)
+	for _, predictedData := range predictionMetricStatus {
+		for _, ts := range predictedData.Prediction {
+			endTs := windowEnd.Truncate(1 * time.Minute).Unix()
+			maxSampleTs := getMaxSampleTimestamp(ts.Samples)
+			requeueAfterPeriod := maxSampleTs - endTs
+			if duringInt == int64(0) || requeueAfterPeriod < duringInt {
+				duringInt = requeueAfterPeriod
+			}
+		}
+	}
+	if duringInt <= 0 {
+		return 0, fmt.Errorf("no valid requeue after period")
+	}
+	return time.Duration(duringInt) * time.Second, nil
 }
 
 func (tc *Controller) getPredictor(algorithmType predictionapi.AlgorithmType) prediction.Interface {
@@ -272,4 +299,14 @@ func IsWindowInSamples(start, end time.Time, samples []predictionapi.Sample) boo
 	endTs := end.Truncate(1 * time.Minute).Unix()
 	// only check the end, start not check, because start is always from now to predict
 	return endTs <= samples[n-1].Timestamp
+}
+
+func getMaxSampleTimestamp(samples []predictionapi.Sample) int64 {
+	maxTs := int64(0)
+	for _, sample := range samples {
+		if sample.Timestamp > maxTs {
+			maxTs = sample.Timestamp
+		}
+	}
+	return maxTs
 }

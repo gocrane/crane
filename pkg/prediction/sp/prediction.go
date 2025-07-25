@@ -265,12 +265,12 @@ func (p *segmentedPercentilePrediction) Run(stopCh <-chan struct{}) {
 			QueryExpr := qc.MetricNamer.BuildUniqueKey()
 
 			if _, ok := p.queryRoutines.Load(QueryExpr); ok {
-				klog.V(4).InfoS("Prediction segmented percentile routine %v already registered.", "queryExpr", QueryExpr, "caller", qc.Caller)
+				klog.V(4).InfoS("Prediction segmented percentile routine already registered.", "queryExpr", QueryExpr, "caller", qc.Caller)
 				continue
 			}
 
 			if _, ok := p.stopChMap.Load(QueryExpr); ok {
-				klog.V(4).InfoS("Prediction segmented percentile routine %v already stopped.", "queryExpr", QueryExpr, "caller", qc.Caller)
+				klog.V(4).InfoS("Prediction segmented percentile routine already stopped.", "queryExpr", QueryExpr, "caller", qc.Caller)
 				continue
 			}
 

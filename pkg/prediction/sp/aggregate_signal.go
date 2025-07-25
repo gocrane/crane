@@ -32,7 +32,7 @@ type aggregateSignal struct {
 }
 
 func (a *aggregateSignal) addSample(sampleTime time.Time, sampleValue float64) {
-	// 计算样本权重
+	// 计算样本权重，突出大值的影响，覆盖毛刺情况
 	weight := math.Max(a.minSampleWeight, sampleValue)
 
 	// 添加新样本到直方图
