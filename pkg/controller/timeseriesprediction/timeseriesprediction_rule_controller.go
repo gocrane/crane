@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	tspNamespace = "default"
+	tspNamespace = "crane-system"
 	tspNameBase  = "tsp"
 )
 
