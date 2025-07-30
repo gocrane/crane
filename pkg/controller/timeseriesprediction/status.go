@@ -193,9 +193,9 @@ func (tc *Controller) doPredict(tsPrediction *predictionapi.TimeSeriesPrediction
 			err = fmt.Errorf("metric %v no predict data", status.ResourceIdentifier)
 		}
 
-		for i, ts := range status.Prediction {
+		for _, ts := range status.Prediction {
 			if !IsWindowInSamples(start, end, ts.Samples) {
-				err = fmt.Errorf("metric %v, ts %v, predict data is outdated, labels: %+v", status.ResourceIdentifier, i, ts.Labels)
+				err = fmt.Errorf("metric %v, len(ts):%v, ts %v, predict data is outdated, labels: %+v", status.ResourceIdentifier, len(ts.Samples), ts.Samples, ts.Labels)
 			}
 		}
 

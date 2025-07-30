@@ -81,6 +81,7 @@ func (c *TimeSeriesPredictionRuleController) Reconcile(ctx context.Context, req 
 		planingTime := lastUpdateTime.Add(interval)
 		now := time.Now()
 		if now.Before(planingTime) {
+			klog.V(1).InfoS("Will re-sync", "after", planingTime.Sub(now))
 			return ctrl.Result{
 				RequeueAfter: planingTime.Sub(now),
 			}, nil

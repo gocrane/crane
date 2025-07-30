@@ -76,6 +76,8 @@ func (p *segmentedPercentilePrediction) getPredictedValuesFromSignals(queryExpr 
 	estimator := NewPercentileEstimator(cfg.percentile)                 // 默认使用99分位数
 	estimator = WithMargin(cfg.marginFraction, estimator)               // 默认marginFraction为0.2，即(1+0.2)*99分位数
 	estimator = WithTargetUtilization(cfg.targetUtilization, estimator) // 默认targetUtilization为1，即100%
+	estimator = WithMinValueEstimator(0.01, estimator)                  // 默认最小值为0.01
+
 	now := time.Now().Unix()
 	klog.V(4).Infof("getPredictedValuesFromSignals now: %v, queryExpr: %v", now, queryExpr)
 	if cfg.aggregated {
@@ -425,6 +427,16 @@ func (p *segmentedPercentilePrediction) initFromHistory(namer metricnaming.Metri
 
 func getSignalsFromTS(historyTimeSeriesList []*common.TimeSeries, cfg *internalConfig) map[string]*aggregateSignal {
 	signals := map[string]*aggregateSignal{}
+	if len(historyTimeSeriesList) == 0 { // 还没有历史数据，初始化桶
+		// 创建24个桶，每个桶存储一个小时的数据
+		for i := 0; i < 24; i++ {
+			key := ""
+			timeKey := fmt.Sprintf("%s-%d", key, i)
+			signal := newAggregateSignal(cfg)
+			signals[timeKey] = signal
+		}
+		return signals
+	}
 	for _, ts := range historyTimeSeriesList {
 		if len(ts.Samples) < 1 {
 			continue
@@ -512,7 +524,6 @@ func (p *segmentedPercentilePrediction) addSamples(namer metricnaming.MetricName
 			}
 
 			signal.addSample(sampleTime, sample.Value)
-			//signal.addSample(sampleTime, float64((sampleTime.Hour()+1)*10))
 			if len(signal.labels) == 0 {
 				signal.labels = ts.Labels
 			}

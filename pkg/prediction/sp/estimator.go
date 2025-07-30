@@ -22,6 +22,11 @@ type targetUtilizationEstimator struct {
 	baseEstimator     Estimator
 }
 
+type minValueEstimator struct {
+	minValue      float64
+	baseEstimator Estimator
+}
+
 func NewPercentileEstimator(percentile float64) Estimator {
 	return &percentileEstimator{percentile}
 }
@@ -34,6 +39,10 @@ func WithTargetUtilization(targetUtilization float64, baseEstimator Estimator) E
 	return &targetUtilizationEstimator{targetUtilization, baseEstimator}
 }
 
+func WithMinValueEstimator(minValue float64, baseEstimator Estimator) Estimator {
+	return &minValueEstimator{minValue, baseEstimator}
+}
+
 func (e *percentileEstimator) GetEstimation(h vpa.Histogram) float64 {
 	return h.Percentile(e.percentile)
 }
@@ -44,4 +53,13 @@ func (e *marginEstimator) GetEstimation(h vpa.Histogram) float64 {
 
 func (e *targetUtilizationEstimator) GetEstimation(h vpa.Histogram) float64 {
 	return e.baseEstimator.GetEstimation(h) / e.targetUtilization
+}
+
+func (e *minValueEstimator) GetEstimation(h vpa.Histogram) float64 {
+	v := e.baseEstimator.GetEstimation(h)
+	if v < e.minValue {
+		return e.minValue
+	} else {
+		return v
+	}
 }
