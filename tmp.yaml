@@ -1,0 +1,61 @@
+apiVersion: v1
+items:
+- apiVersion: platform.stke/v1alpha1
+  kind: StatefulSetPlus
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps.tkestack.io/v1","kind":"TApp","metadata":{"annotations":{},"labels":{"app":"example-tapp"},"name":"example-tapp","namespace":"default"},"spec":{"defaultTemplateName":"test2","replicas":3,"template":{"metadata":{"labels":{"app":"example-tapp"}},"spec":{"containers":[{"image":"nginx:1.7.9","name":"nginx"}]}},"templatePool":{"test1":{"metadata":{"labels":{"app":"example-tapp"}},"spec":{"containers":[{"image":"nginx:perl","name":"nginx"}],"tolerations":[{"effect":"NoSchedule","key":"zone.teg.tkex.oa.com/ap-tianjin-2","operator":"Exists"}]}},"test2":{"metadata":{"labels":{"app":"example-tapp"}},"spec":{"containers":[{"image":"nginx:latest","name":"nginx"}],"tolerations":[{"effect":"NoSchedule","key":"zone.teg.tkex.oa.com/ap-tianjin-2","operator":"Exists"}]}}},"templates":{"0":"test2","1":"test2"}}}
+      stke.io/statefulsetplus-dryrun: "true"
+      transfer-from-tapp: example-tapp
+    creationTimestamp: "2024-09-05T07:08:46Z"
+    generation: 1
+    labels:
+      app: example-tapp
+      teg.tkex.oa.com/creator: admin
+    name: example-tapp
+    namespace: default
+    resourceVersion: "1407624974"
+    selfLink: /apis/platform.stke/v1alpha1/namespaces/default/statefulsetpluses/example-tapp
+    uid: a8dc56ab-b682-481f-b114-72fcfb112912
+  spec:
+    batchDeployConfig:
+      batchUpdateDetail: null
+    podManagementPolicy: OrderedReady
+    replicas: 3
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: example-tapp
+    serviceName: example-tapp
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: example-tapp
+      spec:
+        containers:
+        - image: nginx:latest
+          imagePullPolicy: Always
+          name: nginx
+          resources: {}
+        restartPolicy: Always
+        tolerations:
+        - effect: NoSchedule
+          key: zone.teg.tkex.oa.com/ap-tianjin-2
+          operator: Exists
+    updateStrategy:
+      maxUnavailable: 1
+      type: OnDelete
+  status:
+    batchDeployStatus:
+      currentOrderSuccessPer: 100
+    collisionCount: 0
+    currentRevision: example-tapp-6f6d44fb99
+    labelSelector: app=example-tapp
+    observedGeneration: 1
+    replicas: 0
+    updateRevision: example-tapp-6f6d44fb99
+kind: List
+metadata:
+  resourceVersion: ""

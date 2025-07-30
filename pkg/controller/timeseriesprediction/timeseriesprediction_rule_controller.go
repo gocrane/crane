@@ -277,8 +277,8 @@ func (c *TimeSeriesPredictionRuleController) getMatchingWorkloads(ctx context.Co
 func (c *TimeSeriesPredictionRuleController) createTimeSeriesPrediction(ctx context.Context, tspRule *predictionv1alpha1.TimeSeriesPredictionRule, workload workloadInfo) error {
 	tsp := &predictionv1alpha1.TimeSeriesPrediction{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-%s-%s", tspNameBase, workload.Namespace, workload.Name),
-			Namespace: tspNamespace,
+			GenerateName: fmt.Sprintf("%s-%s-", tspNameBase, workload.Namespace), // Name不作为索引，使用GenerateName保证不重复
+			Namespace:    tspNamespace,
 			Labels: map[string]string{
 				"timeseriespredictionrule.uid":  string(tspRule.UID),
 				"timeseriespredictionrule.name": tspRule.Name,
@@ -291,7 +291,7 @@ func (c *TimeSeriesPredictionRuleController) createTimeSeriesPrediction(ctx cont
 				Namespace:  workload.Namespace,
 				Name:       workload.Name,
 			},
-			PredictionWindowSeconds: 600,
+			PredictionWindowSeconds: 86400,
 			PredictionMetrics: []predictionv1alpha1.PredictionMetric{
 				getDefaultPredictionMetric(workload),
 			},
@@ -322,11 +322,11 @@ func getDefaultPredictionMetric(workload workloadInfo) predictionv1alpha1.Predic
 				Histogram: predictionv1alpha1.HistogramConfig{
 					BucketSize: "0.01",
 					Epsilon:    "1e-10",
-					MaxValue:   "1000.0",
-					HalfLife:   "12h",
+					MaxValue:   "10.0",
+					HalfLife:   "0h",
 				},
 				MinSampleWeight: "1.0",
-				SampleInterval:  "1m",
+				SampleInterval:  "5m",
 				HistoryLength:   "24h",
 			},
 		},

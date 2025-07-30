@@ -14,7 +14,7 @@ import (
 )
 
 var defaultMinSampleWeight float64 = 1e-5
-var defaultMarginFraction float64 = 0.0
+var defaultMarginFraction float64 = 0.2
 var defaultPercentile float64 = .99
 var defaultTargetUtilization float64 = 1.0
 var defaultHistogramOptions, _ = vpa.NewLinearHistogramOptions(100.0, 0.1, 1e-10)

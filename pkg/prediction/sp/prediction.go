@@ -35,10 +35,6 @@ func (p *segmentedPercentilePrediction) QueryPredictionStatus(_ context.Context,
 }
 
 func (p *segmentedPercentilePrediction) QueryPredictedTimeSeries(ctx context.Context, namer metricnaming.MetricNamer, startTime time.Time, endTime time.Time) ([]*common.TimeSeries, error) {
-	testStartTime := time.Now()
-	defer func() {
-		klog.V(1).Infof("Finished QueryPredictedTimeSeries (%v)", time.Since(testStartTime))
-	}()
 	var predictedTimeSeriesList []*common.TimeSeries
 	queryExpr := namer.BuildUniqueKey()
 	//cfg := p.a.GetConfig(queryExpr)
@@ -77,9 +73,9 @@ func (p *segmentedPercentilePrediction) getPredictedValuesFromSignals(queryExpr 
 	if cfg == nil {
 		cfg = p.a.GetConfig(queryExpr)
 	}
-	estimator := NewPercentileEstimator(cfg.percentile)
-	estimator = WithMargin(cfg.marginFraction, estimator)
-	estimator = WithTargetUtilization(cfg.targetUtilization, estimator)
+	estimator := NewPercentileEstimator(cfg.percentile)                 // 默认使用99分位数
+	estimator = WithMargin(cfg.marginFraction, estimator)               // 默认marginFraction为0.2，即(1+0.2)*99分位数
+	estimator = WithTargetUtilization(cfg.targetUtilization, estimator) // 默认targetUtilization为1，即100%
 	now := time.Now().Unix()
 	klog.V(4).Infof("getPredictedValuesFromSignals now: %v, queryExpr: %v", now, queryExpr)
 	if cfg.aggregated {
@@ -121,8 +117,8 @@ func (p *segmentedPercentilePrediction) getPredictedValuesFromSignals(queryExpr 
 			signal := signals[key]
 			klog.V(5).Infof("getPredictedValuesFromSignals key: %v, v: %v, P99:%v, now: %v, queryExpr: %v", key, estimator.GetEstimation(signal.histogram), signal.histogram.Percentile(99), now, queryExpr)
 			sample := common.Sample{
-				Value: signal.histogram.Percentile(99),
-				//Value:     estimator.GetEstimation(signal.histogram),
+				//Value: signal.histogram.Percentile(99),
+				Value:     estimator.GetEstimation(signal.histogram),
 				Timestamp: now,
 			}
 			samples = append(samples, sample)
@@ -139,10 +135,6 @@ func (p *segmentedPercentilePrediction) getPredictedValuesFromSignals(queryExpr 
 }
 
 func (p *segmentedPercentilePrediction) getPredictedValues(ctx context.Context, namer metricnaming.MetricNamer) []*common.TimeSeries {
-	startTime := time.Now()
-	defer func() {
-		klog.V(1).Infof("Finished getPredictedValues (%v)", time.Since(startTime))
-	}()
 	var predictedTimeSeriesList []*common.TimeSeries
 
 	ticker := time.NewTicker(100 * time.Millisecond)
