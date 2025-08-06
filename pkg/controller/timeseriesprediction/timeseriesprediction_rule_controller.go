@@ -227,7 +227,8 @@ func (c *TimeSeriesPredictionRuleController) getMatchingWorkloads(ctx context.Co
 
 		gvr, err := utils.GetGroupVersionResource(c.Discovery, rs.APIVersion, rs.Kind)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get GVR for %s/%s: %v", rs.APIVersion, rs.Kind, err)
+			klog.V(1).Infof("Warning: failed to get GVR for %s/%s: %v, skip", rs.APIVersion, rs.Kind, err)
+			continue
 		}
 
 		var unstructureds []unstructured.Unstructured
