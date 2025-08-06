@@ -365,11 +365,12 @@ func initControllers(ctx context.Context, oomRecorder oom.Recorder, mgr ctrl.Man
 			klog.Exit(err, "unable to create controller", "controller", "TspController")
 		}
 
-		//// 注册TimeseriesPredictionRuleController
+		// 注册TimeseriesPredictionRuleController
 		if err := (&timeseriesprediction.TimeSeriesPredictionRuleController{
-			Client:   mgr.GetClient(),
-			Scheme:   mgr.GetScheme(),
-			Recorder: mgr.GetEventRecorderFor("timeseriespredictionrule-controller"),
+			Client:        mgr.GetClient(),
+			Scheme:        mgr.GetScheme(),
+			Recorder:      mgr.GetEventRecorderFor("timeseriespredictionrule-controller"),
+			TargetFetcher: targetSelectorFetcher,
 		}).SetupWithManager(mgr); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "TimeseriesPredictionRuleController")
 		}

@@ -3,6 +3,7 @@ package timeseriesprediction
 import (
 	"context"
 	"fmt"
+	"github.com/gocrane/crane/pkg/utils/target"
 	"strings"
 	"sync"
 	"time"
@@ -38,6 +39,7 @@ type TimeSeriesPredictionRuleController struct {
 	Recorder      record.EventRecorder
 	DynamicClient dynamic.Interface
 	Discovery     discovery.DiscoveryInterface
+	TargetFetcher target.SelectorFetcher
 }
 
 // Reconcile is the main reconciliation loop for TimeSeriesPredictionRule
@@ -276,11 +278,25 @@ func (c *TimeSeriesPredictionRuleController) getMatchingWorkloads(ctx context.Co
 
 // createTimeSeriesPrediction 创建新的TimeSeriesPrediction对象
 func (c *TimeSeriesPredictionRuleController) createTimeSeriesPrediction(ctx context.Context, tspRule *predictionv1alpha1.TimeSeriesPredictionRule, workload workloadInfo) error {
+	// 校验 target 是否有 selector
+	objRef := &corev1.ObjectReference{
+		APIVersion: workload.APIVersion,
+		Kind:       workload.Kind,
+		Namespace:  workload.Namespace,
+		Name:       workload.Name,
+	}
+	_, err := c.TargetFetcher.Fetch(objRef)
+	if err != nil {
+		klog.V(1).Infof("Skip creating TimeSeriesPrediction for %s/%s: no selector found (%v)", workload.Namespace, workload.Name, err)
+		return nil
+	}
+
 	tsp := &predictionv1alpha1.TimeSeriesPrediction{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: fmt.Sprintf("%s-%s-", tspNameBase, workload.Namespace), // Name不作为索引，使用GenerateName保证不重复
 			Namespace:    tspNamespace,
 			Labels: map[string]string{
+				"type":                          "tsp",
 				"timeseriespredictionrule.uid":  string(tspRule.UID),
 				"timeseriespredictionrule.name": tspRule.Name,
 			},
