@@ -1,9 +1,8 @@
 package sp
 
 import (
-	"sync"
-
 	"k8s.io/klog/v2"
+	"sync"
 
 	"github.com/gocrane/crane/pkg/prediction"
 )
@@ -158,6 +157,22 @@ func (a *aggregateSignals) GetOrStoreSignal(queryExpr string, key string, signal
 	return signal
 }
 
+func (a *aggregateSignals) GetOrCreateSignal(queryExpr string, key string, c *internalConfig) *aggregateSignal {
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
+
+	if _, exists := a.signalMap[queryExpr]; !exists {
+		return nil
+	}
+
+	if _, exists := a.signalMap[queryExpr][key]; exists {
+		return a.signalMap[queryExpr][key]
+	}
+	signal := newAggregateSignal(c)
+	a.signalMap[queryExpr][key] = signal
+	return signal
+}
+
 func (a *aggregateSignals) SetSignals(queryExpr string, signals map[string]*aggregateSignal) {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
@@ -180,6 +195,35 @@ func (a *aggregateSignals) SetSignalsWithStatus(queryExpr string, signals map[st
 		a.signalMap[queryExpr][k] = v
 	}
 	a.statusMap[queryExpr] = status
+}
+
+func (a *aggregateSignals) GetQueryExprStatus(queryExpr string) prediction.Status {
+	a.mutex.RLock()
+	defer a.mutex.RUnlock()
+
+	if _, exists := a.signalMap[queryExpr]; !exists {
+		return prediction.StatusUnknown
+	}
+
+	return a.statusMap[queryExpr]
+}
+
+func (a *aggregateSignals) IsQueryExprReady(queryExpr string) bool {
+	a.mutex.RLock()
+	defer a.mutex.RUnlock()
+	if _, exists := a.signalMap[queryExpr]; !exists {
+		return false
+	}
+	return IsSignalsReady(a.signalMap[queryExpr])
+}
+
+func IsSignalsReady(signals map[string]*aggregateSignal) bool {
+	for _, signal := range signals {
+		if !signal.IsSignalReady() {
+			return false
+		}
+	}
+	return true
 }
 
 func (a *aggregateSignals) SetSignalsStatus(queryExpr string, status prediction.Status) {

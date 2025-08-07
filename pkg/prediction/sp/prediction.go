@@ -38,7 +38,11 @@ func (p *segmentedPercentilePrediction) QueryPredictedTimeSeries(ctx context.Con
 	var predictedTimeSeriesList []*common.TimeSeries
 	queryExpr := namer.BuildUniqueKey()
 	//cfg := p.a.GetConfig(queryExpr)
-	tsList := p.getPredictedValues(ctx, namer)
+	tsList, status := p.getPredictedValues(ctx, namer)
+	if status != prediction.StatusReady {
+		klog.V(4).Infof("QueryPredictedTimeSeries is not ready, status: %v, queryExpr: %v", status, queryExpr)
+		return predictedTimeSeriesList, fmt.Errorf("metric status is %v, must be ready", status)
+	}
 	klog.V(5).Infof("tsList len: %v, QueryPredictedTimeSeries queryExpr: %v", len(tsList), queryExpr)
 	for _, ts := range tsList { // 理论上只会有一个ts，即len(tsList) == 1
 		klog.V(5).Infof("ts label len: %v, ts sample len: %v, ts.Samples: %+v, QueryPredictedTimeSeries queryExpr: %v", len(ts.Labels), len(ts.Samples), ts.Samples, queryExpr)
@@ -136,31 +140,17 @@ func (p *segmentedPercentilePrediction) getPredictedValuesFromSignals(queryExpr 
 	return predictedTimeSeriesList
 }
 
-func (p *segmentedPercentilePrediction) getPredictedValues(ctx context.Context, namer metricnaming.MetricNamer) []*common.TimeSeries {
+func (p *segmentedPercentilePrediction) getPredictedValues(ctx context.Context, namer metricnaming.MetricNamer) ([]*common.TimeSeries, prediction.Status) {
 	var predictedTimeSeriesList []*common.TimeSeries
 
-	ticker := time.NewTicker(100 * time.Millisecond)
-	defer ticker.Stop()
-
 	queryExpr := namer.BuildUniqueKey()
-	for {
-		signals, status := p.a.GetSignals(queryExpr)
-		if status == prediction.StatusUnknown {
-			klog.V(4).InfoS("Aggregated has been deleted and unknown", "queryExpr", queryExpr)
-			return predictedTimeSeriesList
-		}
-		if signals != nil && status == prediction.StatusReady {
-			klog.V(4).Infof("signals Ready getPredictedValues queryExpr: %v", queryExpr)
-			return p.getPredictedValuesFromSignals(queryExpr, signals, nil)
-		}
-		select {
-		case <-ctx.Done():
-			klog.Info("Time out.")
-			return predictedTimeSeriesList
-		case <-ticker.C:
-			continue
-		}
+	signals, status := p.a.GetSignals(queryExpr)
+	if signals != nil && status == prediction.StatusReady {
+		klog.V(4).Infof("signals Ready getPredictedValues queryExpr: %v", queryExpr)
+		return p.getPredictedValuesFromSignals(queryExpr, signals, nil), status
 	}
+	klog.V(4).Infof("signals status: %v, getPredictedValues queryExpr: %v", status, queryExpr)
+	return predictedTimeSeriesList, status
 }
 
 func (p *segmentedPercentilePrediction) QueryRealtimePredictedValues(ctx context.Context, namer metricnaming.MetricNamer) ([]*common.TimeSeries, error) {
@@ -169,7 +159,8 @@ func (p *segmentedPercentilePrediction) QueryRealtimePredictedValues(ctx context
 	if status != prediction.StatusReady {
 		return nil, fmt.Errorf("metric %v model status is %v, must be ready", queryExpr, status)
 	}
-	return p.getPredictedValues(ctx, namer), nil
+	v, _ := p.getPredictedValues(ctx, namer)
+	return v, nil
 }
 
 // QueryRealtimePredictedValuesOnce is a one-off task, and the query will be deleted by the caller after the call. However, this query maybe has already been used by other callers,
@@ -418,8 +409,11 @@ func (p *segmentedPercentilePrediction) initFromHistory(namer metricnaming.Metri
 		p.a.SetSignal(queryExpr, keyAll, signal)
 	} else {
 		signals := getSignalsFromTS(historyTimeSeriesList, cfg)
-		// TODO 需要检测是否Ready
-		p.a.SetSignals(queryExpr, signals)
+		status := prediction.StatusInitializing
+		if IsSignalsReady(signals) {
+			status = prediction.StatusReady
+		}
+		p.a.SetSignalsWithStatus(queryExpr, signals, status)
 	}
 
 	return nil
@@ -517,8 +511,8 @@ func (p *segmentedPercentilePrediction) addSamples(namer metricnaming.MetricName
 			sample := ts.Samples[len(ts.Samples)-1]
 			sampleTime := time.Unix(sample.Timestamp, 0)
 			keyTime := fmt.Sprintf("%s-%d", key, sampleTime.Hour())
-			// todo: newAggregateSignal(c)延迟到查询不到再创建
-			signal := p.a.GetOrStoreSignal(queryExpr, keyTime, newAggregateSignal(c))
+			// newAggregateSignal(c)延迟到查询不到再创建
+			signal := p.a.GetOrCreateSignal(queryExpr, keyTime, c)
 			if signal == nil {
 				continue
 			}
@@ -527,18 +521,18 @@ func (p *segmentedPercentilePrediction) addSamples(namer metricnaming.MetricName
 			if len(signal.labels) == 0 {
 				signal.labels = ts.Labels
 			}
-
-			// current time is reach the window length of percentile need to accumulating data, the model is ready to do predict
-			// all type need the aggregation window length is accumulating enough data.
-			// History: if the container is newly, then there maybe has not enough history data, so we need accumulating to make the confidence more reliable
-			// LazyTraining: directly accumulating data from real time metric provider until the data is enough
-			// Checkpoint: directly recover the model from a checkpoint, and then updating the model until accumulated data is enough
-			if signal.GetAggregationWindowLength() >= c.historyLength {
-				klog.V(1).Infof("signal[%v] Ready signal.GetAggregationWindowLength(): %v, historyLength: %v", key, signal.GetAggregationWindowLength(), c.historyLength)
-				p.a.SetSignalStatus(queryExpr, key, prediction.StatusReady)
-			}
-
 			klog.V(4).InfoS("Sample added.", "sampleValue", sample.Value, "sampleTime", sampleTime, "queryExpr", queryExpr, "key", key, "history", c.historyLength, "aggregationWindowLength", signal.GetAggregationWindowLength())
+		}
+
+		// current time is reach the window length of percentile need to accumulating data, the model is ready to do predict
+		// all type need the aggregation window length is accumulating enough data.
+		// History: if the container is newly, then there maybe has not enough history data, so we need accumulating to make the confidence more reliable
+		// LazyTraining: directly accumulating data from real time metric provider until the data is enough
+		// Checkpoint: directly recover the model from a checkpoint, and then updating the model until accumulated data is enough
+		// p.a.IsQueryExprReady(queryExpr)相对耗时，先检测再计算
+		if p.a.GetQueryExprStatus(queryExpr) != prediction.StatusReady && p.a.IsQueryExprReady(queryExpr) {
+			klog.V(1).Infof("queryExpr[%v] Ready", queryExpr)
+			p.a.SetSignalsStatus(queryExpr, prediction.StatusReady)
 		}
 	}
 }

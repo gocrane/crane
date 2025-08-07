@@ -32,7 +32,11 @@ const callerFormat = "TimeSeriesPredictionCaller-%s-%s"
 // driven by time tick not by events, because time series prediction need to update the prediction window data to avoid the data is out of date.
 // NOTE: update period is better higher resolution than the algorithm sample interval, reduce the possibility of the data is out date.
 // but it is a final consistent system, so the data will be in date when next update reconcile in controller runtime.
-func (tc *Controller) syncPredictionStatus(ctx context.Context, tsPrediction *predictionapi.TimeSeriesPrediction) (ctrl.Result, error) {
+func (tc *Controller) syncPredictionStatus(ctx context.Context, tsPrediction *predictionapi.TimeSeriesPrediction) (r ctrl.Result, err error) {
+	defer func() {
+		klog.V(4).Infof("tsp[%v] Will re-sync after %v", tsPrediction.Name, r.RequeueAfter)
+	}()
+
 	newStatus := tsPrediction.Status.DeepCopy()
 	key := klog.KObj(tsPrediction)
 	if err := tc.Client.Get(ctx, client.ObjectKey{Name: tsPrediction.Name, Namespace: tsPrediction.Namespace}, tsPrediction); err != nil {
@@ -44,9 +48,9 @@ func (tc *Controller) syncPredictionStatus(ctx context.Context, tsPrediction *pr
 		// time driven
 		return ctrl.Result{RequeueAfter: tc.UpdatePeriod}, err
 	}
+	maxDuring := time.Duration(tsPrediction.Spec.PredictionWindowSeconds) * time.Second
 	// check if the prediction data is out of date, if it is, force predict and update crd status,
 	// or we do nothing to avoid status update frequently, reduce the api server traffic
-
 	windowStart := time.Now()
 	windowEnd := windowStart.Add(time.Duration(tsPrediction.Spec.PredictionWindowSeconds) * time.Second)
 	warnings := tc.isPredictionDataOutDated(windowStart, windowEnd, tsPrediction.Status.PredictionMetrics)
@@ -60,24 +64,16 @@ func (tc *Controller) syncPredictionStatus(ctx context.Context, tsPrediction *pr
 		predictedData, err := tc.doPredict(tsPrediction, predictionStart, predictionEnd)
 		newStatus.PredictionMetrics = predictedData
 		if err != nil {
-			klog.V(4).Infof("Error in Predict, key: %v, err: %v", key, err)
-			setCondition(newStatus, predictionapi.TimeSeriesPredictionConditionReady, metav1.ConditionFalse, known.ReasonTimeSeriesPredictPartial, "error in predict")
+			klog.V(4).Infof("Warning in Predict, warning: %v, key: %v", err, key)
+			setCondition(newStatus, predictionapi.TimeSeriesPredictionConditionReady, metav1.ConditionFalse, known.ReasonTimeSeriesPredictPartial, err.Error())
 			err = tc.UpdateStatus(ctx, tsPrediction, newStatus)
-			if err != nil {
-				// todo
-				return ctrl.Result{}, err
-			}
-			return ctrl.Result{RequeueAfter: tc.UpdatePeriod}, err
+			return ctrl.Result{RequeueAfter: maxDuring}, err
 		}
 		if len(tsPrediction.Spec.PredictionMetrics) != len(predictedData) {
 			klog.V(4).Infof("DoPredict predict data is partial, len(tsPrediction.Spec.PredictionMetrics): %v, predictedDataLen: %v, key: %v, err: %v", len(tsPrediction.Spec.PredictionMetrics), len(predictedData), key, err)
 			setCondition(newStatus, predictionapi.TimeSeriesPredictionConditionReady, metav1.ConditionFalse, known.ReasonTimeSeriesPredictPartial, "not all metric predicted")
 			err = tc.UpdateStatus(ctx, tsPrediction, newStatus)
-			if err != nil {
-				// todo
-				return ctrl.Result{}, err
-			}
-			return ctrl.Result{RequeueAfter: tc.UpdatePeriod}, err
+			return ctrl.Result{RequeueAfter: maxDuring}, err
 		}
 
 		klog.V(4).Infof("DoPredict predict data is complete, range: %v, key: %v", fmt.Sprintf("[%v, %v]", windowStart, windowEnd), key)
@@ -85,22 +81,16 @@ func (tc *Controller) syncPredictionStatus(ctx context.Context, tsPrediction *pr
 		setCondition(newStatus, predictionapi.TimeSeriesPredictionConditionReady, metav1.ConditionTrue, known.ReasonTimeSeriesPredictSucceed, "")
 
 		err = tc.UpdateStatus(ctx, tsPrediction, newStatus)
-		if err != nil {
-			// todo: update status failed, then add it again for update?
-			return ctrl.Result{}, err
-		}
 		// 刚完成更新，直接等待下次更新时再调协
-		during := time.Duration(tsPrediction.Spec.PredictionWindowSeconds) * time.Second
-		klog.V(4).Infof("tsp[%v] Will re-sync after %v", tsPrediction.Name, during)
-		return ctrl.Result{RequeueAfter: during}, nil
+		return ctrl.Result{RequeueAfter: maxDuring}, err
 	}
 
 	during, err := tc.getRequeueAfterPeriod(windowEnd, tsPrediction.Status.PredictionMetrics)
 	if err != nil { // 理论上不该进入，因为之前len(warnings)为0
 		klog.Errorf("Failed to get requeue after period for %v, err: %v", key, err)
-		return ctrl.Result{}, err
+		return ctrl.Result{RequeueAfter: maxDuring}, err
 	}
-	klog.V(4).Infof("tsp[%v] Will re-sync after %v", tsPrediction.Name, during)
+
 	return ctrl.Result{RequeueAfter: during}, nil
 }
 
@@ -171,6 +161,7 @@ func (tc *Controller) doPredict(tsPrediction *predictionapi.TimeSeriesPrediction
 		err = predictor.WithQuery(namer, c.GetCaller(), *internalConf)
 		if err != nil {
 			errs = append(errs, err)
+			result = append(result, status)
 			continue
 		}
 		var data []*common.TimeSeries
@@ -178,6 +169,7 @@ func (tc *Controller) doPredict(tsPrediction *predictionapi.TimeSeriesPrediction
 		data, err = predictor.QueryPredictedTimeSeries(context.TODO(), namer, start, end)
 		if err != nil {
 			errs = append(errs, err)
+			result = append(result, status)
 			continue
 		}
 		predictedData := CommonTimeSeries2ApiTimeSeries(data)

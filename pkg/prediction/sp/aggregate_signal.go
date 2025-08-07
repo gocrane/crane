@@ -100,6 +100,10 @@ func (a *aggregateSignal) GetAggregationWindowLength() time.Duration {
 	return time.Duration(a.totalSamplesCount) * a.sampleInterval
 }
 
+func (a *aggregateSignal) IsSignalReady() bool {
+	return a.GetAggregationWindowLength() >= a.historyLength/24
+}
+
 func newAggregateSignal(c *internalConfig) *aggregateSignal {
 	var histogram vpa.Histogram
 	if c.histogramDecayHalfLife == 0 {
