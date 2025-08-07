@@ -502,6 +502,10 @@ func (p *segmentedPercentilePrediction) addSamples(namer metricnaming.MetricName
 		}
 	} else {
 		// todo: find a way to remove the labels key, although we do not really use it now.
+		if len(latestTimeSeriesList) == 0 {
+			klog.V(4).InfoS("No latest time series found.", "queryExpr", queryExpr)
+			return
+		}
 		for _, ts := range latestTimeSeriesList {
 			key := prediction.AggregateSignalKey(ts.Labels)
 			if len(ts.Samples) < 1 {

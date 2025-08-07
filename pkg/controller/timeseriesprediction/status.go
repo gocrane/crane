@@ -142,9 +142,11 @@ func (tc *Controller) doPredict(tsPrediction *predictionapi.TimeSeriesPrediction
 		klog.V(1).Infof("Finished doPredict [%s] (%v)", tsPrediction.Name, time.Since(startTime))
 	}()
 	var result []predictionapi.PredictionMetricStatus
-	c, err := NewMetricContext(tc.TargetFetcher, tsPrediction, tc.predictorMgr)
-	if err != nil {
-		return nil, err
+	var err error
+	key := GetTimeSeriesPredictionKey(tsPrediction)
+	c, ok := tc.getCachedMetricContext(key)
+	if !ok {
+		return nil, fmt.Errorf("failed to get cached metric context for %v", key)
 	}
 
 	var errs []error
