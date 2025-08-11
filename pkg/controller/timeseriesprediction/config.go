@@ -53,23 +53,6 @@ func NewMetricContext(fetcher target.SelectorFetcher, seriesPrediction *predicti
 	return c, nil
 }
 
-func NewMetricContextWithoutSelector(fetcher target.SelectorFetcher, seriesPrediction *predictionapi.TimeSeriesPrediction, predictorMgr predictormgr.Manager) (*MetricContext, error) {
-	c := &MetricContext{
-		Namespace:        seriesPrediction.Namespace,
-		TargetKind:       seriesPrediction.Spec.TargetRef.Kind,
-		Name:             seriesPrediction.Spec.TargetRef.Name,
-		APIVersion:       seriesPrediction.Spec.TargetRef.APIVersion,
-		SeriesPrediction: seriesPrediction,
-		predictorMgr:     predictorMgr,
-		fetcher:          fetcher,
-	}
-	if !strings.EqualFold(c.TargetKind, predconf.TargetKindNode) && seriesPrediction.Spec.TargetRef.Namespace != "" {
-		c.Namespace = seriesPrediction.Spec.TargetRef.Namespace
-	}
-
-	return c, nil
-}
-
 func (c *MetricContext) GetCaller() string {
 	return fmt.Sprintf(callerFormat, klog.KObj(c.SeriesPrediction), c.SeriesPrediction.UID)
 }
