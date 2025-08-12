@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gocrane/crane/pkg/utils/target"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"strings"
 	"sync"
 	"time"
@@ -22,6 +23,7 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	predictionv1alpha1 "github.com/gocrane/api/prediction/v1alpha1"
 	"github.com/gocrane/crane/pkg/utils"
@@ -83,7 +85,7 @@ func (c *TimeSeriesPredictionRuleController) Reconcile(ctx context.Context, req 
 		planingTime := lastUpdateTime.Add(interval)
 		now := time.Now()
 		if now.Before(planingTime) {
-			klog.V(1).InfoS("Will re-sync", "after", planingTime.Sub(now))
+			klog.V(1).InfoS("Will re-sync", "after", planingTime.Sub(now), "tspr", klog.KObj(tspRule))
 			return ctrl.Result{
 				RequeueAfter: planingTime.Sub(now),
 			}, nil
@@ -110,8 +112,7 @@ func (c *TimeSeriesPredictionRuleController) Reconcile(ctx context.Context, req 
 			// 更新LastUpdateTime
 			now := metav1.Now()
 			latestTspRule.Status.LastUpdateTime = &now
-
-			return c.Client.Update(ctx, latestTspRule)
+			return c.Client.Status().Update(ctx, latestTspRule)
 		})
 
 		if updateErr != nil {
@@ -124,7 +125,7 @@ func (c *TimeSeriesPredictionRuleController) Reconcile(ctx context.Context, req 
 	// 根据同步结果设置重新协调时间
 	requeueAfter := 30 * time.Second
 	if finished && len(strings.TrimSpace(tspRule.Spec.RunInterval)) != 0 {
-		klog.V(4).InfoS("Will re-sync", "after", interval)
+		klog.V(4).InfoS("Will re-sync", "after", interval, "tspr", klog.KObj(tspRule))
 		requeueAfter = interval
 	}
 
@@ -156,10 +157,14 @@ func (c *TimeSeriesPredictionRuleController) syncTimeSeriesPredictionRule(ctx co
 	tspIndex := make(map[string]*predictionv1alpha1.TimeSeriesPrediction)
 	for i := range currentTSPs.Items {
 		tsp := &currentTSPs.Items[i]
-		key := fmt.Sprintf("%s/%s", tsp.Namespace, tsp.Spec.TargetRef.Name)
+		key, err := getWorkloadMatchNameFromTSP(tsp)
+		if err != nil {
+			klog.Errorf("Failed to get workload match name from tsp: %v", err)
+			continue
+		}
 		tspIndex[key] = tsp
 	}
-
+	klog.V(1).Infof("Found %d existing TimeSeriesPredictions for rule %s/%s", len(tspIndex), tspRule.Namespace, tspRule.Name)
 	// 创建或更新TSP对象
 	var wg sync.WaitGroup
 	errCh := make(chan error, len(workloads))
@@ -168,13 +173,11 @@ func (c *TimeSeriesPredictionRuleController) syncTimeSeriesPredictionRule(ctx co
 		wg.Add(1)
 		go func(wl workloadInfo) {
 			defer wg.Done()
-			key := fmt.Sprintf("%s/%s", wl.Namespace, wl.Name)
-			klog.V(1).Infof("Processing workload: %s", key)
+			key := getWorkloadMatchNameFromWorkloadInfo(&wl)
 
 			// 检查是否已存在TSP对象
 			existingTSP, exists := tspIndex[key]
 			if exists {
-				klog.V(1).Infof("Updating existing TimeSeriesPrediction for workload: %s", key)
 				// 更新现有TSP对象
 				if err := c.updateTimeSeriesPrediction(ctx, tspRule, existingTSP, wl); err != nil {
 					errCh <- fmt.Errorf("failed to update TimeSeriesPrediction for %s: %v", key, err)
@@ -204,8 +207,8 @@ func (c *TimeSeriesPredictionRuleController) syncTimeSeriesPredictionRule(ctx co
 	}
 
 	// 清理孤儿TSP对象(TSP对象的目标workload已经消失)
+	klog.V(1).Infof("Cleaning up orphan TimeSeriesPredictions for rule %s/%s, number: %v", tspRule.Namespace, tspRule.Name, len(tspIndex))
 	for _, tsp := range tspIndex {
-		klog.V(1).Infof("Deleting orphan TimeSeriesPrediction: %s/%s", tsp.Namespace, tsp.Name)
 		if err := c.Client.Delete(ctx, tsp); err != nil {
 			klog.ErrorS(err, "Failed to delete orphan TimeSeriesPrediction", "NamespacedName", types.NamespacedName{Namespace: tsp.Namespace, Name: tsp.Name})
 		} else {
@@ -413,6 +416,27 @@ func (c *TimeSeriesPredictionRuleController) SetupWithManager(mgr ctrl.Manager) 
 	c.Discovery = discoveryClient
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&predictionv1alpha1.TimeSeriesPredictionRule{}).
+		For(&predictionv1alpha1.TimeSeriesPredictionRule{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(c)
+}
+
+func getWorkloadMatchNameFromTSP(tsp *predictionv1alpha1.TimeSeriesPrediction) (string, error) {
+	// 名称格式: namespace/apiVersion/kind/name，kind为小写
+	if tsp == nil {
+		return "", fmt.Errorf("tsp 为空")
+	}
+	targetRef := tsp.Spec.TargetRef
+	if targetRef.Namespace == "" || targetRef.APIVersion == "" || targetRef.Kind == "" || targetRef.Name == "" {
+		return "", fmt.Errorf("targetRef 字段不完整: namespace=%v, apiVersion=%v, kind=%v, name=%v", targetRef.Namespace, targetRef.APIVersion, targetRef.Kind, targetRef.Name)
+	}
+	workloadMatchName := fmt.Sprintf("%s/%s/%s/%s", targetRef.Namespace, targetRef.APIVersion, strings.ToLower(targetRef.Kind), targetRef.Name)
+	return workloadMatchName, nil
+}
+
+func getWorkloadMatchNameFromWorkloadInfo(w *workloadInfo) string {
+	// 名称格式: namespace/apiVersion/kind/name，kind为小写
+	if w == nil {
+		return ""
+	}
+	return fmt.Sprintf("%s/%s/%s/%s", w.Namespace, w.APIVersion, strings.ToLower(w.Kind), w.Name)
 }

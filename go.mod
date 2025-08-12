@@ -222,5 +222,5 @@ replace (
 )
 
 replace (
-	github.com/gocrane/api => /Users/jinlingxiao/go/src/github/api
+	github.com/gocrane/api => /Users/jinlingxiao/go/src/woa/fork/craneapi
 )
