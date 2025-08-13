@@ -427,7 +427,7 @@ func (c *TimeSeriesPredictionRuleController) SetupWithManager(mgr ctrl.Manager) 
 }
 
 func getWorkloadMatchNameFromTSP(tsp *predictionv1alpha1.TimeSeriesPrediction) (string, error) {
-	// 名称格式: namespace/apiVersion/kind/name，kind为小写
+	// 名称格式: namespace|apiVersion|kind|name，kind为小写
 	if tsp == nil {
 		return "", fmt.Errorf("tsp 为空")
 	}
@@ -435,14 +435,14 @@ func getWorkloadMatchNameFromTSP(tsp *predictionv1alpha1.TimeSeriesPrediction) (
 	if targetRef.Namespace == "" || targetRef.APIVersion == "" || targetRef.Kind == "" || targetRef.Name == "" {
 		return "", fmt.Errorf("targetRef 字段不完整: namespace=%v, apiVersion=%v, kind=%v, name=%v", targetRef.Namespace, targetRef.APIVersion, targetRef.Kind, targetRef.Name)
 	}
-	workloadMatchName := fmt.Sprintf("%s/%s/%s/%s", targetRef.Namespace, targetRef.APIVersion, strings.ToLower(targetRef.Kind), targetRef.Name)
+	workloadMatchName := fmt.Sprintf("%s|%s|%s|%s", targetRef.Namespace, targetRef.APIVersion, strings.ToLower(targetRef.Kind), targetRef.Name)
 	return workloadMatchName, nil
 }
 
 func getWorkloadMatchNameFromWorkloadInfo(w *workloadInfo) string {
-	// 名称格式: namespace/apiVersion/kind/name，kind为小写
+	// 名称格式: namespace|apiVersion|kind|name，kind为小写
 	if w == nil {
 		return ""
 	}
-	return fmt.Sprintf("%s/%s/%s/%s", w.Namespace, w.APIVersion, strings.ToLower(w.Kind), w.Name)
+	return fmt.Sprintf("%s|%s|%s|%s", w.Namespace, w.APIVersion, strings.ToLower(w.Kind), w.Name)
 }
