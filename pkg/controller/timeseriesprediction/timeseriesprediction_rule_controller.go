@@ -167,6 +167,7 @@ func (c *TimeSeriesPredictionRuleController) syncTimeSeriesPredictionRule(ctx co
 	klog.V(1).Infof("Found %d existing TimeSeriesPredictions for rule %s/%s", len(tspIndex), tspRule.Namespace, tspRule.Name)
 	// 创建或更新TSP对象
 	var wg sync.WaitGroup
+	var mu sync.Mutex
 	errCh := make(chan error, len(workloads))
 
 	for _, workload := range workloads {
@@ -175,14 +176,19 @@ func (c *TimeSeriesPredictionRuleController) syncTimeSeriesPredictionRule(ctx co
 			defer wg.Done()
 			key := getWorkloadMatchNameFromWorkloadInfo(&wl)
 
+			mu.Lock()
 			// 检查是否已存在TSP对象
 			existingTSP, exists := tspIndex[key]
+			if exists {
+				delete(tspIndex, key) // 从索引中移除，保留的将是孤儿对象
+			}
+			mu.Unlock()
+
 			if exists {
 				// 更新现有TSP对象
 				if err := c.updateTimeSeriesPrediction(ctx, tspRule, existingTSP, wl); err != nil {
 					errCh <- fmt.Errorf("failed to update TimeSeriesPrediction for %s: %v", key, err)
 				}
-				delete(tspIndex, key) // 从索引中移除，保留的将是孤儿对象
 				return
 			}
 
