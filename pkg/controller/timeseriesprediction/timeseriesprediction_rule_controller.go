@@ -330,7 +330,7 @@ func (c *TimeSeriesPredictionRuleController) createTimeSeriesPrediction(ctx cont
 }
 
 func getDefaultPredictionMetric(workload workloadInfo) predictionv1alpha1.PredictionMetric {
-	workloadCPUUsageExprTemplate := `max(irate(container_cpu_usage_seconds_total{namespace="%s", pod=~"%s", container!="" }[3m]))`
+	workloadCPUUsageExprTemplate := `max(rate(container_cpu_usage_seconds_total{namespace="%s", pod=~"%s", container=""}[3m]))`
 	defaultPredictionMetric := predictionv1alpha1.PredictionMetric{
 		ResourceIdentifier: "workload-cpu",
 		Type:               predictionv1alpha1.ExpressionQueryMetricType,
