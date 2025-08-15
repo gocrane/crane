@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gocrane/crane/pkg/utils/target"
+	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"strings"
 	"sync"
@@ -30,8 +31,9 @@ import (
 )
 
 const (
-	tspNamespace = "crane-system"
-	tspNameBase  = "tsp"
+	tspNamespace                   = "crane-system"
+	tspNameBase                    = "tsp"
+	defaultPredictionWindowSeconds = 86400 // 默认预测窗口为24小时
 )
 
 // TimeSeriesPredictionRuleController reconciles TimeSeriesPredictionRule objects
@@ -205,12 +207,12 @@ func (c *TimeSeriesPredictionRuleController) syncTimeSeriesPredictionRule(ctx co
 	close(errCh)
 
 	// 处理错误
-	var errors []error
+	var syncErrors []error
 	for err := range errCh {
-		errors = append(errors, err)
+		syncErrors = append(syncErrors, err)
 	}
-	if len(errors) > 0 {
-		return false, fmt.Errorf("encountered %d errors during sync", len(errors))
+	if len(syncErrors) > 0 {
+		return false, fmt.Errorf("encountered %d errors during sync", len(syncErrors))
 	}
 
 	// 清理孤儿TSP对象(TSP对象的目标workload已经消失)
@@ -332,7 +334,7 @@ func (c *TimeSeriesPredictionRuleController) createTimeSeriesPrediction(ctx cont
 				Namespace:  workload.Namespace,
 				Name:       workload.Name,
 			},
-			PredictionWindowSeconds: 86400,
+			PredictionWindowSeconds: defaultPredictionWindowSeconds,
 			PredictionMetrics: []predictionv1alpha1.PredictionMetric{
 				getDefaultPredictionMetric(workload),
 			},
@@ -409,11 +411,30 @@ func (c *TimeSeriesPredictionRuleController) updateTimeSeriesPrediction(ctx cont
 	// 检查是否需要更新
 	needsUpdate := false
 
-	//// 检查预测指标是否变化
-	//if !predictionMetricsEqual(tsp.Spec.PredictionMetrics, tspRule.Spec.PredictionMetrics) {
-	//	tsp.Spec.PredictionMetrics = tspRule.Spec.PredictionMetrics
-	//	needsUpdate = true
-	//}
+	// 获取当前 workload 应用的模板（如有），渲染出新的指标列表
+	templateName := "default"
+	if len(tspRule.Spec.Recommenders) > 0 {
+		templateName = tspRule.Spec.Recommenders[0].Name
+	}
+
+	var newPredictionMetrics []predictionv1alpha1.PredictionMetric
+	var predictionWindowSeconds int32
+	if template, exists := c.TemplateStore.GetTemplate(templateName); exists {
+		predictionWindowSeconds = template.PredictionWindowSeconds
+		newPredictionMetrics = getRenderTemplatePredictionMetrics(workload, template.PredictionMetrics)
+	} else {
+		predictionWindowSeconds = defaultPredictionWindowSeconds
+		newPredictionMetrics = []predictionv1alpha1.PredictionMetric{
+			getDefaultPredictionMetric(workload),
+		}
+	}
+
+	// 检查预测指标是否变化
+	if predictionWindowSeconds != tsp.Spec.PredictionWindowSeconds || !predictionMetricsEqual(tsp.Spec.PredictionMetrics, newPredictionMetrics) {
+		tsp.Spec.PredictionMetrics = newPredictionMetrics
+		needsUpdate = true
+		klog.V(1).Infof("need update TimeSeriesPrediction %s/%s", tsp.Namespace, tsp.Name)
+	}
 
 	if needsUpdate {
 		if err := c.Client.Update(ctx, tsp); err != nil {
@@ -432,7 +453,7 @@ func predictionMetricsEqual(a, b []predictionv1alpha1.PredictionMetric) bool {
 		return false
 	}
 	for i := range a {
-		if a[i] != b[i] {
+		if !reflect.DeepEqual(a[i], b[i]) {
 			return false
 		}
 	}
