@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tsp-templates-configmap
+  namespace: crane-system
+data:
+  Resource: |
+    predictionWindowSeconds: 86400
+    predictionMetrics:
+    - resourceIdentifier: workload-cpu
+      type: ExpressionQuery
+      expressionQuery:
+        expression: "max(rate(container_cpu_usage_seconds_total{namespace=\"%s\", pod=~\"%s\", container=\"\"}[3m]))"
+      algorithm:
+        algorithmType: SegmentedPercentile
+        sp:
+          histogram:
+            bucketSize: "0.01"
+            epsilon: "1e-10"
+            maxValue: "10.0"
+            halfLife: "0h"
+          minSampleWeight: "1.0"
+          sampleInterval: "5m"
+          historyLength: "24h"

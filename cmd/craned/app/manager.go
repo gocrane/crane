@@ -365,12 +365,28 @@ func initControllers(ctx context.Context, oomRecorder oom.Recorder, mgr ctrl.Man
 			klog.Exit(err, "unable to create controller", "controller", "TspController")
 		}
 
+		// 初始化TSP模板存储
+		tspTemplateStore := timeseriesprediction.NewTSPTemplateStore()
+
+		// 初始化并启动TSP模板ConfigMap Controller
+		tspTemplateConfigMapReconciler := &timeseriesprediction.TSPTemplateConfigMapReconciler{
+			Client:        mgr.GetClient(),
+			Scheme:        mgr.GetScheme(),
+			TemplateStore: tspTemplateStore,
+			ConfigMapName: timeseriesprediction.DefaultTSPTemplateConfigMapName,
+			Namespace:     timeseriesprediction.DefaultTSPTemplateConfigMapNamespace,
+		}
+		if err := tspTemplateConfigMapReconciler.SetupWithManager(mgr); err != nil {
+			klog.Exit(err, "unable to create controller", "controller", "TSPTemplateConfigMapReconciler")
+		}
+
 		// 注册TimeseriesPredictionRuleController
 		if err := (&timeseriesprediction.TimeSeriesPredictionRuleController{
 			Client:        mgr.GetClient(),
 			Scheme:        mgr.GetScheme(),
 			Recorder:      mgr.GetEventRecorderFor("timeseriespredictionrule-controller"),
 			TargetFetcher: targetSelectorFetcher,
+			TemplateStore: tspTemplateStore,
 		}).SetupWithManager(mgr); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "TimeseriesPredictionRuleController")
 		}

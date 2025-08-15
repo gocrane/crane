@@ -96,7 +96,7 @@ func (c *MetricContext) WithApiConfig(conf *predictionapi.PredictionMetric) {
 		}
 		klog.InfoS("WithApiConfig WithQuery registered succeed", "tsp", klog.KObj(c.SeriesPrediction), "queryStr", queryStr)
 	} else {
-		klog.InfoS("WithApiConfig predictor %v not found, ignore tsp %v", conf.Algorithm.AlgorithmType, klog.KObj(c.SeriesPrediction))
+		klog.Infof("WithApiConfig predictor %v not found, ignore tsp %v", conf.Algorithm.AlgorithmType, klog.KObj(c.SeriesPrediction))
 	}
 }
 

@@ -42,6 +42,7 @@ type TimeSeriesPredictionRuleController struct {
 	DynamicClient dynamic.Interface
 	Discovery     discovery.DiscoveryInterface
 	TargetFetcher target.SelectorFetcher
+	TemplateStore *TSPTemplateStore
 }
 
 // Reconcile is the main reconciliation loop for TimeSeriesPredictionRule
@@ -301,17 +302,30 @@ func (c *TimeSeriesPredictionRuleController) createTimeSeriesPrediction(ctx cont
 		return nil
 	}
 
-	tsp := &predictionv1alpha1.TimeSeriesPrediction{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: fmt.Sprintf("%s-%s-", tspNameBase, workload.Namespace), // Name不作为索引，使用GenerateName保证不重复
-			Namespace:    tspNamespace,
-			Labels: map[string]string{
-				"type":                          "tsp",
-				"timeseriespredictionrule.uid":  string(tspRule.UID),
-				"timeseriespredictionrule.name": tspRule.Name,
+	// 使用模板创建TSP
+	var tspSpec predictionv1alpha1.TimeSeriesPredictionSpec
+
+	// 尝试从模板中获取
+	templateName := "default" // 默认模板名
+	if len(tspRule.Spec.Recommenders) > 0 {
+		templateName = tspRule.Spec.Recommenders[0].Name
+	}
+
+	if template, exists := c.TemplateStore.GetTemplate(templateName); exists {
+		tspSpec = predictionv1alpha1.TimeSeriesPredictionSpec{
+			TargetRef: corev1.ObjectReference{
+				APIVersion: workload.APIVersion,
+				Kind:       workload.Kind,
+				Namespace:  workload.Namespace,
+				Name:       workload.Name,
 			},
-		},
-		Spec: predictionv1alpha1.TimeSeriesPredictionSpec{
+			PredictionWindowSeconds: template.PredictionWindowSeconds,
+			PredictionMetrics:       getRenderTemplatePredictionMetrics(workload, template.PredictionMetrics),
+		}
+	} else {
+		// 回退到默认配置
+		klog.Warningf("Template for %s not found, using default configuration", templateName)
+		tspSpec = predictionv1alpha1.TimeSeriesPredictionSpec{
 			TargetRef: corev1.ObjectReference{
 				APIVersion: workload.APIVersion,
 				Kind:       workload.Kind,
@@ -322,7 +336,20 @@ func (c *TimeSeriesPredictionRuleController) createTimeSeriesPrediction(ctx cont
 			PredictionMetrics: []predictionv1alpha1.PredictionMetric{
 				getDefaultPredictionMetric(workload),
 			},
+		}
+	}
+
+	tsp := &predictionv1alpha1.TimeSeriesPrediction{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: fmt.Sprintf("%s-%s-", tspNameBase, workload.Namespace),
+			Namespace:    tspNamespace,
+			Labels: map[string]string{
+				"type":                          "tsp",
+				"timeseriespredictionrule.uid":  string(tspRule.UID),
+				"timeseriespredictionrule.name": tspRule.Name,
+			},
 		},
+		Spec: tspSpec,
 	}
 
 	if err := c.Client.Create(ctx, tsp); err != nil {
@@ -333,6 +360,22 @@ func (c *TimeSeriesPredictionRuleController) createTimeSeriesPrediction(ctx cont
 	klog.InfoS("Created TimeSeriesPrediction", "NamespacedName", types.NamespacedName{Namespace: tsp.Namespace, Name: tsp.Name})
 	c.Recorder.Eventf(tspRule, corev1.EventTypeNormal, "Created", "Created TimeSeriesPrediction %s/%s", tsp.Namespace, tsp.Name)
 	return nil
+}
+
+func getRenderTemplatePredictionMetrics(workload workloadInfo, templateMetrics []predictionv1alpha1.PredictionMetric) []predictionv1alpha1.PredictionMetric {
+	// 遍历PredictionMetrics，替换表达式中的占位符
+	for _, metric := range templateMetrics {
+		if metric.Type == predictionv1alpha1.ExpressionQueryMetricType && metric.ExpressionQuery != nil {
+			// todo : 指定含有两个%s, 对应 namespace 和 pod name
+			// 替换表达式中的占位符
+			metric.ExpressionQuery.Expression = fmt.Sprintf(
+				metric.ExpressionQuery.Expression,
+				workload.Namespace,
+				utils.GetPodNameReg(workload.Name, workload.Kind),
+			)
+		}
+	}
+	return templateMetrics
 }
 
 func getDefaultPredictionMetric(workload workloadInfo) predictionv1alpha1.PredictionMetric {
