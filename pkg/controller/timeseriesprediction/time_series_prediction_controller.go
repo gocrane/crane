@@ -36,7 +36,7 @@ type Controller struct {
 	// Per tsPredictionMap map stores last observed prediction together with a local time when it was observed.
 	tsPredictionMap sync.Map
 
-	// 缓存每个tsp的MetricContext，key为namespace/name
+	// Cache each tsp's MetricContext, key is namespace/name
 	metricContextMap sync.Map
 
 	lock sync.Mutex
@@ -119,24 +119,24 @@ func (tc *Controller) getCachedMetricContext(key string) (*MetricContext, bool) 
 func (tc *Controller) syncTimeSeriesPrediction(ctx context.Context, tsp *predictionapi.TimeSeriesPrediction) (ctrl.Result, error) {
 	key := GetTimeSeriesPredictionKey(tsp)
 
-	// 优先从缓存获取 MetricContext
+	// Prefer to get MetricContext from cache
 	var err error
 	c, ok := tc.getCachedMetricContext(key)
 	if ok {
 		lastTsp, ok := tc.tsPredictionMap.Load(key)
-		if ok { // 存在历史的同名同命名空间的tsp，但是可能是旧的
+		if ok { // There is a historical tsp with the same name and namespace, but it may be old
 			old, _ := lastTsp.(*predictionapi.TimeSeriesPrediction)
-			// 检查 spec 是否发生变化，如果发生变化则重建 MetricContext
+			// Check if spec has changed, if so, recreate MetricContext
 			if !equality.Semantic.DeepEqual(old.Spec, tsp.Spec) {
 				klog.V(1).Infof("TimeSeriesPrediction %v spec changed, recreate MetricContext", klog.KObj(tsp))
-				c.DeleteApiConfigs(tsp.Spec.PredictionMetrics) // 删除旧的配置
+				c.DeleteApiConfigs(tsp.Spec.PredictionMetrics) // Delete old config
 				c, err = NewMetricContext(tc.TargetFetcher, tsp, tc.predictorMgr)
 				if err != nil {
 					klog.ErrorS(err, "Failed to NewMetricContext.", "key", key)
 					return ctrl.Result{}, err
 				}
 				c.WithApiConfigs(tsp.Spec.PredictionMetrics)
-				tsp.Status.PredictionMetrics = nil // Spec内容变化后，清空预测状态，强制触发预测
+				tsp.Status.PredictionMetrics = nil // After spec changes, clear prediction status to force prediction
 				tc.metricContextMap.Store(key, c)
 			}
 		}

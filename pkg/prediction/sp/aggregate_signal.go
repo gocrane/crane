@@ -10,7 +10,7 @@ import (
 	"github.com/gocrane/crane/pkg/common"
 )
 
-// 样本信息结构
+// Sample information structure
 type sampleInfo struct {
 	time   time.Time
 	value  float64
@@ -27,18 +27,18 @@ type aggregateSignal struct {
 	creationTime      time.Time
 	labels            []common.Label
 	historyLength     time.Duration
-	// 样本队列（按时间排序，最早的在最前面）,默认按照时间加入，所以不需要排序
+	// Sample queue (sorted by time, earliest at the front), default is added by time so no need to sort
 	sampleQueue []sampleInfo
 }
 
 func (a *aggregateSignal) addSample(sampleTime time.Time, sampleValue float64) {
-	// 计算样本权重，突出大值的影响，覆盖毛刺情况
+	// Calculate sample weight, emphasize the impact of large values, cover spike cases
 	weight := math.Max(a.minSampleWeight, sampleValue)
 
-	// 添加新样本到直方图
+	// Add new sample to histogram
 	a.histogram.AddSample(sampleValue, weight, sampleTime)
 
-	// 将新样本插入队列（按时间排序）
+	// Insert new sample into queue (sorted by time)
 	newSample := sampleInfo{
 		time:   sampleTime,
 		value:  sampleValue,
@@ -47,27 +47,27 @@ func (a *aggregateSignal) addSample(sampleTime time.Time, sampleValue float64) {
 
 	a.sampleQueue = append(a.sampleQueue, newSample)
 
-	// 更新最后样本时间
+	// Update last sample time
 	if a.lastSampleTime.Before(sampleTime) {
 		a.lastSampleTime = sampleTime
 	}
 
-	// 更新最早样本时间
+	// Update first sample time
 	if a.firstSampleTime.IsZero() || a.firstSampleTime.After(sampleTime) {
 		a.firstSampleTime = sampleTime
 	}
 
-	// 增加样本计数
+	// Increase sample count
 	a.totalSamplesCount++
 
-	// 计算过期时间点（当前时间 - 历史长度）
+	// Calculate expiration time point (current time - history length)
 	expirationTime := time.Now().Add(-a.historyLength)
 
-	// 删除过期样本（从队列头部开始，直到遇到未过期的样本）
+	// Remove expired samples (from the head of the queue, until encountering a non-expired sample)
 	removedCount := 0
 	for i := 0; i < len(a.sampleQueue); i++ {
 		if a.sampleQueue[i].time.Before(expirationTime) {
-			// 从直方图中移除过期样本
+			// Remove expired sample from histogram
 			a.histogram.SubtractSample(
 				a.sampleQueue[i].value,
 				a.sampleQueue[i].weight,
@@ -75,19 +75,19 @@ func (a *aggregateSignal) addSample(sampleTime time.Time, sampleValue float64) {
 			)
 			removedCount++
 		} else {
-			// 遇到第一个未过期样本，停止删除
+			// Encounter the first non-expired sample, stop removing
 			break
 		}
 	}
 
-	// 更新队列和计数
+	// Update queue and count
 	if removedCount > 0 {
 		klog.V(4).Infof("Removed %v expired samples from the queue.", removedCount)
 		a.sampleQueue = a.sampleQueue[removedCount:]
 		a.totalSamplesCount -= removedCount
 	}
 
-	// 更新最早样本时间
+	// Update first sample time
 	if len(a.sampleQueue) > 0 {
 		a.firstSampleTime = a.sampleQueue[0].time
 	} else {
@@ -117,6 +117,6 @@ func newAggregateSignal(c *internalConfig) *aggregateSignal {
 		creationTime:    time.Now(),
 		sampleInterval:  c.sampleInterval,
 		historyLength:   c.historyLength,
-		sampleQueue:     []sampleInfo{}, // 初始化样本队列
+		sampleQueue:     []sampleInfo{}, // Initialize sample queue
 	}
 }

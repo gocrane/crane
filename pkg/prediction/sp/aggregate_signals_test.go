@@ -175,18 +175,18 @@ func TestAggregateSignals_GetOrStoreSignal(t *testing.T) {
 	assert.Equal(t, signal, a.GetSignal(queryExpr, "k1"))
 }
 
-// TestAggregateSignals_MemoryUsage 记录创建、删除和存储信号的内存和时间开销
+// TestAggregateSignals_MemoryUsage records the memory and time overhead of creating, deleting, and storing signals
 func TestAggregateSignals_MemoryUsage(t *testing.T) {
 	a := newAggregateSignals()
 
-	// 获取初始内存状态
+	// Get initial memory status
 	var m1, m2, m3 runtime.MemStats
-	runtime.GC() // 预热GC
-	runtime.GC() // 确保初始状态干净
+	runtime.GC() // Warm up GC
+	runtime.GC() // Ensure initial state is clean
 	runtime.ReadMemStats(&m1)
 	initialMallocs := m1.Mallocs
 
-	// 添加大量信号
+	// Add a large number of signals
 	for i := 0; i < 1000; i++ {
 		namer := &metricnaming.GeneralMetricNamer{
 			Metric: &metricquery.Metric{
@@ -204,11 +204,11 @@ func TestAggregateSignals_MemoryUsage(t *testing.T) {
 		a.SetSignal(namer.BuildUniqueKey(), "memory_test", &aggregateSignal{})
 	}
 
-	// 记录对象创建后的内存状态
+	// Record memory status after object creation
 	runtime.GC()
 	runtime.ReadMemStats(&m2)
 
-	// 删除所有信号
+	// Delete all signals
 	for i := 0; i < 1000; i++ {
 		namer := &metricnaming.GeneralMetricNamer{
 			Metric: &metricquery.Metric{
@@ -225,34 +225,34 @@ func TestAggregateSignals_MemoryUsage(t *testing.T) {
 		a.Delete(qc)
 	}
 
-	// 获取最终内存状态
+	// Get final memory status
 	runtime.GC()
 	runtime.ReadMemStats(&m3)
 	finalMallocs := m3.Mallocs
 
-	// 计算内存变化
+	// Calculate memory change
 	createdMem := int64(m2.HeapAlloc) - int64(m1.HeapAlloc)
 	finalMem := int64(m3.HeapAlloc) - int64(m1.HeapAlloc)
 	allocCount := finalMallocs - initialMallocs
 
-	// 输出详细内存信息
-	t.Logf("初始堆内存: %.2f MB, 对象数: %d", float64(m1.HeapAlloc)/1024/1024, m1.HeapObjects)
-	t.Logf("创建对象后堆内存: %.2f MB, 对象数: %d", float64(m2.HeapAlloc)/1024/1024, m2.HeapObjects)
-	t.Logf("最终堆内存: %.2f MB, 对象数: %d", float64(m3.HeapAlloc)/1024/1024, m3.HeapObjects)
-	t.Logf("创建对象内存增量: %.2f MB", float64(createdMem)/1024/1024)
-	t.Logf("最终内存增量: %.2f MB", float64(finalMem)/1024/1024)
-	t.Logf("总分配次数: %d", allocCount)
+	// Output detailed memory information
+	t.Logf("Initial heap memory: %.2f MB, object count: %d", float64(m1.HeapAlloc)/1024/1024, m1.HeapObjects)
+	t.Logf("Heap memory after object creation: %.2f MB, object count: %d", float64(m2.HeapAlloc)/1024/1024, m2.HeapObjects)
+	t.Logf("Final heap memory: %.2f MB, object count: %d", float64(m3.HeapAlloc)/1024/1024, m3.HeapObjects)
+	t.Logf("Memory increment after object creation: %.2f MB", float64(createdMem)/1024/1024)
+	t.Logf("Final memory increment: %.2f MB", float64(finalMem)/1024/1024)
+	t.Logf("Total allocation count: %d", allocCount)
 
-	// 验证内存是否基本回到初始状态
+	// Verify whether memory basically returns to the initial state
 	memoryDelta := math.Abs(float64(finalMem))
-	if memoryDelta > float64(10*1024) { // 允许10KB差异
-		t.Errorf("内存未完全释放，差异: %.2f KB", memoryDelta/1024)
+	if memoryDelta > float64(10*1024) { // Allow 10KB difference
+		t.Errorf("Memory not fully released, difference: %.2f KB", memoryDelta/1024)
 	} else {
-		t.Logf("内存基本释放，差异: %.2f KB", memoryDelta/1024)
+		t.Logf("Memory basically released, difference: %.2f KB", memoryDelta/1024)
 	}
 }
 
-// TestAggregateSignalsDetails_MemoryUsage 记录创建详细的signals的内存和时间开销，即将采集到的信息存储在24个直方图中
+// TestAggregateSignalsDetails_MemoryUsage records the memory and time overhead of creating detailed signals, i.e., storing collected information in 24 histograms
 func TestAggregateSignalsDetails_MemoryUsage(t *testing.T) {
 	const (
 		tspNum         = 190
@@ -276,17 +276,17 @@ func TestAggregateSignalsDetails_MemoryUsage(t *testing.T) {
 	ts := generateFakeTimeSeriesByHour(historyLength, sampleInterval)
 	historyTimeSeriesList := []*common.TimeSeries{ts}
 
-	// 获取初始内存状态
+	// Get initial memory status
 	var m1, m2, m3 runtime.MemStats
-	runtime.GC() // 预热GC
-	runtime.GC() // 确保初始状态干净
+	runtime.GC() // Warm up GC
+	runtime.GC() // Ensure initial state is clean
 	runtime.ReadMemStats(&m1)
 	initialMallocs := m1.Mallocs
 
-	// 记录时间
+	// Record time
 	startTime := time.Now()
 
-	// 添加大量信号
+	// Add a large number of signals
 	for i := 0; i < tspNum; i++ {
 		namer := &metricnaming.GeneralMetricNamer{
 			Metric: &metricquery.Metric{
@@ -308,11 +308,11 @@ func TestAggregateSignalsDetails_MemoryUsage(t *testing.T) {
 		a.SetSignals(queryExpr, signals)
 	}
 
-	// 记录对象创建后的内存状态
+	// Record memory status after object creation
 	runtime.GC()
 	runtime.ReadMemStats(&m2)
 
-	// 删除所有信号
+	// Delete all signals
 	for i := 0; i < tspNum; i++ {
 		namer := &metricnaming.GeneralMetricNamer{
 			Metric: &metricquery.Metric{
@@ -330,38 +330,38 @@ func TestAggregateSignalsDetails_MemoryUsage(t *testing.T) {
 		a.Delete(qc)
 	}
 
-	// 记录时间
+	// Record time
 	endTime := time.Now()
 	duration := endTime.Sub(startTime)
-	t.Logf("创建和删除信号耗时: %.2f 秒", duration.Seconds())
+	t.Logf("Time taken to create and delete signals: %.2f seconds", duration.Seconds())
 
-	// 获取最终内存状态
+	// Get final memory status
 	runtime.GC()
 	runtime.ReadMemStats(&m3)
 	finalMallocs := m3.Mallocs
 
-	// 计算内存变化
+	// Calculate memory change
 	createdMem := int64(m2.HeapAlloc) - int64(m1.HeapAlloc)
 	finalMem := int64(m3.HeapAlloc) - int64(m1.HeapAlloc)
 	allocCount := finalMallocs - initialMallocs
 
-	// 输出详细内存信息
-	t.Logf("初始堆内存: %.2f MB, 对象数: %d", float64(m1.HeapAlloc)/1024/1024, m1.HeapObjects)
-	t.Logf("创建对象后堆内存: %.2f MB, 对象数: %d", float64(m2.HeapAlloc)/1024/1024, m2.HeapObjects)
-	t.Logf("最终堆内存: %.2f MB, 对象数: %d", float64(m3.HeapAlloc)/1024/1024, m3.HeapObjects)
-	t.Logf("创建对象内存增量: %.2f MB", float64(createdMem)/1024/1024)
-	t.Logf("最终内存增量: %.2f MB", float64(finalMem)/1024/1024)
-	t.Logf("总分配次数: %d", allocCount)
+	// Output detailed memory information
+	t.Logf("Initial heap memory: %.2f MB, object count: %d", float64(m1.HeapAlloc)/1024/1024, m1.HeapObjects)
+	t.Logf("Heap memory after object creation: %.2f MB, object count: %d", float64(m2.HeapAlloc)/1024/1024, m2.HeapObjects)
+	t.Logf("Final heap memory: %.2f MB, object count: %d", float64(m3.HeapAlloc)/1024/1024, m3.HeapObjects)
+	t.Logf("Memory increment after object creation: %.2f MB", float64(createdMem)/1024/1024)
+	t.Logf("Final memory increment: %.2f MB", float64(finalMem)/1024/1024)
+	t.Logf("Total allocation count: %d", allocCount)
 
-	// 验证内存是否基本回到初始状态
-	if float64(finalMem) > float64(10*1024) { // 允许增量10KB差异
-		t.Errorf("内存未完全释放，差异: %.2f KB", float64(finalMem)/1024)
+	// Verify whether memory basically returns to the initial state
+	if float64(finalMem) > float64(10*1024) { // Allow 10KB difference
+		t.Errorf("Memory not fully released, difference: %.2f KB", float64(finalMem)/1024)
 	} else {
-		t.Logf("内存基本释放，差异: %.2f KB", float64(finalMem)/1024)
+		t.Logf("Memory basically released, difference: %.2f KB", float64(finalMem)/1024)
 	}
 }
 
-// TestAggregateSignalsDetailsList_MemoryUsage 记录tspNum变化时，内存和时间的变化
+// TestAggregateSignalsDetailsList_MemoryUsage records the change in memory and time as tspNum changes
 func TestAggregateSignalsDetailsList_MemoryUsage(t *testing.T) {
 	const (
 		historyLength  = "168h"
@@ -388,16 +388,16 @@ func TestAggregateSignalsDetailsList_MemoryUsage(t *testing.T) {
 	for tspNum := 1; tspNum <= 2001; tspNum += 100 {
 		a := newAggregateSignals()
 
-		// 获取初始内存状态
+		// Get initial memory status
 		var m1, m2, m3 runtime.MemStats
-		runtime.GC() // 预热GC
-		runtime.GC() // 确保初始状态干净
+		runtime.GC() // Warm up GC
+		runtime.GC() // Ensure initial state is clean
 		runtime.ReadMemStats(&m1)
 
-		// 记录时间
+		// Record time
 		startTime := time.Now()
 
-		// 添加大量信号
+		// Add a large number of signals
 		for i := 0; i < tspNum; i++ {
 			namer := &metricnaming.GeneralMetricNamer{
 				Metric: &metricquery.Metric{
@@ -419,11 +419,11 @@ func TestAggregateSignalsDetailsList_MemoryUsage(t *testing.T) {
 			a.SetSignals(queryExpr, signals)
 		}
 
-		// 记录对象创建后的内存状态
+		// Record memory status after object creation
 		runtime.GC()
 		runtime.ReadMemStats(&m2)
 
-		// 删除所有信号
+		// Delete all signals
 		for i := 0; i < tspNum; i++ {
 			namer := &metricnaming.GeneralMetricNamer{
 				Metric: &metricquery.Metric{
@@ -441,15 +441,15 @@ func TestAggregateSignalsDetailsList_MemoryUsage(t *testing.T) {
 			a.Delete(qc)
 		}
 
-		// 记录时间
+		// Record time
 		endTime := time.Now()
 		duration := endTime.Sub(startTime)
 
-		// 获取最终内存状态
+		// Get final memory status
 		runtime.GC()
 		runtime.ReadMemStats(&m3)
 
-		// 计算内存变化
+		// Calculate memory change
 		createdMem := int64(m2.HeapAlloc) - int64(m1.HeapAlloc)
 
 		tspNumSlice = append(tspNumSlice, tspNum)

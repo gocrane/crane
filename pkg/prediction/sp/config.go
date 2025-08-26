@@ -62,10 +62,9 @@ func makeInternalConfig(p *v1alpha1.SP, initMode *config.ModelInitMode) (*intern
 		return nil, err
 	}
 
-	// 明明用不上，还一定要加上，否则还报错
 	halfLife, err := utils.ParseDuration(p.Histogram.HalfLife)
-	if err != nil { // 没有配置为""，或者配置错误，都设置为0
-		halfLife = 0 // 使用均衡直方图，不实用衰减直方图
+	if err != nil { // If not configured as "" or configuration error, set to 0
+		halfLife = 0 // Use balanced histogram, do not use decaying histogram
 		klog.V(4).Infof("Do not use decaying histogram because halfLife is not set or invalid. halfLife: %v", p.Histogram.HalfLife)
 	}
 	var options vpa.HistogramOptions

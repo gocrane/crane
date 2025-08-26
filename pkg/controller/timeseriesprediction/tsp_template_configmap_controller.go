@@ -21,7 +21,7 @@ const (
 	DefaultTSPTemplateConfigMapNamespace = "crane-system"
 )
 
-// TSPTemplateConfigMapReconciler 监听ConfigMap并更新模板存储
+// TSPTemplateConfigMapReconciler listens to ConfigMap and updates template store
 type TSPTemplateConfigMapReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
@@ -31,14 +31,14 @@ type TSPTemplateConfigMapReconciler struct {
 	Namespace     string
 }
 
-// SetupWithManager 设置Controller
+// SetupWithManager sets up the Controller
 func (r *TSPTemplateConfigMapReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	c, err := controller.New("tsp-template-configmap-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
 
-	// 监听指定ConfigMap
+	// Watch the specified ConfigMap
 	err = c.Watch(
 		&source.Kind{Type: &corev1.ConfigMap{}},
 		&handler.EnqueueRequestForObject{},
@@ -64,7 +64,7 @@ func (r *TSPTemplateConfigMapReconciler) SetupWithManager(mgr ctrl.Manager) erro
 	return nil
 }
 
-// Reconcile 处理ConfigMap变更
+// Reconcile handles ConfigMap changes
 func (r *TSPTemplateConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	klog.V(4).InfoS("Reconciling tsp template Configmap", "NamespacedName", req.NamespacedName)
 	configMap := &corev1.ConfigMap{}
@@ -72,7 +72,7 @@ func (r *TSPTemplateConfigMapReconciler) Reconcile(ctx context.Context, req ctrl
 	if err != nil {
 		if errors.IsNotFound(err) {
 			klog.Warningf("ConfigMap %s/%s not found, using default templates", req.Namespace, req.Name)
-			// 清空存储，因为ConfigMap不存在
+			// Clear the store because ConfigMap does not exist
 			r.TemplateStore.Lock()
 			r.TemplateStore.templates = make(map[string]TSPTemplate)
 			r.TemplateStore.Unlock()
@@ -81,7 +81,7 @@ func (r *TSPTemplateConfigMapReconciler) Reconcile(ctx context.Context, req ctrl
 		return ctrl.Result{}, err
 	}
 
-	// 更新模板存储
+	// Update template store
 	r.TemplateStore.UpdateFromConfigMap(configMap)
 	return ctrl.Result{}, nil
 }

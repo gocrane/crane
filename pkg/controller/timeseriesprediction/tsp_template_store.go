@@ -10,37 +10,37 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// TSPTemplate 定义TSP的模板结构
+// TSPTemplate defines the template structure for TSP
 type TSPTemplate struct {
 	PredictionWindowSeconds int32                            `json:"predictionWindowSeconds"`
 	PredictionMetrics       []predictionapi.PredictionMetric `json:"predictionMetrics"`
 }
 
-// TSPTemplateStore 存储TSP模板的线程安全存储
+// TSPTemplateStore is a thread-safe store for TSP templates
 type TSPTemplateStore struct {
 	sync.RWMutex
 	templates map[string]TSPTemplate // key为recommender name
 }
 
-// NewTSPTemplateStore 创建一个新的模板存储
+// NewTSPTemplateStore creates a new template store
 func NewTSPTemplateStore() *TSPTemplateStore {
 	return &TSPTemplateStore{
 		templates: make(map[string]TSPTemplate),
 	}
 }
 
-// UpdateFromConfigMap 从ConfigMap更新模板
+// UpdateFromConfigMap updates templates from ConfigMap
 func (s *TSPTemplateStore) UpdateFromConfigMap(configMap *corev1.ConfigMap) {
 	s.Lock()
 	defer s.Unlock()
 
-	// 清空当前存储
+	// Clear current store
 	s.templates = make(map[string]TSPTemplate)
 
-	// 遍历ConfigMap的每个key，解析为模板
+	// Iterate each key in ConfigMap and parse as template
 	for recommenderName, templateYAML := range configMap.Data {
 		var template TSPTemplate
-		// 将YAML转换为JSON再解析，以支持YAML格式
+		// Convert YAML to JSON for parsing, to support YAML format
 		jsonData, err := yaml.ToJSON([]byte(templateYAML))
 		if err != nil {
 			klog.Errorf("Failed to convert template YAML to JSON for recommender %s: %v", recommenderName, err)
@@ -50,7 +50,7 @@ func (s *TSPTemplateStore) UpdateFromConfigMap(configMap *corev1.ConfigMap) {
 			klog.Errorf("Failed to unmarshal template for recommender %s: %v", recommenderName, err)
 			continue
 		}
-		// 进行基本的校验
+		// Basic validation
 		if template.PredictionWindowSeconds <= 0 {
 			klog.Warningf("Invalid PredictionWindowSeconds in template for recommender %s: %d, using default", recommenderName, template.PredictionWindowSeconds)
 			continue
@@ -64,7 +64,7 @@ func (s *TSPTemplateStore) UpdateFromConfigMap(configMap *corev1.ConfigMap) {
 	}
 }
 
-// GetTemplate 获取指定recommender的模板
+// GetTemplate retrieves the template for the specified recommender
 func (s *TSPTemplateStore) GetTemplate(recommenderName string) (TSPTemplate, bool) {
 	s.RLock()
 	defer s.RUnlock()
@@ -73,7 +73,7 @@ func (s *TSPTemplateStore) GetTemplate(recommenderName string) (TSPTemplate, boo
 		return TSPTemplate{}, false
 	}
 
-	// 返回副本
+	// Return a copy
 	templateCopy := TSPTemplate{
 		PredictionWindowSeconds: template.PredictionWindowSeconds,
 		PredictionMetrics:       make([]predictionapi.PredictionMetric, len(template.PredictionMetrics)),

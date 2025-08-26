@@ -33,7 +33,7 @@ import (
 const (
 	tspNamespace                   = "crane-system"
 	tspNameBase                    = "tsp"
-	defaultPredictionWindowSeconds = 86400 // 默认预测窗口为24小时
+	defaultPredictionWindowSeconds = 86400 // Default prediction window is 24 hours
 )
 
 // TimeSeriesPredictionRuleController reconciles TimeSeriesPredictionRule objects
@@ -67,16 +67,16 @@ func (c *TimeSeriesPredictionRuleController) Reconcile(ctx context.Context, req 
 		return ctrl.Result{}, nil
 	}
 
-	// 处理一次性任务
+	// Handle one-time tasks
 	lastUpdateTime := tspRule.Status.LastUpdateTime
 	if len(strings.TrimSpace(tspRule.Spec.RunInterval)) == 0 {
 		if lastUpdateTime != nil {
-			// 一次性任务已完成
+			// One-time task completed
 			return ctrl.Result{}, nil
 		}
 	}
 
-	// 检查是否已到执行时间
+	// Check if it's time to execute
 	interval, err := time.ParseDuration(tspRule.Spec.RunInterval)
 	if err != nil {
 		c.Recorder.Event(tspRule, corev1.EventTypeWarning, "FailedParseRunInterval", err.Error())
@@ -95,7 +95,7 @@ func (c *TimeSeriesPredictionRuleController) Reconcile(ctx context.Context, req 
 		}
 	}
 
-	// 调用核心同步逻辑
+	// Call core sync logic
 	finished, err := c.syncTimeSeriesPredictionRule(ctx, tspRule)
 	if err != nil {
 		c.Recorder.Event(tspRule, corev1.EventTypeWarning, "SyncFailed", err.Error())
@@ -103,7 +103,7 @@ func (c *TimeSeriesPredictionRuleController) Reconcile(ctx context.Context, req 
 		return ctrl.Result{}, err
 	}
 
-	// 更新状态
+	// Update status
 	if finished {
 		updateErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			latestTspRule := &predictionv1alpha1.TimeSeriesPredictionRule{}
@@ -112,7 +112,7 @@ func (c *TimeSeriesPredictionRuleController) Reconcile(ctx context.Context, req 
 				return err
 			}
 
-			// 更新LastUpdateTime
+			// Update LastUpdateTime
 			now := metav1.Now()
 			latestTspRule.Status.LastUpdateTime = &now
 			return c.Client.Status().Update(ctx, latestTspRule)
@@ -125,7 +125,7 @@ func (c *TimeSeriesPredictionRuleController) Reconcile(ctx context.Context, req 
 		}
 	}
 
-	// 根据同步结果设置重新协调时间
+	// Set requeue time based on sync result
 	requeueAfter := 30 * time.Second
 	if finished && len(strings.TrimSpace(tspRule.Spec.RunInterval)) != 0 {
 		klog.V(4).InfoS("Will re-sync", "after", interval, "tspr", klog.KObj(tspRule))
@@ -135,18 +135,18 @@ func (c *TimeSeriesPredictionRuleController) Reconcile(ctx context.Context, req 
 	return ctrl.Result{RequeueAfter: requeueAfter}, nil
 }
 
-// syncTimeSeriesPredictionRule 实现核心同步逻辑
+// syncTimeSeriesPredictionRule implements the core sync logic
 func (c *TimeSeriesPredictionRuleController) syncTimeSeriesPredictionRule(ctx context.Context, tspRule *predictionv1alpha1.TimeSeriesPredictionRule) (bool, error) {
 	klog.V(1).Infof("Syncing TimeSeriesPredictionRule: %s/%s", tspRule.Namespace, tspRule.Name)
 
-	// 获取所有匹配的workload
+	// Get all matching workloads
 	workloads, err := c.getMatchingWorkloads(ctx, tspRule)
 	if err != nil {
 		return false, fmt.Errorf("failed to get matching workloads: %v", err)
 	}
 	klog.V(1).Infof("Found %d matching workloads for rule %s/%s", len(workloads), tspRule.Namespace, tspRule.Name)
 
-	// 获取当前关联的TSP对象
+	// Get currently associated TSP objects
 	var currentTSPs predictionv1alpha1.TimeSeriesPredictionList
 	labelSelector := labels.SelectorFromSet(labels.Set{
 		"timeseriespredictionrule.name": tspRule.Name,
@@ -156,7 +156,7 @@ func (c *TimeSeriesPredictionRuleController) syncTimeSeriesPredictionRule(ctx co
 		return false, fmt.Errorf("failed to list existing TimeSeriesPredictions: %v", err)
 	}
 
-	// 创建TSP对象索引用于快速查找
+	// Create TSP object index for quick lookup
 	tspIndex := make(map[string]*predictionv1alpha1.TimeSeriesPrediction)
 	for i := range currentTSPs.Items {
 		tsp := &currentTSPs.Items[i]
@@ -168,7 +168,7 @@ func (c *TimeSeriesPredictionRuleController) syncTimeSeriesPredictionRule(ctx co
 		tspIndex[key] = tsp
 	}
 	klog.V(1).Infof("Found %d existing TimeSeriesPredictions for rule %s/%s", len(tspIndex), tspRule.Namespace, tspRule.Name)
-	// 创建或更新TSP对象
+	// Create or update TSP objects
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	errCh := make(chan error, len(workloads))
@@ -180,15 +180,15 @@ func (c *TimeSeriesPredictionRuleController) syncTimeSeriesPredictionRule(ctx co
 			key := getWorkloadMatchNameFromWorkloadInfo(&wl)
 
 			mu.Lock()
-			// 检查是否已存在TSP对象
+			// Check if TSP object already exists
 			existingTSP, exists := tspIndex[key]
 			if exists {
-				delete(tspIndex, key) // 从索引中移除，保留的将是孤儿对象
+				delete(tspIndex, key) // Remove from index, remaining will be orphan objects
 			}
 			mu.Unlock()
 
 			if exists {
-				// 更新现有TSP对象
+				// Update existing TSP object
 				if err := c.updateTimeSeriesPrediction(ctx, tspRule, existingTSP, wl); err != nil {
 					errCh <- fmt.Errorf("failed to update TimeSeriesPrediction for %s: %v", key, err)
 				}
@@ -196,7 +196,7 @@ func (c *TimeSeriesPredictionRuleController) syncTimeSeriesPredictionRule(ctx co
 			}
 
 			klog.V(1).Infof("Creating new TimeSeriesPrediction for workload: %s", key)
-			// 创建新的TSP对象
+			// Create new TSP object
 			if err := c.createTimeSeriesPrediction(ctx, tspRule, wl); err != nil {
 				errCh <- fmt.Errorf("failed to create TimeSeriesPrediction for %s: %v", key, err)
 			}
@@ -206,7 +206,7 @@ func (c *TimeSeriesPredictionRuleController) syncTimeSeriesPredictionRule(ctx co
 	wg.Wait()
 	close(errCh)
 
-	// 处理错误
+	// Handle errors
 	var syncErrors []error
 	for err := range errCh {
 		syncErrors = append(syncErrors, err)
@@ -215,7 +215,7 @@ func (c *TimeSeriesPredictionRuleController) syncTimeSeriesPredictionRule(ctx co
 		return false, fmt.Errorf("encountered %d errors during sync", len(syncErrors))
 	}
 
-	// 清理孤儿TSP对象(TSP对象的目标workload已经消失)
+	// Clean up orphan TSP objects (TSP object's target workload has disappeared)
 	klog.V(1).Infof("Cleaning up orphan TimeSeriesPredictions for rule %s/%s, number: %v", tspRule.Namespace, tspRule.Name, len(tspIndex))
 	for _, tsp := range tspIndex {
 		if err := c.Client.Delete(ctx, tsp); err != nil {
@@ -228,7 +228,7 @@ func (c *TimeSeriesPredictionRuleController) syncTimeSeriesPredictionRule(ctx co
 	return true, nil
 }
 
-// getMatchingWorkloads 获取匹配的workload列表
+// getMatchingWorkloads gets the list of matching workloads
 func (c *TimeSeriesPredictionRuleController) getMatchingWorkloads(ctx context.Context, tspRule *predictionv1alpha1.TimeSeriesPredictionRule) ([]workloadInfo, error) {
 	var workloads []workloadInfo
 
@@ -261,12 +261,12 @@ func (c *TimeSeriesPredictionRuleController) getMatchingWorkloads(ctx context.Co
 		}
 
 		for _, u := range unstructureds {
-			// 按名称过滤
+			// Filter by name
 			if rs.Name != "" && u.GetName() != rs.Name {
 				continue
 			}
 
-			// 按标签选择器过滤
+			// Filter by label selector
 			if rs.LabelSelector != nil {
 				selector, err := metav1.LabelSelectorAsSelector(rs.LabelSelector)
 				if err != nil {
@@ -289,9 +289,9 @@ func (c *TimeSeriesPredictionRuleController) getMatchingWorkloads(ctx context.Co
 	return workloads, nil
 }
 
-// createTimeSeriesPrediction 创建新的TimeSeriesPrediction对象
+// createTimeSeriesPrediction creates a new TimeSeriesPrediction object
 func (c *TimeSeriesPredictionRuleController) createTimeSeriesPrediction(ctx context.Context, tspRule *predictionv1alpha1.TimeSeriesPredictionRule, workload workloadInfo) error {
-	// 校验 target 是否有 selector
+	// Validate if target has selector
 	objRef := &corev1.ObjectReference{
 		APIVersion: workload.APIVersion,
 		Kind:       workload.Kind,
@@ -304,11 +304,11 @@ func (c *TimeSeriesPredictionRuleController) createTimeSeriesPrediction(ctx cont
 		return nil
 	}
 
-	// 使用模板创建TSP
+	// Create TSP using template
 	var tspSpec predictionv1alpha1.TimeSeriesPredictionSpec
 
-	// 尝试从模板中获取
-	templateName := "default" // 默认模板名
+	// Try to get from template
+	templateName := "default" // Default template name
 	if len(tspRule.Spec.Recommenders) > 0 {
 		templateName = tspRule.Spec.Recommenders[0].Name
 	}
@@ -325,7 +325,7 @@ func (c *TimeSeriesPredictionRuleController) createTimeSeriesPrediction(ctx cont
 			PredictionMetrics:       getRenderTemplatePredictionMetrics(workload, template.PredictionMetrics),
 		}
 	} else {
-		// 回退到默认配置
+		// Fallback to default configuration
 		klog.Warningf("Template for %s not found, using default configuration", templateName)
 		tspSpec = predictionv1alpha1.TimeSeriesPredictionSpec{
 			TargetRef: corev1.ObjectReference{
@@ -365,11 +365,11 @@ func (c *TimeSeriesPredictionRuleController) createTimeSeriesPrediction(ctx cont
 }
 
 func getRenderTemplatePredictionMetrics(workload workloadInfo, templateMetrics []predictionv1alpha1.PredictionMetric) []predictionv1alpha1.PredictionMetric {
-	// 遍历PredictionMetrics，替换表达式中的占位符
+	// Iterate PredictionMetrics and replace placeholders in expressions
 	for _, metric := range templateMetrics {
 		if metric.Type == predictionv1alpha1.ExpressionQueryMetricType && metric.ExpressionQuery != nil {
-			// todo : 指定含有两个%s, 对应 namespace 和 pod name
-			// 替换表达式中的占位符
+			// todo : Specify two %s, corresponding to namespace and pod name
+			// Replace placeholders in expression
 			metric.ExpressionQuery.Expression = fmt.Sprintf(
 				metric.ExpressionQuery.Expression,
 				workload.Namespace,
@@ -406,12 +406,12 @@ func getDefaultPredictionMetric(workload workloadInfo) predictionv1alpha1.Predic
 	return defaultPredictionMetric
 }
 
-// updateTimeSeriesPrediction 更新现有的TimeSeriesPrediction对象
+// updateTimeSeriesPrediction updates an existing TimeSeriesPrediction object
 func (c *TimeSeriesPredictionRuleController) updateTimeSeriesPrediction(ctx context.Context, tspRule *predictionv1alpha1.TimeSeriesPredictionRule, tsp *predictionv1alpha1.TimeSeriesPrediction, workload workloadInfo) error {
-	// 检查是否需要更新
+	// Check if update is needed
 	needsUpdate := false
 
-	// 获取当前 workload 应用的模板（如有），渲染出新的指标列表
+	// Get the template applied to the current workload (if any), render new metrics list
 	templateName := "default"
 	if len(tspRule.Spec.Recommenders) > 0 {
 		templateName = tspRule.Spec.Recommenders[0].Name
@@ -429,7 +429,7 @@ func (c *TimeSeriesPredictionRuleController) updateTimeSeriesPrediction(ctx cont
 		}
 	}
 
-	// 检查预测指标是否变化
+	// Check if prediction metrics have changed
 	if predictionWindowSeconds != tsp.Spec.PredictionWindowSeconds || !predictionMetricsEqual(tsp.Spec.PredictionMetrics, newPredictionMetrics) {
 		tsp.Spec.PredictionMetrics = newPredictionMetrics
 		needsUpdate = true
@@ -447,7 +447,7 @@ func (c *TimeSeriesPredictionRuleController) updateTimeSeriesPrediction(ctx cont
 	return nil
 }
 
-// predictionMetricsEqual 检查两个预测指标列表是否相等
+// predictionMetricsEqual checks if two prediction metrics lists are equal
 func predictionMetricsEqual(a, b []predictionv1alpha1.PredictionMetric) bool {
 	if len(a) != len(b) {
 		return false
@@ -460,7 +460,7 @@ func predictionMetricsEqual(a, b []predictionv1alpha1.PredictionMetric) bool {
 	return true
 }
 
-// workloadInfo 包含workload的基本信息
+// workloadInfo contains basic information about a workload
 type workloadInfo struct {
 	Namespace  string
 	Name       string
@@ -470,7 +470,7 @@ type workloadInfo struct {
 
 // SetupWithManager sets up the controller with the Manager
 func (c *TimeSeriesPredictionRuleController) SetupWithManager(mgr ctrl.Manager) error {
-	// 初始化动态客户端和发现客户端
+	// Initialize dynamic client and discovery client
 	config := mgr.GetConfig()
 	dynamicClient, err := dynamic.NewForConfig(config)
 	if err != nil {
@@ -491,20 +491,20 @@ func (c *TimeSeriesPredictionRuleController) SetupWithManager(mgr ctrl.Manager) 
 }
 
 func getWorkloadMatchNameFromTSP(tsp *predictionv1alpha1.TimeSeriesPrediction) (string, error) {
-	// 名称格式: namespace|apiVersion|kind|name，kind为小写
+	// Name format: namespace|apiVersion|kind|name, kind is lowercase
 	if tsp == nil {
-		return "", fmt.Errorf("tsp 为空")
+		return "", fmt.Errorf("tsp is nil")
 	}
 	targetRef := tsp.Spec.TargetRef
 	if targetRef.Namespace == "" || targetRef.APIVersion == "" || targetRef.Kind == "" || targetRef.Name == "" {
-		return "", fmt.Errorf("targetRef 字段不完整: namespace=%v, apiVersion=%v, kind=%v, name=%v", targetRef.Namespace, targetRef.APIVersion, targetRef.Kind, targetRef.Name)
+		return "", fmt.Errorf("targetRef field is incomplete: namespace=%v, apiVersion=%v, kind=%v, name=%v", targetRef.Namespace, targetRef.APIVersion, targetRef.Kind, targetRef.Name)
 	}
 	workloadMatchName := fmt.Sprintf("%s|%s|%s|%s", targetRef.Namespace, targetRef.APIVersion, strings.ToLower(targetRef.Kind), targetRef.Name)
 	return workloadMatchName, nil
 }
 
 func getWorkloadMatchNameFromWorkloadInfo(w *workloadInfo) string {
-	// 名称格式: namespace|apiVersion|kind|name，kind为小写
+	// Name format: namespace|apiVersion|kind|name, kind is lowercase
 	if w == nil {
 		return ""
 	}

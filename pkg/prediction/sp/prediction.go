@@ -44,13 +44,13 @@ func (p *segmentedPercentilePrediction) QueryPredictedTimeSeries(ctx context.Con
 		return predictedTimeSeriesList, fmt.Errorf("metric status is %v, must be ready", status)
 	}
 	klog.V(5).Infof("tsList len: %v, QueryPredictedTimeSeries queryExpr: %v", len(tsList), queryExpr)
-	for _, ts := range tsList { // 理论上只会有一个ts，即len(tsList) == 1
+	for _, ts := range tsList { // In theory, there should only be one ts, i.e., len(tsList) == 1
 		klog.V(5).Infof("ts label len: %v, ts sample len: %v, ts.Samples: %+v, QueryPredictedTimeSeries queryExpr: %v", len(ts.Labels), len(ts.Samples), ts.Samples, queryExpr)
 		var samples []common.Sample
 		sampleTime := startTime
 		stepTime := time.Duration(0)
 		if len(ts.Samples) > 1 {
-			// 保证startTime+step*len(ts.Samples) >= endTime
+			// Ensure startTime+step*len(ts.Samples) >= endTime
 			stepTime = time.Duration(int64(endTime.Sub(startTime))/int64(len(ts.Samples)-1) + 1)
 		}
 
@@ -77,10 +77,10 @@ func (p *segmentedPercentilePrediction) getPredictedValuesFromSignals(queryExpr 
 	if cfg == nil {
 		cfg = p.a.GetConfig(queryExpr)
 	}
-	estimator := NewPercentileEstimator(cfg.percentile)                 // 默认使用99分位数
-	estimator = WithMargin(cfg.marginFraction, estimator)               // 默认marginFraction为0.2，即(1+0.2)*99分位数
-	estimator = WithTargetUtilization(cfg.targetUtilization, estimator) // 默认targetUtilization为1，即100%
-	estimator = WithMinValueEstimator(0.01, estimator)                  // 默认最小值为0.01
+	estimator := NewPercentileEstimator(cfg.percentile)                 // Default is 99th percentile
+	estimator = WithMargin(cfg.marginFraction, estimator)               // Default marginFraction is 0.2, i.e., (1+0.2)*99th percentile
+	estimator = WithTargetUtilization(cfg.targetUtilization, estimator) // Default targetUtilization is 1, i.e., 100%
+	estimator = WithMinValueEstimator(0.01, estimator)                  // Default minimum value is 0.01
 
 	now := time.Now().Unix()
 	klog.V(4).Infof("getPredictedValuesFromSignals now: %v, queryExpr: %v", now, queryExpr)
@@ -97,7 +97,7 @@ func (p *segmentedPercentilePrediction) getPredictedValuesFromSignals(queryExpr 
 			})
 		}
 	} else {
-		// 提取所有键并排序
+		// Extract all keys and sort
 		keys := make([]string, 0, len(signals))
 		for key := range signals {
 			if key == keyAll {
@@ -105,12 +105,12 @@ func (p *segmentedPercentilePrediction) getPredictedValuesFromSignals(queryExpr 
 			}
 			keys = append(keys, key)
 		}
-		// 根据字符串中最后的数字部分排序
+		// Sort by the last numeric part of the string
 		sort.Slice(keys, func(i, j int) bool {
-			// 提取数字部分
+			// Extract numeric part
 			numI := strings.Split(keys[i], "-")[1]
 			numJ := strings.Split(keys[j], "-")[1]
-			// 转换为整数比较
+			// Convert to integer for comparison
 			intI, _ := strconv.Atoi(numI)
 			intJ, _ := strconv.Atoi(numJ)
 			return intI < intJ
@@ -118,7 +118,7 @@ func (p *segmentedPercentilePrediction) getPredictedValuesFromSignals(queryExpr 
 
 		samples := make([]common.Sample, 0, len(signals))
 		labels := []common.Label{}
-		// 按排序后的键顺序处理
+		// Process in the order of sorted keys
 		for _, key := range keys {
 			signal := signals[key]
 			klog.V(5).Infof("getPredictedValuesFromSignals key: %v, v: %v, P99:%v, now: %v, queryExpr: %v", key, estimator.GetEstimation(signal.histogram), signal.histogram.Percentile(99), now, queryExpr)
@@ -130,7 +130,7 @@ func (p *segmentedPercentilePrediction) getPredictedValuesFromSignals(queryExpr 
 			samples = append(samples, sample)
 			labels = append(labels, signal.labels...)
 		}
-		// 分管不同片的signal合并为一个时间序列
+		// Merge signals of different segments into one time series
 		predictedTimeSeriesList = append(predictedTimeSeriesList, &common.TimeSeries{
 			Labels:  labels,
 			Samples: samples,
@@ -240,7 +240,7 @@ func NewPrediction(realtimeProvider providers.RealTime, historyProvider provider
 }
 
 func (p *segmentedPercentilePrediction) Run(stopCh <-chan struct{}) {
-	// 处理注册操作
+	// Handling registration operations
 	go func() {
 		for {
 			qc := <-p.WithCh
@@ -283,7 +283,7 @@ func (p *segmentedPercentilePrediction) Run(stopCh <-chan struct{}) {
 				continue
 			}
 
-			// 在goroutine之前注册，保证只注册一次
+			// In theory, there should only be one ts, i.e., len(tsList) == 1
 			queryExpr := qc.MetricNamer.BuildUniqueKey()
 			p.queryRoutines.Store(queryExpr, struct{}{})
 
@@ -298,7 +298,7 @@ func (p *segmentedPercentilePrediction) Run(stopCh <-chan struct{}) {
 					predStopCh := v.(chan struct{})
 
 					for {
-						// 每隔c.sampleInterval，就去获取最新数据，更新模型
+						// Every c.sampleInterval, get the latest data and update the model
 						p.addSamples(namer)
 						select {
 						case <-predStopCh:
@@ -314,7 +314,7 @@ func (p *segmentedPercentilePrediction) Run(stopCh <-chan struct{}) {
 		}
 	}()
 
-	// 处理删除操作
+	// Handling delete operations
 	go func() {
 		for {
 			qc := <-p.DelCh
@@ -421,8 +421,8 @@ func (p *segmentedPercentilePrediction) initFromHistory(namer metricnaming.Metri
 
 func getSignalsFromTS(historyTimeSeriesList []*common.TimeSeries, cfg *internalConfig) map[string]*aggregateSignal {
 	signals := map[string]*aggregateSignal{}
-	if len(historyTimeSeriesList) == 0 { // 还没有历史数据，初始化桶
-		// 创建24个桶，每个桶存储一个小时的数据
+	if len(historyTimeSeriesList) == 0 { // If there is no historical data yet, initialize buckets
+		// Create 24 buckets, each storing one hour of data
 		for i := 0; i < 24; i++ {
 			key := ""
 			timeKey := fmt.Sprintf("%s-%d", key, i)
@@ -436,22 +436,18 @@ func getSignalsFromTS(historyTimeSeriesList []*common.TimeSeries, cfg *internalC
 			continue
 		}
 		key := prediction.AggregateSignalKey(ts.Labels)
-		// 创建24个桶，每个桶存储一个小时的数据
+		// Create 24 buckets, each storing one hour of data
 		for i := 0; i < 24; i++ {
 			timeKey := fmt.Sprintf("%s-%d", key, i)
 			signal := newAggregateSignal(cfg)
 			signals[timeKey] = signal
 		}
-		// 将数据按照小时存储到桶中
+		// Store data into buckets by hour
 		for _, s := range ts.Samples {
 			t := time.Unix(s.Timestamp, 0)
 			timeKey := fmt.Sprintf("%s-%d", key, t.Hour())
 			signals[timeKey].addSample(t, s.Value)
 		}
-		//for i := 0; i < 24; i++ {
-		//	timeKey := fmt.Sprintf("%s-%d", key, i)
-		//	klog.V(1).Infof("initFromHistory After timeKey:%v, P99:%v AggregationWindowLength: %v", timeKey, signals[timeKey].histogram.Percentile(99), signals[timeKey].GetAggregationWindowLength())
-		//}
 	}
 	return signals
 }
@@ -515,7 +511,7 @@ func (p *segmentedPercentilePrediction) addSamples(namer metricnaming.MetricName
 			sample := ts.Samples[len(ts.Samples)-1]
 			sampleTime := time.Unix(sample.Timestamp, 0)
 			keyTime := fmt.Sprintf("%s-%d", key, sampleTime.Hour())
-			// newAggregateSignal(c)延迟到查询不到再创建
+			// newAggregateSignal(c) is delayed until not found
 			signal := p.a.GetOrCreateSignal(queryExpr, keyTime, c)
 			if signal == nil {
 				continue
@@ -533,7 +529,6 @@ func (p *segmentedPercentilePrediction) addSamples(namer metricnaming.MetricName
 		// History: if the container is newly, then there maybe has not enough history data, so we need accumulating to make the confidence more reliable
 		// LazyTraining: directly accumulating data from real time metric provider until the data is enough
 		// Checkpoint: directly recover the model from a checkpoint, and then updating the model until accumulated data is enough
-		// p.a.IsQueryExprReady(queryExpr)相对耗时，先检测再计算
 		if p.a.GetQueryExprStatus(queryExpr) != prediction.StatusReady && p.a.IsQueryExprReady(queryExpr) {
 			klog.V(1).Infof("queryExpr[%v] Ready", queryExpr)
 			p.a.SetSignalsStatus(queryExpr, prediction.StatusReady)

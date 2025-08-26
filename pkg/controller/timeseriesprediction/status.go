@@ -78,9 +78,9 @@ func (tc *Controller) syncPredictionStatus(ctx context.Context, tsPrediction *pr
 			klog.Errorf("Failed to update status for %v, err: %v", key, updateErr)
 			return ctrl.Result{RequeueAfter: tc.UpdatePeriod}, updateErr
 		}
-		// 刚完成更新，直接等待下次更新时再调协
+		// Just finished updating, wait for the next update before reconciling again
 		period, periodErr := tc.getRequeueAfterPeriod(windowEnd, newStatus.PredictionMetrics)
-		if periodErr != nil { // 理论上不该进入，因为刚计算完预测结果
+		if periodErr != nil { // In theory, should not enter here, because the prediction result was just calculated
 			klog.Errorf("Failed to get requeue after period for %v, err: %v", key, periodErr)
 			return ctrl.Result{RequeueAfter: maxDuring}, periodErr
 		}
@@ -88,7 +88,7 @@ func (tc *Controller) syncPredictionStatus(ctx context.Context, tsPrediction *pr
 	}
 
 	period, periodErr := tc.getRequeueAfterPeriod(windowEnd, tsPrediction.Status.PredictionMetrics)
-	if periodErr != nil { // 理论上不该进入，因为之前len(warnings)为0
+	if periodErr != nil { // In theory, should not enter here, because len(warnings) was 0 before
 		klog.Errorf("Failed to get requeue after period for %v, err: %v", key, periodErr)
 		return ctrl.Result{RequeueAfter: maxDuring}, periodErr
 	}
@@ -129,7 +129,7 @@ func (tc *Controller) getRequeueAfterPeriod(windowEnd time.Time, predictionMetri
 	if duringInt < 0 {
 		return 0, fmt.Errorf("no valid requeue after period")
 	}
-	// 额外增加1s，避免时间点刚好落在采样点上
+	// Add 1s extra to avoid the time point falling exactly on the sample point
 	return time.Duration(duringInt+1) * time.Second, nil
 }
 

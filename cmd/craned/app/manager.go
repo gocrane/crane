@@ -364,11 +364,10 @@ func initControllers(ctx context.Context, oomRecorder oom.Recorder, mgr ctrl.Man
 		if err := tspController.SetupWithManager(mgr, opts.TimeSeriesPredictionMaxConcurrentReconciles); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "TspController")
 		}
-
-		// 初始化TSP模板存储
+		// Initialize tspTemplateStore
 		tspTemplateStore := timeseriesprediction.NewTSPTemplateStore()
 
-		// 初始化并启动TSP模板ConfigMap Controller
+		// Initialize and start TSP template ConfigMap Controller
 		tspTemplateConfigMapReconciler := &timeseriesprediction.TSPTemplateConfigMapReconciler{
 			Client:        mgr.GetClient(),
 			Scheme:        mgr.GetScheme(),
@@ -380,7 +379,7 @@ func initControllers(ctx context.Context, oomRecorder oom.Recorder, mgr ctrl.Man
 			klog.Exit(err, "unable to create controller", "controller", "TSPTemplateConfigMapReconciler")
 		}
 
-		// 注册TimeseriesPredictionRuleController
+		// Register TimeseriesPredictionRuleController
 		if err := (&timeseriesprediction.TimeSeriesPredictionRuleController{
 			Client:        mgr.GetClient(),
 			Scheme:        mgr.GetScheme(),
