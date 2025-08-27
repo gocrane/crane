@@ -1,7 +1,7 @@
 ARG PKGNAME
 
 # Build the manager binary
-FROM --platform=linux/amd64 golang:1.17.2-alpine as builder
+FROM golang:1.17.2-alpine as builder
 
 ARG LDFLAGS
 ARG PKGNAME
@@ -28,7 +28,7 @@ COPY cmd cmd/
 # Build
 RUN env
 RUN go build -ldflags="${LDFLAGS}" -a -o ${PKGNAME} /go/src/github.com/gocrane/crane/cmd/${PKGNAME}/main.go
-FROM --platform=linux/amd64 alpine:3.13.5
+FROM alpine:3.13.5
 RUN apk add --no-cache tzdata
 WORKDIR /
 ARG PKGNAME

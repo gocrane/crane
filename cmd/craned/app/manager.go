@@ -69,13 +69,13 @@ func NewManagerCommand(ctx context.Context) *cobra.Command {
 		Use:  "craned",
 		Long: `The crane manager is responsible for manage controllers in crane`,
 		Run: func(cmd *cobra.Command, args []string) {
-			klog.V(4).Infof("Data Source %v", opts.DataSource)
 			if err := opts.Complete(); err != nil {
 				klog.Exit(err)
 			}
 			if errs := opts.Validate(); len(errs) != 0 {
 				klog.Exit(errs)
 			}
+
 			if err := Run(ctx, opts); err != nil {
 				klog.Exit(err)
 			}
@@ -85,6 +85,7 @@ func NewManagerCommand(ctx context.Context) *cobra.Command {
 	cmd.Flags().AddGoFlagSet(flag.CommandLine)
 	opts.AddFlags(cmd.Flags())
 	utilfeature.DefaultMutableFeatureGate.AddFlag(cmd.Flags())
+
 	return cmd
 }
 

@@ -49,7 +49,7 @@ func (tc *Controller) syncPredictionStatus(ctx context.Context, tsPrediction *pr
 		predictionStart := windowStart
 		// double the time to predict so that crd consumer always see time series range [now, now + PredictionWindowSeconds] in PredictionWindowSeconds window
 		predictionEnd := predictionStart.Add(time.Duration(tsPrediction.Spec.PredictionWindowSeconds) * time.Second * 2)
-		// doPredict必然发生在initFromHistory之后，因为doPredict中会通过WithQuery向predictor注册查询，这个注册过程是串行的
+		// doPredict must happen after initFromHistory
 		predictedData, predictErr := tc.doPredict(tsPrediction, predictionStart, predictionEnd)
 		newStatus.PredictionMetrics = predictedData
 		if predictErr != nil {
@@ -178,10 +178,10 @@ func (tc *Controller) doPredict(tsPrediction *predictionapi.TimeSeriesPrediction
 			continue
 		}
 		predictedData := CommonTimeSeries2ApiTimeSeries(data)
-		if klog.V(4).Enabled() {
+		if klog.V(6).Enabled() {
 			apiDataBytes, err1 := json.Marshal(predictedData)
 			dataBytes, err2 := json.Marshal(data)
-			klog.V(4).Infof("DoPredict predicted data details, key: %v, queryExpr: %v, apiData: %v, predictData: %v, errs: %+v", klog.KObj(tsPrediction), namer.BuildUniqueKey(), string(apiDataBytes), string(dataBytes), []error{err1, err2})
+			klog.V(6).Infof("DoPredict predicted data details, key: %v, queryExpr: %v, apiData: %v, predictData: %v, errs: %+v", klog.KObj(tsPrediction), namer.BuildUniqueKey(), string(apiDataBytes), string(dataBytes), []error{err1, err2})
 		}
 		status.Prediction = predictedData
 
