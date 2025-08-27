@@ -22,7 +22,7 @@ REGISTRY_USER_NAME?=""
 REGISTRY_PASSWORD?=""
 
 # Image URL to use all building/pushing image targets
-MANAGER_IMG ?= "${REGISTRY}/${REGISTRY_NAMESPACE}/craned:latest"
+MANAGER_IMG ?= "${REGISTRY}/${REGISTRY_NAMESPACE}/craned:${GIT_VERSION}"
 AGENT_IMG ?= "${REGISTRY}/${REGISTRY_NAMESPACE}/crane-agent:${GIT_VERSION}"
 ADAPTER_IMG ?= "${REGISTRY}/${REGISTRY_NAMESPACE}/metric-adapter:${GIT_VERSION}"
 DASHBOARD_IMG ?= "${REGISTRY}/${REGISTRY_NAMESPACE}/dashboard:${GIT_VERSION}"
@@ -120,15 +120,6 @@ images: image-craned image-crane-agent image-metric-adapter image-dashboard
 .PHONY: image-craned
 image-craned: ## Build docker image with the crane manager.
 	docker build --build-arg LDFLAGS=$(LDFLAGS) --build-arg PKGNAME=craned -t ${MANAGER_IMG} .
-
-.PHONY: image-craned-dev
-image-craned-dev: ## Build docker image with the craned.
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags=${LDFLAGS} -o _output/bin/craned cmd/craned/main.go
-	docker build --platform linux/amd64 --build-arg NAME=craned -t ${MANAGER_IMG} -f Dockerfile.dev .
-
-.PHONY: craned-dev-local
-craned-dev-local: ## Build docker image with the craned.
-	go build -ldflags=${LDFLAGS} -o _output/bin/craned cmd/craned/main.go
 
 .PHONY: image-dashboard
 image-dashboard: ## Build docker image with the crane dashboard.
