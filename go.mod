@@ -220,3 +220,7 @@ replace (
 	k8s.io/pod-security-admission => k8s.io/pod-security-admission v0.22.3
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.22.3
 )
+
+replace (
+	github.com/gocrane/api => git.woa.com/lingxiaojin/craneapi.git v0.13.0
+)

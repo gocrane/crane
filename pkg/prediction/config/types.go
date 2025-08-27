@@ -26,4 +26,5 @@ type Config struct {
 	InitMode   *ModelInitMode
 	DSP        *v1alpha1.DSP
 	Percentile *v1alpha1.Percentile
+	SP         *v1alpha1.SP
 }

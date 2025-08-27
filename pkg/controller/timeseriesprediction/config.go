@@ -96,7 +96,7 @@ func (c *MetricContext) WithApiConfig(conf *predictionapi.PredictionMetric) {
 		}
 		klog.InfoS("WithApiConfig WithQuery registered succeed", "tsp", klog.KObj(c.SeriesPrediction), "queryStr", queryStr)
 	} else {
-		klog.InfoS("WithApiConfig predictor %v not found, ignore tsp %v", conf.Algorithm.AlgorithmType, klog.KObj(c.SeriesPrediction))
+		klog.Infof("WithApiConfig predictor %v not found, ignore tsp %v", conf.Algorithm.AlgorithmType, klog.KObj(c.SeriesPrediction))
 	}
 }
 
@@ -191,5 +191,6 @@ func (c *MetricContext) ConvertApiMetric2InternalConfig(metric *predictionapi.Pr
 	return &predconf.Config{
 		DSP:        metric.Algorithm.DSP,
 		Percentile: metric.Algorithm.Percentile,
+		SP:         metric.Algorithm.SP,
 	}
 }

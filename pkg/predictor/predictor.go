@@ -12,6 +12,7 @@ import (
 	predconf "github.com/gocrane/crane/pkg/prediction/config"
 	"github.com/gocrane/crane/pkg/prediction/dsp"
 	"github.com/gocrane/crane/pkg/prediction/percentile"
+	"github.com/gocrane/crane/pkg/prediction/sp"
 	"github.com/gocrane/crane/pkg/providers"
 )
 
@@ -35,6 +36,9 @@ func DefaultPredictorsConfig(modelConfig predconf.AlgorithmModelConfig) map[pred
 			ModelConfig: modelConfig,
 		},
 		predictionapi.AlgorithmTypePercentile: {
+			DataProviders: AlgorithmDataProviders{},
+		},
+		predictionapi.AlgorithmTypeSegmentedPercentile: {
 			DataProviders: AlgorithmDataProviders{},
 		},
 	}
@@ -111,6 +115,11 @@ func NewManager(realtimeProviders map[providers.DataSourceType]providers.RealTim
 		case predictionapi.AlgorithmTypeDSP:
 			dspPredictor := dsp.NewPrediction(algorithmRealTimeProxy, algorithmHistoryProxy, predictorConf.ModelConfig)
 			m.predictors[algo] = dspPredictor
+			m.historyDataProxys[algo] = algorithmHistoryProxy
+			m.realTimeDataProxys[algo] = algorithmRealTimeProxy
+		case predictionapi.AlgorithmTypeSegmentedPercentile:
+			spPredictor := sp.NewPrediction(algorithmRealTimeProxy, algorithmHistoryProxy)
+			m.predictors[algo] = spPredictor
 			m.historyDataProxys[algo] = algorithmHistoryProxy
 			m.realTimeDataProxys[algo] = algorithmRealTimeProxy
 		default:

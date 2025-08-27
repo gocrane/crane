@@ -4,21 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"sort"
 	"time"
 
+	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	predictionapi "github.com/gocrane/api/prediction/v1alpha1"
 
 	"github.com/gocrane/crane/pkg/common"
 	"github.com/gocrane/crane/pkg/known"
@@ -32,57 +30,70 @@ const callerFormat = "TimeSeriesPredictionCaller-%s-%s"
 // driven by time tick not by events, because time series prediction need to update the prediction window data to avoid the data is out of date.
 // NOTE: update period is better higher resolution than the algorithm sample interval, reduce the possibility of the data is out date.
 // but it is a final consistent system, so the data will be in date when next update reconcile in controller runtime.
-func (tc *Controller) syncPredictionStatus(ctx context.Context, tsPrediction *predictionapi.TimeSeriesPrediction) (ctrl.Result, error) {
+func (tc *Controller) syncPredictionStatus(ctx context.Context, tsPrediction *predictionapi.TimeSeriesPrediction) (r ctrl.Result, err error) {
+	defer func() {
+		klog.V(4).Infof("tsp[%v] Will re-sync after %v", tsPrediction.Name, r.RequeueAfter)
+	}()
+
 	newStatus := tsPrediction.Status.DeepCopy()
 	key := klog.KObj(tsPrediction)
-	if err := tc.Client.Get(ctx, client.ObjectKey{Name: tsPrediction.Name, Namespace: tsPrediction.Namespace}, tsPrediction); err != nil {
-		// If the prediction does not exist any more, we delete the prediction data from the map.
-		if apierrors.IsNotFound(err) {
-			tc.tsPredictionMap.Delete(key)
-		}
-		klog.Errorf("Failed to sync PredictionsStatus for %v, err: %v", key, err)
-		// time driven
-		return ctrl.Result{RequeueAfter: tc.UpdatePeriod}, err
-	}
+	maxDuring := time.Duration(tsPrediction.Spec.PredictionWindowSeconds) * time.Second
 	// check if the prediction data is out of date, if it is, force predict and update crd status,
 	// or we do nothing to avoid status update frequently, reduce the api server traffic
-
 	windowStart := time.Now()
 	windowEnd := windowStart.Add(time.Duration(tsPrediction.Spec.PredictionWindowSeconds) * time.Second)
 	warnings := tc.isPredictionDataOutDated(windowStart, windowEnd, tsPrediction.Status.PredictionMetrics)
-	// force predict and update the status
+	// predict and update the status
 	if len(warnings) > 0 {
 		klog.V(4).Infof("Check status predict data is out of date. range: %v, key: %v", fmt.Sprintf("[%v, %v]", windowStart, windowEnd), key)
-		predictionStart := time.Now()
+		predictionStart := windowStart
 		// double the time to predict so that crd consumer always see time series range [now, now + PredictionWindowSeconds] in PredictionWindowSeconds window
 		predictionEnd := predictionStart.Add(time.Duration(tsPrediction.Spec.PredictionWindowSeconds) * time.Second * 2)
-
-		predictedData, err := tc.doPredict(tsPrediction, predictionStart, predictionEnd)
+		// doPredict must happen after initFromHistory
+		predictedData, predictErr := tc.doPredict(tsPrediction, predictionStart, predictionEnd)
 		newStatus.PredictionMetrics = predictedData
-		if len(tsPrediction.Spec.PredictionMetrics) != len(predictedData) || err != nil {
-			klog.V(4).Infof("DoPredict predict data is partial, predictedDataLen: %v, key: %v", len(predictedData), key)
-			setCondition(newStatus, predictionapi.TimeSeriesPredictionConditionReady, metav1.ConditionFalse, known.ReasonTimeSeriesPredictPartial, "not all metric predicted")
-			err = tc.UpdateStatus(ctx, tsPrediction, newStatus)
-			if err != nil {
-				// todo
-				return ctrl.Result{}, err
+		if predictErr != nil {
+			klog.V(4).Infof("Warning in Predict, warning: %v, key: %v", predictErr, key)
+			setCondition(newStatus, predictionapi.TimeSeriesPredictionConditionReady, metav1.ConditionFalse, known.ReasonTimeSeriesPredictPartial, predictErr.Error())
+			updateErr := tc.UpdateStatus(ctx, tsPrediction, newStatus)
+			if updateErr != nil {
+				klog.Errorf("Failed to update status for %v, err: %v", key, updateErr)
+				return ctrl.Result{RequeueAfter: tc.UpdatePeriod}, updateErr
 			}
-			return ctrl.Result{RequeueAfter: tc.UpdatePeriod}, err
+			return ctrl.Result{RequeueAfter: maxDuring}, nil
+		}
+		if len(tsPrediction.Spec.PredictionMetrics) != len(predictedData) {
+			klog.V(4).Infof("DoPredict predict data is partial, len(tsPrediction.Spec.PredictionMetrics): %v, predictedDataLen: %v, key: %v, err: %v", len(tsPrediction.Spec.PredictionMetrics), len(predictedData), key, predictErr)
+			setCondition(newStatus, predictionapi.TimeSeriesPredictionConditionReady, metav1.ConditionFalse, known.ReasonTimeSeriesPredictPartial, "not all metric predicted")
+			updateErr := tc.UpdateStatus(ctx, tsPrediction, newStatus)
+			return ctrl.Result{RequeueAfter: maxDuring}, updateErr
 		}
 
 		klog.V(4).Infof("DoPredict predict data is complete, range: %v, key: %v", fmt.Sprintf("[%v, %v]", windowStart, windowEnd), key)
 		// status.conditions.reason in body should be at least 1 chars long
 		setCondition(newStatus, predictionapi.TimeSeriesPredictionConditionReady, metav1.ConditionTrue, known.ReasonTimeSeriesPredictSucceed, "")
 
-		err = tc.UpdateStatus(ctx, tsPrediction, newStatus)
-		if err != nil {
-			// todo: update status failed, then add it again for update?
-			return ctrl.Result{}, err
+		updateErr := tc.UpdateStatus(ctx, tsPrediction, newStatus)
+		if updateErr != nil {
+			klog.Errorf("Failed to update status for %v, err: %v", key, updateErr)
+			return ctrl.Result{RequeueAfter: tc.UpdatePeriod}, updateErr
 		}
-		return ctrl.Result{RequeueAfter: tc.UpdatePeriod}, nil
-
+		// Just finished updating, wait for the next update before reconciling again
+		period, periodErr := tc.getRequeueAfterPeriod(windowEnd, newStatus.PredictionMetrics)
+		if periodErr != nil { // In theory, should not enter here, because the prediction result was just calculated
+			klog.Errorf("Failed to get requeue after period for %v, err: %v", key, periodErr)
+			return ctrl.Result{RequeueAfter: maxDuring}, periodErr
+		}
+		return ctrl.Result{RequeueAfter: period}, nil
 	}
-	return ctrl.Result{RequeueAfter: tc.UpdatePeriod}, nil
+
+	period, periodErr := tc.getRequeueAfterPeriod(windowEnd, tsPrediction.Status.PredictionMetrics)
+	if periodErr != nil { // In theory, should not enter here, because len(warnings) was 0 before
+		klog.Errorf("Failed to get requeue after period for %v, err: %v", key, periodErr)
+		return ctrl.Result{RequeueAfter: maxDuring}, periodErr
+	}
+
+	return ctrl.Result{RequeueAfter: period}, nil
 }
 
 func (tc *Controller) isPredictionDataOutDated(windowStart, windowEnd time.Time, predictionMetricStatus []predictionapi.PredictionMetricStatus) (warnings []string) {
@@ -103,6 +114,25 @@ func (tc *Controller) isPredictionDataOutDated(windowStart, windowEnd time.Time,
 	return warnings
 }
 
+func (tc *Controller) getRequeueAfterPeriod(windowEnd time.Time, predictionMetricStatus []predictionapi.PredictionMetricStatus) (time.Duration, error) {
+	duringInt := int64(math.MaxInt64)
+	endTs := windowEnd.Truncate(1 * time.Second).Unix() // round down to the second
+	for _, predictedData := range predictionMetricStatus {
+		for _, ts := range predictedData.Prediction {
+			maxSampleTs := getMaxSampleTimestamp(ts.Samples)
+			requeueAfterPeriod := maxSampleTs - endTs
+			if requeueAfterPeriod < duringInt {
+				duringInt = requeueAfterPeriod
+			}
+		}
+	}
+	if duringInt < 0 {
+		return 0, fmt.Errorf("no valid requeue after period")
+	}
+	// Add 1s extra to avoid the time point falling exactly on the sample point
+	return time.Duration(duringInt+1) * time.Second, nil
+}
+
 func (tc *Controller) getPredictor(algorithmType predictionapi.AlgorithmType) prediction.Interface {
 	tc.lock.Lock()
 	defer tc.lock.Unlock()
@@ -110,10 +140,16 @@ func (tc *Controller) getPredictor(algorithmType predictionapi.AlgorithmType) pr
 }
 
 func (tc *Controller) doPredict(tsPrediction *predictionapi.TimeSeriesPrediction, start, end time.Time) ([]predictionapi.PredictionMetricStatus, error) {
+	startTime := time.Now()
+	defer func() {
+		klog.V(1).Infof("Finished doPredict [%s] (%v)", tsPrediction.Name, time.Since(startTime))
+	}()
 	var result []predictionapi.PredictionMetricStatus
-	c, err := NewMetricContext(tc.TargetFetcher, tsPrediction, tc.predictorMgr)
-	if err != nil {
-		return nil, err
+	var err error
+	key := GetTimeSeriesPredictionKey(tsPrediction)
+	c, ok := tc.getCachedMetricContext(key)
+	if !ok {
+		return nil, fmt.Errorf("failed to get cached metric context for %v", key)
 	}
 
 	var errs []error
@@ -130,6 +166,7 @@ func (tc *Controller) doPredict(tsPrediction *predictionapi.TimeSeriesPrediction
 		err = predictor.WithQuery(namer, c.GetCaller(), *internalConf)
 		if err != nil {
 			errs = append(errs, err)
+			result = append(result, status)
 			continue
 		}
 		var data []*common.TimeSeries
@@ -137,6 +174,7 @@ func (tc *Controller) doPredict(tsPrediction *predictionapi.TimeSeriesPrediction
 		data, err = predictor.QueryPredictedTimeSeries(context.TODO(), namer, start, end)
 		if err != nil {
 			errs = append(errs, err)
+			result = append(result, status)
 			continue
 		}
 		predictedData := CommonTimeSeries2ApiTimeSeries(data)
@@ -152,9 +190,9 @@ func (tc *Controller) doPredict(tsPrediction *predictionapi.TimeSeriesPrediction
 			err = fmt.Errorf("metric %v no predict data", status.ResourceIdentifier)
 		}
 
-		for i, ts := range status.Prediction {
+		for _, ts := range status.Prediction {
 			if !IsWindowInSamples(start, end, ts.Samples) {
-				err = fmt.Errorf("metric %v, ts %v, predict data is outdated, labels: %+v", status.ResourceIdentifier, i, ts.Labels)
+				err = fmt.Errorf("metric %v, len(ts):%v, ts %v, predict data is outdated, labels: %+v", status.ResourceIdentifier, len(ts.Samples), ts.Samples, ts.Labels)
 			}
 		}
 
@@ -255,7 +293,17 @@ func IsWindowInSamples(start, end time.Time, samples []predictionapi.Sample) boo
 	})
 	// todo: this step param depends on data source or algorithms???
 	//startTs := start.Truncate(1 * time.Minute).Unix()
-	endTs := end.Truncate(1 * time.Minute).Unix()
+	endTs := end.Truncate(1 * time.Second).Unix() // round down to the second
 	// only check the end, start not check, because start is always from now to predict
 	return endTs <= samples[n-1].Timestamp
+}
+
+func getMaxSampleTimestamp(samples []predictionapi.Sample) int64 {
+	maxTs := int64(0)
+	for _, sample := range samples {
+		if sample.Timestamp > maxTs {
+			maxTs = sample.Timestamp
+		}
+	}
+	return maxTs
 }

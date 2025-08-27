@@ -365,6 +365,31 @@ func initControllers(ctx context.Context, oomRecorder oom.Recorder, mgr ctrl.Man
 		if err := tspController.SetupWithManager(mgr, opts.TimeSeriesPredictionMaxConcurrentReconciles); err != nil {
 			klog.Exit(err, "unable to create controller", "controller", "TspController")
 		}
+		// Initialize tspTemplateStore
+		tspTemplateStore := timeseriesprediction.NewTSPTemplateStore()
+
+		// Initialize and start TSP template ConfigMap Controller
+		tspTemplateConfigMapReconciler := &timeseriesprediction.TSPTemplateConfigMapReconciler{
+			Client:        mgr.GetClient(),
+			Scheme:        mgr.GetScheme(),
+			TemplateStore: tspTemplateStore,
+			ConfigMapName: timeseriesprediction.DefaultTSPTemplateConfigMapName,
+			Namespace:     timeseriesprediction.DefaultTSPTemplateConfigMapNamespace,
+		}
+		if err := tspTemplateConfigMapReconciler.SetupWithManager(mgr); err != nil {
+			klog.Exit(err, "unable to create controller", "controller", "TSPTemplateConfigMapReconciler")
+		}
+
+		// Register TimeseriesPredictionRuleController
+		if err := (&timeseriesprediction.TimeSeriesPredictionRuleController{
+			Client:        mgr.GetClient(),
+			Scheme:        mgr.GetScheme(),
+			Recorder:      mgr.GetEventRecorderFor("timeseriespredictionrule-controller"),
+			TargetFetcher: targetSelectorFetcher,
+			TemplateStore: tspTemplateStore,
+		}).SetupWithManager(mgr); err != nil {
+			klog.Exit(err, "unable to create controller", "controller", "TimeseriesPredictionRuleController")
+		}
 	}
 
 	// TODO(qmhu), change feature gate from analysis to recommendation

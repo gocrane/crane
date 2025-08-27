@@ -36,6 +36,9 @@ type Controller struct {
 	// Per tsPredictionMap map stores last observed prediction together with a local time when it was observed.
 	tsPredictionMap sync.Map
 
+	// Cache each tsp's MetricContext, key is namespace/name
+	metricContextMap sync.Map
+
 	lock sync.Mutex
 	// predictors used to do predict and config, maybe the predictor should running as a independent system not as a built-in goroutines evaluator
 	predictorMgr predictormgr.Manager
@@ -49,24 +52,28 @@ func NewController(
 	targetFetcher target.SelectorFetcher,
 ) *Controller {
 	return &Controller{
-		Client:        client,
-		Recorder:      recorder,
-		UpdatePeriod:  updatePeriod,
-		predictorMgr:  predictorMgr,
-		TargetFetcher: targetFetcher,
+		Client:           client,
+		Recorder:         recorder,
+		UpdatePeriod:     updatePeriod,
+		predictorMgr:     predictorMgr,
+		TargetFetcher:    targetFetcher,
+		metricContextMap: sync.Map{}, // 初始化
 	}
 }
 
 // Reconcile reconcile the time series prediction
 func (tc *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	klog.V(4).Infof("Got a time series prediction %v", req.NamespacedName)
-
+	startTime := time.Now()
+	defer func() {
+		klog.V(1).Infof("Finished syncing tsp[%s] (%v)", req.NamespacedName, time.Since(startTime))
+	}()
 	p := &predictionapi.TimeSeriesPrediction{}
 	err := tc.Client.Get(ctx, req.NamespacedName, p)
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			klog.V(4).Infof("Failed to get TimeSeriesPrediction %v err: %v", klog.KObj(p), err)
-			return ctrl.Result{Requeue: true}, err
+			return ctrl.Result{}, err
 		}
 
 		last, ok := tc.tsPredictionMap.Load(req.NamespacedName.String())
@@ -82,7 +89,8 @@ func (tc *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Res
 
 		err := tc.removeTimeSeriesPrediction(tsp)
 		if err != nil {
-			return ctrl.Result{Requeue: true}, err
+			klog.ErrorS(err, "Failed to remove TimeSeriesPrediction", "key", req.NamespacedName.String())
+			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, nil
 	}
@@ -98,55 +106,67 @@ func (tc *Controller) SetupWithManager(mgr ctrl.Manager, maxConcurrentReconciles
 		Complete(tc)
 }
 
+func (tc *Controller) getCachedMetricContext(key string) (*MetricContext, bool) {
+	cached, ok := tc.metricContextMap.Load(key)
+	if !ok {
+		return nil, false
+	}
+	c, _ := cached.(*MetricContext)
+	return c, true
+}
+
 // sync the config to predictor
 func (tc *Controller) syncTimeSeriesPrediction(ctx context.Context, tsp *predictionapi.TimeSeriesPrediction) (ctrl.Result, error) {
 	key := GetTimeSeriesPredictionKey(tsp)
 
-	c, err := NewMetricContext(tc.TargetFetcher, tsp, tc.predictorMgr)
-	if err != nil {
-		klog.ErrorS(err, "Failed to NewMetricContext.")
-		return ctrl.Result{}, err
-	}
-
-	func() {
-		last, ok := tc.tsPredictionMap.Load(key)
-		if !ok { // first time created or system start
-			c.WithApiConfigs(tsp.Spec.PredictionMetrics)
-			return
-		}
-		old, ok := last.(*predictionapi.TimeSeriesPrediction)
-		if !ok {
-			c.WithApiConfigs(tsp.Spec.PredictionMetrics)
-			return
-		}
-		// predictor needs an interface to query the config and then diff.
-		// now just diff the cache in the controller to decide, it can not cover all the cases when users modify the spec
-		for _, oldMetricConf := range old.Spec.PredictionMetrics {
-			if !ExistsPredictionMetric(oldMetricConf, tsp.Spec.PredictionMetrics) {
-				c.DeleteApiConfig(&oldMetricConf)
+	// Prefer to get MetricContext from cache
+	var err error
+	c, ok := tc.getCachedMetricContext(key)
+	if ok {
+		lastTsp, ok := tc.tsPredictionMap.Load(key)
+		if ok { // There is a historical tsp with the same name and namespace, but it may be old
+			old, _ := lastTsp.(*predictionapi.TimeSeriesPrediction)
+			// Check if spec has changed, if so, recreate MetricContext
+			if !equality.Semantic.DeepEqual(old.Spec, tsp.Spec) {
+				klog.V(1).Infof("TimeSeriesPrediction %v spec changed, recreate MetricContext", klog.KObj(tsp))
+				c.DeleteApiConfigs(tsp.Spec.PredictionMetrics) // Delete old config
+				c, err = NewMetricContext(tc.TargetFetcher, tsp, tc.predictorMgr)
+				if err != nil {
+					klog.ErrorS(err, "Failed to NewMetricContext.", "key", key)
+					return ctrl.Result{}, err
+				}
+				c.WithApiConfigs(tsp.Spec.PredictionMetrics)
+				tsp.Status.PredictionMetrics = nil // After spec changes, clear prediction status to force prediction
+				tc.metricContextMap.Store(key, c)
 			}
 		}
-		for _, newMetricConf := range tsp.Spec.PredictionMetrics {
-			c.WithApiConfig(&newMetricConf)
+	} else { // first time created or system start
+		klog.V(1).Infof("Creating new MetricContext for TimeSeriesPrediction %v", klog.KObj(tsp))
+		c, err = NewMetricContext(tc.TargetFetcher, tsp, tc.predictorMgr)
+		if err != nil {
+			klog.ErrorS(err, "Failed to NewMetricContext", "key", key)
+			return ctrl.Result{}, err
 		}
-	}()
+		c.WithApiConfigs(tsp.Spec.PredictionMetrics)
+		tc.metricContextMap.Store(key, c)
+	}
 
 	tc.tsPredictionMap.Store(key, tsp)
 
 	return tc.syncPredictionStatus(ctx, tsp)
-
 }
 
 func (tc *Controller) removeTimeSeriesPrediction(tsp *predictionapi.TimeSeriesPrediction) error {
 	klog.V(4).Infof("TimeSeriesPrediction %v deleted, delete metric config", klog.KObj(tsp))
-	c, err := NewMetricContext(tc.TargetFetcher, tsp, tc.predictorMgr)
-	if err != nil {
-		klog.Errorf("Failed to delete TimeSeriesPrediction %v: %v", klog.KObj(tsp), err)
-		return err
+	key := GetTimeSeriesPredictionKey(tsp)
+	c, ok := tc.getCachedMetricContext(key)
+	if !ok {
+		klog.Errorf("Failed to load cached MetricContext for TimeSeriesPrediction %v", klog.KObj(tsp))
+		return fmt.Errorf("cached MetricContext not found for TimeSeriesPrediction %v", klog.KObj(tsp))
 	}
 	c.DeleteApiConfigs(tsp.Spec.PredictionMetrics)
-	key := GetTimeSeriesPredictionKey(tsp)
 	tc.tsPredictionMap.Delete(key)
+	tc.metricContextMap.Delete(key)
 	return nil
 }
 
