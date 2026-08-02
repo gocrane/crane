@@ -294,9 +294,14 @@ func (s *AnomalyAnalyzer) computeActionContext(aboveThreshold bool, key string, 
 		// only do restore action after trigger x times and restore y times
 		if s.triggered[key] >= uint64(object.AvoidanceThreshold) &&
 			s.restored[key] >= uint64(object.RestoreThreshold) {
-			// reset trigger count when restored
-			s.triggered[key] = 0
-			klog.Warningf("RestoreThreshold %d of %s is triggered, will take restore actions", object.RestoreThreshold, key)
+			// Do NOT reset the counters here: the restore stays pending while the
+			// usage remains below the watermark, so the cool-down period is
+			// re-evaluated on every analysis round until the restore is really
+			// executed. The counters are reset in mergeSchedulingActions once the
+			// restore takes effect (or the rule is triggered again).
+			if restored == uint64(object.RestoreThreshold) {
+				klog.Warningf("RestoreThreshold %d of %s is triggered, will take restore actions after cool down", object.RestoreThreshold, key)
+			}
 			ac.Restored = true
 		} else {
 			// nothing happened
@@ -529,6 +534,8 @@ func (s *AnomalyAnalyzer) mergeSchedulingActions(actionContexts []ecache.ActionC
 		for _, ac := range actionContexts {
 			if ac.Triggered {
 				metrics.UpdateAnalyzerStatus(metrics.AnalyzeTypeEnableScheduling, float64(0))
+				// only a real trigger refreshes the cool-down start time
+				s.lastTriggeredTime = now
 				s.ToggleScheduleSetting(avoidanceExecutor, true)
 				break
 			}
@@ -542,22 +549,46 @@ func (s *AnomalyAnalyzer) mergeSchedulingActions(actionContexts []ecache.ActionC
 				if !now.After(s.lastTriggeredTime.Add(time.Duration(action.Spec.CoolDownSeconds) * time.Second)) {
 					metrics.UpdateAnalyzerStatus(metrics.AnalyzeTypeEnableScheduling, float64(0))
 					s.ToggleScheduleSetting(avoidanceExecutor, true)
+					s.recordRestoreDecision(ac, action, now, false)
 					break
-				} else {
-					metrics.UpdateAnalyzerStatus(metrics.AnalyzeTypeEnableScheduling, float64(1))
-					s.ToggleScheduleSetting(avoidanceExecutor, false)
 				}
+				metrics.UpdateAnalyzerStatus(metrics.AnalyzeTypeEnableScheduling, float64(1))
+				s.recordRestoreDecision(ac, action, now, true)
+				s.ToggleScheduleSetting(avoidanceExecutor, false)
+				// The restore is executed now: reset the detection counters so the
+				// rule stops firing Restored on every round and can be triggered
+				// again by the next interference.
+				key := strings.Join([]string{ac.NodeQOS.Name, ac.RuleName}, ".")
+				delete(s.triggered, key)
+				delete(s.restored, key)
 			}
 		}
 	}
 }
 
 func (s *AnomalyAnalyzer) ToggleScheduleSetting(ae *executor.AvoidanceExecutor, toBeDisable bool) {
-	if toBeDisable {
-		s.lastTriggeredTime = time.Now()
-	}
 	ae.ScheduleExecutor.ToBeDisable = toBeDisable
 	ae.ScheduleExecutor.ToBeRestore = !ae.ScheduleExecutor.ToBeDisable
+}
+
+// recordRestoreDecision emits a single audit line per scheduling decision
+// so the restore path for issue #894 is observable in the wild without
+// the maintainer having to attach a debugger.
+//
+// Note: Crane's contract (per the comment at the top of
+// mergeSchedulingActions) is "any Triggered, or any Restored-in-Cooldown,
+// otherwise enable". The last toggle wins, so the same line is logged
+// for every action context; that is by design.
+func (s *AnomalyAnalyzer) recordRestoreDecision(ac ecache.ActionContext, action *ensuranceapi.AvoidanceAction, now time.Time, decisionToEnable bool) {
+	direction := "disable"
+	if decisionToEnable {
+		direction = "enable"
+	}
+	klog.Infof("scheduling: action=%s rule=%s nodeQOS=%s direction=%s coolDown=%ds lastTriggered=%s now=%s",
+		ac.ActionName, ac.RuleName, ac.NodeQOS.Name, direction,
+		action.Spec.CoolDownSeconds,
+		s.lastTriggeredTime.Format(time.RFC3339Nano),
+		now.Format(time.RFC3339Nano))
 }
 
 // todo to be refactered to deduplicate of two pod lists
