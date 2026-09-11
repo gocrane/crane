@@ -24,6 +24,11 @@ import (
 const (
 	ConfigMapOOMRecordName = "oom-record"
 	ConfigMapDataOOMRecord = "data"
+
+	// maxOOMRecordConfigMapBytes leaves headroom below the Kubernetes 1MiB
+	// per-object size limit so a ConfigMap update never fails with
+	// "Too long: must have at most 1048576 bytes".
+	maxOOMRecordConfigMapBytes = 900 * 1024
 )
 
 type Recorder interface {
@@ -106,7 +111,12 @@ func (r *PodOOMRecorder) GetOOMRecord() ([]OOMRecord, error) {
 		return oomRecords, err
 	}
 
-	return r.cache, nil
+	// Return a copy: callers outside this package range over the result without
+	// holding r.mu, and updateOOMRecord now sorts/trims its saved slice in place
+	// on every write instead of only every 12h, which would otherwise race with them.
+	records := make([]OOMRecord, len(r.cache))
+	copy(records, r.cache)
+	return records, nil
 }
 
 func (r *PodOOMRecorder) Run(stopCh <-chan struct{}) error {
@@ -153,17 +163,67 @@ func (r *PodOOMRecorder) cleanOOMRecords(oomRecords []OOMRecord) []OOMRecord {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if len(oomRecords) > r.OOMRecordMaxNumber {
-		records := oomRecords
-		sort.Slice(records, func(i, j int) bool {
-			return records[i].OOMAt.Before(records[j].OOMAt)
-		})
+	return trimOOMRecordsByCount(oomRecords, r.OOMRecordMaxNumber)
+}
 
-		records = records[len(oomRecords)-r.OOMRecordMaxNumber : len(oomRecords)]
-		oomRecords = records
+// trimOOMRecordsByCount keeps at most maxNumber records, dropping the oldest ones first.
+func trimOOMRecordsByCount(records []OOMRecord, maxNumber int) []OOMRecord {
+	if len(records) <= maxNumber {
+		return records
 	}
 
-	return oomRecords
+	sort.Slice(records, func(i, j int) bool {
+		return records[i].OOMAt.Before(records[j].OOMAt)
+	})
+
+	return records[len(records)-maxNumber:]
+}
+
+// trimOOMRecordsToByteSize drops the oldest records, if needed, until the marshaled
+// records fit within maxBytes. This guarantees the ConfigMap write below never fails
+// with a Kubernetes object-too-large error, even when OOMRecordMaxNumber records don't
+// fit in maxBytes on their own.
+func trimOOMRecordsToByteSize(records []OOMRecord, maxBytes int) ([]OOMRecord, []byte, error) {
+	data, err := json.Marshal(records)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(data) <= maxBytes || len(records) == 0 {
+		return records, data, nil
+	}
+
+	sort.Slice(records, func(i, j int) bool {
+		return records[i].OOMAt.Before(records[j].OOMAt)
+	})
+
+	// Even the single newest record may not fit within maxBytes on its own; keep it
+	// anyway as the best-effort floor so the returned records and marshaled data always
+	// stay in sync (never pair a trimmed record list with the untrimmed, oversized data).
+	newest := records[len(records)-1:]
+	best, err := json.Marshal(newest)
+	if err != nil {
+		return nil, nil, err
+	}
+	bestRecords := newest
+
+	// Binary search for the largest suffix (newest records) that fits within maxBytes.
+	lo, hi := 1, len(records)
+	for lo < hi {
+		mid := (lo + hi + 1) / 2
+		candidate := records[len(records)-mid:]
+		candidateData, err := json.Marshal(candidate)
+		if err != nil {
+			return nil, nil, err
+		}
+		if len(candidateData) <= maxBytes {
+			lo = mid
+			bestRecords, best = candidate, candidateData
+		} else {
+			hi = mid - 1
+		}
+	}
+
+	return bestRecords, best, nil
 }
 
 func (r *PodOOMRecorder) updateOOMRecord(oomRecord OOMRecord, saved []OOMRecord) error {
@@ -193,11 +253,12 @@ func (r *PodOOMRecorder) updateOOMRecord(oomRecord OOMRecord, saved []OOMRecord)
 	}
 
 	if isUpdated {
-		r.cache = saved
-		savedData, err := json.Marshal(saved)
+		saved = trimOOMRecordsByCount(saved, r.OOMRecordMaxNumber)
+		saved, savedData, err := trimOOMRecordsToByteSize(saved, maxOOMRecordConfigMapBytes)
 		if err != nil {
 			return err
 		}
+		r.cache = saved
 
 		configMap := &v1.ConfigMap{}
 		err = r.Client.Get(context.TODO(), types.NamespacedName{Namespace: known.CraneSystemNamespace, Name: ConfigMapOOMRecordName}, configMap)
