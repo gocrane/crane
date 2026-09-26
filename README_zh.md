@@ -35,6 +35,10 @@ Crane 是 [FinOps 基金会](https://www.finops.org/)认证的[云优化方案](
 
 https://user-images.githubusercontent.com/35299017/186680122-d7756b47-06be-44cb-8553-1957eaa3ed45.mp4
 
+**Crane 宣传片**（40 秒 · [English](docs/videos/crane-showreel-en.mp4)）：
+
+<a href="docs/videos/crane-showreel-zh.mp4"><img alt="Crane 宣传片" src="docs/images/crane-showreel-poster-zh.jpg" width="900"/></a>
+
 Crane Dashboard **在线 Demo**: http://dashboard.gocrane.io/
 
 ## Main Features
