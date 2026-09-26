@@ -35,6 +35,10 @@ Crane is a [FinOps Certified Solution](https://www.finops.org/certifications/fin
 
 https://user-images.githubusercontent.com/35299017/186680122-d7756b47-06be-44cb-8553-1957eaa3ed45.mp4
 
+**Crane Showreel** (40s · [中文版](docs/videos/crane-showreel-zh.mp4)):
+
+<a href="docs/videos/crane-showreel-en.mp4"><img alt="Crane Showreel" src="docs/images/crane-showreel-poster-en.jpg" width="900"/></a>
+
 **Live Demo** for Crane Dashboard: http://dashboard.gocrane.io/
 
 ## Main Features
